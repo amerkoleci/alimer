@@ -58,7 +58,7 @@ namespace Alimer
     }
 
     /* Enums */
-    enum class BackendType : uint8_t
+    enum class RHIBackend : uint32_t
     {
         Null,
         Vulkan,
@@ -106,7 +106,7 @@ namespace Alimer
         Count
     };
 
-    enum class ValidationMode : uint8_t
+    enum class RHIValidationMode : uint32_t
     {
         /// No validation is enabled.
         Disabled,
@@ -118,7 +118,7 @@ namespace Alimer
         GPU
     };
 
-    enum class RHIPowerPreference : uint8_t
+    enum class RHIPowerPreference : uint32_t
     {
         Undefined = 0,
         LowPower,
@@ -126,7 +126,7 @@ namespace Alimer
     };
 
     /// Describe the Adapter types
-    enum class AdapterType : uint8_t
+    enum class RHIAdapterType : uint8_t
     {
         /// The device is typically a separate processor connected to the host via an interlink.
         DiscreteGpu,
@@ -191,7 +191,7 @@ namespace Alimer
         ShadingRateSurface,
     };
 
-    enum class BufferUsage : uint32_t
+    enum class RHIBufferUsage : uint32_t
     {
         None = 0,
         /// Supports input assembly access as VertexBuffer.
@@ -200,9 +200,10 @@ namespace Alimer
         Index = 1 << 1,
         /// Supports Constant buffer access.
         Constant = 1 << 2,
+        /// Supports shader read access.
         ShaderRead = 1 << 3,
-        /// Supports shader read and write access.
-        ShaderReadWrite = 1 << 4,
+        /// Supports shader write access.
+        ShaderWrite = 1 << 4,
         /// Supports indirect buffer access for indirect draw/dispatch.
         Indirect = 1 << 5,
         /// Supports ray tracing acceleration structure usage.
@@ -210,7 +211,7 @@ namespace Alimer
         /// Supports predication access for conditional rendering.
         Predication = 1 << 7,
     };
-    ALIMER_ENUM_CLASS_FLAG_OPERATORS(BufferUsage);
+    ALIMER_ENUM_CLASS_FLAG_OPERATORS(RHIBufferUsage);
 
     /// Defines dimension of Texture
     enum class TextureDimension : uint32_t
@@ -540,6 +541,20 @@ namespace Alimer
     };
     ALIMER_ENUM_CLASS_FLAG_OPERATORS(ShaderStages);
 
+    enum class RHICompositeAlphaMode : uint32_t
+    {
+        /// Lets the backend implementation choose the best mode (supported, and with the best performance) between RHICompositeAlphaMode::Opaque or RHICompositeAlphaMode::Inherit.
+        Auto = 0,
+        /// The alpha component of the image is ignored and teated as if it is always 1.0.
+        Opaque,
+        /// The alpha component is respected and non-alpha components are assumed to be already multiplied with the alpha component. For example, (0.5, 0, 0, 0.5) is semi-transparent bright red.
+        Premultiplied,
+        /// The alpha component is respected and non-alpha components are assumed to NOT be already multiplied with the alpha component. For example, (1.0, 0, 0, 0.5) is semi-transparent bright red.
+        Unpremultiplied,
+        /// The handling of the alpha component is unknown to WebGPU and should be handled by the application using system-specific APIs. This mode may be unavailable (for example on Wasm).
+        Inherit,
+    };
+
     enum class PresentMode : uint32_t
     {
         Immediate,
@@ -670,10 +685,9 @@ namespace Alimer
     class ComputePipeline;
     class RenderPipeline;
     class RHISurface;
-    class RHISwapChain;
     class QueryHeap;
     class RHIDevice;
-    class Adapter;
+    class RHIAdapter;
     class RHIFactory;
 
     using RHIBufferRef = SharedPtr<RHIBuffer>;
@@ -685,7 +699,6 @@ namespace Alimer
     using RenderPipelineRef = SharedPtr<RenderPipeline>;
     using QueryHeapRef = SharedPtr<QueryHeap>;
     using RHISurfaceRef = SharedPtr<RHISurface>;
-    using RHISwapChainRef = SharedPtr<RHISwapChain>;
     using RHIDeviceRef = SharedPtr<RHIDevice>;
     using RHIFactoryRef = SharedPtr<RHIFactory>;
 
@@ -721,14 +734,13 @@ namespace Alimer
         float maxDepth;
     };
 
-    struct BufferDesc
+    struct RHIBufferDesc
     {
         const char* label = nullptr;
         uint64_t size = 0u;
-        BufferUsage usage = BufferUsage::None;
+        RHIBufferUsage usage = RHIBufferUsage::None;
         MemoryType memoryType = MemoryType::Private;
-        uint32_t stride = 0; // Needed for StructuredBuffer
-        void* existingHandle = nullptr;
+        //uint32_t stride = 0; // Needed for StructuredBuffer
     };
 
     struct TextureSwizzleChannels
@@ -1030,15 +1042,14 @@ namespace Alimer
         const char* label = nullptr;
     };
 
-    struct RHISwapChainDesc
+    struct RHISurfaceConfig
     {
         const char* label = nullptr;
+        PixelFormat format = PixelFormat::BGRA8UnormSrgb;
         uint32_t width = 0;
         uint32_t height = 0;
-        //TextureUsage usage = TextureUsage::RenderTarget;
-        PixelFormat colorFormat = PixelFormat::BGRA8UnormSrgb;
+        RHICompositeAlphaMode alphaMode = RHICompositeAlphaMode::Auto;
         PresentMode presentMode = PresentMode::Fifo;
-        bool fullscreen = false;
     };
 
     struct RHIDeviceDesc
@@ -1048,8 +1059,8 @@ namespace Alimer
 
     struct RHIFactoryDesc
     {
-        BackendType preferredBackend = BackendType::Count;
-        ValidationMode validationMode = ValidationMode::Disabled;
+        RHIBackend preferredBackend = RHIBackend::Count;
+        RHIValidationMode validationMode = RHIValidationMode::Disabled;
         std::string label;
     };
 
@@ -1136,7 +1147,7 @@ namespace Alimer
         std::string         deviceName;
         uint32_t            vendorID = 0;
         uint32_t            deviceID = 0;
-        AdapterType         adapterType = AdapterType::Other;
+        RHIAdapterType      type = RHIAdapterType::Other;
         std::string         driverDescription;
         uint8_t             uuid[kUUIDSize];
         uint64_t            luid[kLUIDSize];
@@ -1197,21 +1208,19 @@ namespace Alimer
     class ALIMER_API RHIBuffer : public RHIObject
     {
     public:
-        [[nodiscard]] uint64_t GetSize() const { return size; }
-        [[nodiscard]] BufferUsage GetUsage() const { return usage; }
+        [[nodiscard]] uint64_t GetSize() const { return desc.size; }
+        [[nodiscard]] RHIBufferUsage GetUsage() const { return desc.usage; }
         [[nodiscard]] virtual void* GetMappedData() const = 0;
         [[nodiscard]] virtual GPUAddress GetGPUAddress() const = 0;
         [[nodiscard]] virtual BufferStates GetCurrentState() const { return currentState; }
 
     protected:
-        RHIBuffer(const BufferDesc& desc)
-            : size(desc.size)
-            , usage(desc.usage)
+        RHIBuffer(const RHIBufferDesc& desc_)
+            : desc(desc)
         {
         }
 
-        uint64_t size;
-        BufferUsage usage = BufferUsage::None;
+        RHIBufferDesc desc;
         mutable BufferStates currentState = BufferStates::Undefined;
     };
 
@@ -1356,13 +1365,11 @@ namespace Alimer
     };
 
     class ALIMER_API RHISurface : public RHIObject
-    {};
-
-    class ALIMER_API RHISwapChain : public RHIObject
     {
     public:
-        virtual RHISurface* GetSurface() const = 0;
-        virtual PixelFormat GetColorFormat() const = 0;
+        virtual void Configure(RHIDevice* device, const RHISurfaceConfig& config) = 0;
+        virtual void Unconfigure() = 0;
+        virtual void Resize(uint32_t newWidth, uint32_t newHeight) = 0;
     };
 
     struct GPUAllocation
@@ -1497,7 +1504,7 @@ namespace Alimer
         RenderPassEncoder* BeginRenderPass(const RenderPassDesc& desc);
 
         /// Acquires the next available texture for rendering or processing operations and queue's for presentation.
-        virtual RHITexture* AcquireSwapChainTexture(RHISwapChain* swapChain) = 0;
+        virtual RHITexture* AcquireSurfaceTexture(RHISurface* surface) = 0;
 
         virtual void BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation) = 0;
         virtual void EndPredication() = 0;
@@ -1529,7 +1536,7 @@ namespace Alimer
     {
     public:
         /// Returns the API kind that the RHI backend is running on top of.
-        virtual BackendType GetBackend() const = 0;
+        virtual RHIBackend GetBackend() const = 0;
 
         /// Wait for GPU to finish pending operations.
         virtual bool WaitIdle() = 0;
@@ -1537,8 +1544,7 @@ namespace Alimer
         /// Commit the current frame and advance to next frame
         virtual uint64_t CommitFrame() = 0;
 
-        RHIBufferRef CreateBuffer(const BufferDesc& desc, const void* initialData = nullptr);
-        RHIBufferRef CreateBuffer(uint64_t size, BufferUsage usage = BufferUsage::ShaderReadWrite, const void* initialData = nullptr, const char* label = nullptr);
+        RHIBufferRef CreateBuffer(const RHIBufferDesc& desc, const void* initialData = nullptr);
         RHITextureRef CreateTexture(const TextureDescriptor& descriptor, const TextureData* initialData = nullptr);
         RHITextureRef CreateTextureFromNativeHandle(NativeHandle handle, const TextureDescriptor& descriptor);
         SamplerRef CreateSampler(const SamplerDesc& desc);
@@ -1549,13 +1555,11 @@ namespace Alimer
         RenderPipelineRef CreateRenderPipeline(const RenderPipelineDescriptor& descriptor);
         QueryHeapRef CreateQueryHeap(const QueryHeapDescriptor& descriptor);
 
-        RHISwapChainRef CreateSwapChain(RHISurface* surface, const RHISwapChainDesc& desc);
-
         virtual void WriteShadingRateValue(ShadingRate rate, void* dest) const = 0;
 
         virtual CommandBuffer* BeginCommandBuffer(CommandQueueType queue, std::string_view label = "") = 0;
 
-        virtual Adapter* GetAdapter() const = 0;
+        virtual RHIAdapter* GetAdapter() const = 0;
 
         constexpr bool IsDeviceLost() const noexcept { return _deviceLost; }
         constexpr uint64_t GetFrameCount() const noexcept { return _frameCount; }
@@ -1573,7 +1577,7 @@ namespace Alimer
     protected:
         virtual void InitResources();
         virtual bool ValidateTextureDesc(const TextureDescriptor& desc);
-        virtual RHIBufferRef CreateBufferCore(const BufferDesc& desc, const void* initialData) = 0;
+        virtual RHIBufferRef CreateBufferCore(const RHIBufferDesc& desc, NativeHandle nativeHandle, const void* initialData) = 0;
         virtual RHITextureRef CreateTextureCore(const TextureDescriptor& desc, const TextureData* initialData) = 0;
         virtual RHITextureRef CreateTextureFromNativeHandleCore(NativeHandle handle, const TextureDescriptor& desc) = 0;
         virtual SamplerRef CreateSamplerCore(const SamplerDesc& desc) = 0;
@@ -1581,7 +1585,6 @@ namespace Alimer
         virtual ComputePipelineRef CreateComputePipelineCore(const ComputePipelineDescriptor& desc) = 0;
         virtual RenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDescriptor& desc) = 0;
         virtual QueryHeapRef CreateQueryHeapCore(const QueryHeapDescriptor& desc) = 0;
-        virtual RHISwapChainRef CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc) = 0;
 
         RHIDeviceLimits _limits{};
         uint64_t _timestampFrequency = 0;
@@ -1597,49 +1600,55 @@ namespace Alimer
         GpuLinearAllocator _frameAllocators[kNumFramesInFlight];
     };
 
-    class ALIMER_API Adapter
+    class ALIMER_API RHIAdapter
     {
     public:
         virtual RHIDeviceRef CreateDevice(const RHIDeviceDesc& desc) = 0;
 
-        virtual AdapterType GetType() const = 0;
-
         /// Return the physical adapter properties.
-        [[nodiscard]] const AdapterProperties& GetAdapterProperties() const { return properties; }
+        [[nodiscard]] const AdapterProperties& GetProperties() const { return properties; }
 
     protected:
         AdapterProperties properties{};
     };
 
-    ALIMER_API bool IsBackendSupported(BackendType backend);
-    ALIMER_API BackendType GetPlatformPreferredBackend();
-    ALIMER_API bool RHIInit(const RHIFactoryDesc& desc);
-    ALIMER_API void RHIShutdown();
-
-    /** A global pointer to the RHI factory. */
-    extern ALIMER_API RHIFactoryRef GRHIFactory;
-
-    /** A global pointer to the RHI device. */
-    extern ALIMER_API RHIDeviceRef GRHIDevice;
-
     class ALIMER_API RHIFactory : public RHIObject
     {
     public:
         /// Returns the API kind that the RHI backend is running on top of.
-        virtual BackendType GetBackend() const = 0;
+        virtual RHIBackend GetBackend() const = 0;
 
         uint32_t GetAdapterCount() const;
-        Adapter* GetAdapter(uint32_t index) const;
-        Adapter* GetBestAdapter() const;
+        RHIAdapter* GetAdapter(uint32_t index) const;
+        RHIAdapter* GetBestAdapter() const;
 
         virtual RHISurfaceRef CreateSurface(void* window, void* display) = 0;
 
     protected:
-        Vector<Adapter*> _adapters;
+        Vector<RHIAdapter*> _adapters;
     };
 
-    ALIMER_API const std::string ToString(BackendType type);
-    ALIMER_API const std::string ToString(AdapterType type);
+    ALIMER_API bool IsBackendSupported(RHIBackend backend);
+    ALIMER_API RHIBackend GetPlatformPreferredBackend();
+    ALIMER_API RHIFactoryRef RHICreateFactory(const RHIFactoryDesc& desc);
+
+    ALIMER_API RHIBufferRef RHICreateBuffer(RHIDevice* device, uint64_t size, RHIBufferUsage usage = RHIBufferUsage::ShaderRead, const void* initialData = nullptr, const char* label = nullptr);
+    ALIMER_API RHIBufferRef RHICreateBuffer(RHIDevice* device, const RHIBufferDesc& desc, const void* initialData = nullptr);
+
+    template<typename T>
+    RHIBufferRef RHICreateBuffer(RHIDevice* device, _In_reads_(count) const T* data, uint32_t count, RHIBufferUsage usage = RHIBufferUsage::ShaderRead) noexcept
+    {
+        return RHICreateBuffer(device, sizeof(T) * count, usage, data);
+    }
+
+    template<typename T>
+    RHIBufferRef RHICreateBuffer(RHIDevice* device, const T& data, RHIBufferUsage usage = RHIBufferUsage::ShaderRead) noexcept
+    {
+        return RHICreateBuffer(device, data.size() * sizeof(typename T::value_type), usage, data.data());
+    }
+
+    ALIMER_API const std::string ToString(RHIBackend type);
+    ALIMER_API const std::string ToString(RHIAdapterType type);
 
     ALIMER_API AdapterVendor VendorIdToAdapterVendor(uint32_t vendorId);
     ALIMER_API uint32_t AdapterVendorToVendorId(AdapterVendor vendor);

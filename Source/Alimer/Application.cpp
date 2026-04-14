@@ -43,11 +43,11 @@ Application::Application()
 
 Application::~Application()
 {
-    GRHIDevice->WaitIdle();
+    _rhiDevice->WaitIdle();
     gAssets().Shutdown();
 
-    GRHIDevice.Reset();
-    RHIShutdown();
+    _rhiDevice.Reset();
+    _rhiFactory.Reset();
     Log::Shutdown();
     JobSystem::Shutdown();
     PlatformShutdown();
@@ -106,20 +106,21 @@ void Application::InitBeforeRun()
     factoryDesc.preferredBackend = _options.graphics.preferredBackend;
     factoryDesc.validationMode = _options.graphics.validationMode;
     factoryDesc.label = _options.name;
-    if (!RHIInit(factoryDesc))
+    _rhiFactory = RHICreateFactory(factoryDesc);
+    if (!_rhiFactory)
     {
         LOGE("RHI: Failed to initialize");
         _headless = true;
     }
     else
     {
-        _mainWindow->CreateSurface();
-        adapter = GRHIFactory->GetBestAdapter();
+        _mainWindow->CreateSurface(_rhiFactory);
+        _rhiAdapter = _rhiFactory->GetBestAdapter();
         RHIDeviceDesc deviceDesc{
             .label = "Main RHI Device"
         };
-        GRHIDevice = adapter->CreateDevice(deviceDesc);
-        _mainWindow->CreateSwapChain();
+        _rhiDevice = _rhiAdapter->CreateDevice(deviceDesc);
+        _mainWindow->CreateSwapChain(_rhiDevice);
     }
 
     // We're ready, now init.
@@ -145,9 +146,9 @@ void Application::Render()
     // ImGui
     OnGui();
 
-    CommandBuffer* commandBuffer = GRHIDevice->BeginCommandBuffer(CommandQueueType::Graphics, "Frame");
+    CommandBuffer* commandBuffer = _rhiDevice->BeginCommandBuffer(CommandQueueType::Graphics, "Frame");
     //RHITexture* swapChainTexture = _mainWindow->GetSwapChain()->AcquireNextTexture();
-    RHITexture* swapChainTexture = commandBuffer->AcquireSwapChainTexture(_mainWindow->GetSwapChain());
+    RHITexture* swapChainTexture = commandBuffer->AcquireSurfaceTexture(_mainWindow->GetSurface());
     if (swapChainTexture != nullptr)
     {
         Draw(commandBuffer, swapChainTexture);
@@ -164,10 +165,10 @@ void Application::Render()
 
 bool Application::BeginDraw()
 {
-    return !_mainWindow->IsMinimized() && !GRHIDevice->IsDeviceLost();
+    return !_mainWindow->IsMinimized() && !_rhiDevice->IsDeviceLost();
 }
 
 void Application::EndDraw()
 {
-    GRHIDevice->CommitFrame();
+    _rhiDevice->CommitFrame();
 }

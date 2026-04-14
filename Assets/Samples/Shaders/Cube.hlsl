@@ -12,16 +12,20 @@ struct VertexOutput {
     float3 Normal : NORMAL;
     float2 TexCoord : TEXCOORD0;
 };
+
 struct PushData
 {
-    row_major float4x4 worldViewProjection;
+    float4x4 worldMatrix;
+    float4x4 viewProjectionMatrix;
 };
 ALIMER_PUSH_CONSTANTS(PushData);
 
 VertexOutput vertexMain(in VertexInput input)
 {
+    float4 worldPosition = mul(float4(input.Position, 1.0f), push.worldMatrix);
+    
     VertexOutput output;
-    output.Position = mul(float4(input.Position, 1.0f), push.worldViewProjection);
+    output.Position = mul(worldPosition, push.viewProjectionMatrix);
     output.Normal = input.Normal;
     output.TexCoord = input.TexCoord;
     return output;
@@ -30,5 +34,4 @@ VertexOutput vertexMain(in VertexInput input)
 float4 fragmentMain(in VertexOutput input) : SV_TARGET
 {
     return float4(input.Normal, 1.0f);
-
 }

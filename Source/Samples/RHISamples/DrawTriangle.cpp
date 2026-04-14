@@ -34,7 +34,7 @@ void DrawTriangle::Initialize(RHIDevice* device, const UInt2& windowSize, PixelF
             {Vector3(0.5f, -0.5f, 0.f), Colors::Blue}
     };
 
-    _vertexBuffer = device->CreateBuffer(sizeof(vertices), BufferUsage::Vertex, vertices);
+    _vertexBuffer = RHICreateBuffer(device, vertices, 3u, RHIBufferUsage::Vertex);
 
     std::vector<ShaderMacro> macros = {
         { "VARIANT", "0" }

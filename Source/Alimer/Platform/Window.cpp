@@ -8,11 +8,27 @@
 
 using namespace Alimer;
 
+void Window::CreateSwapChain(RHIDevice* device)
+{
+    ALIMER_ASSERT(device);
+
+    UInt2 size = GetSize();
+
+    const RHISurfaceConfig config{
+        .label = "Window SwapChain",
+        .format = _colorFormat,
+        .width = size.x,
+        .height = size.y,
+        .presentMode = PresentMode::Fifo,
+    };
+    _surface->Configure(device, config);
+}
+
 void Window::OnResized()
 {
-    if (_swapChain != nullptr)
+    if (_surface != nullptr)
     {
-        GRHIDevice->WaitIdle();
+        //_swapChain->Resize();
 
         //CreateSwapChain();
     }
@@ -20,24 +36,9 @@ void Window::OnResized()
     Resized.Emit();
 }
 
-void Window::CreateSwapChain()
-{
-    UInt2 size = GetSize();
-
-    const RHISwapChainDesc desc{
-        .label = "Window SwapChain",
-        .width = size.x,
-        .height = size.y,
-        .colorFormat = _colorFormat,
-        .presentMode = PresentMode::Fifo,
-    };
-    _swapChain = GRHIDevice->CreateSwapChain(_surface, desc);
-}
-
 void Window::DestroySwapChain()
 {
-    GRHIDevice->WaitIdle();
-    _swapChain.Reset();
+    _surface.Reset();
 }
 
 float Window::GetAspectRatio() const

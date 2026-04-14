@@ -50,9 +50,7 @@ THE SOFTWARE.
 #include "directx/d3d12shader.h"
 #include "dxcapi.h" // DXC
 
-#ifdef _WIN32
-#include <d3dcompiler.h> // FXC
-#else
+#ifndef _WIN32
 #include <unistd.h>
 #include <limits.h>
 #endif
@@ -79,7 +77,6 @@ namespace fs = filesystem;
 
 enum Platform : uint8_t
 {
-    DXBC,
     DXIL,
     SPIRV,
 
@@ -97,7 +94,7 @@ struct Options
     const char* platformName = nullptr;
     const char* outputDir = nullptr;
     const char* shaderModel = "6_5";
-    const char* vulkanVersion = "1.2";
+    const char* vulkanVersion = "1.3";
     const char* sourceDir = "";
     const char* compiler = nullptr;
     const char* outputExt = nullptr;
@@ -107,7 +104,7 @@ struct Options
     uint32_t uRegShift = 2000;
     uint32_t sRegShift = 3000;
     uint32_t optimizationLevel = 3;
-    Platform platform = DXBC;
+    Platform platform = DXIL;
     bool serial = false;
     bool flatten = false;
     bool force = false;
@@ -122,8 +119,7 @@ struct Options
     bool pdb = false;
     bool embedPdb = false;
     bool stripReflection = false;
-    bool matrixRowMajor = false;
-    bool matrixColumnMajor = false;
+    bool matrixRowMajor = true;
     bool verbose = false;
     bool colorize = false;
     bool useAPI = true;
@@ -272,19 +268,16 @@ uint32_t g_OriginalTaskCount;
 const char* g_OutputExt = nullptr;
 
 static const char* g_PlatformNames[] = {
-    "DXBC",
     "DXIL",
     "SPIRV",
 };
 
 static const char* g_PlatformExts[] = {
-    ".dxbc",
     ".dxil",
     ".spirv",
 };
 
 static const char* g_PlatformSlangTargets[] = {
-    "dxbc",
     "dxil",
     "spirv",
 };
@@ -720,7 +713,7 @@ bool Options::Parse(int32_t argc, const char** argv)
     struct argparse_option options[] = {
         OPT_HELP(),
         OPT_GROUP("Required options:"),
-            OPT_STRING('p', "platform", &platformName, "DXBC, DXIL or SPIRV", nullptr, 0, 0),
+            OPT_STRING('p', "platform", &platformName, "DXIL or SPIRV", nullptr, 0, 0),
             OPT_STRING('c', "config", &config, "Configuration file with the list of shaders to compile", nullptr, 0, 0),
             OPT_STRING('o', "out", &outputDir, "Output directory", nullptr, 0, 0),
             OPT_BOOLEAN('b', "binary", &binary, "Output binary files", nullptr, 0, 0),
@@ -729,7 +722,7 @@ bool Options::Parse(int32_t argc, const char** argv)
             OPT_BOOLEAN('H', "headerBlob", &headerBlob, "Output header blob files", nullptr, 0, 0),
             OPT_STRING(0, "compiler", &compiler, "Path to a FXC/DXC compiler", nullptr, 0, 0),
         OPT_GROUP("Compiler settings:"),
-            OPT_STRING('m', "shaderModel", &shaderModel, "Shader model for DXIL/SPIRV (always SM 5.0 for DXBC)", nullptr, 0, 0),
+            OPT_STRING('m', "shaderModel", &shaderModel, "Shader model for DXIL/SPIRV", nullptr, 0, 0),
             OPT_INTEGER('O', "optimization", &optimizationLevel, "Optimization level 0-3 (default = 3, disabled = 0)", nullptr, 0, 0),
             OPT_BOOLEAN(0, "WX", &warningsAreErrors, "Maps to '-WX' DXC/FXC option: warnings are errors", nullptr, 0, 0),
             OPT_BOOLEAN(0, "allResourcesBound", &allResourcesBound, "Maps to '-all_resources_bound' DXC/FXC option: all resources bound", nullptr, 0, 0),
@@ -737,7 +730,6 @@ bool Options::Parse(int32_t argc, const char** argv)
             OPT_BOOLEAN(0, "embedPDB", &embedPdb, "Embed PDB with the shader binary", nullptr, 0, 0),
             OPT_BOOLEAN(0, "stripReflection", &stripReflection, "Maps to '-Qstrip_reflect' DXC/FXC option: strip reflection information from a shader binary", nullptr, 0, 0),
             OPT_BOOLEAN(0, "matrixRowMajor", &matrixRowMajor, "Maps to '-Zpr' DXC/FXC option: pack matrices in row-major order", nullptr, 0, 0),
-            OPT_BOOLEAN(0, "matrixColumnMajor", &matrixColumnMajor, "Maps to '-Zpc' DXC/FXC option: pack matrices in column-major order", nullptr, 0, 0),
             //OPT_BOOLEAN(0, "hlsl2021", &hlsl2021, "Maps to '-HV 2021' DXC option: enable HLSL 2021 standard", nullptr, 0, 0),
             OPT_STRING(0, "vulkanMemoryLayout", &vulkanMemoryLayout, "Maps to '-fvk-use-<VALUE>-layout' DXC options: dx, gl, scalar", nullptr, 0, 0),
             OPT_STRING('X', "compilerOptions", &unused, "Custom command line options for the compiler, separated by spaces", AddCompilerOptions, (intptr_t)this, 0),
@@ -748,7 +740,7 @@ bool Options::Parse(int32_t argc, const char** argv)
             OPT_BOOLEAN('f', "force", &force, "Treat all source files as modified", nullptr, 0, 0),
             OPT_STRING(0, "sourceDir", &sourceDir, "Source code directory", nullptr, 0, 0),
             OPT_STRING(0, "relaxedInclude", &unused, "Include file(s) not invoking re-compilation", AddRelaxedInclude, (intptr_t)this, 0),
-            OPT_STRING(0, "outputExt", &outputExt, "Extension for output files, default is one of .dxbc, .dxil, .spirv", nullptr, 0, 0),
+            OPT_STRING(0, "outputExt", &outputExt, "Extension for output files, default is one of .dxil, .spirv", nullptr, 0, 0),
             OPT_BOOLEAN(0, "serial", &serial, "Disable multi-threading", nullptr, 0, 0),
             OPT_BOOLEAN(0, "flatten", &flatten, "Flatten source directory structure in the output directory", nullptr, 0, 0),
             OPT_BOOLEAN(0, "continue", &continueOnError, "Continue compilation if an error is occured", nullptr, 0, 0),
@@ -757,7 +749,7 @@ bool Options::Parse(int32_t argc, const char** argv)
             OPT_BOOLEAN(0, "verbose", &verbose, "Print commands before they are executed", nullptr, 0, 0),
             OPT_INTEGER(0, "retryCount", &retryCount, "Retry count for compilation task sub-process failures", nullptr, 0, 0),
         OPT_GROUP("SPIRV options:"),
-            OPT_STRING(0, "vulkanVersion", &vulkanVersion, "Vulkan environment version, maps to '-fspv-target-env' (default = 1.2)", nullptr, 0, 0),
+            OPT_STRING(0, "vulkanVersion", &vulkanVersion, "Vulkan environment version, maps to '-fspv-target-env' (default = 1.3)", nullptr, 0, 0),
             OPT_STRING(0, "spirvExt", &unused, "Maps to '-fspv-extension' option: add SPIR-V extension permitted to use", AddSpirvExtension, (intptr_t)this, 0),
             OPT_INTEGER(0, "bRegShift", &bRegShift, "SPIRV: register shift for constant (b#) resources", nullptr, 0, 0),
             OPT_INTEGER(0, "tRegShift", &tRegShift, "SPIRV: register shift for texture (t#) resources", nullptr, 0, 0),
@@ -768,7 +760,7 @@ bool Options::Parse(int32_t argc, const char** argv)
     };
 
     static const char* usages[] = {
-        "ShaderMake.exe -p {DXBC|DXIL|SPIRV} --binary [--header --blob] -c \"path/to/config\"\n"
+        "ShaderMake.exe -p {DXIL|SPIRV} --binary [--header --blob] -c \"path/to/config\"\n"
         "\t-o \"path/to/output\" --compiler \"path/to/compiler\" [other options]\n"
         "\t-D DEF1 -D DEF2=1 ... -I \"path1\" -I \"path2\" ...",
         nullptr
@@ -860,12 +852,6 @@ bool Options::Parse(int32_t argc, const char** argv)
     {
         Printf(RED "ERROR: Unsupported value '%s' for --vulkanMemoryLayout! Only 'dx', 'gl' and 'scalar' are supported.\n",
             g_Options.vulkanMemoryLayout);
-        return false;
-    }
-
-    if (!g_Options.compilerOptions.empty() && g_Options.useAPI && g_Options.platform == Platform::DXBC)
-    {
-        Printf(RED "ERROR: --compilerOptions is not compatible with '--platform DXBC --useAPI'!\n");
         return false;
     }
 
@@ -1084,124 +1070,6 @@ public:
 private:
     vector<fs::path> includeDirs;
 };
-
-void FxcCompile()
-{
-    static const uint32_t optimizationLevelRemap[] = {
-        D3DCOMPILE_SKIP_OPTIMIZATION,
-        D3DCOMPILE_OPTIMIZATION_LEVEL1,
-        D3DCOMPILE_OPTIMIZATION_LEVEL2,
-        D3DCOMPILE_OPTIMIZATION_LEVEL3,
-    };
-
-    vector<D3D_SHADER_MACRO> optionsDefines;
-    vector<string> tokenizedDefines = g_Options.defines;
-    TokenizeDefineStrings(tokenizedDefines, optionsDefines);
-
-    while (!g_Terminate)
-    {
-        // Getting a task in the current thread
-        TaskData taskData;
-        {
-            lock_guard<mutex> guard(g_TaskMutex);
-            if (g_TaskData.empty())
-                return;
-
-            taskData = g_TaskData.back();
-            g_TaskData.pop_back();
-        }
-
-        // Tokenize DXBC defines
-        vector<D3D_SHADER_MACRO> defines = optionsDefines;
-        // Alimer
-        defines.push_back({ "HLSL5", "1" });
-        TokenizeDefineStrings(taskData.defines, defines);
-        defines.push_back({ nullptr, nullptr });
-
-        // Args
-        uint32_t compilerFlags = (g_Options.pdb ? (D3DCOMPILE_DEBUG | D3DCOMPILE_DEBUG_NAME_FOR_BINARY) : 0) |
-            (g_Options.allResourcesBound ? D3DCOMPILE_ALL_RESOURCES_BOUND : 0) |
-            (g_Options.warningsAreErrors ? D3DCOMPILE_WARNINGS_ARE_ERRORS : 0) |
-            (g_Options.matrixRowMajor ? D3DCOMPILE_PACK_MATRIX_ROW_MAJOR : 0) |
-            (g_Options.matrixColumnMajor ? D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR : 0) |
-            optimizationLevelRemap[taskData.optimizationLevel];
-
-        // Compiling the shader
-        fs::path sourceFile = g_Options.configFile.parent_path() / g_Options.sourceDir / taskData.source;
-
-        FxcIncluder fxcIncluder(sourceFile);
-        string profile = taskData.profile + "_5_0";
-
-        CComPtr<ID3DBlob> codeBlob;
-        CComPtr<ID3DBlob> errorBlob;
-        HRESULT hr = D3DCompileFromFile(
-            sourceFile.wstring().c_str(),
-            defines.data(),
-            &fxcIncluder,
-            taskData.entryPoint.c_str(),
-            profile.c_str(),
-            compilerFlags, 0,
-            &codeBlob,
-            &errorBlob);
-
-        bool isSucceeded = SUCCEEDED(hr) && codeBlob;
-
-        if (g_Terminate)
-            break;
-
-        // Dump PDB
-        if (isSucceeded && g_Options.pdb)
-        {
-            // Retrieve the debug info part of the shader
-            CComPtr<ID3DBlob> pdb;
-            D3DGetBlobPart(codeBlob->GetBufferPointer(), codeBlob->GetBufferSize(), D3D_BLOB_PDB, 0, &pdb);
-
-            // Retrieve the suggested name for the debug data file
-            CComPtr<ID3DBlob> pdbName;
-            D3DGetBlobPart(codeBlob->GetBufferPointer(), codeBlob->GetBufferSize(), D3D_BLOB_DEBUG_NAME, 0, &pdbName);
-
-            // This struct represents the first four bytes of the name blob
-            struct ShaderDebugName
-            {
-                uint16_t Flags;       // Reserved, must be set to zero
-                uint16_t NameLength;  // Length of the debug name, without null terminator
-                // Followed by NameLength bytes of the UTF-8-encoded name
-                // Followed by a null terminator
-                // Followed by [0-3] zero bytes to align to a 4-byte boundary
-            };
-
-            auto pDebugNameData = (const ShaderDebugName*)(pdbName->GetBufferPointer());
-            auto pName = (const char*)(pDebugNameData + 1);
-
-            string file = fs::path(taskData.outputFileWithoutExt).parent_path().string() + "/" + PDB_DIR + "/" + pName;
-            FILE* fp = fopen(file.c_str(), "wb");
-            if (fp)
-            {
-                fwrite(pdb->GetBufferPointer(), pdb->GetBufferSize(), 1, fp);
-                fclose(fp);
-            }
-        }
-
-        // Strip reflection
-        CComPtr<ID3DBlob> strippedBlob;
-        if (g_Options.stripReflection && isSucceeded)
-        {
-            D3DStripShader(codeBlob->GetBufferPointer(), codeBlob->GetBufferSize(), D3DCOMPILER_STRIP_REFLECTION_DATA | D3DCOMPILER_STRIP_DEBUG_INFO, &strippedBlob);
-            codeBlob = strippedBlob;
-        }
-
-        // Dump output
-        if (isSucceeded)
-            DumpShader(taskData, (uint8_t*)codeBlob->GetBufferPointer(), codeBlob->GetBufferSize());
-
-        // Update progress
-        UpdateProgress(taskData, isSucceeded, false, errorBlob ? (char*)errorBlob->GetBufferPointer() : nullptr);
-
-        // Terminate if this shader failed and "--continue" is not set
-        if (g_Terminate)
-            break;
-    }
-}
 
 struct InternalState_DXC
 {
@@ -1437,7 +1305,7 @@ void DxcCompile()
 
             if (g_Options.matrixRowMajor)
                 args.push_back(DXC_ARG_PACK_MATRIX_ROW_MAJOR);
-            else if (g_Options.matrixColumnMajor)
+            else 
                 args.push_back(DXC_ARG_PACK_MATRIX_COLUMN_MAJOR);
 
             // DX Compiler release for August 2023.
@@ -1478,6 +1346,13 @@ void DxcCompile()
 
                 for (const wstring& arg : regShifts)
                     args.push_back(arg);
+
+                // Requires VK_EXT_mutable_descriptor_type (36.25% coverage)
+                // -fvk-bind-sampler-heap <binding> <set>
+                // -fvk-bind-resource-heap <binding> <set>
+                // -fvk-bind-counter-heap <binding> <set>:
+                //arguments.Add("-fvk-bind-sampler-heap");
+                //arguments.Add("-fvk-bind-resource-heap");
             }
             else // Not supported by SPIRV gen
             {
@@ -1807,10 +1682,7 @@ void ExeCompile()
 
                 // Profile
                 string profile = taskData.profile + "_";
-                if (g_Options.platform == DXBC)
-                    profile += "5_0";
-                else
-                    profile += g_Options.shaderModel;
+                profile += g_Options.shaderModel;
                 cmd << " -T " << profile;
 
                 // Entry point
@@ -1831,7 +1703,7 @@ void ExeCompile()
                 cmd << optimizationLevelRemap[taskData.optimizationLevel];
 
                 uint32_t shaderModelIndex = (g_Options.shaderModel[0] - '0') * 10 + (g_Options.shaderModel[2] - '0');
-                if (g_Options.platform != DXBC && shaderModelIndex >= 62)
+                if (shaderModelIndex >= 62)
                     cmd << " -enable-16bit-types";
 
                 if (g_Options.warningsAreErrors)
@@ -1842,7 +1714,7 @@ void ExeCompile()
 
                 if (g_Options.matrixRowMajor)
                     cmd << " -Zpr";
-                else if (g_Options.matrixColumnMajor)
+                else
                     cmd << " -Zpc";
 
                 // DX Compiler release for August 2023.
@@ -2074,10 +1946,7 @@ bool ProcessConfigLine(uint32_t lineIndex, const string& line, const fs::file_ti
         return false;
     }
 
-    // DXBC: skip unsupported profiles
     string profile = configLine.profile;
-    if (g_Options.platform == DXBC && (profile == "lib" || profile == "ms" || profile == "as"))
-        return true;
 
     // Concatenate define strings, i.e. to get something, like: "A=1 B=0 C"
     string combinedDefines = "";
@@ -2395,9 +2264,6 @@ int32_t main(int32_t argc, const char** argv)
                 case SPIRV:
                     dllName = "dxcompiler.dll";
                     break;
-                case DXBC:
-                    dllName = "d3dcompiler_47.dll";
-                    break;
                 default:
                     break;
             }
@@ -2493,8 +2359,6 @@ int32_t main(int32_t argc, const char** argv)
             if (!g_Options.useAPI)
                 threads[i] = thread(ExeCompile);
 #ifdef WIN32
-            else if (g_Options.platform == DXBC)
-                threads[i] = thread(FxcCompile);
             else
                 threads[i] = thread(DxcCompile);
 #endif

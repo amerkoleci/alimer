@@ -24,11 +24,11 @@ namespace Alimer
 
     struct GraphicsOptions final
     {
-        BackendType preferredBackend = BackendType::Count;
+        RHIBackend preferredBackend = RHIBackend::Count;
 #if defined(_DEBUG)
-        ValidationMode validationMode = ValidationMode::Enabled;
+        RHIValidationMode validationMode = RHIValidationMode::Enabled;
 #else
-        ValidationMode validationMode = ValidationMode::Disabled;
+        RHIValidationMode validationMode = RHIValidationMode::Disabled;
 #endif
         //AdapterType adapterType = AdapterType::Auto;
     };
@@ -85,6 +85,9 @@ namespace Alimer
         /// Gets the main window.
         [[nodiscard]] Window* GetMainWindow() const { return _mainWindow.get(); }
 
+        /// Gets the main RHIDevice.
+        [[nodiscard]] RHIDevice* GetRHIDevice() const { return _rhiDevice.Get(); }
+
         /// Gets the main Scene.
         //[[nodiscard]] Scene* GetScene() const { return _scene.Get(); }
 
@@ -109,6 +112,8 @@ namespace Alimer
         bool _isActive{ false };
         bool _headless{ false };
         Timer _timer;
+        RHIAdapter* _rhiAdapter = nullptr;
+        RHIDeviceRef _rhiDevice;
 
     private:
         /* Platform App implementations */
@@ -122,7 +127,7 @@ namespace Alimer
         void Render();
 
         static Application* s_Instance;
-        Adapter* adapter = nullptr;
         std::unique_ptr<Window> _mainWindow;
+        RHIFactoryRef _rhiFactory;
     };
 }

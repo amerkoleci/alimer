@@ -52,7 +52,7 @@ void DrawSpinningCube::Initialize(RHIDevice* device, const UInt2& windowSize, Pi
     Vector3 tsize = size / 2.0f;
 
     std::vector<VertexPositionNormalTexture> vertices;
-    std::vector<uint32_t> indices;
+    std::vector<uint16_t> indices;
 
     // Create each face in turn.
     for (uint32_t i = 0; i < FaceCount; i++)
@@ -67,13 +67,13 @@ void DrawSpinningCube::Initialize(RHIDevice* device, const UInt2& windowSize, Pi
 
         // Six indices (two triangles) per face.
         uint32_t vbase = (uint32_t)vertices.size();
-        indices.push_back(vbase + 0);
-        indices.push_back(vbase + 2);
-        indices.push_back(vbase + 1);
+        indices.push_back((uint16_t)vbase + 0);
+        indices.push_back((uint16_t)vbase + 2);
+        indices.push_back((uint16_t)vbase + 1);
 
-        indices.push_back(vbase + 0);
-        indices.push_back(vbase + 3);
-        indices.push_back(vbase + 2);
+        indices.push_back((uint16_t)vbase + 0);
+        indices.push_back((uint16_t)vbase + 3);
+        indices.push_back((uint16_t)vbase + 2);
 
         // Four vertices per face.
         // (normal - side1 - side2) * tsize // normal // t0
@@ -89,8 +89,8 @@ void DrawSpinningCube::Initialize(RHIDevice* device, const UInt2& windowSize, Pi
         vertices.push_back(VertexPositionNormalTexture(Vector3::Multiply(Vector3::Subtract(Vector3::Add(normal, side1), side2), tsize), normal, textureCoordinates[3]));
     }
 
-    _vertexBuffer = device->CreateBuffer(vertices.size() * sizeof(VertexPositionNormalTexture), BufferUsage::Vertex, vertices.data());
-    _indexBuffer = device->CreateBuffer(indices.size() * sizeof(uint16_t), BufferUsage::Index, indices.data());
+    _vertexBuffer = RHICreateBuffer(device, vertices, RHIBufferUsage::Vertex);
+    _indexBuffer = RHICreateBuffer(device, indices, RHIBufferUsage::Index);
 
     ShaderModuleRef vertexShader = RHILoadShader(device, ShaderStages::Vertex, "Cube");
     ShaderModuleRef fragmentShader = RHILoadShader(device, ShaderStages::Fragment, "Cube");
@@ -164,12 +164,13 @@ void DrawSpinningCube::Draw(CommandBuffer* commandBuffer, RHITexture* outputText
     renderPass->SetVertexBuffer(0, _vertexBuffer.Get());
     renderPass->SetIndexBuffer(_indexBuffer.Get(), 0, IndexFormat::Uint16);
 
-
-    struct PushData
+    struct alignas(16) PushData
     {
-        Matrix4x4 worldViewProjection;
+        float4x4 worldMatrix;
+        float4x4 viewProjectionMatrix;
     } pushData;
-    pushData.worldViewProjection = worldMatrix * viewProjectionMatrix;
+    pushData.worldMatrix = worldMatrix;
+    pushData.viewProjectionMatrix = viewProjectionMatrix;
 
     renderPass->SetPushConstants(pushData);
     renderPass->DrawIndexed(36);

@@ -182,9 +182,9 @@ namespace Alimer
         const uint64_t freeSpace = bufferSize - allocator.offset;
         if (size > freeSpace)
         {
-            BufferDesc bufferDesc;
+            RHIBufferDesc bufferDesc;
             bufferDesc.size = AlignUp((bufferSize + size) * 2, alignment);
-            bufferDesc.usage = BufferUsage::Vertex | BufferUsage::Index | BufferUsage::Constant | BufferUsage::ShaderRead;
+            bufferDesc.usage = RHIBufferUsage::Vertex | RHIBufferUsage::Index | RHIBufferUsage::Constant | RHIBufferUsage::ShaderRead;
             bufferDesc.memoryType = MemoryType::Upload;
 
             allocator.buffer = device->CreateBuffer(bufferDesc);
@@ -243,7 +243,7 @@ namespace Alimer
     void ComputePassEncoder::DispatchIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
 #if defined(_DEBUG)
-        if (!CheckBitsAny(indirectBuffer->GetUsage(), BufferUsage::Indirect))
+        if (!CheckBitsAny(indirectBuffer->GetUsage(), RHIBufferUsage::Indirect))
         {
             LOGE("DispatchIndirect: indirectBuffer parameter must have been created with Indirect buffer usage");
             return;
@@ -294,7 +294,6 @@ namespace Alimer
 
 #if defined(ALIMER_RHI_VULKAN)
     extern bool Vulkan_IsSupported();
-    extern Vector<Adapter*> Vulkan_InitAdapters();
     extern RHIFactoryRef Vulkan_CreateFactory(const RHIFactoryDesc& desc);
 #endif
 
@@ -308,7 +307,7 @@ namespace Alimer
     extern RHIFactoryRef Metal_CreateFactory(const FactoryDescriptor& desc);
 #endif
 
-    RHIBufferRef RHIDevice::CreateBuffer(const BufferDesc& desc, const void* initialData)
+    RHIBufferRef RHIDevice::CreateBuffer(const RHIBufferDesc& desc, const void* initialData)
     {
         if (desc.size > _limits.maxBufferSize)
         {
@@ -316,22 +315,8 @@ namespace Alimer
             return nullptr;
         }
 
-        return CreateBufferCore(desc, initialData);
-    }
-
-    RHIBufferRef RHIDevice::CreateBuffer(uint64_t size, BufferUsage usage, const void* initialData, const char* label)
-    {
-        if (size > _limits.maxBufferSize)
-        {
-            LOGE("Buffer size too large: {}, limit: {}", size, _limits.maxBufferSize);
-            return nullptr;
-        }
-
-        BufferDesc bufferDesc{};
-        bufferDesc.label = label;
-        bufferDesc.size = size;
-        bufferDesc.usage = usage;
-        return CreateBufferCore(bufferDesc, initialData);
+        NativeHandle handle(nullptr);
+        return CreateBufferCore(desc, handle, initialData);
     }
 
     void RHIDevice::InitResources()
@@ -568,134 +553,26 @@ namespace Alimer
         return CreateQueryHeapCore(descriptor);
     }
 
-    RHISwapChainRef RHIDevice::CreateSwapChain(RHISurface* surface, const RHISwapChainDesc& desc)
-    {
-        ALIMER_ASSERT(surface);
-
-        return CreateSwapChainCore(surface, desc);
-    }
-
     /* RHIFactory */
-    RHIFactoryRef GRHIFactory = nullptr;
-    RHIDeviceRef GRHIDevice = nullptr;
-
-    bool IsBackendSupported(BackendType backend)
+    uint32_t RHIFactory::GetAdapterCount() const
     {
-        switch (backend)
-        {
-#if defined(ALIMER_RHI_D3D12)&& defined(TODO)
-            case BackendType::D3D12:
-                return D3D12_IsSupported();
-#endif
-
-#if defined(ALIMER_RHI_VULKAN)
-            case BackendType::Vulkan:
-                return Vulkan_IsSupported();
-#endif
-
-#if defined(ALIMER_RHI_METAL)
-            case BackendType::Metal:
-                return false;
-#endif
-
-            default:
-                return false;
-        }
+        return (uint32_t)_adapters.size();
     }
 
-    BackendType GetPlatformPreferredBackend()
+    RHIAdapter* RHIFactory::GetAdapter(uint32_t index) const
     {
-#if defined(ALIMER_RHI_D3D12)&& defined(TODO)
-        if (D3D12_IsSupported())
-        {
-            return BackendType::D3D12;
-        }
-#endif
-#if defined(ALIMER_RHI_VULKAN)
-        if (Vulkan_IsSupported())
-        {
-            return BackendType::Vulkan;
-        }
-#endif
-#if defined(ALIMER_RHI_METAL)
-        if (Metal_IsSupported())
-        {
-            return BackendType::Metal;
-        }
-#endif
-
-        return BackendType::Null;
+        ALIMER_ASSERT(index < _adapters.size());
+        return _adapters[index];
     }
 
-    bool RHIInit(const RHIFactoryDesc& desc)
+    RHIAdapter* RHIFactory::GetBestAdapter() const
     {
-        if (GRHIFactory)
-            return true;
-
-        BackendType backend = desc.preferredBackend;
-        if (backend == BackendType::Count)
-        {
-            backend = GetPlatformPreferredBackend();
-        }
-
-        RHIFactoryRef factory;
-        switch (backend)
-        {
-#if defined(ALIMER_RHI_D3D12) && defined(TODO)
-            case RHIBackendType::D3D12:
-                if (D3D12_IsSupported())
-                {
-                    factory = D3D12_CreateDevice(appName, desc);
-                }
-                else
-                {
-                    LOGF("Direct3D12 is not supported on current OS");
-                    return false;
-                }
-                break;
-#endif
-
-#if defined(ALIMER_RHI_VULKAN)
-            case BackendType::Vulkan:
-                if (Vulkan_IsSupported())
-                {
-                    factory = Vulkan_CreateFactory(desc);
-                }
-                else
-                {
-                    LOGF("Vulkan is not supported on current OS");
-                    return false;
-                }
-                break;
-#endif
-
-            default:
-                ALIMER_UNREACHABLE();
-                break;
-        }
-
-        if (factory == nullptr)
-        {
-            return false;
-        }
-
-        GRHIFactory = factory;
-        return true;
-    }
-
-    void RHIShutdown()
-    {
-        GRHIFactory.Reset();
-    }
-
-    Adapter* RHIFactory::GetBestAdapter() const
-    {
-        Adapter* adapter = nullptr;
-        uint32_t kind = (uint32_t)AdapterType::Other + 1;
+        RHIAdapter* adapter = nullptr;
+        uint32_t kind = (uint32_t)RHIAdapterType::Other + 1;
         for (size_t i = 0, count = _adapters.size(); i < count; ++i)
         {
-            Adapter* item = _adapters[i];
-            AdapterType type = item->GetType();
+            RHIAdapter* item = _adapters[i];
+            RHIAdapterType type = item->GetProperties().type;
 
             if ((uint32_t)type < kind)
             {
@@ -707,38 +584,141 @@ namespace Alimer
         return adapter;
     }
 
-    uint32_t RHIFactory::GetAdapterCount() const
+    /* Global methods */
+    bool IsBackendSupported(RHIBackend backend)
     {
-        return (uint32_t)_adapters.size();
-    }
-
-    Adapter* RHIFactory::GetAdapter(uint32_t index) const
-    {
-        ALIMER_ASSERT(index < _adapters.size());
-        return _adapters[index];
-    }
-
-    const std::string ToString(BackendType type)
-    {
-        switch (type)
+        switch (backend)
         {
-            case BackendType::Null:         return "Null";
-            case BackendType::Vulkan:       return "Vulkan";
-            case BackendType::D3D12:        return "D3D12";
-            case BackendType::Metal:        return "Metal";
-            default:                        return "<UNKNOWN>";
+#if defined(ALIMER_RHI_D3D12)&& defined(TODO)
+            case RHIBackend::D3D12:
+                return D3D12_IsSupported();
+#endif
+
+#if defined(ALIMER_RHI_VULKAN)
+            case RHIBackend::Vulkan:
+                return Vulkan_IsSupported();
+#endif
+
+#if defined(ALIMER_RHI_METAL)
+            case RHIBackend::Metal:
+                return false;
+#endif
+
+            default:
+                return false;
         }
     }
 
-    const std::string ToString(AdapterType type)
+    RHIBackend GetPlatformPreferredBackend()
+    {
+#if defined(ALIMER_RHI_D3D12)&& defined(TODO)
+        if (D3D12_IsSupported())
+        {
+            return RHIBackend::D3D12;
+        }
+#endif
+#if defined(ALIMER_RHI_VULKAN)
+        if (Vulkan_IsSupported())
+        {
+            return RHIBackend::Vulkan;
+        }
+#endif
+#if defined(ALIMER_RHI_METAL)
+        if (Metal_IsSupported())
+        {
+            return RHIBackend::Metal;
+        }
+#endif
+
+        return RHIBackend::Null;
+    }
+
+    RHIFactoryRef RHICreateFactory(const RHIFactoryDesc& desc)
+    {
+        RHIBackend backend = desc.preferredBackend;
+        if (backend == RHIBackend::Count)
+        {
+            backend = GetPlatformPreferredBackend();
+        }
+
+        RHIFactoryRef factory;
+        switch (backend)
+        {
+#if defined(ALIMER_RHI_D3D12) && defined(TODO)
+            case RHIBackend::D3D12:
+                if (D3D12_IsSupported())
+                {
+                    factory = D3D12_CreateDevice(appName, desc);
+                }
+                else
+                {
+                    LOGF("Direct3D12 is not supported on current OS");
+                    return nullptr;
+                }
+                break;
+#endif
+
+#if defined(ALIMER_RHI_VULKAN)
+            case RHIBackend::Vulkan:
+                if (Vulkan_IsSupported())
+                {
+                    factory = Vulkan_CreateFactory(desc);
+                }
+                else
+                {
+                    LOGF("Vulkan is not supported on current OS");
+                    return nullptr;
+                }
+                break;
+#endif
+
+            default:
+                ALIMER_UNREACHABLE();
+                break;
+        }
+
+        return factory;
+    }
+
+    RHIBufferRef RHICreateBuffer(RHIDevice* device, uint64_t size, RHIBufferUsage usage, const void* initialData, const char* label)
+    {
+        ALIMER_ASSERT(device);
+
+        RHIBufferDesc bufferDesc{};
+        bufferDesc.label = label;
+        bufferDesc.size = size;
+        bufferDesc.usage = usage;
+        return device->CreateBuffer(bufferDesc, initialData);
+    }
+
+    RHIBufferRef RHICreateBuffer(RHIDevice* device, const RHIBufferDesc& desc, const void* initialData)
+    {
+        ALIMER_ASSERT(device);
+
+        return device->CreateBuffer(desc, initialData);
+    }
+
+    const std::string ToString(RHIBackend type)
     {
         switch (type)
         {
-            case AdapterType::IntegratedGpu:     return "IntegratedGpu";
-            case AdapterType::DiscreteGpu:       return "DiscreteGpu";
-            case AdapterType::VirtualGpu:        return "VirtualGpu";
-            case AdapterType::Cpu:               return "Cpu";
-            default:                            return "Other";
+            case RHIBackend::Null:      return "Null";
+            case RHIBackend::Vulkan:    return "Vulkan";
+            case RHIBackend::D3D12:     return "D3D12";
+            case RHIBackend::Metal:     return "Metal";
+            default:                    return "<UNKNOWN>";
+        }
+    }
+
+    const std::string ToString(RHIAdapterType type)
+    {
+        switch (type)
+        {
+            case RHIAdapterType::IntegratedGpu:     return "IntegratedGpu";
+            case RHIAdapterType::DiscreteGpu:       return "DiscreteGpu";
+            case RHIAdapterType::VirtualGpu:        return "VirtualGpu";
+            case RHIAdapterType::Cpu:               return "Cpu";
+            default:                                return "Other";
         }
     }
 
@@ -917,7 +897,7 @@ namespace Alimer
     {
         bool dxil = false;
         std::string shaderExt = ".bin";
-        if (device->GetBackend() == BackendType::D3D12)
+        if (device->GetBackend() == RHIBackend::D3D12)
         {
             dxil = true;
         }

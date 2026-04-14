@@ -28,10 +28,9 @@ RHISamplesApp::~RHISamplesApp()
 void RHISamplesApp::Setup()
 {
     _options.name = "RHI Samples";
-    //_options.graphics.preferredApi = GraphicsAPI::Vulkan;
-    //settings.graphics.preferredApi = GraphicsAPI::WGPU;
+    //_options.graphics.preferredBackend = RHIBackend::Vulkan;
 #if defined(_DEBUG)
-    //_options.graphics.validationMode = ValidationMode::Enabled;
+    _options.graphics.validationMode = RHIValidationMode::Enabled;
 #endif
 }
 
@@ -43,7 +42,7 @@ void RHISamplesApp::Initialize()
     _runningSample = new DrawIndexedQuad();
     //_runningSample = new DrawSpinningCube();
 
-    _runningSample->Initialize(GRHIDevice,
+    _runningSample->Initialize(_rhiDevice,
         GetMainWindow()->GetSizeInPixels(),
         GetMainWindow()->GetColorFormat(),
         depthStencilFormat);

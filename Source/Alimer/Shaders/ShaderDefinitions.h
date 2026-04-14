@@ -45,7 +45,7 @@ struct DrawIndexedIndirectCommand
     uint32_t indexCount;
     uint32_t instanceCount;
     uint32_t firstIndex;
-    int  baseVertex;
+    int32_t  baseVertex;
     uint32_t firstInstance;
 };
 

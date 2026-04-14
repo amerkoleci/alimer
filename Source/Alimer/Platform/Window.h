@@ -66,15 +66,16 @@ namespace Alimer
         void SetFullscreen(bool value);
         void SetCursorVisible(bool value);
 
+        /// Creates a SwapChain using the provided RHIDevice
+        void CreateSwapChain(RHIDevice* device);
+
         [[nodiscard]] WindowImpl* GetImpl() const noexcept { return _impl; }
         [[nodiscard]] RHISurface* GetSurface() const noexcept { return _surface.Get(); }
-        [[nodiscard]] RHISwapChain* GetSwapChain() const noexcept { return _swapChain.Get(); }
         PixelFormat GetColorFormat() const noexcept { return _colorFormat; }
 
     private:
         /* Called by Application */
-        void CreateSurface();
-        void CreateSwapChain();
+        void CreateSurface(RHIFactory* factory);
         void DestroySwapChain();
         void OnResized();
 
@@ -83,6 +84,5 @@ namespace Alimer
         std::string _title;
         PixelFormat _colorFormat = PixelFormat::BGRA8UnormSrgb;
         RHISurfaceRef _surface;
-        RHISwapChainRef _swapChain;
     };
 }

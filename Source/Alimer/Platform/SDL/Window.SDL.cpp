@@ -196,19 +196,19 @@ void Window::SetCursorVisible(bool value)
 }
 
 
-void Window::CreateSurface()
+void Window::CreateSurface(RHIFactory* factory)
 {
     [[maybe_unused]] SDL_PropertiesID properties = SDL_GetWindowProperties(_impl->handle);
 
 #if defined(SDL_PLATFORM_WIN32)
     void* hwnd = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
-    _surface = GRHIFactory->CreateSurface(hwnd, nullptr);
+    _surface = factory->CreateSurface(hwnd, nullptr);
 #elif defined(SDL_PLATFORM_MACOS)
     void* layer = SDL_Metal_GetLayer(_impl->view);
-    _surface = GRHIFactory->CreateSurface(layer, nullptr);
+    _surface = factory->CreateSurface(layer, nullptr);
 #elif defined(SDL_PLATFORM_ANDROID)
     void* window = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, nullptr);
-    _surface = GRHIFactory->CreateSurface(window, nullptr);
+    _surface = factory->CreateSurface(window, nullptr);
 #elif defined(SDL_PLATFORM_LINUX)
     if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "x11") == 0)
     {
@@ -224,7 +224,7 @@ void Window::CreateSurface()
         struct wl_surface* surface = (struct wl_surface*)SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr);
         if (display && surface)
         {
-            _surface = GRHIFactory->CreateSurface(surface, display);
+            _surface = factory->CreateSurface(surface, display);
         }
     }
 #endif

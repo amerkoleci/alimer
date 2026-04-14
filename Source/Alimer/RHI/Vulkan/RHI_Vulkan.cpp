@@ -948,8 +948,8 @@ namespace Alimer
 
     /* Forward vulkan type declarations */
     class VulkanDevice;
-    class VulkanRHIAdapter;
-    class VulkanRHIFactory;
+    class VulkanAdapter;
+    class VulkanFactory;
 
     struct VulkanBuffer final : public RHIBuffer
     {
@@ -969,7 +969,7 @@ namespace Alimer
         int sharedHandle = 0;
 #endif
 
-        explicit VulkanBuffer(VulkanDevice* device_, const BufferDesc& desc_)
+        explicit VulkanBuffer(VulkanDevice* device_, const RHIBufferDesc& desc_)
             : RHIBuffer(desc_)
             , device(device_)
         {
@@ -1096,37 +1096,38 @@ namespace Alimer
         QueryType GetType() const override { return desc.type; }
     };
 
-    struct VulkanRHISurface final : public RHISurface
+    struct VulkanSurface final : public RHISurface
     {
-        VulkanRHIFactory* factory = nullptr;
-        VkSurfaceKHR handle = VK_NULL_HANDLE;
-
-        ~VulkanRHISurface() override;
-    };
-
-    struct VulkanSwapChain final : public RHISwapChain
-    {
-        VulkanDevice* device = nullptr;
         std::mutex locker;
-
-        SharedPtr<VulkanRHISurface> surface;
+        SharedPtr<VulkanDevice> device;
+        //VulkanDevice* device = nullptr;
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
         VkSwapchainKHR handle = VK_NULL_HANDLE;
 
+        bool configured = false;
         uint32_t imageIndex = 0;
         VkExtent2D extent{};
         uint32_t queuePresentSupport = 0;
+        RHISurfaceConfig config{};
         PixelFormat colorFormat = PixelFormat::Undefined;
-        PresentMode presentMode = PresentMode::Immediate;
+        TextureUsage usage = TextureUsage::None;
+        RHICompositeAlphaMode alphaMode = RHICompositeAlphaMode::Auto;
+        PresentMode presentMode = PresentMode::Fifo;
         std::vector<SharedPtr<VulkanTexture>> backbufferTextures;
         size_t acquireSemaphoreIndex = 0;
         std::vector<VkSemaphore> acquireSemaphores;
         std::vector<VkSemaphore> releaseSemaphores;
 
-        ~VulkanSwapChain() override;
+        ~VulkanSurface() override;
 
-        RHISurface* GetSurface() const { return surface; }
-        PixelFormat GetColorFormat() const override { return colorFormat; }
+        void Configure(RHIDevice* device, const RHISurfaceConfig& config) override;
+        void Unconfigure() override;
+        void Resize(uint32_t newWidth, uint32_t newHeight) override;
         void SetLabel(const char* label) override;
+
+    private:
+        void CreateSwapchain();
+        void DestroySwapchain(bool destroySurface);
     };
 
     struct VulkanQueue final : public CommandQueue
@@ -1134,7 +1135,7 @@ namespace Alimer
         VkQueue handle = VK_NULL_HANDLE;
         CommandQueueType queueType = CommandQueueType::Count;
 
-        std::vector<SharedPtr<VulkanSwapChain>> swapchainUpdates;
+        std::vector<SharedPtr<VulkanSurface>> swapchainUpdates;
         std::vector<VkSwapchainKHR> submitSwapchains;
         std::vector<uint32_t> submitSwapchainImageIndices;
         std::vector<VkSemaphore> submitSignalSemaphores;
@@ -1291,7 +1292,7 @@ namespace Alimer
         void ResetQuery(const QueryHeap* heap, uint32_t index, uint32_t count) override;
 
         /* GraphicsContext */
-        RHITexture* AcquireSwapChainTexture(RHISwapChain* swapChain) override;
+        RHITexture* AcquireSurfaceTexture(RHISurface* surface) override;
 
         ComputePassEncoder* BeginComputePassCore(const ComputePassDescriptor& descriptor) override;
         RenderPassEncoder* BeginRenderPassCore(const RenderPassDesc& desc) override;
@@ -1323,7 +1324,7 @@ namespace Alimer
         VulkanRenderPassEncoder* _renderPassEncoder;
         VulkanComputePassEncoder* _computePassEncoder;
 
-        std::vector<SharedPtr<VulkanSwapChain>> presentSwapChains;
+        std::vector<SharedPtr<VulkanSurface>> presentSwapChains;
     };
 
     struct VulkanBindlessDescriptorHeap final
@@ -1479,21 +1480,21 @@ namespace Alimer
         friend class VulkanRenderPassEncoder;
         friend struct VulkanBindlessManager;
         friend struct VulkanQueue;
-        friend struct VulkanBindGroup;
+        friend struct VulkanSurface;
 
     public:
 #define VULKAN_DEVICE_FUNCTION(func) PFN_##func func;
 #include "RHI_Vulkan_Funcs.h"
 
-        VulkanDevice(VulkanRHIAdapter* adapter, const RHIDeviceDesc& desc);
+        VulkanDevice(VulkanAdapter* adapter, const RHIDeviceDesc& desc);
         ~VulkanDevice() override;
 
-        BackendType GetBackend() const override { return BackendType::Vulkan; }
+        RHIBackend GetBackend() const override { return RHIBackend::Vulkan; }
         void SetLabel(const char* label) override;
         bool WaitIdle() override;
         uint64_t CommitFrame() override;
 
-        RHIBufferRef CreateBufferCore(const BufferDesc& desc, const void* initialData) override;
+        RHIBufferRef CreateBufferCore(const RHIBufferDesc& desc, NativeHandle nativeHandle, const void* initialData) override;
         RHITextureRef CreateTextureCore(const TextureDescriptor& desc, const TextureData* initialData) override;
         RHITextureRef CreateTextureFromNativeHandleCore(NativeHandle handle, const TextureDescriptor& desc) override;
         SamplerRef CreateSamplerCore(const SamplerDesc& desc) override;
@@ -1505,8 +1506,6 @@ namespace Alimer
         ComputePipelineRef CreateComputePipelineCore(const ComputePipelineDescriptor& desc) override;
         RenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDescriptor& desc) override;
         QueryHeapRef CreateQueryHeapCore(const QueryHeapDescriptor& desc) override;
-        RHISwapChainRef CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc) override;
-        void UpdateSwapChain(VulkanSwapChain* swapChain);
 
         void WriteShadingRateValue(ShadingRate rate, void* dest) const override;
 
@@ -1527,7 +1526,7 @@ namespace Alimer
         VkFormat ToVkFormat(PixelFormat format);
         bool IsDepthStencilFormatSupported(VkFormat format) const;
 
-       Adapter* GetAdapter() const override;
+        RHIAdapter* GetAdapter() const override;
 
         VkDevice GetHandle() const { return handle; }
         VulkanQueue& GetGraphicsQueue() { return queues[ecast(CommandQueueType::Graphics)]; }
@@ -1568,12 +1567,12 @@ namespace Alimer
         std::deque<std::pair<VkQueryPool, uint64_t>> destroyedQueryPools;
         std::deque<std::pair<VkSemaphore, uint64_t>> destroyedSemaphores;
         std::deque<std::pair<VkSwapchainKHR, uint64_t>> destroyedSwapchains;
-        //std::deque<std::pair<VkSurfaceKHR, uint64_t>> destroyedSurfaces;
+        std::deque<std::pair<VkSurfaceKHR, uint64_t>> destroyedSurfaces;
         std::deque<std::pair<std::pair<VkDescriptorPool, VkDescriptorSet>, uint64_t>> destroyedDescriptorSets;
 
     private:
         bool shuttingDown{ false };
-        VulkanRHIAdapter* _adapter;
+        VulkanAdapter* _adapter;
         VkDevice handle = VK_NULL_HANDLE;
         VulkanQueue queues[ecast(CommandQueueType::Count)];
 
@@ -1609,10 +1608,10 @@ namespace Alimer
         std::mutex cmdBuffersLocker;
     };
 
-    class VulkanRHIAdapter final : public Adapter
+    class VulkanAdapter final : public RHIAdapter
     {
     public:
-        VulkanRHIFactory* factory;
+        VulkanFactory* factory;
         bool debugUtils;
         VkPhysicalDevice handle;
         PhysicalDeviceExtensions extensions;
@@ -1675,21 +1674,16 @@ namespace Alimer
         VkPhysicalDeviceMemoryProperties2 memoryProperties2 = {};
         VkPhysicalDeviceDescriptorHeapPropertiesEXT descriptorHeapPropertiesEXT = {};
 
-        VulkanRHIAdapter(VulkanRHIFactory* factory_, VkPhysicalDevice handle_);
+        VulkanAdapter(VulkanFactory* factory_, VkPhysicalDevice handle_);
         bool Init();
 
         RHIDeviceRef CreateDevice(const RHIDeviceDesc& desc) override;
 
         VkFormat ToVkFormat(PixelFormat format);
         bool IsDepthStencilFormatSupported(VkFormat format) const;
-
-        AdapterType GetType() const override { return type; }
-
-    private:
-        AdapterType type = AdapterType::Other;
     };
 
-    class VulkanRHIFactory final : public RHIFactory
+    class VulkanFactory final : public RHIFactory
     {
     public:
 #define VULKAN_INSTANCE_FUNCTION(name) PFN_##name name = nullptr;
@@ -1701,14 +1695,13 @@ namespace Alimer
         bool wayland_surface{ false };
         VkInstance handle = VK_NULL_HANDLE;
         VkDebugUtilsMessengerEXT debugUtilsMessenger = VK_NULL_HANDLE;
-        Vector<VkSurfaceKHR> destroyedSurfaces;
 
         static bool IsSupported();
 
-        VulkanRHIFactory(const RHIFactoryDesc& desc);
-        ~VulkanRHIFactory() override;
+        VulkanFactory(const RHIFactoryDesc& desc);
+        ~VulkanFactory() override;
 
-        BackendType GetBackend() const override { return BackendType::Vulkan; }
+        RHIBackend GetBackend() const override { return RHIBackend::Vulkan; }
 
         RHISurfaceRef CreateSurface(void* window, void* display) override;
 
@@ -1881,8 +1874,7 @@ namespace Alimer
 
     /* VulkanSampler */
     VulkanSampler::~VulkanSampler()
-    {
-    }
+    {}
 
     void VulkanSampler::SetLabel(const char* label)
     {
@@ -1961,18 +1953,258 @@ namespace Alimer
         device->SetObjectName(VK_OBJECT_TYPE_QUERY_POOL, reinterpret_cast<uint64_t>(handle), label);
     }
 
-    /* VulkanSwapChain */
-    VulkanRHISurface::~VulkanRHISurface()
+    /* VulkanSurface */
+    VulkanSurface::~VulkanSurface()
     {
-        if (handle != VK_NULL_HANDLE)
+        DestroySwapchain(true);
+        configured = false;
+    }
+
+    void VulkanSurface::Configure(RHIDevice* device_, const RHISurfaceConfig& config)
+    {
+        VulkanDevice* backendDevice = static_cast<VulkanDevice*>(device_);
+
+        const QueueFamilyIndices& queueFamilyIndices = backendDevice->_adapter->queueFamilyIndices;
+
+        VkBool32 presentSupport = false;
+        queuePresentSupport = 0;
+
+        for (auto& index : queueFamilyIndices.familyIndices)
         {
-            factory->destroyedSurfaces.push_back(handle);
-            handle = VK_NULL_HANDLE;
+            if (index == VK_QUEUE_FAMILY_IGNORED)
+            {
+                continue;
+            }
+
+            if (backendDevice->_adapter->factory->vkGetPhysicalDeviceSurfaceSupportKHR(backendDevice->_adapter->handle,
+                index,
+                surface,
+                &presentSupport) == VK_SUCCESS
+                && presentSupport)
+            {
+                queuePresentSupport |= 1u << index;
+            }
+        }
+
+        // Present family not found, we cannot create SwapChain
+        if ((queuePresentSupport & (1u << queueFamilyIndices.familyIndices[ecast(CommandQueueType::Graphics)])) == 0)
+        {
+            LOGE("Vulkan: No presentation queue found for GPU.");
+            return;
+        }
+
+        device = backendDevice;
+        colorFormat = config.format;
+        alphaMode = config.alphaMode;
+        presentMode = config.presentMode;
+        extent.width = config.width;
+        extent.height = config.height;
+        CreateSwapchain();
+        configured = true;
+    }
+
+    void VulkanSurface::Unconfigure()
+    {
+        if (!configured)
+            return;
+
+        DestroySwapchain(false);
+        configured = false;
+    }
+
+    void VulkanSurface::Resize(uint32_t newWidth, uint32_t newHeight)
+    {
+        if (extent.width == newWidth && extent.height == newHeight)
+            return;
+
+        extent.width = newWidth;
+        extent.height = newHeight;
+        CreateSwapchain();
+    }
+
+    void VulkanSurface::CreateSwapchain()
+    {
+        // In vulkan, the swapchain recreate can happen whenever it gets outdated, it's not in application's control so we have to be extra careful.
+        std::scoped_lock lock(locker);
+
+        VulkanAdapter* adapter = device->_adapter;
+
+        VkResult result = VK_SUCCESS;
+        VkSurfaceCapabilitiesKHR caps;
+        VK_CHECK(adapter->factory->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(adapter->handle, surface, &caps));
+
+        uint32_t formatCount;
+        VK_CHECK(adapter->factory->vkGetPhysicalDeviceSurfaceFormatsKHR(adapter->handle, surface, &formatCount, nullptr));
+
+        std::vector<VkSurfaceFormatKHR> swapchainFormats(formatCount);
+        VK_CHECK(adapter->factory->vkGetPhysicalDeviceSurfaceFormatsKHR(adapter->handle, surface, &formatCount, swapchainFormats.data()));
+
+        uint32_t presentModeCount;
+        VK_CHECK(adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(adapter->handle, surface, &presentModeCount, nullptr));
+        std::vector<VkPresentModeKHR> swapchainPresentModes(presentModeCount);
+        VK_CHECK(adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(adapter->handle, surface, &presentModeCount, swapchainPresentModes.data()));
+
+        VkSurfaceFormatKHR surfaceFormat = {};
+        surfaceFormat.format = adapter->ToVkFormat(colorFormat);
+        surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+
+        bool valid = false;
+        bool allowHDR = true;
+        for (const auto& format : swapchainFormats)
+        {
+            if (!allowHDR && format.colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+                continue;
+
+            if (format.format == surfaceFormat.format)
+            {
+                surfaceFormat = format;
+                valid = true;
+                break;
+            }
+        }
+
+        if (!valid)
+        {
+            surfaceFormat.format = VK_FORMAT_B8G8R8A8_UNORM;
+            surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+        }
+
+        // Get current extent, if it's (0, 0) then we use the one from config, but we need to clamp it to the allowed range.
+        if (extent.width == 0 || extent.height == 0)
+        {
+            if (caps.currentExtent.width != 0xFFFFFFFF && caps.currentExtent.height != 0xFFFFFFFF)
+            {
+                extent = caps.currentExtent;
+            }
+        }
+
+        extent.width = Max(caps.minImageExtent.width, Min(caps.maxImageExtent.width, extent.width));
+        extent.height = Max(caps.minImageExtent.height, Min(caps.maxImageExtent.height, extent.height));
+
+        VkPresentModeKHR vkPresentMode = ToVk(presentMode);
+
+        {
+
+            auto HasPresentMode = [](const std::vector<VkPresentModeKHR>& modes,
+                VkPresentModeKHR target) -> bool {
+                    return std::find(modes.begin(), modes.end(), target) != modes.end();
+                };
+            const std::array<VkPresentModeKHR, 3> kPresentModeFallbacks = {
+                VK_PRESENT_MODE_IMMEDIATE_KHR,
+                VK_PRESENT_MODE_MAILBOX_KHR,
+                VK_PRESENT_MODE_FIFO_KHR,
+            };
+
+            // Go to the target mode.
+            size_t modeIndex = 0;
+            while (kPresentModeFallbacks[modeIndex] != vkPresentMode) {
+                modeIndex++;
+            }
+
+            // Find the first available fallback.
+            while (!HasPresentMode(swapchainPresentModes, kPresentModeFallbacks[modeIndex]))
+            {
+                modeIndex++;
+            }
+
+            ALIMER_ASSERT(modeIndex < kPresentModeFallbacks.size());
+            vkPresentMode = kPresentModeFallbacks[modeIndex];
+        }
+
+        // Determine the number of images
+        uint32_t imageCount = MinImageCountForPresentMode(vkPresentMode);
+        imageCount = Max(imageCount, caps.minImageCount);
+        if (caps.maxImageCount != 0)
+        {
+            imageCount = Min(imageCount, caps.maxImageCount);
+        }
+
+        VkSwapchainCreateInfoKHR createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        createInfo.surface = surface;
+        createInfo.minImageCount = imageCount;
+        createInfo.imageFormat = surfaceFormat.format;
+        createInfo.imageColorSpace = surfaceFormat.colorSpace;
+        createInfo.imageExtent = { extent.width, extent.height };
+        createInfo.imageArrayLayers = 1;
+        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+        VkFormatProperties2 formatProps2 = { VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2 };
+        adapter->factory->vkGetPhysicalDeviceFormatProperties2(adapter->handle, createInfo.imageFormat, &formatProps2);
+
+        if ((formatProps2.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR)
+            || (formatProps2.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT))
+        {
+            createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        }
+
+        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        createInfo.preTransform = caps.currentTransform;
+        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        createInfo.presentMode = vkPresentMode;
+        createInfo.clipped = VK_TRUE;
+        createInfo.oldSwapchain = handle;
+
+        VK_CHECK(device->vkCreateSwapchainKHR(device->handle, &createInfo, nullptr, &handle));
+
+        if (createInfo.oldSwapchain != VK_NULL_HANDLE)
+        {
+            device->vkDestroySwapchainKHR(device->handle, createInfo.oldSwapchain, nullptr);
+        }
+
+        VK_CHECK(device->vkGetSwapchainImagesKHR(device->handle, handle, &imageCount, nullptr));
+        std::vector<VkImage> swapchainImages(imageCount);
+        VK_CHECK(device->vkGetSwapchainImagesKHR(device->handle, handle, &imageCount, swapchainImages.data()));
+
+        imageIndex = 0;
+        backbufferTextures.resize(imageCount);
+        colorFormat = FromVkFormat(createInfo.imageFormat);
+        extent = createInfo.imageExtent;
+
+        TextureDescriptor textureDesc{};
+        textureDesc.format = colorFormat;
+        textureDesc.width = createInfo.imageExtent.width;
+        textureDesc.height = createInfo.imageExtent.height;
+        textureDesc.usage = TextureUsage::RenderTarget;
+
+        for (uint32_t i = 0; i < imageCount; ++i)
+        {
+            SharedPtr<VulkanTexture> texture(new VulkanTexture(device, textureDesc));
+            texture->vkFormat = createInfo.imageFormat;
+            texture->handle = swapchainImages[i];
+            texture->allocatedSize = 0;
+            texture->numSubResources = 1;
+            texture->imageLayouts.resize(1);
+            texture->imageLayouts[0] = TextureLayout::Undefined;
+
+            backbufferTextures[i] = texture;
+        }
+
+        const uint64_t frameCount = device->GetFrameCount();
+        device->destroyMutex.lock();
+        for (auto& x : acquireSemaphores)
+        {
+            device->destroyedSemaphores.push_back(std::make_pair(x, frameCount));
+        }
+        for (auto& x : releaseSemaphores)
+        {
+            device->destroyedSemaphores.push_back(std::make_pair(x, frameCount));
+        }
+        acquireSemaphores.clear();
+        releaseSemaphores.clear();
+        device->destroyMutex.unlock();
+
+        const VkSemaphoreCreateInfo semaphoreInfo = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+        };
+        for (size_t i = 0; i < imageCount; ++i)
+        {
+            VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &acquireSemaphores.emplace_back()));
+            VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &releaseSemaphores.emplace_back()));
         }
     }
 
-    /* VulkanSwapChain */
-    VulkanSwapChain::~VulkanSwapChain()
+    void VulkanSurface::DestroySwapchain(bool destroySurface)
     {
         const uint64_t frameCount = device->GetFrameCount();
         device->destroyMutex.lock();
@@ -1980,6 +2212,10 @@ namespace Alimer
         if (handle)
         {
             device->destroyedSwapchains.push_back(std::make_pair(handle, frameCount));
+            if (destroySurface)
+            {
+                device->destroyedSurfaces.push_back(std::make_pair(surface, frameCount));
+            }
         }
 
         for (size_t i = 0; i < backbufferTextures.size(); ++i)
@@ -1992,7 +2228,7 @@ namespace Alimer
         device->destroyMutex.unlock();
     }
 
-    void VulkanSwapChain::SetLabel(const char* label)
+    void VulkanSurface::SetLabel(const char* label)
     {
         device->SetObjectName(VK_OBJECT_TYPE_SWAPCHAIN_KHR, reinterpret_cast<uint64_t>(handle), label);
     }
@@ -2893,7 +3129,6 @@ namespace Alimer
 
     void VulkanCommandBuffer::FlushBindGroups(const DescriptorBindingTable& table, bool graphics)
     {
-        return;
         struct DescriptorTableInfo
         {
             VkDescriptorBufferInfo CBV[kContantBufferCount];
@@ -3039,21 +3274,21 @@ namespace Alimer
         device->vkCmdResetQueryPool(commandBuffer, vulkanHeap->handle, index, count);
     }
 
-    RHITexture* VulkanCommandBuffer::AcquireSwapChainTexture(RHISwapChain* swapChain)
+    RHITexture* VulkanCommandBuffer::AcquireSurfaceTexture(RHISurface* surface)
     {
-        VulkanSwapChain* backendSwapChain = (VulkanSwapChain*)swapChain;
-        const size_t swapChainAcquireSemaphoreIndex = backendSwapChain->acquireSemaphoreIndex;
+        VulkanSurface* backendSurface = (VulkanSurface*)surface;
+        const size_t swapChainAcquireSemaphoreIndex = backendSurface->acquireSemaphoreIndex;
 
-        backendSwapChain->locker.lock();
+        backendSurface->locker.lock();
         VkResult result = device->vkAcquireNextImageKHR(
             device->handle,
-            backendSwapChain->handle,
+            backendSurface->handle,
             UINT64_MAX,
-            backendSwapChain->acquireSemaphores[swapChainAcquireSemaphoreIndex],
+            backendSurface->acquireSemaphores[swapChainAcquireSemaphoreIndex],
             VK_NULL_HANDLE,
-            &backendSwapChain->imageIndex
+            &backendSurface->imageIndex
         );
-        backendSwapChain->locker.unlock();
+        backendSurface->locker.unlock();
 
         if (result != VK_SUCCESS)
         {
@@ -3067,22 +3302,22 @@ namespace Alimer
                 // https://www.khronos.org/blog/resolving-longstanding-issues-with-wsi
                 {
                     std::scoped_lock lock(device->destroyMutex);
-                    for (auto& x : backendSwapChain->acquireSemaphores)
+                    for (auto& x : backendSurface->acquireSemaphores)
                     {
                         device->destroyedSemaphores.emplace_back(x, device->_frameCount);
                     }
                 }
-                backendSwapChain->acquireSemaphores.clear();
+                backendSurface->acquireSemaphores.clear();
 
                 //device->WaitIdle();
-                device->UpdateSwapChain(backendSwapChain);
-                return AcquireSwapChainTexture(backendSwapChain);
+                //device->UpdateSwapChain(backendSurface);
+                return AcquireSurfaceTexture(surface);
             }
         }
 
-        VulkanTexture* swapChainTexture = backendSwapChain->backbufferTextures[backendSwapChain->imageIndex].Get();
+        VulkanTexture* swapChainTexture = backendSurface->backbufferTextures[backendSurface->imageIndex].Get();
 
-        presentSwapChains.push_back(SharedPtr<VulkanSwapChain>(backendSwapChain));
+        presentSwapChains.push_back(SharedPtr<VulkanSurface>(backendSurface));
         return swapChainTexture;
     }
 
@@ -3313,7 +3548,7 @@ namespace Alimer
 
             const VkDescriptorBindingFlags bindingFlags =
                 //VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-                 VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
+                VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
                 VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
                 ;
             for (size_t i = 0; i < layoutBindings.size(); ++i)
@@ -3415,7 +3650,7 @@ namespace Alimer
     }
 
     /* VulkanDevice */
-    VulkanDevice::VulkanDevice(VulkanRHIAdapter* adapter, const RHIDeviceDesc& desc)
+    VulkanDevice::VulkanDevice(VulkanAdapter* adapter, const RHIDeviceDesc& desc)
         : _adapter(adapter)
     {
         std::vector<const char*> enabledDeviceExtensions;
@@ -4293,6 +4528,7 @@ namespace Alimer
                     // Advance surface frame index
                     swapchain->acquireSemaphoreIndex = (swapchain->acquireSemaphoreIndex + 1) % swapchain->acquireSemaphores.size();
                 }
+                commandBuffer.presentSwapChains.clear();
 
                 if (commandBuffer.hasPendingWaits.load() || !commandBuffer.waits.empty())
                 {
@@ -4350,13 +4586,19 @@ namespace Alimer
         return _frameCount;
     }
 
-    RHIBufferRef VulkanDevice::CreateBufferCore(const BufferDesc& desc, const void* initialData)
+    RHIBufferRef VulkanDevice::CreateBufferCore(const RHIBufferDesc& desc, NativeHandle nativeHandle, const void* initialData)
     {
         SharedPtr<VulkanBuffer> buffer(new VulkanBuffer(this, desc));
 
-        if (desc.existingHandle)
+        if (nativeHandle)
         {
-            buffer->handle = static_cast<VkBuffer>(desc.existingHandle);
+            if (nativeHandle.type == NativeHandleType::VK_Buffer)
+            {
+                LOGE("Cannot create buffer from invalid vulkan buffer handle");
+                return nullptr;
+            }
+
+            buffer->handle = static_cast<VkBuffer>(nativeHandle.pointer);
 
             if (desc.label)
             {
@@ -4372,48 +4614,48 @@ namespace Alimer
         createInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
         bool needBufferDeviceAddress = false;
-        if (CheckBitsAny(desc.usage, BufferUsage::Vertex))
+        if (CheckBitsAny(desc.usage, RHIBufferUsage::Vertex))
         {
             createInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
             needBufferDeviceAddress = true;
         }
 
-        if (CheckBitsAny(desc.usage, BufferUsage::Index))
+        if (CheckBitsAny(desc.usage, RHIBufferUsage::Index))
         {
             createInfo.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
             needBufferDeviceAddress = true;
         }
 
-        if (CheckBitsAny(desc.usage, BufferUsage::Constant))
+        if (CheckBitsAny(desc.usage, RHIBufferUsage::Constant))
         {
             createInfo.size = VmaAlignUp(desc.size, _adapter->properties2.properties.limits.minUniformBufferOffsetAlignment);
             createInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         }
 
-        if (CheckBitsAny(desc.usage, BufferUsage::ShaderRead))
+        if (CheckBitsAny(desc.usage, RHIBufferUsage::ShaderRead))
         {
             // Read only ByteAddressBuffer is also storage buffer
             createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
         }
 
-        if (CheckBitsAny(desc.usage, BufferUsage::ShaderReadWrite))
+        if (CheckBitsAny(desc.usage, RHIBufferUsage::ShaderRead))
         {
             createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
         }
 
-        if (CheckBitsAny(desc.usage, BufferUsage::Indirect))
+        if (CheckBitsAny(desc.usage, RHIBufferUsage::Indirect))
         {
             createInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
             needBufferDeviceAddress = true;
         }
 
-        if (CheckBitsAny(desc.usage, BufferUsage::Predication) &&
-            QueryFeatureSupport(Feature::Predication))
+        if (CheckBitsAny(desc.usage, RHIBufferUsage::Predication)
+            && QueryFeatureSupport(Feature::Predication))
         {
             createInfo.usage |= VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT;
         }
 
-        if (CheckBitsAny(desc.usage, BufferUsage::RayTracing)
+        if (CheckBitsAny(desc.usage, RHIBufferUsage::RayTracing)
             && _limits.rayTracingTier != RayTracingTier::NotSupported)
         {
             createInfo.usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
@@ -4528,45 +4770,44 @@ namespace Alimer
                 barrier.buffer = buffer->handle;
                 barrier.size = VK_WHOLE_SIZE;
 
-                if (CheckBitsAny(desc.usage, BufferUsage::Vertex))
+                if (CheckBitsAny(desc.usage, RHIBufferUsage::Vertex))
                 {
                     barrier.dstStageMask |= VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT;
                     barrier.dstAccessMask |= VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
                 }
 
-                if (CheckBitsAny(desc.usage, BufferUsage::Index))
+                if (CheckBitsAny(desc.usage, RHIBufferUsage::Index))
                 {
                     barrier.dstStageMask |= VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT;
                     barrier.dstAccessMask |= VK_ACCESS_2_INDEX_READ_BIT;
                 }
 
-                if (CheckBitsAny(desc.usage, BufferUsage::Constant))
+                if (CheckBitsAny(desc.usage, RHIBufferUsage::Constant))
                 {
                     barrier.dstAccessMask |= VK_ACCESS_2_UNIFORM_READ_BIT;
                 }
 
-                if (CheckBitsAny(desc.usage, BufferUsage::ShaderRead))
+                if (CheckBitsAny(desc.usage, RHIBufferUsage::ShaderRead))
                 {
                     barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
                 }
 
-                if (CheckBitsAny(desc.usage, BufferUsage::ShaderReadWrite))
+                if (CheckBitsAny(desc.usage, RHIBufferUsage::ShaderWrite))
                 {
-                    barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
                     barrier.dstAccessMask |= VK_ACCESS_2_SHADER_WRITE_BIT;
                 }
 
-                if (CheckBitsAny(desc.usage, BufferUsage::Indirect))
+                if (CheckBitsAny(desc.usage, RHIBufferUsage::Indirect))
                 {
                     barrier.dstAccessMask |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
                 }
 
-                if (CheckBitsAny(desc.usage, BufferUsage::Predication))
+                if (CheckBitsAny(desc.usage, RHIBufferUsage::Predication))
                 {
                     barrier.dstAccessMask |= VK_ACCESS_2_CONDITIONAL_RENDERING_READ_BIT_EXT;
                 }
 
-                if (CheckBitsAny(desc.usage, BufferUsage::RayTracing))
+                if (CheckBitsAny(desc.usage, RHIBufferUsage::RayTracing))
                 {
                     barrier.dstAccessMask |= VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR;
                 }
@@ -5577,234 +5818,6 @@ namespace Alimer
         return resource;
     }
 
-    RHISwapChainRef VulkanDevice::CreateSwapChainCore(RHISurface* surface, const RHISwapChainDesc& desc)
-    {
-        VulkanRHISurface* backendSurface = static_cast<VulkanRHISurface*>(surface);
-        const QueueFamilyIndices& queueFamilyIndices = _adapter->queueFamilyIndices;
-
-        VkBool32 presentSupport = false;
-        uint32_t queuePresentSupport = 0;
-
-        for (auto& index : queueFamilyIndices.familyIndices)
-        {
-            if (index == VK_QUEUE_FAMILY_IGNORED)
-            {
-                continue;
-            }
-
-            if (_adapter->factory->vkGetPhysicalDeviceSurfaceSupportKHR(_adapter->handle,
-                index,
-                backendSurface->handle,
-                &presentSupport) == VK_SUCCESS
-                && presentSupport)
-            {
-                queuePresentSupport |= 1u << index;
-            }
-        }
-
-        // Present family not found, we cannot create SwapChain
-        if ((queuePresentSupport & (1u << queueFamilyIndices.familyIndices[ecast(CommandQueueType::Graphics)])) == 0)
-        {
-            LOGE("Vulkan: No presentation queue found for GPU.");
-            return nullptr;
-        }
-
-        SharedPtr<VulkanSwapChain> swapChain(new VulkanSwapChain());
-        swapChain->device = this;
-        swapChain->surface.Reset(backendSurface);
-        swapChain->queuePresentSupport = queuePresentSupport;
-        swapChain->colorFormat = desc.colorFormat;
-        swapChain->presentMode = desc.presentMode;
-        UpdateSwapChain(swapChain.Get());
-
-        return swapChain;
-    }
-
-    void VulkanDevice::UpdateSwapChain(VulkanSwapChain* swapChain)
-    {
-        // In vulkan, the swapchain recreate can happen whenever it gets outdated, it's not in application's control so we have to be extra careful.
-        std::scoped_lock lock(swapChain->locker);
-
-        VkResult result = VK_SUCCESS;
-        VkSurfaceCapabilitiesKHR caps;
-        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(_adapter->handle, swapChain->surface->handle, &caps));
-
-        uint32_t formatCount;
-        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfaceFormatsKHR(_adapter->handle, swapChain->surface->handle, &formatCount, nullptr));
-
-        std::vector<VkSurfaceFormatKHR> swapchainFormats(formatCount);
-        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfaceFormatsKHR(_adapter->handle, swapChain->surface->handle, &formatCount, swapchainFormats.data()));
-
-        uint32_t presentModeCount;
-        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(_adapter->handle, swapChain->surface->handle, &presentModeCount, nullptr));
-        std::vector<VkPresentModeKHR> swapchainPresentModes(presentModeCount);
-        VK_CHECK(_adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(_adapter->handle, swapChain->surface->handle, &presentModeCount, swapchainPresentModes.data()));
-
-        VkSurfaceFormatKHR surfaceFormat = {};
-        surfaceFormat.format = ToVkFormat(swapChain->colorFormat);
-        surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-
-        bool valid = false;
-        bool allowHDR = true;
-        for (const auto& format : swapchainFormats)
-        {
-            if (!allowHDR && format.colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-                continue;
-
-            if (format.format == surfaceFormat.format)
-            {
-                surfaceFormat = format;
-                valid = true;
-                break;
-            }
-        }
-
-        if (!valid)
-        {
-            surfaceFormat.format = VK_FORMAT_B8G8R8A8_UNORM;
-            surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-        }
-
-        if (caps.currentExtent.width != 0xFFFFFFFF &&
-            caps.currentExtent.height != 0xFFFFFFFF)
-        {
-            swapChain->extent = caps.currentExtent;
-        }
-        else
-        {
-            swapChain->extent.width = Max(caps.minImageExtent.width, Min(caps.maxImageExtent.width, swapChain->extent.width));
-            swapChain->extent.height = Max(caps.minImageExtent.height, Min(caps.maxImageExtent.height, swapChain->extent.height));
-        }
-
-        VkPresentModeKHR vkPresentMode = ToVk(swapChain->presentMode);
-
-        {
-
-            auto HasPresentMode = [](const std::vector<VkPresentModeKHR>& modes,
-                VkPresentModeKHR target) -> bool {
-                    return std::find(modes.begin(), modes.end(), target) != modes.end();
-                };
-            const std::array<VkPresentModeKHR, 3> kPresentModeFallbacks = {
-                VK_PRESENT_MODE_IMMEDIATE_KHR,
-                VK_PRESENT_MODE_MAILBOX_KHR,
-                VK_PRESENT_MODE_FIFO_KHR,
-            };
-
-            // Go to the target mode.
-            size_t modeIndex = 0;
-            while (kPresentModeFallbacks[modeIndex] != vkPresentMode) {
-                modeIndex++;
-            }
-
-            // Find the first available fallback.
-            while (!HasPresentMode(swapchainPresentModes, kPresentModeFallbacks[modeIndex]))
-            {
-                modeIndex++;
-            }
-
-            ALIMER_ASSERT(modeIndex < kPresentModeFallbacks.size());
-            vkPresentMode = kPresentModeFallbacks[modeIndex];
-        }
-
-        // Determine the number of images
-        uint32_t imageCount = MinImageCountForPresentMode(vkPresentMode);
-        imageCount = Max(imageCount, caps.minImageCount);
-        if (caps.maxImageCount != 0)
-        {
-            imageCount = Min(imageCount, caps.maxImageCount);
-        }
-
-        VkSwapchainCreateInfoKHR createInfo = {};
-        createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        createInfo.surface = swapChain->surface->handle;
-        createInfo.minImageCount = imageCount;
-        createInfo.imageFormat = surfaceFormat.format;
-        createInfo.imageColorSpace = surfaceFormat.colorSpace;
-        createInfo.imageExtent = { swapChain->extent.width, swapChain->extent.height };
-        createInfo.imageArrayLayers = 1;
-        createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-
-        VkFormatProperties2 formatProps2 = { VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2 };
-        _adapter->factory->vkGetPhysicalDeviceFormatProperties2(_adapter->handle, createInfo.imageFormat, &formatProps2);
-
-        if ((formatProps2.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_TRANSFER_SRC_BIT_KHR)
-            || (formatProps2.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT))
-        {
-            createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        }
-
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        createInfo.preTransform = caps.currentTransform;
-        createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-        createInfo.presentMode = vkPresentMode;
-        createInfo.clipped = VK_TRUE;
-        createInfo.oldSwapchain = swapChain->handle;
-
-        VK_CHECK(vkCreateSwapchainKHR(handle, &createInfo, nullptr, &swapChain->handle));
-
-        if (createInfo.oldSwapchain != VK_NULL_HANDLE)
-        {
-            vkDestroySwapchainKHR(handle, createInfo.oldSwapchain, nullptr);
-        }
-
-        VK_CHECK(vkGetSwapchainImagesKHR(handle, swapChain->handle, &imageCount, nullptr));
-        std::vector<VkImage> swapchainImages(imageCount);
-        VK_CHECK(vkGetSwapchainImagesKHR(handle, swapChain->handle, &imageCount, swapchainImages.data()));
-
-        swapChain->imageIndex = 0;
-        swapChain->backbufferTextures.resize(imageCount);
-        swapChain->colorFormat = FromVkFormat(createInfo.imageFormat);
-        swapChain->extent = createInfo.imageExtent;
-
-        TextureDescriptor textureDesc{};
-        textureDesc.format = swapChain->colorFormat;
-        textureDesc.width = createInfo.imageExtent.width;
-        textureDesc.height = createInfo.imageExtent.height;
-        textureDesc.usage = TextureUsage::RenderTarget;
-
-        for (uint32_t i = 0; i < imageCount; ++i)
-        {
-            SharedPtr<VulkanTexture> texture(new VulkanTexture(this, textureDesc));
-            texture->vkFormat = createInfo.imageFormat;
-            texture->handle = swapchainImages[i];
-            texture->allocatedSize = 0;
-            texture->numSubResources = 1;
-            texture->imageLayouts.resize(1);
-            texture->imageLayouts[0] = TextureLayout::Undefined;
-
-            swapChain->backbufferTextures[i] = texture;
-        }
-
-        destroyMutex.lock();
-        for (auto& x : swapChain->acquireSemaphores)
-        {
-            destroyedSemaphores.push_back(std::make_pair(x, _frameCount));
-        }
-        for (auto& x : swapChain->releaseSemaphores)
-        {
-            destroyedSemaphores.push_back(std::make_pair(x, _frameCount));
-        }
-        swapChain->acquireSemaphores.clear();
-        swapChain->releaseSemaphores.clear();
-        destroyMutex.unlock();
-
-        VkSemaphoreCreateInfo semaphoreInfo = {};
-        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        for (size_t i = 0; i < imageCount; ++i)
-        {
-            VK_CHECK(
-                vkCreateSemaphore(handle, &semaphoreInfo, nullptr, &swapChain->acquireSemaphores.emplace_back())
-            );
-        }
-
-        for (size_t i = 0; i < imageCount; ++i)
-        {
-            VK_CHECK(
-                vkCreateSemaphore(handle, &semaphoreInfo, nullptr, &swapChain->releaseSemaphores.emplace_back())
-            );
-        }
-    }
-
     void VulkanDevice::WriteShadingRateValue(ShadingRate rate, void* dest) const
     {
         // How to compute shading rate value texel data:
@@ -5980,7 +5993,7 @@ namespace Alimer
         Destroy(destroyedQueryPools, [&](auto& item) { vkDestroyQueryPool(handle, item, nullptr); });
         Destroy(destroyedSemaphores, [&](auto& item) {vkDestroySemaphore(handle, item, nullptr); });
         Destroy(destroyedSwapchains, [&](auto& item) { vkDestroySwapchainKHR(handle, item, nullptr); });
-        //Destroy(destroyedSurfaces, [&](auto& item) { _adapter->factory->vkDestroySurfaceKHR(_adapter->factory->handle, item, nullptr); });
+        Destroy(destroyedSurfaces, [&](auto& item) { _adapter->factory->vkDestroySurfaceKHR(_adapter->factory->handle, item, nullptr); });
         Destroy(destroyedDescriptorSets, [&](auto& item) { vkFreeDescriptorSets(handle, item.first, 1u, &item.second); });
         destroyMutex.unlock();
     }
@@ -6235,7 +6248,7 @@ namespace Alimer
         return _adapter->IsDepthStencilFormatSupported(format);
     }
 
-    Adapter* VulkanDevice::GetAdapter() const
+    RHIAdapter* VulkanDevice::GetAdapter() const
     {
         return _adapter;
     }
@@ -6276,7 +6289,7 @@ namespace Alimer
                 {
                     for (auto& swapchain : swapchainUpdates)
                     {
-                        device->UpdateSwapChain(swapchain.Get());
+                        //device->UpdateSwapChain(swapchain.Get());
                     }
                 }
                 else
@@ -6374,7 +6387,7 @@ namespace Alimer
             context.uploadBufferSize = VmaNextPow2(size);
             context.uploadBufferSize = Max(context.uploadBufferSize, uint64_t(65536));
 
-            BufferDesc uploadBufferDesc;
+            RHIBufferDesc uploadBufferDesc;
             uploadBufferDesc.label = "CopyAllocator::UploadBuffer";
             uploadBufferDesc.size = context.uploadBufferSize;
             uploadBufferDesc.memoryType = MemoryType::Upload;
@@ -6509,8 +6522,8 @@ namespace Alimer
         freeList.push_back(context);
     }
 
-    /* VulkanRHIAdapter */
-    VulkanRHIAdapter::VulkanRHIAdapter(VulkanRHIFactory* factory_, VkPhysicalDevice handle_)
+    /* VulkanAdapter */
+    VulkanAdapter::VulkanAdapter(VulkanFactory* factory_, VkPhysicalDevice handle_)
         : factory(factory_)
         , handle(handle_)
         , debugUtils(factory_->debugUtils)
@@ -6518,7 +6531,7 @@ namespace Alimer
 
     }
 
-    bool VulkanRHIAdapter::Init()
+    bool VulkanAdapter::Init()
     {
         extensions = factory->QueryPhysicalDeviceExtensions(handle);
         queueFamilyIndices = factory->QueryQueueFamilies(handle, extensions.video.queue);
@@ -6751,22 +6764,22 @@ namespace Alimer
         switch (properties2.properties.deviceType)
         {
             case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-                type = AdapterType::IntegratedGpu;
+                properties.type = RHIAdapterType::IntegratedGpu;
                 break;
 
             case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-                type = AdapterType::DiscreteGpu;
+                properties.type = RHIAdapterType::DiscreteGpu;
                 break;
 
             case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-                type = AdapterType::VirtualGpu;
+                properties.type = RHIAdapterType::VirtualGpu;
                 break;
 
             case VK_PHYSICAL_DEVICE_TYPE_CPU:
-                type = AdapterType::Cpu;
+                properties.type = RHIAdapterType::Cpu;
                 break;
             default:
-                type = AdapterType::Other;
+                properties.type = RHIAdapterType::Other;
                 break;
         }
 
@@ -6802,7 +6815,7 @@ namespace Alimer
         return true;
     }
 
-    RHIDeviceRef VulkanRHIAdapter::CreateDevice(const RHIDeviceDesc& desc)
+    RHIDeviceRef VulkanAdapter::CreateDevice(const RHIDeviceDesc& desc)
     {
         SharedPtr<VulkanDevice> device(new VulkanDevice(this, desc));
         if (!device->GetHandle())
@@ -6813,7 +6826,7 @@ namespace Alimer
         return device;
     }
 
-    VkFormat VulkanRHIAdapter::ToVkFormat(PixelFormat format)
+    VkFormat VulkanAdapter::ToVkFormat(PixelFormat format)
     {
         if (format == PixelFormat::Stencil8 && !supportsStencil8)
         {
@@ -6830,7 +6843,7 @@ namespace Alimer
         return vkFormat;
     }
 
-    bool VulkanRHIAdapter::IsDepthStencilFormatSupported(VkFormat format) const
+    bool VulkanAdapter::IsDepthStencilFormatSupported(VkFormat format) const
     {
         ALIMER_ASSERT(format == VK_FORMAT_D16_UNORM_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT || format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_S8_UINT);
 
@@ -6839,8 +6852,8 @@ namespace Alimer
         return properties2.formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
     }
 
-    /* VulkanRHIFactory */
-    bool VulkanRHIFactory::IsSupported()
+    /* VulkanFactory */
+    bool VulkanFactory::IsSupported()
     {
         static bool available_initialized = false;
         static bool available = false;
@@ -6921,7 +6934,7 @@ namespace Alimer
         return true;
     }
 
-    VulkanRHIFactory::VulkanRHIFactory(const RHIFactoryDesc& desc)
+    VulkanFactory::VulkanFactory(const RHIFactoryDesc& desc)
     {
         // Enumerate available layers and extensions
         uint32_t instanceLayerCount;
@@ -7010,7 +7023,7 @@ namespace Alimer
 #endif
 #endif
 
-        if (desc.validationMode != ValidationMode::Disabled)
+        if (desc.validationMode != RHIValidationMode::Disabled)
         {
             // Determine the optimal validation layers to enable that are necessary for useful debugging
             std::vector<const char*> optimalValidationLyers = GetOptimalValidationLayers(availableInstanceLayers);
@@ -7018,7 +7031,7 @@ namespace Alimer
         }
 
         bool validationFeatures = false;
-        if (desc.validationMode == ValidationMode::GPU)
+        if (desc.validationMode == RHIValidationMode::GPU)
         {
             uint32_t layerInstanceExtensionCount;
             VK_CHECK(vkEnumerateInstanceExtensionProperties("VK_LAYER_KHRONOS_validation", &layerInstanceExtensionCount, nullptr));
@@ -7060,8 +7073,8 @@ namespace Alimer
 
         VkDebugUtilsMessengerCreateInfoEXT debugUtilsCreateInfo{};
 
-        if (desc.validationMode != ValidationMode::Disabled &&
-            debugUtils)
+        if (desc.validationMode != RHIValidationMode::Disabled
+            && debugUtils)
         {
             debugUtilsCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
             debugUtilsCreateInfo.messageSeverity =
@@ -7072,7 +7085,7 @@ namespace Alimer
                 VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 
-            if (desc.validationMode == ValidationMode::Verbose)
+            if (desc.validationMode == RHIValidationMode::Verbose)
             {
                 debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
                 debugUtilsCreateInfo.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
@@ -7083,14 +7096,15 @@ namespace Alimer
         }
 
         VkValidationFeaturesEXT validationFeaturesInfo = { VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
-        if (desc.validationMode == ValidationMode::GPU &&
-            validationFeatures)
+        if (desc.validationMode == RHIValidationMode::GPU
+            && validationFeatures)
         {
-            static const VkValidationFeatureEnableEXT enable_features[2] = {
+            static const VkValidationFeatureEnableEXT enable_features[3] = {
+                VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
                 VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
                 VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
             };
-            validationFeaturesInfo.enabledValidationFeatureCount = 2;
+            validationFeaturesInfo.enabledValidationFeatureCount = 3;
             validationFeaturesInfo.pEnabledValidationFeatures = enable_features;
             PnextChainPushFront(&createInfo, &validationFeaturesInfo);
         }
@@ -7105,8 +7119,8 @@ namespace Alimer
 #define VULKAN_INSTANCE_FUNCTION(fn) fn = (PFN_##fn)vkGetInstanceProcAddr(handle, #fn);
 #include "RHI_Vulkan_Funcs.h"
 
-        if (desc.validationMode != ValidationMode::Disabled &&
-            debugUtils)
+        if (desc.validationMode != RHIValidationMode::Disabled
+            && debugUtils)
         {
             result = vkCreateDebugUtilsMessengerEXT(handle, &debugUtilsCreateInfo, nullptr, &debugUtilsMessenger);
             if (result != VK_SUCCESS)
@@ -7192,7 +7206,7 @@ namespace Alimer
                 continue;
             }
 
-            VulkanRHIAdapter* adapter = new VulkanRHIAdapter(this, physicalDevice);
+            VulkanAdapter* adapter = new VulkanAdapter(this, physicalDevice);
             if (!adapter->Init())
             {
                 delete adapter;
@@ -7203,21 +7217,15 @@ namespace Alimer
         }
     }
 
-    VulkanRHIFactory::~VulkanRHIFactory()
+    VulkanFactory::~VulkanFactory()
     {
         // Delete adapters
         for (size_t i = 0, count = _adapters.size(); i < count; ++i)
         {
-            VulkanRHIAdapter* adapter = static_cast<VulkanRHIAdapter*>(_adapters[i]);
+            VulkanAdapter* adapter = static_cast<VulkanAdapter*>(_adapters[i]);
             SafeDelete(adapter);
         }
         _adapters.clear();
-
-        for (auto& surface : destroyedSurfaces)
-        {
-            vkDestroySurfaceKHR(handle, surface, nullptr);
-        }
-        destroyedSurfaces.clear();
 
         if (debugUtilsMessenger != VK_NULL_HANDLE)
         {
@@ -7232,11 +7240,9 @@ namespace Alimer
         }
     }
 
-    RHISurfaceRef VulkanRHIFactory::CreateSurface(void* window, void* display)
+    RHISurfaceRef VulkanFactory::CreateSurface(void* window, void* display)
     {
-        SharedPtr<VulkanRHISurface> surface(new VulkanRHISurface());
-        surface->factory = this;
-
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
         VkResult result = VK_SUCCESS;
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
         HWND hwnd = (HWND)window;
@@ -7249,7 +7255,7 @@ namespace Alimer
             .hinstance = GetModuleHandle(nullptr),
             .hwnd = hwnd,
         };
-        result = vkCreateWin32SurfaceKHR(handle, &createInfo, nullptr, &surface->handle);
+        result = vkCreateWin32SurfaceKHR(handle, &createInfo, nullptr, &surface);
 #elif defined(__ANDROID__)
         const VkAndroidSurfaceCreateInfoKHR createInfo = {
             .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
@@ -7257,7 +7263,7 @@ namespace Alimer
             .flags = 0,
             .window = (ANativeWindow*)window
         };
-        result = vkCreateAndroidSurfaceKHR(handle, &createInfo, nullptr, &surface->handle);
+        result = vkCreateAndroidSurfaceKHR(handle, &createInfo, nullptr, &handle);
 #elif defined(__APPLE__)
         const VkMetalSurfaceCreateInfoEXT createInfo = {
             .sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT,
@@ -7266,7 +7272,7 @@ namespace Alimer
             .pLayer = (CAMetalLayer*)window
         };
 
-        result = vkCreateMetalSurfaceEXT(handle, &createInfo, nullptr, &surface->handle);
+        result = vkCreateMetalSurfaceEXT(handle, &createInfo, nullptr, &handle);
 #endif
 
         if (result != VK_SUCCESS)
@@ -7275,10 +7281,12 @@ namespace Alimer
             return nullptr;
         }
 
-        return surface;
+        SharedPtr<VulkanSurface> resultSurface(new VulkanSurface());
+        resultSurface->surface = surface;
+        return resultSurface;
     }
 
-    PhysicalDeviceExtensions VulkanRHIFactory::QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice)
+    PhysicalDeviceExtensions VulkanFactory::QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice)
     {
         uint32_t count = 0;
         VkResult result = vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &count, nullptr);
@@ -7497,7 +7505,7 @@ namespace Alimer
         return extensions;
     }
 
-    QueueFamilyIndices VulkanRHIFactory::QueryQueueFamilies(VkPhysicalDevice physicalDevice, bool supportsVideoQueue)
+    QueueFamilyIndices VulkanFactory::QueryQueueFamilies(VkPhysicalDevice physicalDevice, bool supportsVideoQueue)
     {
         uint32_t queueFamilyCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice, &queueFamilyCount, nullptr);
@@ -7631,7 +7639,7 @@ namespace Alimer
         return indices;
     }
 
-    bool VulkanRHIFactory::GetPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex)
+    bool VulkanFactory::GetPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex)
     {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
         return vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, queueFamilyIndex) == VK_TRUE;
@@ -7656,24 +7664,18 @@ namespace Alimer
 
     bool Vulkan_IsSupported()
     {
-        return VulkanRHIFactory::IsSupported();
-    }
-
-    Vector<Adapter*> Vulkan_InitAdapters()
-    {
-        static Vector<Adapter*> adapters;
-        return adapters;
+        return VulkanFactory::IsSupported();
     }
 
     RHIFactoryRef Vulkan_CreateFactory(const RHIFactoryDesc& desc)
     {
-        if (!VulkanRHIFactory::IsSupported())
+        if (!VulkanFactory::IsSupported())
         {
             LOGE("Vulkan is not supported on this system.");
             return nullptr;
         }
 
-        SharedPtr<VulkanRHIFactory> factory(new VulkanRHIFactory(desc));
+        SharedPtr<VulkanFactory> factory(new VulkanFactory(desc));
         return factory;
     }
 }

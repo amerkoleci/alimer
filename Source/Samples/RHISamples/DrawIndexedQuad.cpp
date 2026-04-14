@@ -35,13 +35,13 @@ void DrawIndexedQuad::Initialize(RHIDevice* device, const UInt2& windowSize, Pix
         {Vector3(-0.5f, -0.5f, 0.5f), Colors::Yellow},
     };
 
-    _vertexBuffer = device->CreateBuffer(sizeof(vertices), BufferUsage::Vertex, vertices);
+    _vertexBuffer = RHICreateBuffer(device, vertices, 4, RHIBufferUsage::Vertex);
 
     const uint16_t indices[] = {
         0, 2, 1,    // first triangle
         0, 3, 2,    // second triangle
     };
-    _indexBuffer = device->CreateBuffer(sizeof(indices), BufferUsage::Index, indices);
+    _indexBuffer = RHICreateBuffer(device, indices, 6, RHIBufferUsage::Index);
 
     std::vector<ShaderMacro> macros = {
         { "VARIANT", "0" }
