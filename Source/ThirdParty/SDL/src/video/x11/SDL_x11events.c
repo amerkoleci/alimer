@@ -122,15 +122,19 @@ static void X11_ReadProperty(SDL_x11Prop *p, Display *disp, Window w, Atom prop)
    if available, else return None */
 static Atom X11_PickTarget(Display *disp, Atom list[], int list_count)
 {
+    const Atom text_uri_request = X11_XInternAtom(disp, "text/uri-list", False);
     Atom request = None;
-    char *name;
-    int i;
-    for (i = 0; i < list_count && request == None; i++) {
-        name = X11_XGetAtomName(disp, list[i]);
+    Atom preferred = None;
+
+    for (int i = 0; i < list_count && request != text_uri_request; i++) {
+        char *name = X11_XGetAtomName(disp, list[i]);
         // Preferred MIME targets
         if ((SDL_strcmp("text/uri-list", name) == 0) ||
             (SDL_strcmp("text/plain;charset=utf-8", name) == 0) ||
             (SDL_strcmp("UTF8_STRING", name) == 0)) {
+            if (preferred == None) {
+                preferred = list[i];
+            }
             request = list[i];
         }
         // Fallback MIME targets
@@ -141,6 +145,11 @@ static Atom X11_PickTarget(Display *disp, Atom list[], int list_count)
             }
         }
         X11_XFree(name);
+    }
+
+    // The type 'text/uri-list' is preferred over all others.
+    if (preferred != None && request != text_uri_request) {
+        request = preferred;
     }
     return request;
 }
@@ -547,11 +556,13 @@ void X11_ReconcileKeyboardState(SDL_VideoDevice *_this)
 
     X11_XQueryKeymap(display, keys);
 
+    const bool *keystate = SDL_GetKeyboardState(NULL);
     for (Uint32 keycode = 0; keycode < SDL_arraysize(videodata->keyboard.key_layout); ++keycode) {
         const SDL_Scancode scancode = videodata->keyboard.key_layout[keycode];
         const bool x11KeyPressed = (keys[keycode / 8] & (1 << (keycode % 8))) != 0;
+        const bool sdlKeyPressed = keystate[scancode];
 
-        if (x11KeyPressed) {
+        if (x11KeyPressed && !sdlKeyPressed) {
             // Only update modifier state for keys that are pressed in another application
             switch (SDL_GetKeyFromScancode(scancode, SDL_KMOD_NONE, false)) {
             case SDLK_LCTRL:
@@ -570,12 +581,15 @@ void X11_ReconcileKeyboardState(SDL_VideoDevice *_this)
             default:
                 break;
             }
+        } else if (!x11KeyPressed && sdlKeyPressed) {
+            X11_HandleModifierKeys(videodata, scancode, false);
+            SDL_SendKeyboardKeyIgnoreModifiers(0, SDL_GLOBAL_KEYBOARD_ID, keycode, scancode, false);
         }
     }
 
     // Update the latched/locked state for modifiers other than Caps, Num, and Scroll lock.
     X11_UpdateSystemKeyModifiers(videodata);
-    X11_ReconcileModifiers(videodata, false);
+    X11_ReconcileModifiers(videodata, true);
 }
 
 static void X11_DispatchFocusIn(SDL_VideoDevice *_this, SDL_WindowData *data)
@@ -1388,13 +1402,12 @@ static void X11_DispatchEvent(SDL_VideoDevice *_this, XEvent *xevent)
 #ifdef DEBUG_XEVENTS
             SDL_Log("window 0x%lx: KeymapNotify!", xevent->xany.window);
 #endif
-            if (!videodata->keyboard.xkb_enabled) {
-                if (SDL_GetKeyboardFocus() != NULL) {
+            if (SDL_GetKeyboardFocus() != NULL) {
+                if (!videodata->keyboard.xkb_enabled) {
                     X11_UpdateKeymap(_this, true);
                 }
+                X11_ReconcileKeyboardState(_this);
             }
-
-            X11_ReconcileKeyboardState(_this);
         } else if (xevent->type == MappingNotify) {
             const int request = xevent->xmapping.request;
 

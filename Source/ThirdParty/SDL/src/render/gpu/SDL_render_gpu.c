@@ -774,6 +774,11 @@ static void SetViewportAndScissor(GPU_RenderData *data)
 
 static SDL_GPUSampler *GetSampler(GPU_RenderData *data, SDL_PixelFormat format, SDL_ScaleMode scale_mode, SDL_TextureAddressMode address_u, SDL_TextureAddressMode address_v)
 {
+    if (format == SDL_PIXELFORMAT_INDEX8) {
+        // We'll do linear sampling in the shader if needed
+        scale_mode = SDL_SCALEMODE_NEAREST;
+    }
+
     Uint32 key = RENDER_SAMPLER_HASHKEY(scale_mode, address_u, address_v);
     SDL_assert(key < SDL_arraysize(data->samplers));
     if (!data->samplers[key]) {
@@ -787,16 +792,9 @@ static SDL_GPUSampler *GetSampler(GPU_RenderData *data, SDL_PixelFormat format, 
             break;
         case SDL_SCALEMODE_PIXELART:    // Uses linear sampling
         case SDL_SCALEMODE_LINEAR:
-            if (format == SDL_PIXELFORMAT_INDEX8) {
-                // We'll do linear sampling in the shader
-                sci.min_filter = SDL_GPU_FILTER_NEAREST;
-                sci.mag_filter = SDL_GPU_FILTER_NEAREST;
-                sci.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
-            } else {
-                sci.min_filter = SDL_GPU_FILTER_LINEAR;
-                sci.mag_filter = SDL_GPU_FILTER_LINEAR;
-                sci.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
-            }
+            sci.min_filter = SDL_GPU_FILTER_LINEAR;
+            sci.mag_filter = SDL_GPU_FILTER_LINEAR;
+            sci.mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR;
             break;
         default:
             SDL_SetError("Unknown scale mode: %d", scale_mode);
@@ -1548,6 +1546,20 @@ static void GPU_DestroyTexture(SDL_Renderer *renderer, SDL_Texture *texture)
     texture->internal = NULL;
 }
 
+#ifdef SDL_PLATFORM_GDK
+static bool SDLCALL GPU_GDKEventFilter(void *userdata, SDL_Event *event)
+{
+    GPU_RenderData *data = (GPU_RenderData *)userdata;
+    SDL_assert(!data->external_device);
+    if (event->type == SDL_EVENT_DID_ENTER_BACKGROUND) {
+        SDL_GDKSuspendGPU(data->device);
+    } else if (event->type == SDL_EVENT_WILL_ENTER_FOREGROUND) {
+        SDL_GDKResumeGPU(data->device);
+    }
+    return true;
+}
+#endif
+
 static void GPU_DestroyRenderer(SDL_Renderer *renderer)
 {
     GPU_RenderData *data = (GPU_RenderData *)renderer->internal;
@@ -1581,6 +1593,9 @@ static void GPU_DestroyRenderer(SDL_Renderer *renderer)
     if (data->device) {
         GPU_ReleaseShaders(&data->shaders, data->device);
         if (!data->external_device) {
+#ifdef SDL_PLATFORM_GDK
+            SDL_RemoveEventWatch(GPU_GDKEventFilter, data);
+#endif
             SDL_DestroyGPUDevice(data->device);
         }
     }
@@ -1744,6 +1759,10 @@ static bool GPU_CreateRenderer(SDL_Renderer *renderer, SDL_Window *window, SDL_P
         if (!data->device) {
             return false;
         }
+
+#ifdef SDL_PLATFORM_GDK
+        SDL_AddEventWatch(GPU_GDKEventFilter, data);
+#endif
     }
 
     if (!GPU_InitShaders(&data->shaders, data->device)) {

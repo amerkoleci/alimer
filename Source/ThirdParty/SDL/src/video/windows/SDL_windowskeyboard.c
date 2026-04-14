@@ -599,7 +599,6 @@ static DWORD IME_GetId(SDL_VideoData *videodata, UINT uIndex)
     static HKL hklprev = 0;
     static DWORD dwRet[2] = { 0 };
     DWORD dwVerSize = 0;
-    DWORD dwVerHandle = 0;
     LPVOID lpVerBuffer = 0;
     LPVOID lpVerData = 0;
     UINT cbVerData = 0;
@@ -637,11 +636,11 @@ static DWORD IME_GetId(SDL_VideoData *videodata, UINT uIndex)
             return dwRet[0];
         }
 #undef LCID_INVARIANT
-        dwVerSize = GetFileVersionInfoSizeA(szTemp, &dwVerHandle);
+        dwVerSize = GetFileVersionInfoSizeA(szTemp, NULL);
         if (dwVerSize) {
             lpVerBuffer = SDL_malloc(dwVerSize);
             if (lpVerBuffer) {
-                if (GetFileVersionInfoA(szTemp, dwVerHandle, dwVerSize, lpVerBuffer)) {
+                if (GetFileVersionInfoA(szTemp, 0, dwVerSize, lpVerBuffer)) {
                     if (VerQueryValueA(lpVerBuffer, "\\", &lpVerData, &cbVerData)) {
 #define pVerFixedInfo ((VS_FIXEDFILEINFO FAR *)lpVerData)
                         DWORD dwVer = pVerFixedInfo->dwFileVersionMS;

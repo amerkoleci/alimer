@@ -601,6 +601,7 @@ static Uint32 initial_wheel_devices[] = {
     MAKE_VIDPID(0x346e, 0x0004), // Moza R5 Wheelbase
     MAKE_VIDPID(0x346e, 0x0005), // Moza R3 Wheelbase
     MAKE_VIDPID(0x346e, 0x0006), // Moza R12 Wheelbase
+    MAKE_VIDPID(0x36e6, 0x400f), // PXN VD6 Wheelbase
 };
 static SDL_vidpid_list wheel_devices = {
     SDL_HINT_JOYSTICK_WHEEL_DEVICES, 0, 0, NULL,
@@ -2428,7 +2429,7 @@ bool SDL_IsJoystickBeingAdded(void)
 
 void SDL_PrivateJoystickForceRecentering(SDL_Joystick *joystick)
 {
-    Uint8 i, j;
+    int i, j;
     Uint64 timestamp = SDL_GetTicksNS();
 
     SDL_AssertJoysticksLocked();
@@ -3327,6 +3328,11 @@ bool SDL_IsJoystickWGI(SDL_GUID guid)
     return (guid.data[14] == 'w') ? true : false;
 }
 
+bool SDL_IsJoystickGameInput(SDL_GUID guid)
+{
+    return (guid.data[14] == 'g') ? true : false;
+}
+
 bool SDL_IsJoystickHIDAPI(SDL_GUID guid)
 {
     return (guid.data[14] == 'h') ? true : false;
@@ -3417,6 +3423,10 @@ static SDL_JoystickType SDL_GetJoystickGUIDType(SDL_GUID guid)
     }
 
     if (SDL_IsJoystickWGI(guid)) {
+        return (SDL_JoystickType)guid.data[15];
+    }
+
+    if (SDL_IsJoystickGameInput(guid)) {
         return (SDL_JoystickType)guid.data[15];
     }
 

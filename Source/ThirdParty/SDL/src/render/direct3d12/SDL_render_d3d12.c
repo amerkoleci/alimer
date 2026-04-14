@@ -586,10 +586,26 @@ static HRESULT D3D12_IssueBatch(D3D12_RenderData *data)
     return result;
 }
 
+#if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
+static bool SDLCALL D3D12_GDKEventFilter(void* userdata, SDL_Event* event)
+{
+    D3D12_RenderData *data = (D3D12_RenderData *)userdata;
+    if (event->type == SDL_EVENT_DID_ENTER_BACKGROUND) {
+        data->commandQueue->SuspendX(0);
+    } else if (event->type == SDL_EVENT_WILL_ENTER_FOREGROUND) {
+        data->commandQueue->ResumeX();
+    }
+    return true;
+}
+#endif
+
 static void D3D12_DestroyRenderer(SDL_Renderer *renderer)
 {
     D3D12_RenderData *data = (D3D12_RenderData *)renderer->internal;
     if (data) {
+#if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
+        SDL_RemoveEventWatch(D3D12_GDKEventFilter, data);
+#endif
         D3D12_WaitForGPU(data);
         D3D12_ReleaseAll(renderer);
         SDL_free(data);
@@ -1135,6 +1151,10 @@ static HRESULT D3D12_CreateDeviceResources(SDL_Renderer *renderer)
     SDL_PropertiesID props = SDL_GetRendererProperties(renderer);
     SDL_SetPointerProperty(props, SDL_PROP_RENDERER_D3D12_DEVICE_POINTER, data->d3dDevice);
     SDL_SetPointerProperty(props, SDL_PROP_RENDERER_D3D12_COMMAND_QUEUE_POINTER, data->commandQueue);
+
+#if defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
+    SDL_AddEventWatch(D3D12_GDKEventFilter, data);
+#endif
 
 done:
     D3D_SAFE_RELEASE(d3dDevice);
@@ -2863,6 +2883,11 @@ static bool D3D12_SetDrawState(SDL_Renderer *renderer, const SDL_RenderCommand *
 
 static D3D12_CPU_DESCRIPTOR_HANDLE *D3D12_GetSamplerState(D3D12_RenderData *data, SDL_PixelFormat format, SDL_ScaleMode scale_mode, SDL_TextureAddressMode address_u, SDL_TextureAddressMode address_v)
 {
+    if (format == SDL_PIXELFORMAT_INDEX8) {
+        // We'll do linear sampling in the shader if needed
+        scale_mode = SDL_SCALEMODE_NEAREST;
+    }
+
     Uint32 key = RENDER_SAMPLER_HASHKEY(scale_mode, address_u, address_v);
     SDL_assert(key < SDL_arraysize(data->samplers));
     if (!data->samplers_created[key]) {
@@ -2888,12 +2913,7 @@ static D3D12_CPU_DESCRIPTOR_HANDLE *D3D12_GetSamplerState(D3D12_RenderData *data
             break;
         case SDL_SCALEMODE_PIXELART:    // Uses linear sampling
         case SDL_SCALEMODE_LINEAR:
-            if (format == SDL_PIXELFORMAT_INDEX8) {
-                // We'll do linear sampling in the shader
-                samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-            } else {
-                samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-            }
+            samplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
             break;
         default:
             SDL_SetError("Unknown scale mode: %d", scale_mode);

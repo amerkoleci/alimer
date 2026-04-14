@@ -1327,7 +1327,7 @@ SDL_Renderer *SDL_CreateSoftwareRenderer(SDL_Surface *surface)
 #else
     SDL_SetError("SDL not built with rendering support");
     return NULL;
-#endif // !SDL_RENDER_DISABLED
+#endif // SDL_VIDEO_RENDER_SW
 }
 
 SDL_Renderer *SDL_GetRenderer(SDL_Window *window)
@@ -1469,10 +1469,12 @@ static SDL_PixelFormat GetClosestSupportedFormat(SDL_Renderer *renderer, SDL_Pix
     } else {
         bool hasAlpha = SDL_ISPIXELFORMAT_ALPHA(format);
         bool isIndexed = SDL_ISPIXELFORMAT_INDEXED(format);
+        int size = SDL_BYTESPERPIXEL(format);
 
         // We just want to match the first format that has the same channels
         for (i = 0; i < renderer->num_texture_formats; ++i) {
             if (!SDL_ISPIXELFORMAT_FOURCC(renderer->texture_formats[i]) &&
+                SDL_BYTESPERPIXEL(renderer->texture_formats[i]) == size &&
                 SDL_ISPIXELFORMAT_ALPHA(renderer->texture_formats[i]) == hasAlpha &&
                 SDL_ISPIXELFORMAT_INDEXED(renderer->texture_formats[i]) == isIndexed) {
                 return renderer->texture_formats[i];
@@ -1846,9 +1848,11 @@ SDL_Texture *SDL_CreateTextureFromSurface(SDL_Renderer *renderer, SDL_Surface *s
 
         // Indexed formats don't support the transparency needed for color-keyed surfaces
         bool preferIndexed = SDL_ISPIXELFORMAT_INDEXED(surface->format) && !needAlpha;
+        int size = SDL_BYTESPERPIXEL(format);
 
         for (i = 0; i < renderer->num_texture_formats; ++i) {
             if (!SDL_ISPIXELFORMAT_FOURCC(renderer->texture_formats[i]) &&
+                SDL_BYTESPERPIXEL(renderer->texture_formats[i]) == size &&
                 SDL_ISPIXELFORMAT_ALPHA(renderer->texture_formats[i]) == needAlpha &&
                 SDL_ISPIXELFORMAT_INDEXED(renderer->texture_formats[i]) == preferIndexed) {
                 format = renderer->texture_formats[i];
@@ -5157,7 +5161,7 @@ static bool SDLCALL SDL_SW_RenderGeometryRaw(SDL_Renderer *renderer,
         }
 
         // Check if UVs within range
-        if (is_quad) {
+        if (is_quad && uv) {
             const float *uv0_ = (const float *)((const char *)uv + A * color_stride);
             const float *uv1_ = (const float *)((const char *)uv + B * color_stride);
             const float *uv2_ = (const float *)((const char *)uv + C * color_stride);

@@ -30,6 +30,7 @@
 #include "../../core/unix/SDL_appid.h"
 #include "../SDL_egl_c.h"
 #include "SDL_waylandevents_c.h"
+#include "SDL_waylandmouse.h"
 #include "SDL_waylandwindow.h"
 #include "SDL_waylandvideo.h"
 #include "../../SDL_hints_c.h"
@@ -305,6 +306,8 @@ static void ConfigureWindowGeometry(SDL_Window *window)
 {
     SDL_WindowData *data = window->internal;
     const double scale_factor = GetWindowScale(window);
+    const double prev_pointer_scale_x = data->pointer_scale.x;
+    const double prev_pointer_scale_y = data->pointer_scale.y;
     const int old_pixel_width = data->current.pixel_width;
     const int old_pixel_height = data->current.pixel_height;
     int window_width, window_height;
@@ -427,6 +430,11 @@ static void ConfigureWindowGeometry(SDL_Window *window)
         for (SDL_Window *child = window->first_child; child; child = child->next_sibling) {
             RepositionPopup(child, true);
         }
+    }
+
+    // Update the scale for any focused cursors.
+    if (prev_pointer_scale_x != data->pointer_scale.x || prev_pointer_scale_y != data->pointer_scale.y) {
+        Wayland_DisplayUpdatePointerFocusedScale(data);
     }
 
     /* Update the min/max dimensions, primarily if the state was changed, and for non-resizable
@@ -1210,6 +1218,10 @@ static void decoration_frame_configure(struct libdecor_frame *frame,
     static const enum libdecor_window_state tiled_states = (LIBDECOR_WINDOW_STATE_TILED_LEFT | LIBDECOR_WINDOW_STATE_TILED_RIGHT |
                                                             LIBDECOR_WINDOW_STATE_TILED_TOP | LIBDECOR_WINDOW_STATE_TILED_BOTTOM);
 
+    if (wind->shell_surface_status == WAYLAND_SHELL_SURFACE_STATUS_WAITING_FOR_CONFIGURE) {
+        LibdecorGetMinContentSize(frame, &wind->system_limits.min_width, &wind->system_limits.min_height);
+    }
+
     // Window State
     if (libdecor_configuration_get_window_state(configuration, &window_state)) {
         fullscreen = (window_state & LIBDECOR_WINDOW_STATE_FULLSCREEN) != 0;
@@ -1453,7 +1465,6 @@ static void decoration_frame_configure(struct libdecor_frame *frame,
     }
 
     if (wind->shell_surface_status == WAYLAND_SHELL_SURFACE_STATUS_WAITING_FOR_CONFIGURE) {
-        LibdecorGetMinContentSize(frame, &wind->system_limits.min_width, &wind->system_limits.min_height);
         wind->shell_surface_status = WAYLAND_SHELL_SURFACE_STATUS_WAITING_FOR_FRAME;
     }
 
@@ -1528,6 +1539,16 @@ static void Wayland_HandlePreferredScaleChanged(SDL_WindowData *window_data, dou
              * the new backbuffer dimensions.
              */
             if (window_data->floating) {
+                /* Some compositors will send a configure event immediately after a scale event, however,
+                 * this event can contain the old logical size, and should be ignored, or the window can
+                 * incorrectly change size when moved between displays with differing scale factors.
+                 *
+                 * Store the last requested logical size as the last configure size, so a configure event
+                 * with the old size will be ignored.
+                 */
+                window_data->last_configure.width = window_data->requested.logical_width;
+                window_data->last_configure.height = window_data->requested.logical_height;
+
                 window_data->requested.logical_width = PixelToPoint(window_data->sdlwindow, window_data->requested.pixel_width);
                 window_data->requested.logical_height = PixelToPoint(window_data->sdlwindow, window_data->requested.pixel_height);
             } else {

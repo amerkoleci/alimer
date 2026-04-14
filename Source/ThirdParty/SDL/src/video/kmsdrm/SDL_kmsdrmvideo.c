@@ -1129,6 +1129,7 @@ static void KMSDRM_AddDisplay(SDL_VideoDevice *_this, drmModeConnector *conn, dr
        to sane values. */
     dispdata->cursor_bo = NULL;
     dispdata->cursor_bo_drm_fd = -1;
+    dispdata->kms_in_fence_fd = -1;
     dispdata->kms_out_fence_fd = -1;
 
     /* Since we create and show the default cursor on KMSDRM_InitMouse(),
