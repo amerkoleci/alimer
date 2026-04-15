@@ -15,17 +15,15 @@ struct VertexOutput {
 
 struct PushData
 {
-    float4x4 worldMatrix;
-    float4x4 viewProjectionMatrix;
+    float4x4 worldViewProjectionMatrix;
 };
-ALIMER_PUSH_CONSTANTS(PushData);
+//ALIMER_PUSH_CONSTANTS(PushData);
+ConstantBuffer<PushData> push : register(b0);
 
 VertexOutput vertexMain(in VertexInput input)
 {
-    float4 worldPosition = mul(float4(input.Position, 1.0f), push.worldMatrix);
-    
     VertexOutput output;
-    output.Position = mul(worldPosition, push.viewProjectionMatrix);
+    output.Position = mul(float4(input.Position, 1.0f), push.worldViewProjectionMatrix);
     output.Normal = input.Normal;
     output.TexCoord = input.TexCoord;
     return output;

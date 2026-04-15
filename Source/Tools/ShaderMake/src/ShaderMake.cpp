@@ -98,7 +98,6 @@ struct Options
     const char* sourceDir = "";
     const char* compiler = nullptr;
     const char* outputExt = nullptr;
-    const char* vulkanMemoryLayout = nullptr;
     uint32_t bRegShift = 0;
     uint32_t tRegShift = 1000;
     uint32_t uRegShift = 2000;
@@ -729,9 +728,8 @@ bool Options::Parse(int32_t argc, const char** argv)
             OPT_BOOLEAN(0, "PDB", &pdb, "Output PDB files in 'out/PDB/' folder", nullptr, 0, 0),
             OPT_BOOLEAN(0, "embedPDB", &embedPdb, "Embed PDB with the shader binary", nullptr, 0, 0),
             OPT_BOOLEAN(0, "stripReflection", &stripReflection, "Maps to '-Qstrip_reflect' DXC/FXC option: strip reflection information from a shader binary", nullptr, 0, 0),
-            OPT_BOOLEAN(0, "matrixRowMajor", &matrixRowMajor, "Maps to '-Zpr' DXC/FXC option: pack matrices in row-major order", nullptr, 0, 0),
+            OPT_BOOLEAN(0, "matrixRowMajor", &matrixRowMajor, "Maps to '-Zpr' DXC/FXC option: pack matrices in row-major order (default = true)", nullptr, 0, 0),
             //OPT_BOOLEAN(0, "hlsl2021", &hlsl2021, "Maps to '-HV 2021' DXC option: enable HLSL 2021 standard", nullptr, 0, 0),
-            OPT_STRING(0, "vulkanMemoryLayout", &vulkanMemoryLayout, "Maps to '-fvk-use-<VALUE>-layout' DXC options: dx, gl, scalar", nullptr, 0, 0),
             OPT_STRING('X', "compilerOptions", &unused, "Custom command line options for the compiler, separated by spaces", AddCompilerOptions, (intptr_t)this, 0),
         OPT_GROUP("Defines & include directories:"),
             OPT_STRING('I', "include", &unused, "Include directory(s)", AddInclude, (intptr_t)this, 0),
@@ -838,22 +836,6 @@ bool Options::Parse(int32_t argc, const char** argv)
         g_OutputExt = outputExt;
     else
         g_OutputExt = g_PlatformExts[platform];
-
-    if (g_Options.vulkanMemoryLayout && platform != SPIRV)
-    {
-        Printf(RED "ERROR: --vulkanMemoryLayout is only supported for SPIRV target!\n");
-        return false;
-    }
-
-    if (g_Options.vulkanMemoryLayout &&
-        strcmp(g_Options.vulkanMemoryLayout, "dx") != 0 &&
-        strcmp(g_Options.vulkanMemoryLayout, "gl") != 0 &&
-        strcmp(g_Options.vulkanMemoryLayout, "scalar") != 0)
-    {
-        Printf(RED "ERROR: Unsupported value '%s' for --vulkanMemoryLayout! Only 'dx', 'gl' and 'scalar' are supported.\n",
-            g_Options.vulkanMemoryLayout);
-        return false;
-    }
 
     if (g_Options.retryCount < 0)
     {
@@ -1304,9 +1286,9 @@ void DxcCompile()
                 args.push_back(DXC_ARG_ALL_RESOURCES_BOUND);
 
             if (g_Options.matrixRowMajor)
-                args.push_back(DXC_ARG_PACK_MATRIX_ROW_MAJOR);
-            else 
-                args.push_back(DXC_ARG_PACK_MATRIX_COLUMN_MAJOR);
+                args.push_back(L"-Zpr"); // DXC_ARG_PACK_MATRIX_ROW_MAJOR
+            //else
+            //    args.push_back(DXC_ARG_PACK_MATRIX_COLUMN_MAJOR);
 
             // DX Compiler release for August 2023.
             // HLSL 2021 is now enabled by default
@@ -1331,13 +1313,11 @@ void DxcCompile()
 
             if (g_Options.platform == SPIRV)
             {
+                // https://github.com/microsoft/DirectXShaderCompiler/blob/main/docs/SPIR-V.rst
                 args.push_back(L"-spirv");
                 args.push_back(wstring(L"-fspv-target-env=vulkan") + AnsiToWide(g_Options.vulkanVersion));
 
-                if (g_Options.vulkanMemoryLayout)
-                    args.push_back(wstring(L"-fvk-use-") + AnsiToWide(g_Options.vulkanMemoryLayout) + wstring(L"-layout"));
-
-                // Alimer
+                // Alimer: We're using dx-layout for SPIRV
                 args.push_back(L"-fvk-use-dx-layout");
                 args.push_back(L"-fvk-use-dx-position-w");
 
@@ -1641,13 +1621,9 @@ void ExeCompile()
                     // Uses the entrypoint name from the source instead of 'main' in the SPIRV output
                     cmd << " -fvk-use-entrypoint-name";
 
-                    if (g_Options.vulkanMemoryLayout)
-                    {
-                        if (strcmp(g_Options.vulkanMemoryLayout, "scalar") == 0)
-                            cmd << " -force-glsl-scalar-layout";
-                        else if (strcmp(g_Options.vulkanMemoryLayout, "gl") == 0)
-                            cmd << " -fvk-use-gl-layout";
-                    }
+                    // Alimer: We're using dx-layout for SPIRV
+                    cmd << " -fvk-use-dx-layout";
+                    cmd << " -fvk-use-dx-position-w";
 
                     if (!g_Options.noRegShifts)
                     {
@@ -1714,8 +1690,8 @@ void ExeCompile()
 
                 if (g_Options.matrixRowMajor)
                     cmd << " -Zpr";
-                else
-                    cmd << " -Zpc";
+                //else
+                //    cmd << " -Zpc";
 
                 // DX Compiler release for August 2023.
                 // HLSL 2021 is now enabled by default
@@ -1734,8 +1710,9 @@ void ExeCompile()
 
                     cmd << " -fspv-target-env=vulkan" << g_Options.vulkanVersion;
 
-                    if (g_Options.vulkanMemoryLayout)
-                        cmd << " -fvk-use-" << g_Options.vulkanMemoryLayout << "-layout";
+                    // Alimer: We're using dx-layout for SPIRV
+                    cmd << " -fvk-use-dx-layout";
+                    cmd << " -fvk-use-dx-position-w";
 
                     for (const string& ext : g_Options.spirvExtensions)
                         cmd << " -fspv-extension=" << ext;
@@ -1844,8 +1821,8 @@ void ExeCompile()
 
         // Update progress
         UpdateProgress(taskData, isSucceeded, willRetry, msg.str().c_str());
-        }
     }
+}
 
 //=====================================================================================================================
 // MAIN

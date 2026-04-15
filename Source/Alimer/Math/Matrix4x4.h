@@ -131,6 +131,7 @@ namespace Alimer
         [[nodiscard]] static Matrix4x4 CreateOrthographic(float width, float height, float zNearPlane, float zFarPlane) noexcept;
         [[nodiscard]] static Matrix4x4 CreateOrthographicOffCenter(float left, float right, float bottom, float top, float zNearPlane, float zFarPlane) noexcept;
 
+        [[nodiscard]] static Matrix4x4 CreateLookToLH(const Vector3& cameraPosition, const Vector3& cameraDirection, const Vector3& cameraUpVector) noexcept;
         [[nodiscard]] static Matrix4x4 CreateLookTo(const Vector3& cameraPosition, const Vector3& cameraDirection, const Vector3& cameraUpVector) noexcept;
         [[nodiscard]] static Matrix4x4 CreateLookAt(const Vector3& cameraPosition, const Vector3& cameraTarget, const Vector3& cameraUpVector) noexcept;
 

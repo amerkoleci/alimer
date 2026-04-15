@@ -266,7 +266,7 @@ namespace Alimer
         _encoderActive = false;
     }
 
-    ComputePassEncoder* CommandBuffer::BeginComputePass(const ComputePassDescriptor& descriptor)
+    ComputePassEncoder* CommandBuffer::BeginComputePass(const RHIComputePassDesc& desc)
     {
         if (_encoderActive)
         {
@@ -274,7 +274,7 @@ namespace Alimer
             return nullptr;
         }
 
-        ComputePassEncoder* computePassEncoder = BeginComputePassCore(descriptor);
+        ComputePassEncoder* computePassEncoder = BeginComputePassCore(desc);
         _encoderActive = true;
         return computePassEncoder;
     }
@@ -680,14 +680,16 @@ namespace Alimer
         return factory;
     }
 
-    RHIBufferRef RHICreateBuffer(RHIDevice* device, uint64_t size, RHIBufferUsage usage, const void* initialData, const char* label)
+    RHIBufferRef RHICreateBuffer(RHIDevice* device, uint64_t size, RHIBufferUsage usage, MemoryType memoryType, const void* initialData, const char* label)
     {
         ALIMER_ASSERT(device);
 
-        RHIBufferDesc bufferDesc{};
-        bufferDesc.label = label;
-        bufferDesc.size = size;
-        bufferDesc.usage = usage;
+        const RHIBufferDesc bufferDesc{
+            .label = label,
+            .size = size,
+            .usage = usage,
+            .memoryType = memoryType
+        };
         return device->CreateBuffer(bufferDesc, initialData);
     }
 

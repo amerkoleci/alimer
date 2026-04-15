@@ -4,12 +4,19 @@
 #pragma once
 
 #include "Alimer/Platform/Types.h"
-#include "Alimer/IO/Types.h"
+
+#if defined(_WIN32)
+typedef struct HINSTANCE__* HINSTANCE;
+typedef HINSTANCE HMODULE;
+#endif
 
 namespace Alimer
 {
-    // Private implementation.
-    struct DynamicLibraryImpl;
+#if defined(_WIN32)
+    using NativeLibrary = HMODULE;
+#else
+    using NativeLibrary = void*;
+#endif
 
     class ALIMER_API DynamicLibrary final
     {
@@ -30,7 +37,7 @@ namespace Alimer
         bool IsValid() const;
 
     private:
-        void* _handle = nullptr;
+        NativeLibrary _handle = nullptr;
         bool _needsClose = false;
     };
 }

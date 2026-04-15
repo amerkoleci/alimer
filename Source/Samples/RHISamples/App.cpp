@@ -39,8 +39,8 @@ void RHISamplesApp::Initialize()
     PixelFormat depthStencilFormat = PixelFormat::Depth32Float;
 
     //_runningSample = new DrawTriangle();
-    _runningSample = new DrawIndexedQuad();
-    //_runningSample = new DrawSpinningCube();
+    //_runningSample = new DrawIndexedQuad();
+    _runningSample = new DrawSpinningCube();
 
     _runningSample->Initialize(_rhiDevice,
         GetMainWindow()->GetSizeInPixels(),

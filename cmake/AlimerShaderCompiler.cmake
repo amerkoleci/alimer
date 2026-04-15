@@ -36,7 +36,6 @@ function(alimer_compile_shaders)
             --binaryBlob
             --WX
             --stripReflection
-            --matrixRowMajor
             -I ${ALIMER_SHADERS_DEFINITIONS_DIR}
             -I ${ALIMER_SHADERS_INCLUDE_DIR}
             --outputExt .bin
@@ -57,7 +56,6 @@ function(alimer_compile_shaders)
             --platform SPIRV
             --binaryBlob
             --stripReflection
-            --matrixRowMajor
             -I ${ALIMER_SHADERS_DEFINITIONS_DIR}
             -I ${ALIMER_SHADERS_INCLUDE_DIR}
             --WX

@@ -1029,7 +1029,7 @@ namespace Alimer
         bool            stencilReadOnly = false;
     };
 
-    struct ComputePassDescriptor
+    struct RHIComputePassDesc
     {
         const char* label = nullptr;
     };
@@ -1500,7 +1500,7 @@ namespace Alimer
         virtual void ResolveQuery(const QueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset) = 0;
         virtual void ResetQuery(const QueryHeap* heap, uint32_t index, uint32_t count) = 0;
 
-        ComputePassEncoder* BeginComputePass(const ComputePassDescriptor& descriptor);
+        ComputePassEncoder* BeginComputePass(const RHIComputePassDesc& desc);
         RenderPassEncoder* BeginRenderPass(const RenderPassDesc& desc);
 
         /// Acquires the next available texture for rendering or processing operations and queue's for presentation.
@@ -1514,7 +1514,7 @@ namespace Alimer
     protected:
         void Reset(uint32_t frameIndex);
 
-        virtual ComputePassEncoder* BeginComputePassCore(const ComputePassDescriptor& descriptor) = 0;
+        virtual ComputePassEncoder* BeginComputePassCore(const RHIComputePassDesc& desc) = 0;
         virtual RenderPassEncoder* BeginRenderPassCore(const RenderPassDesc& desc) = 0;
 
         uint32_t _frameIndex{ 0 };
@@ -1632,19 +1632,19 @@ namespace Alimer
     ALIMER_API RHIBackend GetPlatformPreferredBackend();
     ALIMER_API RHIFactoryRef RHICreateFactory(const RHIFactoryDesc& desc);
 
-    ALIMER_API RHIBufferRef RHICreateBuffer(RHIDevice* device, uint64_t size, RHIBufferUsage usage = RHIBufferUsage::ShaderRead, const void* initialData = nullptr, const char* label = nullptr);
+    ALIMER_API RHIBufferRef RHICreateBuffer(RHIDevice* device, uint64_t size, RHIBufferUsage usage = RHIBufferUsage::ShaderRead, MemoryType memoryType = MemoryType::Private, const void* initialData = nullptr, const char* label = nullptr);
     ALIMER_API RHIBufferRef RHICreateBuffer(RHIDevice* device, const RHIBufferDesc& desc, const void* initialData = nullptr);
 
     template<typename T>
     RHIBufferRef RHICreateBuffer(RHIDevice* device, _In_reads_(count) const T* data, uint32_t count, RHIBufferUsage usage = RHIBufferUsage::ShaderRead) noexcept
     {
-        return RHICreateBuffer(device, sizeof(T) * count, usage, data);
+        return RHICreateBuffer(device, sizeof(T) * count, usage, MemoryType::Private, data);
     }
 
     template<typename T>
     RHIBufferRef RHICreateBuffer(RHIDevice* device, const T& data, RHIBufferUsage usage = RHIBufferUsage::ShaderRead) noexcept
     {
-        return RHICreateBuffer(device, data.size() * sizeof(typename T::value_type), usage, data.data());
+        return RHICreateBuffer(device, data.size() * sizeof(typename T::value_type), usage, MemoryType::Private, data.data());
     }
 
     ALIMER_API const std::string ToString(RHIBackend type);

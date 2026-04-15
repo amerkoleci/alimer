@@ -23,6 +23,14 @@ struct VertexPositionNormalTexture
     Vector2 texcoord;
 };
 
+struct alignas(16) PushData
+{
+    //float4x4 worldMatrix;
+    //float4x4 viewMatrix;
+    //float4x4 projectionMatrix;
+    float4x4 worldViewProjectionMatrix;
+};
+
 void DrawSpinningCube::Initialize(RHIDevice* device, const UInt2& windowSize, PixelFormat colorFormat, PixelFormat depthStencilFormat)
 {
     Sample::Initialize(device, windowSize, colorFormat, depthStencilFormat);
@@ -91,6 +99,7 @@ void DrawSpinningCube::Initialize(RHIDevice* device, const UInt2& windowSize, Pi
 
     _vertexBuffer = RHICreateBuffer(device, vertices, RHIBufferUsage::Vertex);
     _indexBuffer = RHICreateBuffer(device, indices, RHIBufferUsage::Index);
+    _constantBuffer = RHICreateBuffer(device, sizeof(PushData), RHIBufferUsage::Constant, MemoryType::Upload);
 
     ShaderModuleRef vertexShader = RHILoadShader(device, ShaderStages::Vertex, "Cube");
     ShaderModuleRef fragmentShader = RHILoadShader(device, ShaderStages::Fragment, "Cube");
@@ -129,11 +138,11 @@ void DrawSpinningCube::Draw(CommandBuffer* commandBuffer, RHITexture* outputText
 
     Matrix4x4 rotX = Matrix4x4::CreateFromAxisAngle(Vector3(1.0f, 0.0f, 0.0f), rx);
     Matrix4x4 rotY = Matrix4x4::CreateFromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), ry);
-    Matrix4x4 worldMatrix = rotX * rotY;
+    Matrix4x4 worldMatrix = rotX* rotY;
 
-    Matrix4x4 viewMatrix = Matrix4x4::CreateLookAt(Vector3(0, 5, 5), Vector3::Zero, Vector3::UnitY);
-    Matrix4x4 projectionMatrix = Matrix4x4::CreatePerspectiveFieldOfView(ToRadians(60), aspect, 0.1f, 1000.0f);
-    Matrix4x4 viewProjectionMatrix = viewMatrix * projectionMatrix;
+    Matrix4x4 viewMatrix = Matrix4x4::CreateLookAt(Vector3(0, 0, 25), Vector3::Zero, Vector3::UnitY);
+    Matrix4x4 projectionMatrix = Matrix4x4::CreatePerspectiveFieldOfView(M_PI / 4, aspect, 0.1f, 1000.0f);
+    Matrix4x4 viewProjectionMatrix =  viewMatrix * projectionMatrix;
 
     RenderPassColorAttachment colorAttachment;
     colorAttachment.view = outputTexture->GetDefaultView();
@@ -148,7 +157,6 @@ void DrawSpinningCube::Draw(CommandBuffer* commandBuffer, RHITexture* outputText
     {
         depthStencilAttachment.view = _depthStencilTexture->GetDefaultView();
         depthStencilAttachment.depthClearValue = 1.0f;
-        //depthStencilAttachment.depthClearValue = 0.0f; // Infinite reverse Z
     }
 
     RenderPassDesc renderPassDescriptor = {};
@@ -164,15 +172,15 @@ void DrawSpinningCube::Draw(CommandBuffer* commandBuffer, RHITexture* outputText
     renderPass->SetVertexBuffer(0, _vertexBuffer.Get());
     renderPass->SetIndexBuffer(_indexBuffer.Get(), 0, IndexFormat::Uint16);
 
-    struct alignas(16) PushData
-    {
-        float4x4 worldMatrix;
-        float4x4 viewProjectionMatrix;
-    } pushData;
-    pushData.worldMatrix = worldMatrix;
-    pushData.viewProjectionMatrix = viewProjectionMatrix;
+    PushData pushData;
+    //pushData.worldMatrix = worldMatrix;
+    //pushData.viewMatrix = viewMatrix;
+    //pushData.projectionMatrix = projectionMatrix;
+    pushData.worldViewProjectionMatrix = worldMatrix * viewMatrix * projectionMatrix;
+    memcpy(_constantBuffer->GetMappedData(), &pushData, sizeof(PushData));  
 
-    renderPass->SetPushConstants(pushData);
+    renderPass->SetConstantBuffer(0, _constantBuffer.Get());
+    //renderPass->SetPushConstants(pushData);
     renderPass->DrawIndexed(36);
     renderPass->End();
 }

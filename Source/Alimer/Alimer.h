@@ -13,7 +13,7 @@
 #include <Alimer/Core/StringId.h>
 #include <Alimer/Core/Object.h>
 #include <Alimer/Core/JobSystem.h>
-//#include "Alimer/Core/Stopwatch.h"
+#include "Alimer/Core/Stopwatch.h"
 
 #if TODO
 // Math
@@ -62,9 +62,12 @@
 #include <Alimer/Assets/AssetManager.h>
 #endif
 
+// Platform
+#include <Alimer/Platform/Platform.h>
+#include <Alimer/Platform/DynamicLibrary.h>
+
 // Application
-//#include <Alimer/Platform.h>
-//#include <Alimer/Input.h>
+#include <Alimer/Input.h>
 #include <Alimer/Application.h>
 
 #if TODO

@@ -5,6 +5,7 @@
 #include "Alimer/Core/Log.h"
 #include "Alimer/Core/Timer.h"
 #include "Alimer/Core/JobSystem.h"
+#include "Alimer/Input.h"
 #include "Alimer/Application.h"
 #include "Alimer/Assets/AssetManager.h"
 #include <thread>
@@ -48,6 +49,7 @@ Application::~Application()
 
     _rhiDevice.Reset();
     _rhiFactory.Reset();
+    Input::Shutdown();
     Log::Shutdown();
     JobSystem::Shutdown();
     PlatformShutdown();
@@ -80,7 +82,7 @@ void Application::Tick()
     _timer.Tick();
     DoUpdate();
     Render();
-    //Input::Update();
+    Input::Update();
 }
 
 void Application::RequestExit()
@@ -99,6 +101,7 @@ void Application::DoUpdate()
 void Application::InitBeforeRun()
 {
     JobSystem::Context ctx;
+    JobSystem::Execute(ctx, [](JobSystem::JobArgs /*args*/) { Input::Initialize(); Input::Update(); });
     JobSystem::Execute(ctx, [&](JobSystem::JobArgs /*args*/) { gAssets().Start(_options.assetsDirectory); });
 
     // Create RHI factory and device.

@@ -683,7 +683,7 @@ Matrix4x4 Matrix4x4::CreatePerspectiveInfiniteReverseZ(float fieldOfView, float 
 Matrix4x4 Matrix4x4::CreatePerspectiveFieldOfView(float fovAngleY, float aspectRatio, float zNearPlane, float zFarPlane) noexcept
 {
     ALIMER_ASSERT(zNearPlane > 0.0f && zFarPlane > 0.0f);
-    ALIMER_ASSERT(!MathF::NearEqual(ToRadians(fovAngleY), 0.0f, 0.00001f * 2.0f));
+    ALIMER_ASSERT(!MathF::NearEqual(fovAngleY, 0.0f, 0.00001f * 2.0f));
     ALIMER_ASSERT(!MathF::NearEqual(aspectRatio, 0.0f, 0.00001f));
     ALIMER_ASSERT(!MathF::NearEqual(zFarPlane, zNearPlane, 0.00001f));
 
@@ -824,6 +824,46 @@ Matrix4x4 Matrix4x4::CreateOrthographicOffCenter(float left, float right, float 
     return result;
 }
 
+Matrix4x4 Matrix4x4::CreateLookToLH(const Vector3& cameraPosition, const Vector3& cameraDirection, const Vector3& cameraUpVector) noexcept
+{
+    ALIMER_ASSERT(!cameraDirection.IsZero());
+    ALIMER_ASSERT(!cameraDirection.IsInf());
+    ALIMER_ASSERT(!cameraUpVector.IsZero());
+    ALIMER_ASSERT(!cameraUpVector.IsInf());
+
+    Vector3 axisZ = Vector3::Normalize(cameraDirection);
+    Vector3 axisX = Vector3::Normalize(Vector3::Cross(cameraUpVector, axisZ));
+    Vector3 axisY = Vector3::Cross(axisZ, axisX);
+    Vector3 negativeCameraPosition = Vector3::Negate(cameraPosition);
+
+    float D0 = Vector3::Dot(axisX, negativeCameraPosition);
+    float D1 = Vector3::Dot(axisY, negativeCameraPosition);
+    float D2 = Vector3::Dot(axisZ, negativeCameraPosition);
+
+    Matrix4x4 result;
+    result.m11 = axisX.x;
+    result.m12 = axisY.x;
+    result.m13 = axisZ.x;
+    result.m14 = D0;
+
+    result.m21 = axisX.y;
+    result.m22 = axisY.y;
+    result.m23 = axisZ.y;
+    result.m24 = D1;
+
+    result.m31 = axisX.z;
+    result.m32 = axisY.z;
+    result.m33 = axisZ.z;
+    result.m34 = D2;
+
+    result.m41 = 0.0f;
+    result.m42 = 0.0f;
+    result.m43 = 0.0f;
+    result.m44 = 1.0f;
+
+    return Transpose(result);
+}
+
 Matrix4x4 Matrix4x4::CreateLookTo(const Vector3& cameraPosition, const Vector3& cameraDirection, const Vector3& cameraUpVector) noexcept
 {
     ALIMER_ASSERT(!cameraDirection.IsZero());
@@ -862,8 +902,8 @@ Matrix4x4 Matrix4x4::CreateLookTo(const Vector3& cameraPosition, const Vector3& 
 
 Matrix4x4 Matrix4x4::CreateLookAt(const Vector3& cameraPosition, const Vector3& cameraTarget, const Vector3& cameraUpVector) noexcept
 {
-    Vector3 cameraDirection = Vector3::Subtract(cameraTarget, cameraPosition);
-    return CreateLookTo(cameraPosition, cameraDirection, cameraUpVector);
+    Vector3 negativeCameraDirection = Vector3::Subtract(cameraPosition, cameraTarget);
+    return CreateLookToLH(cameraPosition, negativeCameraDirection, cameraUpVector);
 }
 
 // XMMatrixRotationQuaternion

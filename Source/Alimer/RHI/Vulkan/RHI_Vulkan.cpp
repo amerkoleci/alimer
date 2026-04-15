@@ -1178,7 +1178,7 @@ namespace Alimer
         ~VulkanComputePassEncoder() override;
 
         void Reset(VkCommandBuffer commandBuffer);
-        void Begin(const ComputePassDescriptor& descriptor);
+        void Begin(const RHIComputePassDesc& desc);
 
         void PushDebugGroup(std::string_view groupLabel) override;
         void PopDebugGroup() override;
@@ -1294,7 +1294,7 @@ namespace Alimer
         /* GraphicsContext */
         RHITexture* AcquireSurfaceTexture(RHISurface* surface) override;
 
-        ComputePassEncoder* BeginComputePassCore(const ComputePassDescriptor& descriptor) override;
+        ComputePassEncoder* BeginComputePassCore(const RHIComputePassDesc& desc) override;
         RenderPassEncoder* BeginRenderPassCore(const RenderPassDesc& desc) override;
 
         void BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation) override;
@@ -2252,13 +2252,13 @@ namespace Alimer
         ClearState();
     }
 
-    void VulkanComputePassEncoder::Begin(const ComputePassDescriptor& descriptor)
+    void VulkanComputePassEncoder::Begin(const RHIComputePassDesc& desc)
     {
         ClearState();
 
-        if (descriptor.label)
+        if (desc.label)
         {
-            _commandBuffer->PushDebugGroup(descriptor.label);
+            _commandBuffer->PushDebugGroup(desc.label);
             _hasLabel = true;
         }
         else
@@ -3159,10 +3159,10 @@ namespace Alimer
 
             if (buffer != nullptr)
             {
-                //auto internal_state = to_internal(&buffer);
-                //info.buffer = internal_state->resource;
-                //info.offset = i < device->dynamic_cbv_count ? 0 : table.CBV_offset[i];
-                //info.range = std::min(dynamic_cbv_maxsize, buffer.desc.size - table.CBV_offset[i]);
+                auto backendBuffer = StaticCast<VulkanBuffer>(buffer);
+                info.buffer = backendBuffer->handle;
+                info.offset = 0; // i < device->dynamic_cbv_count ? 0 : table.CBV_offset[i];
+                info.range = VK_WHOLE_SIZE; // VmaAlignUp(backendBuffer->GetSize() - table.CBV_offset[i], device->_adapter->properties2.properties.limits.minUniformBufferOffsetAlignment); //std::min(dynamic_cbv_maxsize, buffer.desc.size - table.CBV_offset[i]);
             }
             else
             {
@@ -3321,15 +3321,15 @@ namespace Alimer
         return swapChainTexture;
     }
 
-    ComputePassEncoder* VulkanCommandBuffer::BeginComputePassCore(const ComputePassDescriptor& descriptor)
+    ComputePassEncoder* VulkanCommandBuffer::BeginComputePassCore(const RHIComputePassDesc& desc)
     {
-        _computePassEncoder->Begin(descriptor);
+        _computePassEncoder->Begin(desc);
         return _computePassEncoder;
     }
 
-    RenderPassEncoder* VulkanCommandBuffer::BeginRenderPassCore(const RenderPassDesc& descriptor)
+    RenderPassEncoder* VulkanCommandBuffer::BeginRenderPassCore(const RenderPassDesc& desc)
     {
-        _renderPassEncoder->Begin(descriptor);
+        _renderPassEncoder->Begin(desc);
         return _renderPassEncoder;
     }
 
@@ -7263,7 +7263,7 @@ namespace Alimer
             .flags = 0,
             .window = (ANativeWindow*)window
         };
-        result = vkCreateAndroidSurfaceKHR(handle, &createInfo, nullptr, &handle);
+        result = vkCreateAndroidSurfaceKHR(handle, &createInfo, nullptr, &surface);
 #elif defined(__APPLE__)
         const VkMetalSurfaceCreateInfoEXT createInfo = {
             .sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT,
@@ -7272,7 +7272,7 @@ namespace Alimer
             .pLayer = (CAMetalLayer*)window
         };
 
-        result = vkCreateMetalSurfaceEXT(handle, &createInfo, nullptr, &handle);
+        result = vkCreateMetalSurfaceEXT(handle, &createInfo, nullptr, &surface);
 #endif
 
         if (result != VK_SUCCESS)
