@@ -114,14 +114,13 @@ void DrawSpinningCube::Initialize(RHIDevice* device, const UInt2& windowSize, Pi
     vertexBufferLayout.attributeCount = static_cast<uint32_t>(vertexAttributes.size());
     vertexBufferLayout.attributes = vertexAttributes.data();
 
-    RenderPipelineDescriptor pipelineDesc{};
+    RHIRenderPipelineDesc pipelineDesc{};
     pipelineDesc.label = "IndexedQuad";
     pipelineDesc.vertexBufferLayoutCount = 1u;
     pipelineDesc.vertexBufferLayouts = &vertexBufferLayout;
     pipelineDesc.vertexShader = vertexShader;
     pipelineDesc.fragmentShader = fragmentShader;
-    pipelineDesc.colorAttachmentCount = 1u;
-    pipelineDesc.colorAttachmentFormats = &colorFormat;
+    pipelineDesc.colorAttachmentFormats[0] = colorFormat;
     pipelineDesc.depthStencilFormat = depthStencilFormat;
     _renderPipeline = device->CreateRenderPipeline(pipelineDesc);
 }

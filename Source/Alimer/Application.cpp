@@ -149,7 +149,7 @@ void Application::Render()
     // ImGui
     OnGui();
 
-    CommandBuffer* commandBuffer = _rhiDevice->BeginCommandBuffer(CommandQueueType::Graphics, "Frame");
+    CommandBuffer* commandBuffer = _rhiDevice->BeginCommandBuffer(RHIQueueType::Graphics, "Frame");
     //RHITexture* swapChainTexture = _mainWindow->GetSwapChain()->AcquireNextTexture();
     RHITexture* swapChainTexture = commandBuffer->AcquireSurfaceTexture(_mainWindow->GetSurface());
     if (swapChainTexture != nullptr)

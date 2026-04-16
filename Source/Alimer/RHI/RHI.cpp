@@ -504,23 +504,30 @@ namespace Alimer
         return CreateShaderModuleCore(descriptor);
     }
 
-    RenderPipelineRef RHIDevice::CreateRenderPipeline(const RenderPipelineDescriptor& descriptor)
+    ComputePipelineRef RHIDevice::CreateComputePipeline(const RHIComputePipelineDesc& desc)
+    {
+        ALIMER_ASSERT(desc.shader != nullptr);
+
+        return CreateComputePipelineCore(desc);
+    }
+
+    RenderPipelineRef RHIDevice::CreateRenderPipeline(const RHIRenderPipelineDesc& desc)
     {
         // Vertex shader is necessary when not using mesh shaders
-        if (descriptor.vertexShader == nullptr)
+        if (desc.vertexShader == nullptr)
         {
-            if (descriptor.meshShader == nullptr)
+            if (desc.meshShader == nullptr)
             {
                 LOGE("Mesh shader is required when creating mesh pipeline");
                 return nullptr;
             }
         }
 
-        if (descriptor.vertexBufferLayoutCount > 0)
+        if (desc.vertexBufferLayoutCount > 0)
         {
-            for (uint32_t bufferIndex = 0; bufferIndex < descriptor.vertexBufferLayoutCount; ++bufferIndex)
+            for (uint32_t bufferIndex = 0; bufferIndex < desc.vertexBufferLayoutCount; ++bufferIndex)
             {
-                const VertexBufferLayout& vertexBufferLayout = descriptor.vertexBufferLayouts[bufferIndex];
+                const VertexBufferLayout& vertexBufferLayout = desc.vertexBufferLayouts[bufferIndex];
                 for (uint32_t attributeIndex = 0; attributeIndex < vertexBufferLayout.attributeCount; ++attributeIndex)
                 {
                     const VertexAttribute& vertexAttribute = vertexBufferLayout.attributes[attributeIndex];
@@ -529,14 +536,7 @@ namespace Alimer
             }
         }
 
-        return CreateRenderPipelineCore(descriptor);
-    }
-
-    ComputePipelineRef RHIDevice::CreateComputePipeline(const ComputePipelineDescriptor& descriptor)
-    {
-        ALIMER_ASSERT(descriptor.shader != nullptr);
-
-        return CreateComputePipelineCore(descriptor);
+        return CreateRenderPipelineCore(desc);
     }
 
     QueryHeapRef RHIDevice::CreateQueryHeap(const QueryHeapDescriptor& descriptor)

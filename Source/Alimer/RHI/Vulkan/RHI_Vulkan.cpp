@@ -1130,10 +1130,10 @@ namespace Alimer
         void DestroySwapchain(bool destroySurface);
     };
 
-    struct VulkanQueue final : public CommandQueue
+    struct VulkanQueue final : public RHIQueue
     {
         VkQueue handle = VK_NULL_HANDLE;
-        CommandQueueType queueType = CommandQueueType::Count;
+        RHIQueueType queueType = RHIQueueType::Count;
 
         std::vector<SharedPtr<VulkanSurface>> swapchainUpdates;
         std::vector<VkSwapchainKHR> submitSwapchains;
@@ -1149,7 +1149,7 @@ namespace Alimer
         VkFence frameFences[kNumFramesInFlight] = {};
 
         void Submit(VulkanDevice* device, VkFence fence);
-        CommandQueueType GetType() const override { return queueType; }
+        RHIQueueType GetType() const override { return queueType; }
     };
 
     struct VulkanUploadContext final
@@ -1266,7 +1266,7 @@ namespace Alimer
         friend class VulkanDevice;
 
     public:
-        VulkanCommandBuffer(VulkanDevice* device, CommandQueueType queueType, uint32_t id);
+        VulkanCommandBuffer(VulkanDevice* device, RHIQueueType queueType, uint32_t id);
         ~VulkanCommandBuffer() override;
 
         void Begin(uint32_t frameIndex, std::string_view label);
@@ -1304,7 +1304,7 @@ namespace Alimer
         static constexpr uint32_t kMaxBarrierCount = 16;
 
         VulkanDevice* device;
-        CommandQueueType queueType;
+        RHIQueueType queueType;
         uint32_t id;
 
         VkCommandPool commandPools[kNumFramesInFlight] = {};
@@ -1450,9 +1450,9 @@ namespace Alimer
     {
         uint32_t queueFamilyCount = 0;
 
-        uint32_t familyIndices[ecast(CommandQueueType::Count)];
-        uint32_t queueIndices[ecast(CommandQueueType::Count)] = {};
-        uint32_t counts[ecast(CommandQueueType::Count)] = {};
+        uint32_t familyIndices[ecast(RHIQueueType::Count)];
+        uint32_t queueIndices[ecast(RHIQueueType::Count)] = {};
+        uint32_t counts[ecast(RHIQueueType::Count)] = {};
 
         uint32_t timestampValidBits = 0;
 
@@ -1469,7 +1469,7 @@ namespace Alimer
 
         bool IsComplete() const
         {
-            return familyIndices[ecast(CommandQueueType::Graphics)] != VK_QUEUE_FAMILY_IGNORED;
+            return familyIndices[ecast(RHIQueueType::Graphics)] != VK_QUEUE_FAMILY_IGNORED;
         }
     };
 
@@ -1503,13 +1503,13 @@ namespace Alimer
         VkDescriptorPool CreateDescriptorSetPool();
 
         ShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) override;
-        ComputePipelineRef CreateComputePipelineCore(const ComputePipelineDescriptor& desc) override;
-        RenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDescriptor& desc) override;
+        ComputePipelineRef CreateComputePipelineCore(const RHIComputePipelineDesc& desc) override;
+        RenderPipelineRef CreateRenderPipelineCore(const RHIRenderPipelineDesc& desc) override;
         QueryHeapRef CreateQueryHeapCore(const QueryHeapDescriptor& desc) override;
 
         void WriteShadingRateValue(ShadingRate rate, void* dest) const override;
 
-        CommandBuffer* BeginCommandBuffer(CommandQueueType queue, std::string_view label = "") override;
+        CommandBuffer* BeginCommandBuffer(RHIQueueType queueType, std::string_view label = "") override;
 
         void FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices);
         void FillImageSharingIndices(VkImageCreateInfo& info, uint32_t* sharingIndices);
@@ -1529,9 +1529,9 @@ namespace Alimer
         RHIAdapter* GetAdapter() const override;
 
         VkDevice GetHandle() const { return handle; }
-        VulkanQueue& GetGraphicsQueue() { return queues[ecast(CommandQueueType::Graphics)]; }
-        VulkanQueue& GetComputeQueue() { return queues[ecast(CommandQueueType::Compute)]; }
-        VulkanQueue& GetCopyQueue() { return queues[ecast(CommandQueueType::Copy)]; }
+        VulkanQueue& GetGraphicsQueue() { return queues[ecast(RHIQueueType::Graphics)]; }
+        VulkanQueue& GetComputeQueue() { return queues[ecast(RHIQueueType::Compute)]; }
+        VulkanQueue& GetCopyQueue() { return queues[ecast(RHIQueueType::Copy)]; }
 
         /* Null resources */
         VkBuffer		nullBuffer = VK_NULL_HANDLE;
@@ -1574,7 +1574,7 @@ namespace Alimer
         bool shuttingDown{ false };
         VulkanAdapter* _adapter;
         VkDevice handle = VK_NULL_HANDLE;
-        VulkanQueue queues[ecast(CommandQueueType::Count)];
+        VulkanQueue queues[ecast(RHIQueueType::Count)];
 
         VmaAllocator allocator{ VK_NULL_HANDLE };
         VmaAllocator externalAllocator{ VK_NULL_HANDLE };
@@ -1987,7 +1987,7 @@ namespace Alimer
         }
 
         // Present family not found, we cannot create SwapChain
-        if ((queuePresentSupport & (1u << queueFamilyIndices.familyIndices[ecast(CommandQueueType::Graphics)])) == 0)
+        if ((queuePresentSupport & (1u << queueFamilyIndices.familyIndices[ecast(RHIQueueType::Graphics)])) == 0)
         {
             LOGE("Vulkan: No presentation queue found for GPU.");
             return;
@@ -2841,7 +2841,7 @@ namespace Alimer
     }
 
     /* VulkanCommandBuffer */
-    VulkanCommandBuffer::VulkanCommandBuffer(VulkanDevice* device_, CommandQueueType queueType_, uint32_t id_)
+    VulkanCommandBuffer::VulkanCommandBuffer(VulkanDevice* device_, RHIQueueType queueType_, uint32_t id_)
         : device(device_)
         , queueType(queueType_)
         , id(id_)
@@ -2903,7 +2903,7 @@ namespace Alimer
         };
         VK_CHECK(device->vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
-        if (queueType == CommandQueueType::Graphics)
+        if (queueType == RHIQueueType::Graphics)
         {
             VkRect2D scissors[16];
             for (uint32_t i = 0; i < ALIMER_STATIC_ARRAY_SIZE(scissors); ++i)
@@ -4092,7 +4092,7 @@ namespace Alimer
         VkFenceCreateInfo fenceInfo = {};
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-        for (uint8_t i = 0; i < ecast(CommandQueueType::Count); i++)
+        for (uint8_t i = 0; i < ecast(RHIQueueType::Count); i++)
         {
             if (_adapter->queueFamilyIndices.familyIndices[i] != VK_QUEUE_FAMILY_IGNORED)
             {
@@ -4108,7 +4108,7 @@ namespace Alimer
                     VK_CHECK(vkCreateFence(handle, &fenceInfo, nullptr, &queues[i].frameFences[frameIndex]));
                 }
 
-                queues[i].queueType = static_cast<CommandQueueType>(i);
+                queues[i].queueType = static_cast<RHIQueueType>(i);
             }
             else
             {
@@ -4386,7 +4386,7 @@ namespace Alimer
         WaitIdle();
         shuttingDown = true;
 
-        for (uint8_t i = 0; i < ecast(CommandQueueType::Count); ++i)
+        for (uint8_t i = 0; i < ecast(RHIQueueType::Count); ++i)
         {
             if (queues[i].handle == VK_NULL_HANDLE)
                 continue;
@@ -4558,7 +4558,7 @@ namespace Alimer
             }
 
             // Final submits with fences.
-            for (uint8_t i = 0; i < ecast(CommandQueueType::Count); ++i)
+            for (uint8_t i = 0; i < ecast(RHIQueueType::Count); ++i)
             {
                 queues[i].Submit(this, queues[i].frameFences[_frameIndex]);
             }
@@ -4572,7 +4572,7 @@ namespace Alimer
         // Initiate stalling CPU when GPU is not yet finished with next frame
         if (_frameCount >= kNumFramesInFlight)
         {
-            for (uint8_t i = 0; i < ecast(CommandQueueType::Count); ++i)
+            for (uint8_t i = 0; i < ecast(RHIQueueType::Count); ++i)
             {
                 if (queues[i].handle == VK_NULL_HANDLE)
                     continue;
@@ -4670,7 +4670,7 @@ namespace Alimer
             createInfo.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
         }
 
-        uint32_t sharingIndices[ecast(CommandQueueType::Count)];
+        uint32_t sharingIndices[ecast(RHIQueueType::Count)];
         FillBufferSharingIndices(createInfo, sharingIndices);
 
         VmaAllocationCreateInfo memoryInfo = {};
@@ -4945,7 +4945,7 @@ namespace Alimer
             createInfo.usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
         }
 
-        uint32_t sharingIndices[ecast(CommandQueueType::Count)];
+        uint32_t sharingIndices[ecast(RHIQueueType::Count)];
         FillImageSharingIndices(createInfo, sharingIndices);
 
         VkResult result = VK_SUCCESS;
@@ -5454,7 +5454,7 @@ namespace Alimer
         return module;
     }
 
-    ComputePipelineRef VulkanDevice::CreateComputePipelineCore(const ComputePipelineDescriptor& desc)
+    ComputePipelineRef VulkanDevice::CreateComputePipelineCore(const RHIComputePipelineDesc& desc)
     {
         SharedPtr<VulkanComputePipeline> pipeline(new VulkanComputePipeline());
         pipeline->device = this;
@@ -5486,7 +5486,7 @@ namespace Alimer
         return pipeline;
     }
 
-    RenderPipelineRef VulkanDevice::CreateRenderPipelineCore(const RenderPipelineDescriptor& desc)
+    RenderPipelineRef VulkanDevice::CreateRenderPipelineCore(const RHIRenderPipelineDesc& desc)
     {
         SharedPtr<VulkanRenderPipeline> pipeline(new VulkanRenderPipeline());
         pipeline->device = this;
@@ -5673,12 +5673,15 @@ namespace Alimer
 
         // BlendState
         uint32_t colorAttachmentCount = 0;
+        VkFormat colorAttachmentFormats[kMaxColorAttachments] = {};
         VkPipelineColorBlendAttachmentState blendAttachmentStates[kMaxColorAttachments] = {};
 
-        for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
+        for (uint32_t i = 0; i < kMaxColorAttachments; ++i)
         {
             if (desc.colorAttachmentFormats[i] == PixelFormat::Undefined)
                 continue;
+
+            colorAttachmentFormats[colorAttachmentCount] = ToVkFormat(desc.colorAttachmentFormats[i]);
 
             uint32_t attachmentIndex = 0;
             if (desc.blendState.independentBlendEnable)
@@ -5709,21 +5712,10 @@ namespace Alimer
 
         VkPipelineRenderingCreateInfo renderingInfo{};
         renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-        VkFormat colorAttachmentFormats[kMaxColorAttachments];
-        for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
-        {
-            if (desc.colorAttachmentFormats[i] == PixelFormat::Undefined)
-                continue;
-
-            colorAttachmentFormats[renderingInfo.colorAttachmentCount] = ToVkFormat(desc.colorAttachmentFormats[i]);
-            renderingInfo.colorAttachmentCount++;
-        }
+        renderingInfo.colorAttachmentCount = colorAttachmentCount;
         renderingInfo.pColorAttachmentFormats = colorAttachmentFormats;
-        renderingInfo.depthAttachmentFormat = ToVkFormat(desc.depthStencilFormat);
-        if (!IsDepthOnlyFormat(desc.depthStencilFormat))
-        {
-            renderingInfo.stencilAttachmentFormat = ToVkFormat(desc.depthStencilFormat);
-        }
+        renderingInfo.depthAttachmentFormat = IsStencilOnlyFormat(desc.depthStencilFormat) ? VK_FORMAT_UNDEFINED : ToVkFormat(desc.depthStencilFormat);
+        renderingInfo.stencilAttachmentFormat = IsDepthOnlyFormat(desc.depthStencilFormat) ? VK_FORMAT_UNDEFINED : ToVkFormat(desc.depthStencilFormat);
 
         VkGraphicsPipelineCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -5850,13 +5842,13 @@ namespace Alimer
         }
     }
 
-    CommandBuffer* VulkanDevice::BeginCommandBuffer(CommandQueueType queue, std::string_view label)
+    CommandBuffer* VulkanDevice::BeginCommandBuffer(RHIQueueType queueType, std::string_view label)
     {
         cmdBuffersLocker.lock();
         uint32_t index = cmdBuffersCount++;
         if (index >= commandBuffers.size())
         {
-            commandBuffers.push_back(std::make_unique<VulkanCommandBuffer>(this, queue, index));
+            commandBuffers.push_back(std::make_unique<VulkanCommandBuffer>(this, queueType, index));
         }
         cmdBuffersLocker.unlock();
 
@@ -6316,7 +6308,7 @@ namespace Alimer
 
     void VulkanDevice::CopyAllocator::Shutdown()
     {
-        device->vkQueueWaitIdle(device->queues[ecast(CommandQueueType::Copy)].handle);
+        device->vkQueueWaitIdle(device->queues[ecast(RHIQueueType::Copy)].handle);
         for (auto& context : freeList)
         {
             device->vkDestroyCommandPool(device->handle, context.transferCommandPool, nullptr);
@@ -6358,10 +6350,10 @@ namespace Alimer
             VkCommandPoolCreateInfo poolCreateInfo = {};
             poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-            poolCreateInfo.queueFamilyIndex = device->_adapter->queueFamilyIndices.familyIndices[ecast(CommandQueueType::Copy)];
+            poolCreateInfo.queueFamilyIndex = device->_adapter->queueFamilyIndices.familyIndices[ecast(RHIQueueType::Copy)];
             VK_CHECK(device->vkCreateCommandPool(device->handle, &poolCreateInfo, nullptr, &context.transferCommandPool));
 
-            poolCreateInfo.queueFamilyIndex = device->_adapter->queueFamilyIndices.familyIndices[ecast(CommandQueueType::Graphics)];
+            poolCreateInfo.queueFamilyIndex = device->_adapter->queueFamilyIndices.familyIndices[ecast(RHIQueueType::Graphics)];
             VK_CHECK(device->vkCreateCommandPool(device->handle, &poolCreateInfo, nullptr, &context.transitionCommandPool));
 
             VkCommandBufferAllocateInfo commandBufferInfo = {};
@@ -6440,8 +6432,8 @@ namespace Alimer
             submitInfo.signalSemaphoreInfoCount = 1;
             submitInfo.pSignalSemaphoreInfos = &signalSemaphoreInfo;
 
-            std::scoped_lock lock(device->queues[ecast(CommandQueueType::Copy)].locker);
-            VK_CHECK(device->vkQueueSubmit2(device->queues[ecast(CommandQueueType::Copy)].handle, 1, &submitInfo, VK_NULL_HANDLE));
+            std::scoped_lock lock(device->queues[ecast(RHIQueueType::Copy)].locker);
+            VK_CHECK(device->vkQueueSubmit2(device->queues[ecast(RHIQueueType::Copy)].handle, 1, &submitInfo, VK_NULL_HANDLE));
         }
 
         // Graphics queue
@@ -6478,8 +6470,8 @@ namespace Alimer
             }
             submitInfo.pSignalSemaphoreInfos = signalSemaphoreInfos;
 
-            std::scoped_lock lock(device->queues[ecast(CommandQueueType::Graphics)].locker);
-            VK_CHECK(device->vkQueueSubmit2(device->queues[ecast(CommandQueueType::Graphics)].handle, 1, &submitInfo, VK_NULL_HANDLE));
+            std::scoped_lock lock(device->queues[ecast(RHIQueueType::Graphics)].locker);
+            VK_CHECK(device->vkQueueSubmit2(device->queues[ecast(RHIQueueType::Graphics)].handle, 1, &submitInfo, VK_NULL_HANDLE));
         }
 
         //if (device->queues[QUEUE_VIDEO_DECODE].queue != VK_NULL_HANDLE)
@@ -6514,8 +6506,8 @@ namespace Alimer
             submitInfo.pSignalSemaphoreInfos = nullptr;
 
             // Final submit also signals fence!
-            std::scoped_lock lock(device->queues[ecast(CommandQueueType::Compute)].locker);
-            VK_CHECK(device->vkQueueSubmit2(device->queues[ecast(CommandQueueType::Compute)].handle, 1, &submitInfo, context.fence));
+            std::scoped_lock lock(device->queues[ecast(RHIQueueType::Compute)].locker);
+            VK_CHECK(device->vkQueueSubmit2(device->queues[ecast(RHIQueueType::Compute)].handle, 1, &submitInfo, context.fence));
         }
 
         std::scoped_lock lock(locker);
@@ -7530,7 +7522,7 @@ namespace Alimer
         indices.queueOffsets.resize(queueFamilyCount);
         indices.queuePriorities.resize(queueFamilyCount);
 
-        const auto FindVacantQueue = [&](CommandQueueType type, VkQueueFlags required, VkQueueFlags ignore_flags,
+        const auto FindVacantQueue = [&](RHIQueueType type, VkQueueFlags required, VkQueueFlags ignore_flags,
             float priority) -> bool
             {
                 for (uint32_t familyIndex = 0; familyIndex < queueFamilyCount; familyIndex++)
@@ -7586,40 +7578,40 @@ namespace Alimer
                 return false;
             };
 
-        if (!FindVacantQueue(CommandQueueType::Graphics, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 0.5f))
+        if (!FindVacantQueue(RHIQueueType::Graphics, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 0.5f))
         {
             LOGE("Vulkan: Could not find suitable graphics queue.");
             return indices;
         }
 
         // XXX: This assumes timestamp valid bits is the same for all queue types.
-        indices.timestampValidBits = queueFamilies[indices.familyIndices[ecast(CommandQueueType::Graphics)]].queueFamilyProperties.timestampValidBits;
+        indices.timestampValidBits = queueFamilies[indices.familyIndices[ecast(RHIQueueType::Graphics)]].queueFamilyProperties.timestampValidBits;
 
         // Prefer standalone compute queue. If not, fall back to another graphics queue.
-        if (!FindVacantQueue(CommandQueueType::Compute, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f)
-            && !FindVacantQueue(CommandQueueType::Compute, VK_QUEUE_COMPUTE_BIT, 0, 1.0f))
+        if (!FindVacantQueue(RHIQueueType::Compute, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f)
+            && !FindVacantQueue(RHIQueueType::Compute, VK_QUEUE_COMPUTE_BIT, 0, 0.5f))
         {
             // Fallback to the graphics queue if we must.
-            indices.familyIndices[ecast(CommandQueueType::Compute)] = indices.familyIndices[ecast(CommandQueueType::Graphics)];
-            indices.queueIndices[ecast(CommandQueueType::Compute)] = indices.queueIndices[ecast(CommandQueueType::Graphics)];
+            indices.familyIndices[ecast(RHIQueueType::Compute)] = indices.familyIndices[ecast(RHIQueueType::Graphics)];
+            indices.queueIndices[ecast(RHIQueueType::Compute)] = indices.queueIndices[ecast(RHIQueueType::Graphics)];
         }
 
         // For transfer, try to find a queue which only supports transfer, e.g. DMA queue.
         // If not, fallback to a dedicated compute queue.
         // Finally, fallback to same queue as compute.
-        if (!FindVacantQueue(CommandQueueType::Copy, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.5f)
-            && !FindVacantQueue(CommandQueueType::Copy, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f))
+        if (!FindVacantQueue(RHIQueueType::Copy, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.5f)
+            && !FindVacantQueue(RHIQueueType::Copy, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f))
         {
-            indices.familyIndices[ecast(CommandQueueType::Copy)] = indices.familyIndices[ecast(CommandQueueType::Compute)];
-            indices.queueIndices[ecast(CommandQueueType::Copy)] = indices.queueIndices[ecast(CommandQueueType::Compute)];
+            indices.familyIndices[ecast(RHIQueueType::Copy)] = indices.familyIndices[ecast(RHIQueueType::Compute)];
+            indices.queueIndices[ecast(RHIQueueType::Copy)] = indices.queueIndices[ecast(RHIQueueType::Compute)];
         }
 
         if (supportsVideoQueue)
         {
-            if (!FindVacantQueue(CommandQueueType::VideoDecode, VK_QUEUE_VIDEO_DECODE_BIT_KHR, 0, 0.5f))
+            if (!FindVacantQueue(RHIQueueType::VideoDecode, VK_QUEUE_VIDEO_DECODE_BIT_KHR, 0, 0.5f))
             {
-                indices.familyIndices[ecast(CommandQueueType::VideoDecode)] = VK_QUEUE_FAMILY_IGNORED;
-                indices.queueIndices[ecast(CommandQueueType::VideoDecode)] = UINT32_MAX;
+                indices.familyIndices[ecast(RHIQueueType::VideoDecode)] = VK_QUEUE_FAMILY_IGNORED;
+                indices.queueIndices[ecast(RHIQueueType::VideoDecode)] = UINT32_MAX;
             }
 
 #ifdef VK_ENABLE_BETA_EXTENSIONS

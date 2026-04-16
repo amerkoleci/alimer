@@ -140,7 +140,7 @@ namespace Alimer
         Other,
     };
 
-    enum class CommandQueueType : uint8_t
+    enum class RHIQueueType : uint8_t
     {
         Graphics,
         Compute,
@@ -400,20 +400,20 @@ namespace Alimer
         Wireframe,
     };
 
-    enum class CullMode : uint8_t
+    enum class CullMode : uint32_t
     {
         None = 0,
         Front = 1,
         Back = 2,
     };
 
-    enum class FrontFace : uint8_t
+    enum class FrontFace : uint32_t
     {
         CounterClockwise = 0,
         Clockwise = 1,
     };
 
-    enum class DepthClipMode : uint8_t
+    enum class DepthClipMode : uint32_t
     {
         Clip,
         Clamp
@@ -897,6 +897,12 @@ namespace Alimer
         const void* byteCode;
     };
 
+    struct RHIComputePipelineDesc
+    {
+        const char* label = nullptr;
+        ShaderModuleRef shader;
+    };
+
     struct VertexAttribute
     {
         VertexAttributeSemantic semantic = VertexAttributeSemantic::Undefined;
@@ -963,7 +969,7 @@ namespace Alimer
         bool depthBoundsTestEnable = false;
     };
 
-    struct RenderPipelineDescriptor
+    struct RHIRenderPipelineDesc
     {
         const char* label = nullptr;
 
@@ -983,16 +989,9 @@ namespace Alimer
 
         IndexFormat stripIndexFormat = IndexFormat::Undefined;
 
-        uint32_t           colorAttachmentCount = 0;
-        const PixelFormat* colorAttachmentFormats = nullptr;
-        PixelFormat        depthStencilFormat = PixelFormat::Undefined;
+        PixelFormat colorAttachmentFormats[kMaxColorAttachments] = {};
+        PixelFormat depthStencilFormat = PixelFormat::Undefined;
         TextureSampleCount sampleCount = TextureSampleCount::Count1;
-    };
-
-    struct ComputePipelineDescriptor
-    {
-        const char* label = nullptr;
-        ShaderModuleRef shader;
     };
 
     struct QueryHeapDescriptor
@@ -1345,10 +1344,10 @@ namespace Alimer
     public:
     };
 
-    class ALIMER_API CommandQueue : public RHIObject
+    class ALIMER_API RHIQueue : public RHIObject
     {
     public:
-        virtual CommandQueueType GetType() const = 0;
+        virtual RHIQueueType GetType() const = 0;
     };
 
     class ALIMER_API ComputePipeline : public RHIObject
@@ -1551,13 +1550,13 @@ namespace Alimer
 
         ShaderModuleRef CreateShaderModule(const ShaderModuleDesc& descriptor);
 
-        ComputePipelineRef CreateComputePipeline(const ComputePipelineDescriptor& descriptor);
-        RenderPipelineRef CreateRenderPipeline(const RenderPipelineDescriptor& descriptor);
+        ComputePipelineRef CreateComputePipeline(const RHIComputePipelineDesc& desc);
+        RenderPipelineRef CreateRenderPipeline(const RHIRenderPipelineDesc& desc);
         QueryHeapRef CreateQueryHeap(const QueryHeapDescriptor& descriptor);
 
         virtual void WriteShadingRateValue(ShadingRate rate, void* dest) const = 0;
 
-        virtual CommandBuffer* BeginCommandBuffer(CommandQueueType queue, std::string_view label = "") = 0;
+        virtual CommandBuffer* BeginCommandBuffer(RHIQueueType queueType, std::string_view label = "") = 0;
 
         virtual RHIAdapter* GetAdapter() const = 0;
 
@@ -1582,8 +1581,8 @@ namespace Alimer
         virtual RHITextureRef CreateTextureFromNativeHandleCore(NativeHandle handle, const TextureDescriptor& desc) = 0;
         virtual SamplerRef CreateSamplerCore(const SamplerDesc& desc) = 0;
         virtual ShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) = 0;
-        virtual ComputePipelineRef CreateComputePipelineCore(const ComputePipelineDescriptor& desc) = 0;
-        virtual RenderPipelineRef CreateRenderPipelineCore(const RenderPipelineDescriptor& desc) = 0;
+        virtual ComputePipelineRef CreateComputePipelineCore(const RHIComputePipelineDesc& desc) = 0;
+        virtual RenderPipelineRef CreateRenderPipelineCore(const RHIRenderPipelineDesc& desc) = 0;
         virtual QueryHeapRef CreateQueryHeapCore(const QueryHeapDescriptor& desc) = 0;
 
         RHIDeviceLimits _limits{};
