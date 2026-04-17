@@ -179,7 +179,7 @@ void DrawSpinningCube::Draw(CommandBuffer* commandBuffer, RHITexture* outputText
     memcpy(_constantBuffer->GetMappedData(), &pushData, sizeof(PushData));  
 
     renderPass->SetConstantBuffer(0, _constantBuffer.Get());
-    //renderPass->SetPushConstants(pushData);
+    renderPass->SetPushConstants(pushData);
     renderPass->DrawIndexed(36);
     renderPass->End();
 }

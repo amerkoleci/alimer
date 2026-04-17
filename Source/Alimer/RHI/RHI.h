@@ -58,6 +58,12 @@ namespace Alimer
     }
 
     /* Enums */
+    enum class RHIStatus : uint32_t
+    {
+        Success = 0,
+        Error = 1,
+    };
+
     enum class RHIBackend : uint32_t
     {
         Null,
@@ -394,7 +400,7 @@ namespace Alimer
     };
     ALIMER_ENUM_CLASS_FLAG_OPERATORS(ColorWriteMask);
 
-    enum class FillMode : uint8_t
+    enum class RHIFillMode : uint32_t
     {
         Solid,
         Wireframe,
@@ -940,7 +946,7 @@ namespace Alimer
 
     struct RasterizerState
     {
-        FillMode fillMode = FillMode::Solid;
+        RHIFillMode fillMode = RHIFillMode::Solid;
         CullMode cullMode = CullMode::Back;
         FrontFace frontFace = FrontFace::CounterClockwise;
         float depthBias = 0.0f;
@@ -1039,6 +1045,17 @@ namespace Alimer
         const RenderPassColorAttachment* colorAttachments = nullptr;
         const RenderPassDepthStencilAttachment* depthStencilAttachment = nullptr;
         const char* label = nullptr;
+    };
+
+    struct RHISurfaceCapabilities
+    {
+        TextureUsage usages;
+        uint32_t formatCount;
+        const PixelFormat* formats;
+        uint32_t presentModeCount;
+        const PresentMode* presentModes;
+        uint32_t alphaModeCount;
+        const RHICompositeAlphaMode* alphaModes;
     };
 
     struct RHISurfaceConfig
@@ -1141,7 +1158,7 @@ namespace Alimer
         MeshShaderTier meshShaderTier = MeshShaderTier::NotSupported;
     };
 
-    struct AdapterProperties
+    struct RHIAdapterProperties
     {
         std::string         deviceName;
         uint32_t            vendorID = 0;
@@ -1216,8 +1233,7 @@ namespace Alimer
     protected:
         RHIBuffer(const RHIBufferDesc& desc_)
             : desc(desc)
-        {
-        }
+        {}
 
         RHIBufferDesc desc;
         mutable BufferStates currentState = BufferStates::Undefined;
@@ -1366,9 +1382,15 @@ namespace Alimer
     class ALIMER_API RHISurface : public RHIObject
     {
     public:
+        /// Return the physical adapter surface capabilities.
+        virtual RHIStatus GetCapabilities(RHIAdapter* adapter, RHISurfaceCapabilities* capabilities) = 0;
+
         virtual void Configure(RHIDevice* device, const RHISurfaceConfig& config) = 0;
         virtual void Unconfigure() = 0;
         virtual void Resize(uint32_t newWidth, uint32_t newHeight) = 0;
+
+    protected:
+        RHISurfaceCapabilities capabilities{};
     };
 
     struct GPUAllocation
@@ -1520,7 +1542,7 @@ namespace Alimer
         bool _encoderActive{ false };
     };
 
-    struct GpuLinearAllocator
+    struct RHILinearAllocator
     {
         RHIBufferRef buffer;
         uint64_t offset = 0ull;
@@ -1571,7 +1593,7 @@ namespace Alimer
         //[[nodiscard]] virtual bool QueryVertexFormatSupport(VertexFormat format) = 0;
 
         [[nodiscard]] constexpr uint64_t GetTimestampFrequency() const { return _timestampFrequency; }
-        [[nodiscard]] GpuLinearAllocator& GetFrameAllocator() { return _frameAllocators[_frameIndex]; }
+        [[nodiscard]] RHILinearAllocator& GetFrameAllocator() { return frameAllocators[_frameIndex]; }
 
     protected:
         virtual void InitResources();
@@ -1596,7 +1618,7 @@ namespace Alimer
         //uint32_t uploadBufferTextureSliceAlignment = 1u;
 
         Vector<SamplerRef> staticSamplers;
-        GpuLinearAllocator _frameAllocators[kNumFramesInFlight];
+        RHILinearAllocator frameAllocators[kNumFramesInFlight];
     };
 
     class ALIMER_API RHIAdapter
@@ -1605,10 +1627,10 @@ namespace Alimer
         virtual RHIDeviceRef CreateDevice(const RHIDeviceDesc& desc) = 0;
 
         /// Return the physical adapter properties.
-        [[nodiscard]] const AdapterProperties& GetProperties() const { return properties; }
+        [[nodiscard]] const RHIAdapterProperties& GetProperties() const { return properties; }
 
     protected:
-        AdapterProperties properties{};
+        RHIAdapterProperties properties{};
     };
 
     class ALIMER_API RHIFactory : public RHIObject

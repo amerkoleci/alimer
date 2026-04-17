@@ -24,7 +24,7 @@ namespace Alimer
     using ConstJsonObjectIterator = UnorderedMap<String, JsonValue>::const_iterator;
 
     /// JSON value types.
-    enum class JSONValueType : uint8_t
+    enum class JsonValueType : uint8_t
     {
         Null = 0,
         Bool,
@@ -66,7 +66,7 @@ namespace Alimer
         }
 
         /// Construct a default value with defined type.
-        explicit JsonValue(JSONValueType valueType, JSONNumberType numberType = JSONNumberType::NaN)
+        explicit JsonValue(JsonValueType valueType, JSONNumberType numberType = JSONNumberType::NaN)
         {
             SetType(valueType, numberType);
         }
@@ -147,7 +147,7 @@ namespace Alimer
         /// Destructor.
         ~JsonValue()
         {
-            SetType(JSONValueType::Null);
+            SetType(JsonValueType::Null);
         }
 
         /// Assign a JSON value.
@@ -251,34 +251,39 @@ namespace Alimer
         bool Empty() const;
 
         /// Return the value type.
-        JSONValueType GetValueType() const;
+        JsonValueType GetValueType() const;
         /// Return the number type.
         JSONNumberType GetNumberType() const;
 
         /// Return whether is null.
-        bool IsNull() const { return GetValueType() == JSONValueType::Null; }
+        bool IsNull() const { return GetValueType() == JsonValueType::Null; }
         /// Return whether is a bool.
-        bool IsBool() const { return GetValueType() == JSONValueType::Bool; }
+        bool IsBool() const { return GetValueType() == JsonValueType::Bool; }
         /// Return whether is a number.
-        bool IsNumber() const { return GetValueType() == JSONValueType::Number; }
+        bool IsNumber() const { return GetValueType() == JsonValueType::Number; }
         /// Return whether is a string.
-        bool IsString() const { return GetValueType() == JSONValueType::String; }
+        bool IsString() const { return GetValueType() == JsonValueType::String; }
         /// Return whether is an array.
-        bool IsArray() const { return GetValueType() == JSONValueType::Array; }
+        bool IsArray() const { return GetValueType() == JsonValueType::Array; }
         /// Return whether is an object.
-        bool IsObject() const { return GetValueType() == JSONValueType::Object; }
+        bool IsObject() const { return GetValueType() == JsonValueType::Object; }
         /// Return whether is an array or object.
         bool IsArrayOrObject() const { return IsArray() || IsObject(); }
         /// Return whether is a number and integer.
-        bool IsInt()    const { return GetValueType() == JSONValueType::Number && GetNumberType() == JSONNumberType::Int; }
+        bool IsInt()    const { return GetValueType() == JsonValueType::Number && GetNumberType() == JSONNumberType::Int; }
         /// Return whether is a number and unsigned integer.
-        bool IsUint()   const { return GetValueType() == JSONValueType::Number && GetNumberType() == JSONNumberType::Uint; }
+        bool IsUint()   const { return GetValueType() == JsonValueType::Number && GetNumberType() == JSONNumberType::Uint; }
         /// Return whether is a number and integer.
-        bool IsInt64()  const { return GetValueType() == JSONValueType::Number && GetNumberType() == JSONNumberType::Int64; }
+        bool IsInt64()  const { return GetValueType() == JsonValueType::Number && GetNumberType() == JSONNumberType::Int64; }
         /// Return whether is a number and unsigned integer.
-        bool IsUint64() const { return GetValueType() == JSONValueType::Number && GetNumberType() == JSONNumberType::Uint64; }
+        bool IsUint64() const { return GetValueType() == JsonValueType::Number && GetNumberType() == JSONNumberType::Uint64; }
         /// Return whether is a double precision number.
-        bool IsDouble() const { return GetValueType() == JSONValueType::Number && GetNumberType() == JSONNumberType::Double; }
+        bool IsDouble() const { return GetValueType() == JsonValueType::Number && GetNumberType() == JSONNumberType::Double; }
+        /// Return whether is a single precision number.
+        bool IsFloat() const
+        {
+            return GetValueType() == JsonValueType::Number && GetNumberType() == JSONNumberType::Double;
+        }
 
         /// Return value as a bool, or false on type mismatch.
         bool GetBool(bool defaultValue = false) const { return IsBool() ? _boolValue : defaultValue; }
@@ -316,7 +321,7 @@ namespace Alimer
 
     protected:
         /// Assign a new type and perform the necessary dynamic allocation / deletion.
-        void SetType(JSONValueType valueType, JSONNumberType numberType = JSONNumberType::NaN);
+        void SetType(JsonValueType valueType, JSONNumberType numberType = JSONNumberType::NaN);
 
         /// Type.
         uint32_t _type{};

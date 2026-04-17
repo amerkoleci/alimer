@@ -15,13 +15,12 @@
 #include <Alimer/Core/JobSystem.h>
 #include "Alimer/Core/Stopwatch.h"
 
-#if TODO
 // Math
 #include <Alimer/Math/Color.h>
 #include <Alimer/Math/Vector2.h>
 #include <Alimer/Math/Vector3.h>
 #include <Alimer/Math/Vector4.h>
-#include <Alimer/Math/Rect.h>
+//#include <Alimer/Math/Rect.h>
 #include <Alimer/Math/Quaternion.h>
 #include <Alimer/Math/Matrix4x4.h>
 
@@ -31,6 +30,7 @@
 
 // Renderer
 #include <Alimer/Shaders/ShaderDefinitions.h>
+#if TODO
 #include <Alimer/Renderer/Texture.h>
 #include <Alimer/Renderer/Mesh.h>
 #include <Alimer/Renderer/Font.h>
@@ -58,9 +58,14 @@
 #include <Alimer/Physics/CollisionShapeComponent.h>
 #include <Alimer/Physics/RigidBody.h>
 
+#endif
+
+// Serialization
+#include <Alimer/Serialization/Serializer.h>
+#include <Alimer/Serialization/BinarySerializer.h>
+
 // Assets
 #include <Alimer/Assets/AssetManager.h>
-#endif
 
 // Platform
 #include <Alimer/Platform/Platform.h>

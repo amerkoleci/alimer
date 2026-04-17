@@ -175,7 +175,7 @@ namespace Alimer
         }
 
         RHIDevice* device = GetCommandBuffer()->GetDevice();
-        GpuLinearAllocator& allocator = device->GetFrameAllocator();
+        RHILinearAllocator& allocator = device->GetFrameAllocator();
         const uint64_t alignment = Max(device->GetLimits().minConstantBufferOffsetAlignment, device->GetLimits().minStorageBufferOffsetAlignment);
 
         const uint64_t bufferSize = (allocator.buffer == nullptr) ? 0 : allocator.buffer->GetSize();

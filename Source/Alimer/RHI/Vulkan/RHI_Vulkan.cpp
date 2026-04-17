@@ -336,15 +336,15 @@ namespace Alimer
             }
         }
 
-        constexpr VkPolygonMode ToVk(FillMode value, bool fillModeNonSolid)
+        constexpr VkPolygonMode ToVk(RHIFillMode value, bool fillModeNonSolid)
         {
             switch (value)
             {
                 default:
-                case FillMode::Solid:
+                case RHIFillMode::Solid:
                     return VK_POLYGON_MODE_FILL;
 
-                case FillMode::Wireframe:
+                case RHIFillMode::Wireframe:
                     if (!fillModeNonSolid)
                     {
                         LOGW("Vulkan: Wireframe fill mode is being used but it's not supported on this device");
@@ -1120,6 +1120,7 @@ namespace Alimer
 
         ~VulkanSurface() override;
 
+        RHIStatus GetCapabilities(RHIAdapter* adapter, RHISurfaceCapabilities* capabilities) override;
         void Configure(RHIDevice* device, const RHISurfaceConfig& config) override;
         void Unconfigure() override;
         void Resize(uint32_t newWidth, uint32_t newHeight) override;
@@ -1958,6 +1959,35 @@ namespace Alimer
     {
         DestroySwapchain(true);
         configured = false;
+    }
+
+    RHIStatus VulkanSurface::GetCapabilities(RHIAdapter* adapter, RHISurfaceCapabilities* capabilities)
+    {
+        if (!capabilities)
+            return RHIStatus::Error;
+
+        VulkanAdapter* backendAdapter = static_cast<VulkanAdapter*>(adapter);
+
+        VkResult result = VK_SUCCESS;
+        VkSurfaceCapabilitiesKHR caps;
+        result = backendAdapter->factory->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(backendAdapter->handle, surface, &caps);
+        if (result != VK_SUCCESS)
+        {
+            return RHIStatus::Error;
+        }
+
+        //uint32_t formatCount;
+        //VK_CHECK(adapter->factory->vkGetPhysicalDeviceSurfaceFormatsKHR(adapter->handle, surface, &formatCount, nullptr));
+        //
+        //std::vector<VkSurfaceFormatKHR> swapchainFormats(formatCount);
+        //VK_CHECK(adapter->factory->vkGetPhysicalDeviceSurfaceFormatsKHR(adapter->handle, surface, &formatCount, swapchainFormats.data()));
+        //
+        //uint32_t presentModeCount;
+        //VK_CHECK(adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(adapter->handle, surface, &presentModeCount, nullptr));
+        //std::vector<VkPresentModeKHR> swapchainPresentModes(presentModeCount);
+        //VK_CHECK(adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(adapter->handle, surface, &presentModeCount, swapchainPresentModes.data()));
+
+        return RHIStatus::Success;
     }
 
     void VulkanSurface::Configure(RHIDevice* device_, const RHISurfaceConfig& config)
@@ -4565,7 +4595,7 @@ namespace Alimer
         }
 
         // Begin new frame
-        _frameAllocators[_frameIndex].Reset();
+        frameAllocators[_frameIndex].Reset();
         _frameCount++;
         _frameIndex = _frameCount % kNumFramesInFlight;
 

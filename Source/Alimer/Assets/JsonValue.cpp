@@ -75,15 +75,15 @@ namespace
     {
         switch (jsonValue.GetValueType())
         {
-            case JSONValueType::Null:
+            case JsonValueType::Null:
                 rapidjsonValue.SetNull();
                 break;
 
-            case JSONValueType::Bool:
+            case JsonValueType::Bool:
                 rapidjsonValue.SetBool(jsonValue.GetBool());
                 break;
 
-            case JSONValueType::Number:
+            case JsonValueType::Number:
             {
                 switch (jsonValue.GetNumberType())
                 {
@@ -110,11 +110,11 @@ namespace
             }
             break;
 
-            case JSONValueType::String:
+            case JsonValueType::String:
                 rapidjsonValue.SetString(jsonValue.GetCString(), allocator);
                 break;
 
-            case JSONValueType::Array:
+            case JsonValueType::Array:
             {
                 const JsonArray& jsonArray = jsonValue.GetArray();
 
@@ -130,7 +130,7 @@ namespace
             }
             break;
 
-            case JSONValueType::Object:
+            case JsonValueType::Object:
             {
                 const JsonObject& jsonObject = jsonValue.GetObject();
 
@@ -156,9 +156,9 @@ const JsonValue JsonValue::EMPTY;
 const JsonArray JsonValue::emptyJSONArray;
 const JsonObject JsonValue::emptyJSONObject;
 
-JSONValueType JsonValue::GetValueType() const
+JsonValueType JsonValue::GetValueType() const
 {
-    return (JSONValueType)(_type >> 16u);
+    return (JsonValueType)(_type >> 16u);
 }
 
 JSONNumberType JsonValue::GetNumberType() const
@@ -175,23 +175,23 @@ JsonValue& JsonValue::operator = (const JsonValue& rhs)
 
     switch (GetValueType())
     {
-        case JSONValueType::Bool:
+        case JsonValueType::Bool:
             _boolValue = rhs._boolValue;
             break;
 
-        case JSONValueType::Number:
+        case JsonValueType::Number:
             _numberValue = rhs._numberValue;
             break;
 
-        case JSONValueType::String:
+        case JsonValueType::String:
             *_stringValue = *rhs._stringValue;
             break;
 
-        case JSONValueType::Array:
+        case JsonValueType::Array:
             *_arrayValue = *rhs._arrayValue;
             break;
 
-        case JSONValueType::Object:
+        case JsonValueType::Object:
             *_objectValue = *rhs._objectValue;
             break;
 
@@ -211,23 +211,23 @@ JsonValue& JsonValue::operator=(JsonValue&& rhs)
 
     switch (GetValueType())
     {
-        case JSONValueType::Bool:
+        case JsonValueType::Bool:
             _boolValue = rhs._boolValue;
             break;
 
-        case JSONValueType::Number:
+        case JsonValueType::Number:
             _numberValue = rhs._numberValue;
             break;
 
-        case JSONValueType::String:
+        case JsonValueType::String:
             *_stringValue = std::move(*rhs._stringValue);
             break;
 
-        case JSONValueType::Array:
+        case JsonValueType::Array:
             *_arrayValue = std::move(*rhs._arrayValue);
             break;
 
-        case JSONValueType::Object:
+        case JsonValueType::Object:
             *_objectValue = std::move(*rhs._objectValue);
 
         default:
@@ -240,7 +240,7 @@ JsonValue& JsonValue::operator=(JsonValue&& rhs)
 
 JsonValue& JsonValue::operator = (bool rhs)
 {
-    SetType(JSONValueType::Bool);
+    SetType(JsonValueType::Bool);
     _boolValue = rhs;
 
     return *this;
@@ -248,7 +248,7 @@ JsonValue& JsonValue::operator = (bool rhs)
 
 JsonValue& JsonValue::operator = (int32_t rhs)
 {
-    SetType(JSONValueType::Number, JSONNumberType::Int);
+    SetType(JsonValueType::Number, JSONNumberType::Int);
     _numberValue = (double)rhs;
 
     return *this;
@@ -256,14 +256,14 @@ JsonValue& JsonValue::operator = (int32_t rhs)
 
 JsonValue& JsonValue::operator = (uint32_t rhs)
 {
-    SetType(JSONValueType::Number, JSONNumberType::Uint);
+    SetType(JsonValueType::Number, JSONNumberType::Uint);
     _numberValue = (double)rhs;
     return *this;
 }
 
 JsonValue& JsonValue::operator = (int64_t rhs)
 {
-    SetType(JSONValueType::Number, JSONNumberType::Int64);
+    SetType(JsonValueType::Number, JSONNumberType::Int64);
     _numberValue = (double)rhs;
 
     return *this;
@@ -271,28 +271,28 @@ JsonValue& JsonValue::operator = (int64_t rhs)
 
 JsonValue& JsonValue::operator = (uint64_t rhs)
 {
-    SetType(JSONValueType::Number, JSONNumberType::Uint64);
+    SetType(JsonValueType::Number, JSONNumberType::Uint64);
     _numberValue = (double)rhs;
     return *this;
 }
 
 JsonValue& JsonValue::operator = (float rhs)
 {
-    SetType(JSONValueType::Number, JSONNumberType::Double);
+    SetType(JsonValueType::Number, JSONNumberType::Double);
     _numberValue = (double)rhs;
     return *this;
 }
 
 JsonValue& JsonValue::operator = (double rhs)
 {
-    SetType(JSONValueType::Number, JSONNumberType::Double);
+    SetType(JsonValueType::Number, JSONNumberType::Double);
     _numberValue = rhs;
     return *this;
 }
 
 JsonValue& JsonValue::operator = (std::string_view value)
 {
-    SetType(JSONValueType::String);
+    SetType(JsonValueType::String);
     *_stringValue = value;
 
     return *this;
@@ -300,7 +300,7 @@ JsonValue& JsonValue::operator = (std::string_view value)
 
 JsonValue& JsonValue::operator = (const std::string& value)
 {
-    SetType(JSONValueType::String);
+    SetType(JsonValueType::String);
     *_stringValue = value;
 
     return *this;
@@ -308,7 +308,7 @@ JsonValue& JsonValue::operator = (const std::string& value)
 
 JsonValue& JsonValue::operator = (const char* value)
 {
-    SetType(JSONValueType::String);
+    SetType(JsonValueType::String);
     *_stringValue = value;
 
     return *this;
@@ -316,7 +316,7 @@ JsonValue& JsonValue::operator = (const char* value)
 
 JsonValue& JsonValue::operator = (const JsonArray& value)
 {
-    SetType(JSONValueType::Array);
+    SetType(JsonValueType::Array);
     *_arrayValue = value;
 
     return *this;
@@ -324,7 +324,7 @@ JsonValue& JsonValue::operator = (const JsonArray& value)
 
 JsonValue& JsonValue::operator = (const JsonObject& value)
 {
-    SetType(JSONValueType::Object);
+    SetType(JsonValueType::Object);
     *_objectValue = value;
 
     return *this;
@@ -332,14 +332,14 @@ JsonValue& JsonValue::operator = (const JsonObject& value)
 
 JsonValue& JsonValue::operator [] (size_t index)
 {
-    SetType(JSONValueType::Array);
+    SetType(JsonValueType::Array);
 
     return (*_arrayValue)[index];
 }
 
 const JsonValue& JsonValue::operator [] (size_t index) const
 {
-    if (GetValueType() != JSONValueType::Array)
+    if (GetValueType() != JsonValueType::Array)
         return EMPTY;
 
     return (*_arrayValue)[index];
@@ -347,14 +347,14 @@ const JsonValue& JsonValue::operator [] (size_t index) const
 
 void JsonValue::Push(JsonValue value)
 {
-    SetType(JSONValueType::Array);
+    SetType(JsonValueType::Array);
 
     _arrayValue->push_back(std::move(value));
 }
 
 void JsonValue::Pop()
 {
-    if (GetValueType() != JSONValueType::Array)
+    if (GetValueType() != JsonValueType::Array)
         return;
 
     _arrayValue->pop_back();
@@ -362,7 +362,7 @@ void JsonValue::Pop()
 
 void JsonValue::Insert(size_t pos, JsonValue value)
 {
-    if (GetValueType() != JSONValueType::Array)
+    if (GetValueType() != JsonValueType::Array)
         return;
 
     _arrayValue->insert(_arrayValue->begin() + pos, std::move(value));
@@ -370,7 +370,7 @@ void JsonValue::Insert(size_t pos, JsonValue value)
 
 void JsonValue::Erase(size_t pos, size_t length)
 {
-    if (GetValueType() != JSONValueType::Array)
+    if (GetValueType() != JsonValueType::Array)
         return;
 
     _arrayValue->erase(_arrayValue->begin() + pos, _arrayValue->begin() + pos + length);
@@ -378,21 +378,21 @@ void JsonValue::Erase(size_t pos, size_t length)
 
 void JsonValue::Resize(size_t newSize)
 {
-    SetType(JSONValueType::Array);
+    SetType(JsonValueType::Array);
 
     _arrayValue->resize(newSize);
 }
 
 JsonValue& JsonValue::Back()
 {
-    SetType(JSONValueType::Array);
+    SetType(JsonValueType::Array);
 
     return (*_arrayValue)[_arrayValue->size() - 1];
 }
 
 const JsonValue& JsonValue::Back() const
 {
-    if (GetValueType() != JSONValueType::Array)
+    if (GetValueType() != JsonValueType::Array)
         return EMPTY;
 
     return (*_arrayValue)[_arrayValue->size() - 1];
@@ -400,7 +400,7 @@ const JsonValue& JsonValue::Back() const
 
 const JsonValue& JsonValue::Get(size_t index) const
 {
-    if (GetValueType() != JSONValueType::Array)
+    if (GetValueType() != JsonValueType::Array)
         return EMPTY;
 
     if (index < 0 || index >= _arrayValue->size())
@@ -411,14 +411,14 @@ const JsonValue& JsonValue::Get(size_t index) const
 
 JsonValue& JsonValue::operator [] (const std::string& key)
 {
-    SetType(JSONValueType::Object);
+    SetType(JsonValueType::Object);
 
     return (*_objectValue)[key];
 }
 
 const JsonValue& JsonValue::operator [] (const std::string& key) const
 {
-    if (GetValueType() != JSONValueType::Object)
+    if (GetValueType() != JsonValueType::Object)
         return EMPTY;
 
     auto it = _objectValue->find(key);
@@ -428,7 +428,7 @@ const JsonValue& JsonValue::operator [] (const std::string& key) const
 void JsonValue::Set(std::string_view key, JsonValue value)
 {
     // Convert to object type
-    SetType(JSONValueType::Object);
+    SetType(JsonValueType::Object);
 
     (*_objectValue)[key.data()] = std::move(value);
 }
@@ -436,14 +436,14 @@ void JsonValue::Set(std::string_view key, JsonValue value)
 void JsonValue::Set(const std::string& key, JsonValue value)
 {
     // Convert to object type
-    SetType(JSONValueType::Object);
+    SetType(JsonValueType::Object);
 
     (*_objectValue)[key] = std::move(value);
 }
 
 const JsonValue& JsonValue::Get(const std::string& key) const
 {
-    if (GetValueType() != JSONValueType::Object)
+    if (GetValueType() != JsonValueType::Object)
         return EMPTY;
 
     auto i = _objectValue->find(key);
@@ -463,19 +463,19 @@ bool JsonValue::operator == (const JsonValue& rhs) const
 
     switch (GetValueType())
     {
-        case JSONValueType::Bool:
+        case JsonValueType::Bool:
             return _boolValue == rhs._boolValue;
 
-        case JSONValueType::Number:
+        case JsonValueType::Number:
             return _numberValue == rhs._numberValue;
 
-        case JSONValueType::String:
+        case JsonValueType::String:
             return *_stringValue == *rhs._stringValue;
 
-        case JSONValueType::Array:
+        case JsonValueType::Array:
             return *_arrayValue == *rhs._arrayValue;
 
-        case JSONValueType::Object:
+        case JsonValueType::Object:
             return *_objectValue == *rhs._objectValue;
 
         default:
@@ -510,27 +510,27 @@ bool JsonValue::FromString(std::string_view str, bool reportError)
 
 void JsonValue::FromBinary(Stream& source)
 {
-    JSONValueType newType = (JSONValueType)source.ReadUInt8();
+    JsonValueType newType = (JsonValueType)source.ReadUInt8();
 
     switch (newType)
     {
-        case JSONValueType::Null:
+        case JsonValueType::Null:
             Clear();
             break;
 
-        case JSONValueType::Bool:
+        case JsonValueType::Bool:
             *this = source.ReadBool();
             break;
 
-        case JSONValueType::Number:
+        case JsonValueType::Number:
             *this = source.ReadDouble();
             break;
 
-        case JSONValueType::String:
+        case JsonValueType::String:
             *this = source.ReadString();
             break;
 
-        case JSONValueType::Array:
+        case JsonValueType::Array:
         {
             SetEmptyArray();
             size_t num = source.ReadVLE();
@@ -539,7 +539,7 @@ void JsonValue::FromBinary(Stream& source)
         }
         break;
 
-        case JSONValueType::Object:
+        case JsonValueType::Object:
         {
             SetEmptyObject();
             size_t num = source.ReadVLE();
@@ -582,19 +582,19 @@ void JsonValue::ToBinary(Stream& dest) const
 
     switch (GetValueType())
     {
-        case JSONValueType::Bool:
+        case JsonValueType::Bool:
             dest.Write(_boolValue);
             break;
 
-        case JSONValueType::Number:
+        case JsonValueType::Number:
             dest.Write(_numberValue);
             break;
 
-        case JSONValueType::String:
+        case JsonValueType::String:
             dest.Write(GetString());
             break;
 
-        case JSONValueType::Array:
+        case JsonValueType::Array:
         {
             const JsonArray& array = GetArray();
             dest.WriteVLE(array.size());
@@ -603,7 +603,7 @@ void JsonValue::ToBinary(Stream& dest) const
         }
         break;
 
-        case JSONValueType::Object:
+        case JsonValueType::Object:
         {
             const JsonObject& object = GetObject();
             dest.WriteVLE(object.size());
@@ -622,14 +622,14 @@ void JsonValue::ToBinary(Stream& dest) const
 
 void JsonValue::Insert(const std::pair<std::string, JsonValue>& pair)
 {
-    SetType(JSONValueType::Object);
+    SetType(JsonValueType::Object);
 
     _objectValue->insert(pair);
 }
 
 bool JsonValue::Erase(const std::string& key)
 {
-    if (GetValueType() != JSONValueType::Object)
+    if (GetValueType() != JsonValueType::Object)
         return false;
 
     return _objectValue->erase(key);
@@ -637,36 +637,36 @@ bool JsonValue::Erase(const std::string& key)
 
 void JsonValue::Clear()
 {
-    if (GetValueType() == JSONValueType::Array)
+    if (GetValueType() == JsonValueType::Array)
         _arrayValue->clear();
-    else if (GetValueType() == JSONValueType::Object)
+    else if (GetValueType() == JsonValueType::Object)
         _objectValue->clear();
 }
 
 void JsonValue::SetEmptyArray()
 {
-    SetType(JSONValueType::Array);
+    SetType(JsonValueType::Array);
 
     Clear();
 }
 
 void JsonValue::SetEmptyObject()
 {
-    SetType(JSONValueType::Object);
+    SetType(JsonValueType::Object);
 
     Clear();
 }
 
 void JsonValue::SetNull()
 {
-    SetType(JSONValueType::Null);
+    SetType(JsonValueType::Null);
 }
 
 size_t JsonValue::Size() const
 {
-    if (GetValueType() == JSONValueType::Array)
+    if (GetValueType() == JsonValueType::Array)
         return _arrayValue->size();
-    else if (GetValueType() == JSONValueType::Object)
+    else if (GetValueType() == JsonValueType::Object)
         return _objectValue->size();
     else
         return 0;
@@ -674,9 +674,9 @@ size_t JsonValue::Size() const
 
 bool JsonValue::Empty() const
 {
-    if (GetValueType() == JSONValueType::Array)
+    if (GetValueType() == JsonValueType::Array)
         return _arrayValue->empty();
-    else if (GetValueType() == JSONValueType::Object)
+    else if (GetValueType() == JsonValueType::Object)
         return _objectValue->empty();
     else
         return false;
@@ -684,13 +684,13 @@ bool JsonValue::Empty() const
 
 bool JsonValue::Contains(const std::string& key) const
 {
-    if (GetValueType() != JSONValueType::Object)
+    if (GetValueType() != JsonValueType::Object)
         return false;
 
     return _objectValue->find(key) != _objectValue->end();
 }
 
-void JsonValue::SetType(JSONValueType valueType, JSONNumberType numberType)
+void JsonValue::SetType(JsonValueType valueType, JSONNumberType numberType)
 {
     uint32_t newType = (uint8_t)valueType << 16u | (uint8_t)numberType;
     if (newType == _type)
@@ -698,15 +698,15 @@ void JsonValue::SetType(JSONValueType valueType, JSONNumberType numberType)
 
     switch (GetValueType())
     {
-        case JSONValueType::String:
+        case JsonValueType::String:
             delete _stringValue;
             break;
 
-        case JSONValueType::Array:
+        case JsonValueType::Array:
             delete _arrayValue;
             break;
 
-        case JSONValueType::Object:
+        case JsonValueType::Object:
             delete _objectValue;
             break;
 
@@ -718,15 +718,15 @@ void JsonValue::SetType(JSONValueType valueType, JSONNumberType numberType)
 
     switch (GetValueType())
     {
-        case JSONValueType::String:
+        case JsonValueType::String:
             _stringValue = new std::string();
             break;
 
-        case JSONValueType::Array:
+        case JsonValueType::Array:
             _arrayValue = new JsonArray();
             break;
 
-        case JSONValueType::Object:
+        case JsonValueType::Object:
             _objectValue = new JsonObject();
             break;
 
@@ -746,7 +746,7 @@ JsonObjectIterator Alimer::begin(JsonValue& value)
 
 ConstJsonObjectIterator Alimer::begin(const JsonValue& value)
 {
-    if (value.GetValueType() != JSONValueType::Object)
+    if (value.GetValueType() != JsonValueType::Object)
         return JsonValue::emptyJSONObject.begin();
 
     return value._objectValue->begin();
@@ -755,14 +755,14 @@ ConstJsonObjectIterator Alimer::begin(const JsonValue& value)
 JsonObjectIterator Alimer::end(JsonValue& value)
 {
     // Convert to object type.
-    value.SetType(JSONValueType::Object);
+    value.SetType(JsonValueType::Object);
 
     return value._objectValue->end();
 }
 
 ConstJsonObjectIterator Alimer::end(const JsonValue& value)
 {
-    if (value.GetValueType() != JSONValueType::Object)
+    if (value.GetValueType() != JsonValueType::Object)
         return JsonValue::emptyJSONObject.end();
 
     return value._objectValue->end();

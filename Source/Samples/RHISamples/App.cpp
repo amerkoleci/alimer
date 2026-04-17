@@ -46,6 +46,15 @@ void RHISamplesApp::Initialize()
         GetMainWindow()->GetSizeInPixels(),
         GetMainWindow()->GetColorFormat(),
         depthStencilFormat);
+
+    JsonSerializer serializer;
+    uint32_t count = 3;
+    std::string hello = "Hello";
+    serializer.BeginArray("TestArray", count);
+    //serializer.Serialize("Hello", "World");
+    serializer.Serialize(kEmptyStringView, hello);
+    serializer.EndArray();
+    auto str = serializer.ToString();
 }
 
 void RHISamplesApp::Draw([[maybe_unused]] CommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture)
