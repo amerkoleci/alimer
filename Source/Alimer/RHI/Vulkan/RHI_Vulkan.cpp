@@ -26,10 +26,12 @@
 #include <vulkan/vulkan.h>
 
 #ifdef VK_USE_PLATFORM_XLIB_KHR
+#undef Success
+#undef None
 #undef Always
 #undef Bool
+#undef Status
 #undef False
-#undef None
 #undef True
 #endif
 
@@ -269,21 +271,21 @@ namespace Alimer
             }
         }
 
-        constexpr VkShaderStageFlags ToVkShaderStageFlags(ShaderStages stage)
+        constexpr VkShaderStageFlags ToVkShaderStageFlags(RHIShaderStages stage)
         {
-            if (stage == ShaderStages::All)
+            if (stage == RHIShaderStages::All)
                 return VK_SHADER_STAGE_ALL;
 
             VkShaderStageFlags flags = 0;
-            if (CheckBitsAny(stage, ShaderStages::Vertex))
+            if (CheckBitsAny(stage, RHIShaderStages::Vertex))
                 flags |= VK_SHADER_STAGE_VERTEX_BIT;
-            if (CheckBitsAny(stage, ShaderStages::Fragment))
+            if (CheckBitsAny(stage, RHIShaderStages::Fragment))
                 flags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-            if (CheckBitsAny(stage, ShaderStages::Compute))
+            if (CheckBitsAny(stage, RHIShaderStages::Compute))
                 flags |= VK_SHADER_STAGE_COMPUTE_BIT;
-            if (CheckBitsAny(stage, ShaderStages::Amplification))
+            if (CheckBitsAny(stage, RHIShaderStages::Amplification))
                 flags |= VK_SHADER_STAGE_TASK_BIT_EXT;
-            if (CheckBitsAny(stage, ShaderStages::Mesh))
+            if (CheckBitsAny(stage, RHIShaderStages::Mesh))
                 flags |= VK_SHADER_STAGE_MESH_BIT_EXT;
             return flags;
         }
@@ -1052,7 +1054,7 @@ namespace Alimer
         void SetLabel(const char* label) override;
     };
 
-    struct VulkanShaderModule final : public ShaderModule
+    struct VulkanShaderModule final : public RHIShaderModule
     {
         VulkanDevice* device = nullptr;
         std::string entryPoint;
@@ -1503,7 +1505,7 @@ namespace Alimer
         VkSampler GetOrCreateVulkanSampler(const SamplerDesc* desc);
         VkDescriptorPool CreateDescriptorSetPool();
 
-        ShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) override;
+        RHIShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) override;
         ComputePipelineRef CreateComputePipelineCore(const RHIComputePipelineDesc& desc) override;
         RenderPipelineRef CreateRenderPipelineCore(const RHIRenderPipelineDesc& desc) override;
         QueryHeapRef CreateQueryHeapCore(const QueryHeapDescriptor& desc) override;
@@ -5443,7 +5445,7 @@ namespace Alimer
         return pool;
     }
 
-    ShaderModuleRef VulkanDevice::CreateShaderModuleCore(const ShaderModuleDesc& desc)
+    RHIShaderModuleRef VulkanDevice::CreateShaderModuleCore(const ShaderModuleDesc& desc)
     {
         SharedPtr<VulkanShaderModule> module(new VulkanShaderModule());
         module->device = this;

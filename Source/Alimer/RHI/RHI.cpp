@@ -32,22 +32,20 @@ namespace Alimer
             BROADCOM = 0x014e4
         };
 
-        static const char* GetEntryPointName(ShaderStages stage)
+        static const char* GetEntryPointName(RHIShaderStages stage)
         {
             switch (stage)
             {
-                case ShaderStages::Vertex:
+                case RHIShaderStages::Vertex:
                     return "vertexMain";
-                case ShaderStages::Fragment:
+                case RHIShaderStages::Fragment:
                     return "fragmentMain";
-                case ShaderStages::Compute:
+                case RHIShaderStages::Compute:
                     return "computeMain";
-                case ShaderStages::Amplification:
-                    ALIMER_UNREACHABLE();
-                    break;
-                case ShaderStages::Mesh:
-                    ALIMER_UNREACHABLE();
-                    break;
+                case RHIShaderStages::Mesh:
+                    return "meshMain";
+                case RHIShaderStages::Amplification:
+                    return "amplificationMain";
                 default:
                     return "Main";
             }
@@ -139,7 +137,7 @@ namespace Alimer
     }
 
     /* CommandEncoder */
-    void CommandEncoder::SetConstantBuffer(uint32_t slot, RHIBuffer* buffer, uint64_t offset)
+    void RHICommandEncoder::SetConstantBuffer(uint32_t slot, RHIBuffer* buffer, uint64_t offset)
     {
         ALIMER_ASSERT(slot < kContantBufferCount);
 
@@ -155,7 +153,7 @@ namespace Alimer
         }
     }
 
-    void CommandEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
+    void RHICommandEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
     {
         if (size > kMaxPushConstantsSize)
         {
@@ -493,7 +491,7 @@ namespace Alimer
         return CreateSamplerCore(desc);
     }
 
-    ShaderModuleRef RHIDevice::CreateShaderModule(const ShaderModuleDesc& descriptor)
+    RHIShaderModuleRef RHIDevice::CreateShaderModule(const ShaderModuleDesc& descriptor)
     {
         if (descriptor.byteCodeSize == 0 || descriptor.byteCode == nullptr)
         {
@@ -895,7 +893,7 @@ namespace Alimer
         return s_VertexFormatTable[ecast(format)];
     }
 
-    ShaderModuleRef RHILoadShader(RHIDevice* device, ShaderStages stage, const char* fileName, const Vector<ShaderMacro>* pDefines)
+    RHIShaderModuleRef RHILoadShader(RHIDevice* device, RHIShaderStages stage, const char* fileName, const Vector<ShaderMacro>* pDefines)
     {
         bool dxil = false;
         std::string shaderExt = ".bin";
@@ -934,7 +932,7 @@ namespace Alimer
         desc.byteCodeSize = permutationSize;
         desc.byteCode = permutationBytecode;
 
-        ShaderModuleRef shaderModule = device->CreateShaderModule(desc);
+        RHIShaderModuleRef shaderModule = device->CreateShaderModule(desc);
         return shaderModule;
     }
 }

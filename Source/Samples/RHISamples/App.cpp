@@ -47,14 +47,34 @@ void RHISamplesApp::Initialize()
         GetMainWindow()->GetColorFormat(),
         depthStencilFormat);
 
-    JsonSerializer serializer;
-    uint32_t count = 3;
-    std::string hello = "Hello";
-    serializer.BeginArray("TestArray", count);
-    //serializer.Serialize("Hello", "World");
-    serializer.Serialize(kEmptyStringView, hello);
-    serializer.EndArray();
-    auto str = serializer.ToString();
+    {
+        JsonSerializer serializer;
+        float x = 3.0f;
+        float y = -4.55f;
+        Vector2 vec2{ 1.0f, 2.0f };
+        std::string hello = "Hello";
+        serializer.BeginObject("TestArray", true);
+        serializer.Serialize(nullptr, x);
+        serializer.Serialize(nullptr, y);
+        //serializer.Serialize("Hello", "World");
+        serializer.Serialize(nullptr, hello);
+        serializer.Serialize(nullptr, vec2);
+        serializer.EndObject();
+        std::string str = serializer.ToString();
+        LOGI("Serialized JSON: {}", str);
+
+        JsonSerializer deserializer(str);
+        deserializer.BeginObject("TestArray", true);
+        deserializer.Serialize(nullptr, x);
+        deserializer.Serialize(nullptr, y);
+        //serializer.Serialize("Hello", "World");
+        //deserializer.Serialize(nullptr, hello);
+        //deserializer.Serialize(nullptr, vec2);
+        deserializer.EndObject();
+
+        //deserializer.BeginObject("TestArrayNone", false);
+       // deserializer.EndObject();
+    }
 }
 
 void RHISamplesApp::Draw([[maybe_unused]] CommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture)

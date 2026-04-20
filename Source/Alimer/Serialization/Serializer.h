@@ -22,30 +22,23 @@ namespace Alimer
         bool IsReading() const { return _mode == SerializerMode::Read; }
         bool IsWriting() const { return _mode == SerializerMode::Write; }
 
-        virtual void BeginObject(const std::string& key) = 0;
+        virtual void BeginObject(const char* key, bool isArray) = 0;
         virtual void EndObject() = 0;
-        virtual void BeginArray(const std::string& key, uint32_t& count) = 0;
-        virtual void EndArray() = 0;
 
-        virtual void Serialize(std::string_view key, bool& value) = 0;
-        virtual void Write(std::string_view key, int8_t value) = 0;
-        virtual void Write(std::string_view key, uint8_t value) = 0;
-        virtual void Write(std::string_view key, int16_t value) = 0;
-        virtual void Write(std::string_view key, uint16_t value) = 0;
-        virtual void Write(std::string_view key, int32_t value) = 0;
-        virtual void Write(std::string_view key, uint32_t value) = 0;
-        virtual void Write(std::string_view key, int64_t value) = 0;
-        virtual void Write(std::string_view key, uint64_t value) = 0;
-        virtual void Write(std::string_view key, float value) = 0;
-        virtual void Write(std::string_view key, double value) = 0;
-        //virtual void Serialize(const std::string& value)
-        //{
-        //    Serialize(kEmptyStringView, value);
-        //}
-
-        virtual void Serialize(std::string_view key, const std::string& value) = 0;
+        virtual bool Serialize(const char* key, bool& value) = 0;
+        virtual bool Serialize(const char* key, int8_t& value) = 0;
+        virtual bool Serialize(const char* key, uint8_t& value) = 0;
+        virtual bool Serialize(const char* key, int16_t& value) = 0;
+        virtual bool Serialize(const char* key, uint16_t& value) = 0;
+        virtual bool Serialize(const char* key, int32_t& value) = 0;
+        virtual bool Serialize(const char* key, uint32_t& value) = 0;
+        virtual bool Serialize(const char* key, int64_t& value) = 0;
+        virtual bool Serialize(const char* key, uint64_t& value) = 0;
+        virtual bool Serialize(const char* key, float& value) = 0;
+        virtual bool Serialize(const char* key, double& value) = 0;
+        virtual bool Serialize(const char* key, const std::string& value) = 0;
         //virtual void Write(std::string_view key, const StringId& value) = 0;
-        virtual void Write(std::string_view key, const Vector2& value) = 0;
+        virtual bool Serialize(const char* key, const Vector2& value) = 0;
         virtual void Write(std::string_view key, const Vector3& value) = 0;
         virtual void Write(std::string_view key, const Vector4& value) = 0;
         virtual void Write(std::string_view key, const Quaternion& value) = 0;
@@ -66,6 +59,7 @@ namespace Alimer
     public:
         JsonSerializer();
         JsonSerializer(std::string_view filePath, SerializerMode mode);
+        JsonSerializer(const std::string& json);
         ~JsonSerializer();
 
         // Non-copyable and non-movable
@@ -74,35 +68,31 @@ namespace Alimer
         JsonSerializer& operator=(const JsonSerializer&) = delete;
         JsonSerializer& operator=(const JsonSerializer&&) = delete;
 
-        void BeginObject(const std::string& key) override;
+        void BeginObject(const char* key, bool isArray) override;
         void EndObject() override;
-        void BeginArray(const std::string& key, uint32_t& count) override;
-        void EndArray() override;
 
-        void Serialize(std::string_view key, bool& value) override;
-        void Write(std::string_view key, int8_t value) override;
-        void Write(std::string_view key, uint8_t value) override;
-        void Write(std::string_view key, int16_t value) override;
-        void Write(std::string_view key, uint16_t value) override;
-        void Write(std::string_view key, int32_t value) override;
-        void Write(std::string_view key, uint32_t value) override;
-        void Write(std::string_view key, int64_t value) override;
-        void Write(std::string_view key, uint64_t value) override;
-        void Write(std::string_view key, float value) override;
-        void Write(std::string_view key, double value) override;
-        void Serialize(std::string_view key, const std::string& value) override;
+        bool Serialize(const char* key, bool& value) override;
+        bool Serialize(const char* key, int8_t& value) override;
+        bool Serialize(const char* key, uint8_t& value) override;
+        bool Serialize(const char* key, int16_t& value) override;
+        bool Serialize(const char* key, uint16_t& value) override;
+        bool Serialize(const char* key, int32_t& value) override;
+        bool Serialize(const char* key, uint32_t& value) override;
+        bool Serialize(const char* key, int64_t& value) override;
+        bool Serialize(const char* key, uint64_t& value) override;
+        bool Serialize(const char* key, float& value) override;
+        bool Serialize(const char* key, double& value) override;
+        bool Serialize(const char* key, const std::string& value) override;
         //void Write(std::string_view key, const StringId& value) override;
-        void Write(std::string_view key, const Vector2& value) override;
+        bool Serialize(const char* key, const Vector2& value) override;
         void Write(std::string_view key, const Vector3& value) override;
         void Write(std::string_view key, const Vector4& value) override;
         void Write(std::string_view key, const Quaternion& value) override;
 
-        std::string ToString();
+        std::string ToString() const;
 
     private:
-        struct Impl;
-
-        Impl* impl;
+        struct JsonSerializerImpl* impl;
     };
 
 #if TODO

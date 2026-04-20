@@ -534,7 +534,7 @@ namespace Alimer
         DontCare
     };
 
-    enum class ShaderStages : uint32_t
+    enum class RHIShaderStages : uint32_t
     {
         None = 0,
         Vertex = ALIMER_BIT(0),
@@ -545,7 +545,7 @@ namespace Alimer
 
         All = 0x3FFF,
     };
-    ALIMER_ENUM_CLASS_FLAG_OPERATORS(ShaderStages);
+    ALIMER_ENUM_CLASS_FLAG_OPERATORS(RHIShaderStages);
 
     enum class RHICompositeAlphaMode : uint32_t
     {
@@ -682,12 +682,12 @@ namespace Alimer
     class RHITexture;
     class RHITextureView;
     class Sampler;
-    class ShaderModule;
-    class CommandEncoder;
+    class RHIShaderModule;
+    class RHICommandEncoder;
     class ComputePassEncoder;
     class RenderPassEncoder;
     class CommandBuffer;
-    class CommandQueue;
+    class RHIQueue;
     class ComputePipeline;
     class RenderPipeline;
     class RHISurface;
@@ -700,7 +700,7 @@ namespace Alimer
     using RHITextureRef = SharedPtr<RHITexture>;
     using RHITextureViewRef = SharedPtr<RHITextureView>;
     using SamplerRef = SharedPtr<Sampler>;
-    using ShaderModuleRef = SharedPtr<ShaderModule>;
+    using RHIShaderModuleRef = SharedPtr<RHIShaderModule>;
     using ComputePipelineRef = SharedPtr<ComputePipeline>;
     using RenderPipelineRef = SharedPtr<RenderPipeline>;
     using QueryHeapRef = SharedPtr<QueryHeap>;
@@ -906,7 +906,7 @@ namespace Alimer
     struct RHIComputePipelineDesc
     {
         const char* label = nullptr;
-        ShaderModuleRef shader;
+        RHIShaderModuleRef shader;
     };
 
     struct VertexAttribute
@@ -979,10 +979,10 @@ namespace Alimer
     {
         const char* label = nullptr;
 
-        ShaderModuleRef vertexShader = nullptr;
-        ShaderModuleRef fragmentShader = nullptr;
-        ShaderModuleRef meshShader = nullptr;
-        ShaderModuleRef amplificationShader = nullptr;
+        RHIShaderModuleRef vertexShader = nullptr;
+        RHIShaderModuleRef fragmentShader = nullptr;
+        RHIShaderModuleRef meshShader = nullptr;
+        RHIShaderModuleRef amplificationShader = nullptr;
 
         uint32_t vertexBufferLayoutCount = 0;
         const VertexBufferLayout* vertexBufferLayouts = nullptr;
@@ -1355,7 +1355,7 @@ namespace Alimer
         [[nodiscard]] virtual const SamplerDesc& GetDesc() const = 0;
     };
 
-    class ALIMER_API ShaderModule : public RHIObject
+    class ALIMER_API RHIShaderModule : public RHIObject
     {
     public:
     };
@@ -1409,10 +1409,10 @@ namespace Alimer
         uint64_t CBV_offset[kContantBufferCount] = {};
     };
 
-    class ALIMER_API CommandEncoder
+    class ALIMER_API RHICommandEncoder
     {
     public:
-        virtual ~CommandEncoder() = default;
+        virtual ~RHICommandEncoder() = default;
 
         virtual void PushDebugGroup(std::string_view groupLabel) = 0;
         virtual void PopDebugGroup() = 0;
@@ -1439,7 +1439,7 @@ namespace Alimer
         DescriptorBindingTable table{};
     };
 
-    class ALIMER_API ComputePassEncoder : public CommandEncoder
+    class ALIMER_API ComputePassEncoder : public RHICommandEncoder
     {
     public:
         virtual ~ComputePassEncoder() = default;
@@ -1462,7 +1462,7 @@ namespace Alimer
         virtual void DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
     };
 
-    class ALIMER_API RenderPassEncoder : public CommandEncoder
+    class ALIMER_API RenderPassEncoder : public RHICommandEncoder
     {
     public:
         virtual ~RenderPassEncoder() = default;
@@ -1570,7 +1570,7 @@ namespace Alimer
         RHITextureRef CreateTextureFromNativeHandle(NativeHandle handle, const TextureDescriptor& descriptor);
         SamplerRef CreateSampler(const SamplerDesc& desc);
 
-        ShaderModuleRef CreateShaderModule(const ShaderModuleDesc& descriptor);
+        RHIShaderModuleRef CreateShaderModule(const ShaderModuleDesc& descriptor);
 
         ComputePipelineRef CreateComputePipeline(const RHIComputePipelineDesc& desc);
         RenderPipelineRef CreateRenderPipeline(const RHIRenderPipelineDesc& desc);
@@ -1602,7 +1602,7 @@ namespace Alimer
         virtual RHITextureRef CreateTextureCore(const TextureDescriptor& desc, const TextureData* initialData) = 0;
         virtual RHITextureRef CreateTextureFromNativeHandleCore(NativeHandle handle, const TextureDescriptor& desc) = 0;
         virtual SamplerRef CreateSamplerCore(const SamplerDesc& desc) = 0;
-        virtual ShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) = 0;
+        virtual RHIShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) = 0;
         virtual ComputePipelineRef CreateComputePipelineCore(const RHIComputePipelineDesc& desc) = 0;
         virtual RenderPipelineRef CreateRenderPipelineCore(const RHIRenderPipelineDesc& desc) = 0;
         virtual QueryHeapRef CreateQueryHeapCore(const QueryHeapDescriptor& desc) = 0;
@@ -1724,5 +1724,5 @@ namespace Alimer
         {}
     };
 
-    ALIMER_API ShaderModuleRef RHILoadShader(RHIDevice* device, ShaderStages stage, const char* fileName, const Vector<ShaderMacro>* pDefines = nullptr);
+    ALIMER_API RHIShaderModuleRef RHILoadShader(RHIDevice* device, RHIShaderStages stage, const char* fileName, const Vector<ShaderMacro>* pDefines = nullptr);
 }

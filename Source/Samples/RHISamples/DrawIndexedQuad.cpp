@@ -46,8 +46,8 @@ void DrawIndexedQuad::Initialize(RHIDevice* device, const UInt2& windowSize, Pix
     std::vector<ShaderMacro> macros = {
         { "VARIANT", "0" }
     };
-    ShaderModuleRef vertexShader = RHILoadShader(device, ShaderStages::Vertex, "Triangle");
-    ShaderModuleRef fragmentShader = RHILoadShader(device, ShaderStages::Fragment, "Triangle", &macros);
+    RHIShaderModuleRef vertexShader = RHILoadShader(device, RHIShaderStages::Vertex, "Triangle");
+    RHIShaderModuleRef fragmentShader = RHILoadShader(device, RHIShaderStages::Fragment, "Triangle", &macros);
 
     std::array<VertexAttribute, 2> vertexAttributes = {
         VertexAttribute{ VertexAttributeSemantic::Position, VertexAttributeFormat::Float32x3, offsetof(VertexPositionColor, position) },

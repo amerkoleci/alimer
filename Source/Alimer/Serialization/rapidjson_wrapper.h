@@ -4,9 +4,9 @@
 #pragma once
 
 #include "Alimer/Core/Log.h"
-//#ifndef RAPIDJSON_HAS_STDSTRING
-//#define RAPIDJSON_HAS_STDSTRING 1
-//#endif
+#ifndef RAPIDJSON_HAS_STDSTRING
+#define RAPIDJSON_HAS_STDSTRING 1
+#endif
 
 #ifndef RAPIDJSON_PARSE_DEFAULT_FLAGS
 #define RAPIDJSON_PARSE_DEFAULT_FLAGS (kParseIterativeFlag)

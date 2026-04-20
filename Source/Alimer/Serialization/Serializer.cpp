@@ -11,39 +11,571 @@ using namespace rapidjson;
 
 namespace Alimer
 {
-    struct JsonSerializer::Impl
+    struct JsonSerializerImpl
     {
-        SerializerMode mode;
+        virtual ~JsonSerializerImpl() = default;
+        virtual std::string ToString() const = 0;
+
+        virtual void BeginObject(const char* key, bool isArray) = 0;
+        virtual void EndObject() = 0;
+
+        virtual bool Serialize(const char* key, bool& value) = 0;
+        virtual bool Serialize(const char* key, int8_t& value) = 0;
+        virtual bool Serialize(const char* key, uint8_t& value) = 0;
+        virtual bool Serialize(const char* key, int16_t& value) = 0;
+        virtual bool Serialize(const char* key, uint16_t& value) = 0;
+        virtual bool Serialize(const char* key, int32_t& value) = 0;
+        virtual bool Serialize(const char* key, uint32_t& value) = 0;
+        virtual bool Serialize(const char* key, int64_t& value) = 0;
+        virtual bool Serialize(const char* key, uint64_t& value) = 0;
+        virtual bool Serialize(const char* key, float& value) = 0;
+        virtual bool Serialize(const char* key, double& value) = 0;
+        virtual bool Serialize(const char* key, const std::string& value) = 0;
+
+        virtual bool Serialize(const char* key, const Vector2& value) = 0;
+    };
+
+    struct JsonWriteSerializer final : public JsonSerializerImpl
+    {
         std::string_view filePath;
-        Document doc;
-        std::stack<Value*> hierarchy;
+        Document root;
+        std::vector<Value*> hierarchy;
+        mutable std::string jsonString;
 
-        Impl(std::string_view filePath_, SerializerMode mode_)
+        JsonWriteSerializer(std::string_view filePath_)
             : filePath(filePath_)
-            , mode(mode_)
         {
-            if (mode_ == SerializerMode::Read)
-            {
-                FileStream stream(filePath);
-                const size_t dataSize = stream.GetSize() - stream.GetPosition();
-                std::unique_ptr<char[]> buffer(new char[dataSize]);
-                if (stream.Read(buffer.get(), dataSize) != dataSize)
-                    return;
+            root.SetObject();
+            hierarchy.push_back(&root);
+        }
 
-                doc.Parse(buffer.get());
-                if (doc.HasParseError())
+        ~JsonWriteSerializer() override
+        {
+            ALIMER_ASSERT(hierarchy.size() == 1);
+
+            if (!filePath.empty())
+            {
+                const std::string& writeJson = ToString();
+
+                FileStream stream(filePath, FileMode::Write);
+                stream.Write(writeJson.c_str(), writeJson.length());
+            }
+        }
+
+        std::string ToString() const override
+        {
+            StringBuffer buffer;
+            PrettyWriter<StringBuffer> writer(buffer);
+            //Writer<StringBuffer> writer(buffer);
+            root.Accept(writer);
+            jsonString.assign(buffer.GetString());
+            return jsonString;
+        }
+
+        rapidjson::Value& GetObject(int32_t index = -1)
+        {
+            if (index < 0)
+                return *hierarchy.back();
+
+            return *hierarchy.at(index);
+        }
+
+        void BeginObject(const char* key, bool isArray) override
+        {
+            auto& object = GetObject();
+
+            if (object.IsArray())
+            {
+                if (isArray)
                 {
-                    //ALIMER_LOG_ERROR("Failed to parse JSON file: %s, error code: %d, offset: %zu", filePath.data(), doc.GetParseError(), doc.GetErrorOffset());
-                    return;
+                    object.PushBack(rapidjson::Value(kArrayType), root.GetAllocator());
+                    hierarchy.push_back(&object[object.Size() - 1]);
                 }
-                hierarchy.emplace(&doc);
+                else
+                {
+                    object.PushBack(rapidjson::Value(kObjectType), root.GetAllocator());
+                    hierarchy.push_back(&object[object.Size() - 1]);
+                }
             }
             else
             {
-                doc.SetObject();
+                if (isArray)
+                {
+                    object.AddMember(StringRef(key), rapidjson::Value(kArrayType), root.GetAllocator());
+                    hierarchy.push_back(&object[key]);
+                }
+                else
+                {
+                    object.AddMember(StringRef(key), rapidjson::Value(kObjectType), root.GetAllocator());
+                    hierarchy.push_back(&object[key]);
+                }
+            }
+        }
+
+        void EndObject() override
+        {
+            ALIMER_ASSERT(hierarchy.size() > 1); // No child to end.
+
+            hierarchy.pop_back();
+        }
+
+        bool Serialize(const char* key, bool& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
             }
 
-            hierarchy.emplace(&doc);
+            return true;
+        }
+
+        bool Serialize(const char* key, int8_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, uint8_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, int16_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, uint16_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+        bool Serialize(const char* key, int32_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+        bool Serialize(const char* key, uint32_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+        bool Serialize(const char* key, int64_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, uint64_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, float& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, double& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, const std::string& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), StringRef(value.c_str()), root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(StringRef(value.c_str()), root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, const Vector2& value) override
+        {
+            Value& object = GetObject();
+            Value jsonValue(kArrayType);
+            jsonValue.PushBack(value.x, root.GetAllocator());
+            jsonValue.PushBack(value.y, root.GetAllocator());
+            if (key)
+            {
+                object.AddMember(StringRef(key), jsonValue, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(jsonValue, root.GetAllocator());
+            }
+            return true;
+        }
+    };
+
+
+    struct JsonReadSerializer final : public JsonSerializerImpl
+    {
+        Document root;
+        Vector<Value*> hierarchy;
+        Vector<int32_t> vectorStack;
+
+        JsonReadSerializer(const std::string& json)
+        {
+            root.Parse(json);
+            if (root.HasParseError())
+            {
+                //ALIMER_LOG_ERROR("Failed to parse JSON file: %s, error code: %d, offset: %zu", filePath.data(), doc.GetParseError(), doc.GetErrorOffset());
+                return;
+            }
+
+            hierarchy.push_back(&root);
+        }
+
+        ~JsonReadSerializer() override
+        {
+            ALIMER_ASSERT(hierarchy.size() == 1);
+        }
+
+        std::string ToString() const override
+        {
+            return kEmptyString;
+        }
+
+        rapidjson::Value& GetObject()
+        {
+            return *hierarchy.back();
+        }
+
+        rapidjson::Value& GetObjectWithKey(const char* key)
+        {
+            if (key)
+            {
+                return GetObject()[key];
+            }
+            else
+            {
+                int32_t idx = vectorStack.back()++;
+                return GetObject()[idx];
+            }
+        }
+
+        void BeginObject(const char* key, bool isArray) override
+        {
+            auto& object = GetObjectWithKey(key);
+
+            if (object.IsObject())
+            {
+                hierarchy.push_back(&object);
+                //return object.Size();
+            }
+            else if (object.IsArray())
+            {
+                hierarchy.push_back(&object);
+                vectorStack.push_back(0);
+                //return object.size();
+            }
+        }
+
+        void EndObject() override
+        {
+            if (hierarchy.back()->IsArray())
+                vectorStack.pop_back();
+            hierarchy.pop_back();
+
+            ALIMER_ASSERT(hierarchy.size() > 0);
+        }
+
+        bool Serialize(const char* key, bool& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, int8_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, uint8_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, int16_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, uint16_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+        bool Serialize(const char* key, int32_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+        bool Serialize(const char* key, uint32_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+        bool Serialize(const char* key, int64_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, uint64_t& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, float& value) override
+        {
+            Value& object = GetObjectWithKey(key);
+            if (object.IsDouble())
+            {
+                value = object.GetFloat();
+                return true;
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, double& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), value, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(value, root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, const std::string& value) override
+        {
+            Value& object = GetObject();
+            if (key)
+            {
+                object.AddMember(StringRef(key), StringRef(value.c_str()), root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(StringRef(value.c_str()), root.GetAllocator());
+            }
+
+            return true;
+        }
+
+        bool Serialize(const char* key, const Vector2& value) override
+        {
+            Value& object = GetObject();
+            Value jsonValue(kArrayType);
+            jsonValue.PushBack(value.x, root.GetAllocator());
+            jsonValue.PushBack(value.y, root.GetAllocator());
+            if (key)
+            {
+                object.AddMember(StringRef(key), jsonValue, root.GetAllocator());
+            }
+            else
+            {
+                object.PushBack(jsonValue, root.GetAllocator());
+            }
+            return true;
         }
     };
 
@@ -55,177 +587,102 @@ namespace Alimer
 
     JsonSerializer::JsonSerializer(std::string_view filePath, SerializerMode mode)
         : Serializer(mode)
-        , impl(new Impl(filePath, mode))
     {
+        if (mode == SerializerMode::Write)
+        {
+            impl = new JsonWriteSerializer(filePath);
+        }
+        else
+        {
+            FileStream stream(filePath);
+            const size_t dataSize = stream.GetSize() - stream.GetPosition();
+            std::unique_ptr<char[]> buffer(new char[dataSize]);
+            if (stream.Read(buffer.get(), dataSize) != dataSize)
+                return;
 
+            impl = new JsonReadSerializer(std::string(buffer.get(), dataSize));
+        }
+    }
+
+    JsonSerializer::JsonSerializer(const std::string& json)
+        : Serializer(SerializerMode::Read)
+    {
+        impl = new JsonReadSerializer(json);
     }
 
     JsonSerializer::~JsonSerializer()
     {
-        ALIMER_ASSERT(impl->hierarchy.size() == 1);
-
-        if (!impl->filePath.empty())
-        {
-            StringBuffer buffer;
-            PrettyWriter<StringBuffer> writer(buffer);
-            //Writer<StringBuffer> writer(buffer);
-            impl->doc.Accept(writer);
-
-            std::string str = buffer.GetString();
-
-            FileStream stream(impl->filePath, FileMode::Write);
-            stream.Write(&str[0], str.length());
-        }
-
         delete impl; impl = nullptr;
     }
 
-    void JsonSerializer::BeginObject(const std::string& key)
+    void JsonSerializer::BeginObject(const char* key, bool isArray)
     {
-        if (_mode == SerializerMode::Read)
-        {
-            Value& parent = *impl->hierarchy.top();
-
-            ALIMER_ASSERT(parent.IsObject());
-            ALIMER_ASSERT(parent.HasMember(key.c_str()));
-            impl->hierarchy.push(&parent[key.c_str()]);
-            return;
-        }
-        else
-        {
-            Value child(kObjectType);
-            Value& parent = *impl->hierarchy.top();
-            parent.AddMember(Value(key.c_str(), impl->doc.GetAllocator()).Move(), child, impl->doc.GetAllocator());
-            impl->hierarchy.push(&parent[key.c_str()]);
-        }
+        impl->BeginObject(key, isArray);
     }
 
     void JsonSerializer::EndObject()
     {
-        ALIMER_ASSERT(impl->hierarchy.size() > 1); // No child to end.
-
-        impl->hierarchy.pop();
+        impl->EndObject();
     }
 
-    void JsonSerializer::BeginArray(const std::string& key, uint32_t& count)
+    bool JsonSerializer::Serialize(const char* key, bool& value)
     {
-        if (_mode == SerializerMode::Read)
-        {
-            Value& parent = *impl->hierarchy.top();
-            ALIMER_ASSERT(parent.IsObject());
-            ALIMER_ASSERT(parent.HasMember(key.c_str()));
-            impl->hierarchy.push(&parent[key.c_str()]);
-            count = static_cast<uint32_t>(impl->hierarchy.top()->Size());
-        }
-        else
-        {
-            Value child(kArrayType);
-            Value& parent = *impl->hierarchy.top();
-            parent.AddMember(StringRef(key.data()), child, impl->doc.GetAllocator());
-            impl->hierarchy.push(&child);
-        }
+        return impl->Serialize(key, value);
     }
 
-    void JsonSerializer::EndArray()
+    bool JsonSerializer::Serialize(const char* key, int8_t& value)
     {
-        ALIMER_ASSERT(impl->hierarchy.size() > 1); // No child to end.
-        impl->hierarchy.pop();
+        return impl->Serialize(key, value);
     }
 
-    void JsonSerializer::Serialize(std::string_view key, bool& value)
+    bool JsonSerializer::Serialize(const char* key, uint8_t& value)
     {
-        Value& parent = *impl->hierarchy.top();
-        parent.AddMember(StringRef(key.data()), value, impl->doc.GetAllocator());
+        return impl->Serialize(key, value);
     }
 
-
-    void JsonSerializer::Write(std::string_view key, int8_t value)
+    bool JsonSerializer::Serialize(const char* key, int16_t& value)
     {
-        auto& parent = *impl->hierarchy.top();
-        parent.AddMember(StringRef(key.data()), value, impl->doc.GetAllocator());
+        return impl->Serialize(key, value);
     }
 
-    void JsonSerializer::Write(std::string_view key, uint8_t value)
+    bool JsonSerializer::Serialize(const char* key, uint16_t& value)
     {
-        auto& parent = *impl->hierarchy.top();
-        parent.AddMember(StringRef(key.data()), value, impl->doc.GetAllocator());
+        return impl->Serialize(key, value);
     }
 
-    void JsonSerializer::Write(std::string_view key, int16_t value)
+    bool JsonSerializer::Serialize(const char* key, int32_t& value)
     {
-        auto& parent = *impl->hierarchy.top();
-        parent.AddMember(StringRef(key.data()), value, impl->doc.GetAllocator());
+        return impl->Serialize(key, value);
     }
 
-    void JsonSerializer::Write(std::string_view key, uint16_t value)
+    bool JsonSerializer::Serialize(const char* key, uint32_t& value)
     {
-        auto& parent = *impl->hierarchy.top();
-        parent.AddMember(StringRef(key.data()), value, impl->doc.GetAllocator());
+        return impl->Serialize(key, value);
     }
 
-    void JsonSerializer::Write(std::string_view key, int32_t value)
+    bool JsonSerializer::Serialize(const char* key, int64_t& value)
     {
-        auto& parent = *impl->hierarchy.top();
-        parent.AddMember(StringRef(key.data()), value, impl->doc.GetAllocator());
+        return impl->Serialize(key, value);
     }
 
-    void JsonSerializer::Write(std::string_view key, uint32_t value)
+    bool JsonSerializer::Serialize(const char* key, uint64_t& value)
     {
-        auto& parent = *impl->hierarchy.top();
-        parent.AddMember(StringRef(key.data()), value, impl->doc.GetAllocator());
+        return impl->Serialize(key, value);
     }
 
-    void JsonSerializer::Write(std::string_view key, int64_t value)
+    bool JsonSerializer::Serialize(const char* key, float& value)
     {
-        auto& parent = *impl->hierarchy.top();
-        parent.AddMember(StringRef(key.data()), value, impl->doc.GetAllocator());
+        return impl->Serialize(key, value);
     }
 
-    void JsonSerializer::Write(std::string_view key, uint64_t value)
+    bool JsonSerializer::Serialize(const char* key, double& value)
     {
-        auto& parent = *impl->hierarchy.top();
-        parent.AddMember(StringRef(key.data()), value, impl->doc.GetAllocator());
+        return impl->Serialize(key, value);
     }
 
-    void JsonSerializer::Write(std::string_view key, float value)
+    bool JsonSerializer::Serialize(const char* key, const std::string& value)
     {
-        //auto& object = *hierarchy.top();
-        //if (key.empty())
-        //    object.Push(value);
-        //else
-        //    object.Set(key, value);
-    }
-
-    void JsonSerializer::Write(std::string_view key, double value)
-    {
-        auto& parent = *impl->hierarchy.top();
-        parent.AddMember(StringRef(key.data()), value, impl->doc.GetAllocator());
-    }
-
-    void JsonSerializer::Serialize(std::string_view key, const std::string& value)
-    {
-        if (_mode == SerializerMode::Read)
-        {
-            Value& parent = *impl->hierarchy.top();
-
-            ALIMER_ASSERT(parent.IsObject());
-            //ALIMER_ASSERT(parent.HasMember(key.c_str()));
-            //const Value& child = parent[key.c_str()];
-            //ALIMER_ASSERT(child.IsString());
-            //value = child.GetString();
-        }
-        else
-        {
-            auto& parent = *impl->hierarchy.top();
-            if (key.empty())
-            {
-                parent.PushBack(StringRef(value.c_str()), impl->doc.GetAllocator());
-            }
-            else
-            {
-                parent.AddMember(StringRef(key.data()), StringRef(value.c_str()), impl->doc.GetAllocator());
-            }
-        }
+        return impl->Serialize(key, value);
     }
 
     //void JsonSerializer::Write(std::string_view key, const Alimer::UUID& value)
@@ -234,13 +691,9 @@ namespace Alimer
     //    Write(key, writeValue);
     //}
 
-    void JsonSerializer::Write(std::string_view key, const Vector2& value)
+    bool JsonSerializer::Serialize(const char* key, const Vector2& value)
     {
-        //auto& object = *hierarchy.top();
-        //JsonValue jsonValue;
-        //jsonValue.Push(value.x);
-        //jsonValue.Push(value.y);
-        //object.Set(key, jsonValue);
+        return impl->Serialize(key, value);
     }
 
     void JsonSerializer::Write(std::string_view key, const Vector3& value)
@@ -275,15 +728,14 @@ namespace Alimer
         //object.Set(key, jsonValue);
     }
 
-    std::string JsonSerializer::ToString()
+    std::string JsonSerializer::ToString() const
     {
-        StringBuffer buffer;
-        PrettyWriter<StringBuffer> writer(buffer);
-        //Writer<StringBuffer> writer(buffer);
-        impl->doc.Accept(writer);
+        if (_mode == SerializerMode::Read)
+        {
+            return {};
+        }
 
-        std::string result = buffer.GetString();
-        return result;
+        return impl->ToString();
     }
 }
 
