@@ -51,7 +51,7 @@ unsafe partial class Window
                 windowFlags |= SDL_WINDOW_ALWAYS_ON_TOP;
         }
 
-        _handle = SDL_CreateWindow(_title, 1200, 800, windowFlags);
+        _handle = SDL_CreateWindow(_title, 1280, 720, windowFlags);
         if (_handle == null)
         {
             throw new InvalidOperationException($"Alimer: SDL_CreateWindow Failed: {SDL_GetError()}");

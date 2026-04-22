@@ -6,7 +6,7 @@ using static Alimer.AlimerApi;
 
 namespace Alimer.Graphics;
 
-public abstract unsafe class GraphicsManager : GPUBaseObject
+public abstract unsafe class GraphicsManager : GraphicsBaseObject
 {
     protected GraphicsManager(in GraphicsManagerOptions options)
         : base(options.Label)

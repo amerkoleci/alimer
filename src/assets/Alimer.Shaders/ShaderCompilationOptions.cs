@@ -41,7 +41,7 @@ public struct ShaderCompilationOptions
     public bool Debug { get; set; }
     public bool AllResourcesBound { get; set; }
 
-    public bool PackMatrixRowMajor { get; set; } 
+    public bool PackMatrixRowMajor { get; set; } = true;
     public bool PackMatrixColumnMajor { get; set; }
 
     public bool StripReflection { get; set; } = true;

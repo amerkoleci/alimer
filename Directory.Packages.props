@@ -3,7 +3,7 @@
   <PropertyGroup>
     <ImGuiVersion>2.2.10-prerelease</ImGuiVersion>
     <SkiaSharpVersion>3.119.2</SkiaSharpVersion>
-    <AvaloniaVersion>12.0.0-rc1</AvaloniaVersion>
+    <AvaloniaVersion>12.0.1</AvaloniaVersion>
     <CodeAnalysisVersion>5.0.0</CodeAnalysisVersion>
   </PropertyGroup>
   <ItemGroup>
@@ -11,7 +11,7 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(CodeAnalysisVersion)" />
     
     <!-- Platform specific -->
-    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.0.0-experimental6" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.0.0-preview2" />
     <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.4.0" />
     <!-- Engine -->
     <PackageVersion Include="XenoAtom.Collections" Version="1.2.0" />
@@ -44,11 +44,9 @@
     <PackageVersion Include="Avalonia.Diagnostics" Version="11.3.13" />
     <PackageVersion Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
     <PackageVersion Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
-    <PackageVersion Include="Avalonia.Controls.DataGrid" Version="$(AvaloniaVersion)" />
-    <!-- Tools -->
-    <PackageVersion Include="CppAst" Version="0.24.0" />
+    <PackageVersion Include="Avalonia.Controls.DataGrid" Version="12.0.0" />
     <!-- Tests -->
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.5.0" />
     <PackageVersion Include="NUnit" Version="4.5.1" />
     <PackageVersion Include="NUnit3TestAdapter" Version="6.2.0" />
   </ItemGroup>

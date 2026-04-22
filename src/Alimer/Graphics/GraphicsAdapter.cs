@@ -33,23 +33,23 @@ public abstract class GraphicsAdapter(GraphicsManager manager)
     /// </summary>
     public abstract GraphicsAdapterType Type { get; }
 
-    public GPUAdapterVendor Vendor
+    public GraphicsAdapterVendor Vendor
     {
         get
         {
             return VendorId switch
             {
-                (uint)KnownGPUAdapterVendor.NVIDIA => GPUAdapterVendor.NVIDIA,
-                (uint)KnownGPUAdapterVendor.AMD => GPUAdapterVendor.AMD,
-                (uint)KnownGPUAdapterVendor.INTEL => GPUAdapterVendor.Intel,
-                (uint)KnownGPUAdapterVendor.ARM => GPUAdapterVendor.ARM,
-                (uint)KnownGPUAdapterVendor.QUALCOMM => GPUAdapterVendor.Qualcomm,
-                (uint)KnownGPUAdapterVendor.IMGTECH => GPUAdapterVendor.ImgTech,
-                (uint)KnownGPUAdapterVendor.MSFT => GPUAdapterVendor.MSFT,
-                (uint)KnownGPUAdapterVendor.APPLE => GPUAdapterVendor.Apple,
-                (uint)KnownGPUAdapterVendor.MESA => GPUAdapterVendor.Mesa,
-                (uint)KnownGPUAdapterVendor.BROADCOM => GPUAdapterVendor.Broadcom,
-                _ => GPUAdapterVendor.Unknown
+                (uint)KnownGPUAdapterVendor.NVIDIA => GraphicsAdapterVendor.NVIDIA,
+                (uint)KnownGPUAdapterVendor.AMD => GraphicsAdapterVendor.AMD,
+                (uint)KnownGPUAdapterVendor.INTEL => GraphicsAdapterVendor.Intel,
+                (uint)KnownGPUAdapterVendor.ARM => GraphicsAdapterVendor.ARM,
+                (uint)KnownGPUAdapterVendor.QUALCOMM => GraphicsAdapterVendor.Qualcomm,
+                (uint)KnownGPUAdapterVendor.IMGTECH => GraphicsAdapterVendor.ImgTech,
+                (uint)KnownGPUAdapterVendor.MSFT => GraphicsAdapterVendor.MSFT,
+                (uint)KnownGPUAdapterVendor.APPLE => GraphicsAdapterVendor.Apple,
+                (uint)KnownGPUAdapterVendor.MESA => GraphicsAdapterVendor.Mesa,
+                (uint)KnownGPUAdapterVendor.BROADCOM => GraphicsAdapterVendor.Broadcom,
+                _ => GraphicsAdapterVendor.Unknown
             };
         }
     }

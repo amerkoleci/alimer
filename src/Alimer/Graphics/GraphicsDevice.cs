@@ -11,7 +11,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Defines a GPU logical device using given <see cref="GraphicsAdapter"/>.
 /// </summary>
-public abstract unsafe class GraphicsDevice : GPUBaseObject
+public abstract unsafe class GraphicsDevice : GraphicsBaseObject
 {
     protected uint _frameIndex = 0;
     protected ulong _frameCount = 0;
