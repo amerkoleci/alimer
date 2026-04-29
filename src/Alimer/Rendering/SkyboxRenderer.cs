@@ -44,16 +44,14 @@ public sealed class SkyboxRenderer : IDisposable
         VertexBufferLayout gpuLayout = new(12, [new VertexAttribute(VertexAttributeSemantic.Position, VertexAttributeFormat.Float32x3)]);
         Span<VertexBufferLayout> geometryLayout = [gpuLayout];
 
-        RenderPipelineDescriptor renderPipelineDesc = new(default,
-            geometryLayout,
-            [RenderSystem.ColorFormat], RenderSystem.DepthStencilFormat)
+        RenderPipelineDescriptor descriptor = new(geometryLayout, [RenderSystem.ColorFormat], RenderSystem.DepthStencilFormat)
         {
             Label = "RenderPipeline",
             VertexShader = vertexShader,
             FragmentShader = fragmentShader,
             DepthStencilState = DepthStencilState.DepthRead
         };
-        _renderPipeline = renderSystem.Device.CreateRenderPipeline(in renderPipelineDesc);
+        _renderPipeline = renderSystem.Device.CreateRenderPipeline(in descriptor);
     }
 
     public RenderSystem RenderSystem { get; }

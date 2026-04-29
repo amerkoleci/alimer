@@ -54,12 +54,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
     private readonly D3D12_TEXTURE_BARRIER[] _textureBarriers = new D3D12_TEXTURE_BARRIER[MaxBarriers];
     private readonly D3D12_BUFFER_BARRIER[] _bufferBarriers = new D3D12_BUFFER_BARRIER[MaxBarriers];
 
-    private D3D12PipelineLayout? _currentPipelineLayout;
     protected readonly DescriptorBindingTable _bindingTable = new();
-
-    private bool _bindGroupsDirty;
-    private int _numBoundBindGroups;
-    private readonly D3D12BindGroup[] _boundBindGroups = new D3D12BindGroup[8];
 
     public D3D12CommandBuffer(D3D12CommandQueue queue)
     {
@@ -123,9 +118,6 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
     public void Begin(uint frameIndex, Utf8ReadOnlyString label = default)
     {
         base.Reset(frameIndex);
-        _currentPipelineLayout = default;
-        _bindGroupsDirty = false;
-        _numBoundBindGroups = 0;
         _globalBarriersCount = 0;
         _textureBarriersCount = 0;
         _bufferBarriersCount = 0;
@@ -133,7 +125,6 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         Array.Clear(_globalBarriers, 0, _globalBarriers.Length);
         Array.Clear(_textureBarriers, 0, _textureBarriers.Length);
         Array.Clear(_bufferBarriers, 0, _bufferBarriers.Length);
-        Array.Clear(_boundBindGroups, 0, _boundBindGroups.Length);
         _bindingTable.Reset();
 
         // Start the command list in a default state:
@@ -156,6 +147,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
             _commandList6.Get()->SetDescriptorHeaps(2, descriptorHeaps);
 
             // Set univeral root signature as well
+            _commandList6.Get()->SetComputeRootSignature(_bindlessManager.UniversalRootSignature);
             _commandList6.Get()->SetGraphicsRootSignature(_bindlessManager.UniversalRootSignature);
         }
 
@@ -440,26 +432,8 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         PixHelpers.FormatNoArgsEventToBuffer(buffer, PixHelpers.PixEventType.PIXEvent_SetMarker_NoArgs, 0, debugLabel);
         _commandList6.Get()->SetMarker(PixHelpers.WinPIXEventPIX3BlobVersion, buffer, (uint)bufferSize);
     }
-    public void SetPipelineLayout(D3D12PipelineLayout newPipelineLayout)
-    {
-        if (_currentPipelineLayout == newPipelineLayout)
-            return;
 
-        _currentPipelineLayout = newPipelineLayout;
-        //_currentPipelineLayout.AddRef();
-    }
-
-    public void SetBindGroup(int groupIndex, BindGroup bindGroup)
-    {
-        if (_boundBindGroups[groupIndex] != bindGroup)
-        {
-            _bindGroupsDirty = true;
-            _boundBindGroups[groupIndex] = (D3D12BindGroup)bindGroup;
-            _numBoundBindGroups = Math.Max(groupIndex + 1, _numBoundBindGroups);
-        }
-    }
-
-    public void SetConstantBuffer(uint slot, GPUBuffer buffer, ulong offset)
+    public void SetConstantBuffer(bool graphics, uint slot, GPUBuffer buffer, ulong offset)
     {
         if (_bindingTable.ConstantBuffer[slot] != buffer || _bindingTable.ConstantBufferOffset[slot] != offset)
         {
@@ -469,10 +443,20 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
             if (slot < DynamicContantBufferCount)
             {
                 D3D12Buffer backendBuffer = buffer.ToD3D12();
-                _commandList6.Get()->SetGraphicsRootConstantBufferView(
-                    _bindlessManager.DynamicConstantBufferStartIndex + slot,
-                    backendBuffer.GpuAddress + offset
-                    );
+                if (graphics)
+                {
+                    _commandList6.Get()->SetGraphicsRootConstantBufferView(
+                        _bindlessManager.DynamicConstantBufferStartIndex + slot,
+                        backendBuffer.GpuAddress + offset
+                        );
+                }
+                else
+                {
+                    _commandList6.Get()->SetComputeRootConstantBufferView(
+                        _bindlessManager.DynamicConstantBufferStartIndex + slot,
+                        backendBuffer.GpuAddress + offset
+                        );
+                }
             }
             else
             {
@@ -507,60 +491,6 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
     {
         _renderPassEncoder.Begin(in descriptor);
         return _renderPassEncoder;
-    }
-
-    public void FlushBindGroups(bool graphics)
-    {
-        // Until we handle fully bindless
-        if (_currentPipelineLayout is null)
-        {
-            _bindGroupsDirty = false;
-            return;
-        }
-
-        Debug.Assert(_currentPipelineLayout != null);
-
-        if (!_bindGroupsDirty)
-            return;
-
-        for (int groupIndex = 0; groupIndex < _currentPipelineLayout.BindGroupLayoutCount; groupIndex++)
-        {
-            Debug.Assert(_boundBindGroups[groupIndex] != null);
-
-            D3D12BindGroup bindGroup = _boundBindGroups[groupIndex];
-
-            if (_currentPipelineLayout.DescriptorTableValidCbvUavSrv(groupIndex))
-            {
-                uint rootParameterIndex = _currentPipelineLayout.GetCbvUavSrvRootParameterIndex(groupIndex);
-                D3D12_GPU_DESCRIPTOR_HANDLE gpuHadle = _queue.D3DDevice.ShaderResourceViewHeap.GetGpuHandle(bindGroup.DescriptorTableCbvUavSrv);
-
-                if (graphics)
-                {
-                    _commandList6.Get()->SetGraphicsRootDescriptorTable(rootParameterIndex, gpuHadle);
-                }
-                else
-                {
-                    _commandList6.Get()->SetComputeRootDescriptorTable(rootParameterIndex, gpuHadle);
-                }
-            }
-
-            if (_currentPipelineLayout.DescriptorTableValidSamplers(groupIndex))
-            {
-                uint rootParameterIndex = _currentPipelineLayout.GetSamplerRootParameterIndex(groupIndex);
-                D3D12_GPU_DESCRIPTOR_HANDLE gpuHadle = _queue.D3DDevice.SamplerHeap.GetGpuHandle(bindGroup.DescriptorTableSamplers);
-
-                if (graphics)
-                {
-                    _commandList6.Get()->SetGraphicsRootDescriptorTable(rootParameterIndex, gpuHadle);
-                }
-                else
-                {
-                    _commandList6.Get()->SetComputeRootDescriptorTable(rootParameterIndex, gpuHadle);
-                }
-            }
-        }
-
-        _bindGroupsDirty = false;
     }
 
     protected override void BeginQueryCore(QueryHeap queryHeap, uint index)

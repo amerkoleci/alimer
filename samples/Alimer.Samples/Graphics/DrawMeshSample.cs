@@ -49,7 +49,7 @@ public sealed unsafe class DrawMeshSample : GraphicsSampleBase
             new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
         };
 
-        RenderPipelineDescriptor renderPipelineDesc = new(default, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
             Label = "RenderPipeline",
             VertexShader = vertexShader,

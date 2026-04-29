@@ -110,9 +110,7 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
 
             // TODO: Handle BlendState, RasterizerState, DepthStencilState, PrimitiveTopology, etc.
 
-            RenderPipelineDescriptor renderPipelineDesc = new(default,
-                geometryLayout,
-                [System.ColorFormat], System.DepthStencilFormat)
+            RenderPipelineDescriptor renderPipelineDesc = new(geometryLayout, [System.ColorFormat], System.DepthStencilFormat)
             {
                 Label = "RenderPipeline",
                 VertexShader = vertexShader,

@@ -16,17 +16,9 @@ public abstract class ComputeTests : GraphicsDeviceTestBase
     [Test]
     public void ComputeTest1()
     {
-        BindGroupLayoutDescriptor bindGroupLayoutDescription = new();
-        using BindGroupLayout bindGroupLayout = Device.CreateBindGroupLayout(bindGroupLayoutDescription);
-        Assert.That(() => bindGroupLayout, Is.Not.Null);
-
-        PipelineLayoutDescriptor pipelineLayoutDescription = new([bindGroupLayout]);
-        using PipelineLayout pipelineLayout = Device.CreatePipelineLayout(pipelineLayoutDescription);
-        Assert.That(() => pipelineLayout, Is.Not.Null);
-
         using ShaderModule computeShader = TestUtilities.CompileShader(Device, "ComputeTexture.hlsl", ShaderStages.Compute, "computeMain");
 
-        ComputePipelineDescriptor descriptor = new(computeShader, pipelineLayout);
+        ComputePipelineDescriptor descriptor = new(computeShader);
         using ComputePipeline pipeline = Device.CreateComputePipeline(descriptor);
         Assert.That(() => pipeline, Is.Not.Null);
     }

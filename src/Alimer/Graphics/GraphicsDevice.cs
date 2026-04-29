@@ -329,26 +329,6 @@ public abstract unsafe class GraphicsDevice : GraphicsBaseObject
         return CreateSamplerCore(descriptor);
     }
 
-    public BindGroupLayout CreateBindGroupLayout(in BindGroupLayoutDescriptor descriptor)
-    {
-        return CreateBindGroupLayoutCore(in descriptor);
-    }
-
-    public BindGroupLayout CreateBindGroupLayout(string label, params Span<BindGroupLayoutEntry> entries)
-    {
-        return CreateBindGroupLayoutCore(new BindGroupLayoutDescriptor(entries, label));
-    }
-
-    public PipelineLayout CreatePipelineLayout(in PipelineLayoutDescriptor description)
-    {
-        return CreatePipelineLayoutCore(in description);
-    }
-
-    public PipelineLayout CreatePipelineLayout(params Span<BindGroupLayout> bindGroupLayouts)
-    {
-        return CreatePipelineLayout(new PipelineLayoutDescriptor(bindGroupLayouts));
-    }
-
     public ShaderModule CreateShaderModule(in ShaderModuleDescriptor descriptor)
     {
         ArgumentException.ThrowIfFalse(descriptor.Stage != ShaderStages.None, nameof(ShaderModuleDescriptor.Stage));
@@ -423,8 +403,6 @@ public abstract unsafe class GraphicsDevice : GraphicsBaseObject
     protected abstract GPUBuffer CreateBufferCore(in GPUBufferDescriptor descriptor, void* initialData);
     protected abstract Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData);
     protected abstract Sampler CreateSamplerCore(in SamplerDescriptor descriptor);
-    protected abstract BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor descriptor);
-    protected abstract PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescriptor descriptor);
     protected abstract ShaderModule CreateShaderModuleCore(in ShaderModuleDescriptor descriptor);
     protected abstract RenderPipeline CreateRenderPipelineCore(in RenderPipelineDescriptor descriptor);
     protected abstract ComputePipeline CreateComputePipelineCore(in ComputePipelineDescriptor descriptor);

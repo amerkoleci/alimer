@@ -32,8 +32,6 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
 
     protected readonly DescriptorBindingTable _bindingTable = new();
     private DescriptorBindingDirtyFlags _bindingDirtyFlags;
-    private int _numBoundBindGroups;
-    private readonly VkDescriptorSet[] _descriptorSets = new VkDescriptorSet[8];
     private readonly VulkanRenderPassEncoder _renderPassEncoder;
     private readonly VulkanComputePassEncoder _computePassEncoder;
 
@@ -116,8 +114,6 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         Array.Clear(_bufferBarriers, 0, _bufferBarriers.Length);
         Array.Clear(_imageBarriers, 0, _imageBarriers.Length);
         _bindingDirtyFlags = DescriptorBindingDirtyFlags.All;
-        _numBoundBindGroups = 0;
-        Array.Clear(_descriptorSets, 0, _descriptorSets.Length);
 
         _deviceApi.vkResetCommandPool(_commandPools[frameIndex], 0).CheckResult();
         _commandBuffer = _commandBuffers[frameIndex];
@@ -346,17 +342,6 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
             _memoryBarrierCount = 0;
             _bufferBarrierCount = 0;
             _imageBarrierCount = 0;
-        }
-    }
-
-    public void SetBindGroup(int groupIndex, BindGroup bindGroup)
-    {
-        VulkanBindGroup backendBindGroup = (VulkanBindGroup)bindGroup;
-        if (_descriptorSets[groupIndex] != backendBindGroup.Handle)
-        {
-            _bindingDirtyFlags = DescriptorBindingDirtyFlags.All;
-            _descriptorSets[groupIndex] = backendBindGroup.Handle;
-            _numBoundBindGroups = Math.Max(groupIndex + 1, _numBoundBindGroups);
         }
     }
 

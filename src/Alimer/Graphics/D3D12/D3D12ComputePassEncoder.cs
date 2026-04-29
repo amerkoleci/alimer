@@ -66,18 +66,9 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
             return;
 
         D3D12ComputePipeline backendPipeline = (D3D12ComputePipeline)pipeline;
-        _commandBuffer.SetPipelineLayout(backendPipeline.D3DLayout);
 
         _commandBuffer.CommandList->SetPipelineState(backendPipeline.Handle);
-        _commandBuffer.CommandList->SetComputeRootSignature(backendPipeline.RootSignature);
-
         _currentPipeline = backendPipeline;
-    }
-
-    /// <inheritdoc/>
-    protected override void SetBindGroupCore(int groupIndex, BindGroup bindGroup)
-    {
-        _commandBuffer.SetBindGroup(groupIndex, bindGroup);
     }
 
     /// <inheritdoc/>
@@ -139,6 +130,5 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
 
     private void PrepareDispatch()
     {
-        _commandBuffer.FlushBindGroups(graphics: false);
     }
 }

@@ -34,7 +34,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
             new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
         };
 
-        RenderPipelineDescriptor renderPipelineDesc = new(default, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
             VertexShader = vertexShader,
             FragmentShader = fragmentShader,

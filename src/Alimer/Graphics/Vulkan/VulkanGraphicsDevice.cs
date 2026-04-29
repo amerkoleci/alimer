@@ -1697,18 +1697,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor description)
-    {
-        return new VulkanBindGroupLayout(this, description);
-    }
-
-    /// <inheritdoc />
-    protected override PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescriptor description)
-    {
-        return new VulkanPipelineLayout(this, description);
-    }
-
-    /// <inheritdoc />
     protected override ShaderModule CreateShaderModuleCore(in ShaderModuleDescriptor descriptor)
     {
         return new VulkanShaderModule(this, descriptor);
@@ -1791,82 +1779,5 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
 
         _deferredDestroySemaphores.Enqueue(Tuple.Create(@object, _frameCount));
-    }
-
-    public (VkDescriptorType DescriptorType, uint RegisterOffet) GetVkDescriptorType(BindGroupLayoutEntry entry)
-    {
-        bool readOnlyStorage = false;
-        VkDescriptorType vkDescriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-        switch (entry.BindingType)
-        {
-            case BindingInfoType.Buffer:
-                switch (entry.Buffer.Type)
-                {
-                    case BufferBindingType.Constant:
-                        vkDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-                        break;
-
-                    case BufferBindingType.ShaderRead:
-                    case BufferBindingType.ShaderReadWrite:
-                        // UniformTexelBuffer, StorageTexelBuffer ?
-                        readOnlyStorage = (entry.Buffer.Type == BufferBindingType.ShaderRead);
-                        vkDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-                        break;
-                }
-                break;
-
-            case BindingInfoType.Sampler:
-                vkDescriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-                break;
-
-            case BindingInfoType.Texture:
-                vkDescriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                break;
-
-            case BindingInfoType.StorageTexture:
-                vkDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-                break;
-
-            case BindingInfoType.AccelerationStructure:
-                vkDescriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-                break;
-
-            default:
-                throw new InvalidOperationException($"Invalid BindingType: {entry.BindingType}");
-        }
-
-        uint registerOffset = GetRegisterOffset(vkDescriptorType, readOnlyStorage);
-
-        return (vkDescriptorType, registerOffset);
-    }
-
-    public uint GetRegisterOffset(VkDescriptorType type, bool readOnlyStorage = false)
-    {
-        // This needs to map with ShaderCompiler
-        switch (type)
-        {
-            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-                return VulkanRegisterShift.ContantBuffer;
-
-            case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-            case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-                return VulkanRegisterShift.SRV;
-
-            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-            case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-                return readOnlyStorage ? VulkanRegisterShift.SRV : VulkanRegisterShift.UAV;
-
-            case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
-                return VulkanRegisterShift.SRV;
-
-            case VK_DESCRIPTOR_TYPE_SAMPLER:
-                return VulkanRegisterShift.Sampler;
-
-            default:
-                throw new InvalidOperationException();
-        }
     }
 }

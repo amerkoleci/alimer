@@ -26,12 +26,11 @@ internal unsafe class D3D12ComputePipeline : ComputePipeline
         : base(descriptor.Label)
     {
         _device = device;
-        D3DLayout = (D3D12PipelineLayout)descriptor.Layout;
         D3D12ShaderModule computeShader = (D3D12ShaderModule)descriptor.ComputeShader;
 
         ComputePipelineStateStream stream = new()
         {
-            pRootSignature = D3DLayout.Handle,
+            pRootSignature = device.BindlessManager.UniversalRootSignature,
             CS = new(computeShader.ByteCode),
             NodeMask = 0
         };
@@ -53,12 +52,7 @@ internal unsafe class D3D12ComputePipeline : ComputePipeline
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
-    /// <inheritdoc />
-    public override PipelineLayout Layout => D3DLayout;
-
     public ID3D12PipelineState* Handle => _handle;
-    public D3D12PipelineLayout D3DLayout { get; }
-    public ID3D12RootSignature* RootSignature => D3DLayout.Handle;
 
     /// <inheitdoc />
     protected internal override void Destroy()

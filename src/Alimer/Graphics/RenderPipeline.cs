@@ -9,9 +9,4 @@ public abstract class RenderPipeline : GraphicsObject
         : base(label)
     {
     }
-
-    /// <summary>
-    /// Get the <see cref="PipelineLayout"/>.
-    /// </summary>
-    public abstract PipelineLayout Layout { get; }
 }

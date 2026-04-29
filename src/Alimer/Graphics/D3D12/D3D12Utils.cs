@@ -466,61 +466,6 @@ internal static unsafe class D3D12Utils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static D3D12_DESCRIPTOR_RANGE_TYPE ToD3D12RangeType(this BindGroupLayoutEntry entry)
-    {
-        D3D12_DESCRIPTOR_RANGE_TYPE descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-
-        switch (entry.BindingType)
-        {
-            case BindingInfoType.Buffer:
-                switch (entry.Buffer.Type)
-                {
-                    case BufferBindingType.Constant:
-                        descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-                        break;
-                    case BufferBindingType.ShaderRead:
-                        descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-                        break;
-                    case BufferBindingType.ShaderReadWrite:
-                        descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-                        break;
-                    case BufferBindingType.Undefined:
-                        throw new InvalidOperationException($"{nameof(BufferBindingType.Undefined)} not allowed");
-                }
-                break;
-
-
-            case BindingInfoType.Sampler:
-                descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-                break;
-
-            case BindingInfoType.Texture:
-                descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-                break;
-
-            case BindingInfoType.StorageTexture:
-                switch (entry.StorageTexture.Access)
-                {
-                    case StorageTextureAccess.WriteOnly:
-                    case StorageTextureAccess.ReadWrite:
-                        descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-                        break;
-                    case StorageTextureAccess.ReadOnly:
-                        descriptorRangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-                        break;
-                    case StorageTextureAccess.Undefined:
-                        throw new InvalidOperationException($"{nameof(StorageTextureAccess.Undefined)} not allowed");
-                }
-                break;
-
-            default:
-                break;
-        }
-
-        return descriptorRangeType;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static D3D12_SHADER_COMPONENT_MAPPING ToD3D12(this TextureSwizzle value)
     {
         return value switch

@@ -723,18 +723,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override BindGroupLayout CreateBindGroupLayoutCore(in BindGroupLayoutDescriptor description)
-    {
-        return new D3D12BindGroupLayout(this, description);
-    }
-
-    /// <inheritdoc />
-    protected override PipelineLayout CreatePipelineLayoutCore(in PipelineLayoutDescriptor description)
-    {
-        return new D3D12PipelineLayout(this, description);
-    }
-
-    /// <inheritdoc />
     protected override ShaderModule CreateShaderModuleCore(in ShaderModuleDescriptor descriptor)
     {
         return new D3D12ShaderModule(this, descriptor);

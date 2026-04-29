@@ -275,29 +275,15 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         D3D12RenderPipeline backendPipeline = (D3D12RenderPipeline)pipeline;
 
         _commandBuffer.CommandList->SetPipelineState(backendPipeline.Handle);
-
-        // Legacy: Until we move fully bindless
-        if (backendPipeline.D3DLayout is not null)
-        {
-            _commandBuffer.SetPipelineLayout(backendPipeline.D3DLayout);
-            _commandBuffer.CommandList->SetGraphicsRootSignature(backendPipeline.RootSignature);
-        }
-
         _commandBuffer.CommandList->IASetPrimitiveTopology(backendPipeline.D3DPrimitiveTopology);
 
         _currentPipeline = backendPipeline;
     }
 
     /// <inheritdoc/>
-    protected override void SetBindGroupCore(int groupIndex, BindGroup bindGroup)
-    {
-        _commandBuffer.SetBindGroup(groupIndex, bindGroup);
-    }
-
-    /// <inheritdoc/>
     protected override void SetConstantBufferCore(uint slot, GPUBuffer buffer, ulong offset)
     {
-        _commandBuffer.SetConstantBuffer(slot, buffer, offset);
+        _commandBuffer.SetConstantBuffer(true, slot, buffer, offset);
     }
 
     /// <inheritdoc/>
@@ -511,8 +497,6 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
                 _commandBuffer.CommandList->IASetVertexBuffers(0, _currentPipeline.NumVertexBindings, pViews);
             }
         }
-
-        _commandBuffer.FlushBindGroups(graphics: true);
     }
 
     private static D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS EndingAccessResolveSubresourceParameters(D3D12TextureView resolveDestination)

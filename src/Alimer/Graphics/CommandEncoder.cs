@@ -32,14 +32,6 @@ public abstract unsafe class CommandEncoder
         return new ScopedDebugGroup(this);
     }
 
-    public void SetBindGroup(int groupIndex, BindGroup bindGroup)
-    {
-        ArgumentOutOfRangeException.ThrowIfLessThan(groupIndex, 0, nameof(groupIndex));
-        ArgumentNullException.ThrowIfNull(bindGroup, nameof(bindGroup));
-
-        SetBindGroupCore(groupIndex, bindGroup);
-    }
-
     public void SetConstantBuffer(uint slot, GPUBuffer buffer, ulong offset = 0)
     {
         ValidateConstantBuffer(buffer);
@@ -141,7 +133,6 @@ public abstract unsafe class CommandEncoder
         return allocation;
     }
 
-    protected abstract void SetBindGroupCore(int groupIndex, BindGroup bindGroup);
     protected abstract void SetConstantBufferCore(uint slot, GPUBuffer buffer, ulong offset/*, ulong size = WholeSize*/);
     protected abstract void SetPushConstantsCore(void* data, uint size, uint offset);
 

@@ -37,7 +37,7 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
             new VertexBufferLayout(VertexPositionColor.SizeInBytes, VertexPositionColor.VertexAttributes)
         };
 
-        RenderPipelineDescriptor renderPipelineDesc = new(default, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
             VertexShader = vertexShader,
             FragmentShader = fragmentShader,

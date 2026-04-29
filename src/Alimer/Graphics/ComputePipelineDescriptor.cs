@@ -11,7 +11,6 @@ namespace Alimer.Graphics;
 public ref struct ComputePipelineDescriptor
 {
     public required ShaderModule ComputeShader;
-    public PipelineLayout Layout;
 
     /// <summary>
     /// Gets or sets the label of <see cref="ComputePipeline"/>.
@@ -19,12 +18,10 @@ public ref struct ComputePipelineDescriptor
     public string? Label;
 
     [SetsRequiredMembers]
-    public ComputePipelineDescriptor(ShaderModule computeShader, PipelineLayout layout)
+    public ComputePipelineDescriptor(ShaderModule computeShader)
     {
         ArgumentException.ThrowIfFalse(computeShader.Stage == ShaderStages.Compute, nameof(computeShader.Stage));
-        ArgumentNullException.ThrowIfNull(layout, nameof(layout));
 
         ComputeShader = computeShader;
-        Layout = layout;
     }
 }

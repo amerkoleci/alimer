@@ -52,7 +52,7 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
             new VertexBufferLayout(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
         };
 
-        RenderPipelineDescriptor renderPipelineDesc = new(default, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
             Label = "RenderPipeline",
             VertexShader = vertexShader,

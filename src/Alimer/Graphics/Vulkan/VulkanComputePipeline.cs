@@ -17,7 +17,6 @@ internal unsafe class VulkanComputePipeline : ComputePipeline
         : base(descriptor.Label)
     {
         _device = device;
-        VkLayout = (VulkanPipelineLayout)descriptor.Layout;
 
         fixed (byte* entryPoint = descriptor.ComputeShader.EntryPoint.GetUtf8Span())
         {
@@ -31,7 +30,7 @@ internal unsafe class VulkanComputePipeline : ComputePipeline
             VkComputePipelineCreateInfo createInfo = new()
             {
                 stage = stage,
-                layout = VkLayout.Handle,
+                layout = _device.BindlessManager.PipelineLayout.Handle,
                 basePipelineHandle = VkPipeline.Null,
                 basePipelineIndex = 0
             };
@@ -63,11 +62,7 @@ internal unsafe class VulkanComputePipeline : ComputePipeline
     /// <inheritdoc />
     public override GraphicsDevice Device => _device;
 
-    /// <inheritdoc />
-    public override PipelineLayout Layout => VkLayout;
-
     public VkPipeline Handle => _handle;
-    public VulkanPipelineLayout VkLayout { get; }
 
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)

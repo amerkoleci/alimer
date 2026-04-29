@@ -15,7 +15,6 @@ public ref struct RenderPipelineDescriptor
     /// </summary>
     public string? Label;
 
-    public PipelineLayout? Layout;
     public ShaderModule? VertexShader;
     public ShaderModule? FragmentShader;
 
@@ -43,20 +42,17 @@ public ref struct RenderPipelineDescriptor
     public TextureSampleCount SampleCount = TextureSampleCount.Count1;
 
     public RenderPipelineDescriptor(
-        PipelineLayout? layout,
         Span<PixelFormat> colorFormats,
         PixelFormat depthStencilFormat = PixelFormat.Undefined)
-        : this(layout, [], colorFormats, depthStencilFormat)
+        : this([], colorFormats, depthStencilFormat)
     {
     }
 
     public RenderPipelineDescriptor(
-        PipelineLayout? layout,
         Span<VertexBufferLayout> vertexBufferLayouts,
         Span<PixelFormat> colorFormats,
         PixelFormat depthStencilFormat = PixelFormat.Undefined)
     {
-        Layout = layout;
         VertexBufferLayouts = vertexBufferLayouts;
 
         BlendState = BlendState.Opaque;
