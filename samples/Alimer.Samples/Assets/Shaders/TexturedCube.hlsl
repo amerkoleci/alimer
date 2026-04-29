@@ -54,7 +54,7 @@ struct VertexOutput {
 
 struct DrawData
 {
-    float4x4 worldMatrix;
+    float4x4 worldViewProjectionMatrix;
 };
 
 ConstantBuffer<DrawData> draw : register(b0);
@@ -69,7 +69,7 @@ ALIMER_PUSH_CONSTANTS(PushConstants);
 VertexOutput vertexMain(in VertexInput input)
 {
     VertexOutput output;
-    output.Position = mul(float4(input.Position, 1.0f), draw.worldMatrix);
+    output.Position = mul(float4(input.Position, 1.0f), draw.worldViewProjectionMatrix);
     output.Normal = input.Normal;
     output.TexCoord = input.TexCoord;
 #if defined(VERTEX_COLOR)

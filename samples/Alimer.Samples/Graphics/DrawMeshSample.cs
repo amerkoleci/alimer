@@ -11,21 +11,10 @@ using Alimer.Rendering;
 namespace Alimer.Samples;
 
 [Description("Graphics - Draw Mesh")]
-public unsafe sealed class DrawMeshSample : GraphicsSampleBase
+public sealed unsafe class DrawMeshSample : GraphicsSampleBase
 {
-    private readonly uint _indexCount;
     private readonly Mesh _mesh;
-    private readonly GPUBuffer _constantBuffer;
     private readonly Texture _texture;
-    private readonly Sampler _sampler;
-
-    private readonly BindGroupLayout _bindGroupLayout;
-    private readonly BindGroup _bindGroup;
-
-    private readonly BindGroupLayout _materialBindGroupLayout;
-    private readonly BindGroup _materialBindGroup;
-
-    private readonly PipelineLayout _pipelineLayout;
     private readonly RenderPipeline _renderPipeline;
 
     private Stopwatch _clock;
@@ -51,30 +40,6 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
 
         _mesh = ToDispose(meshAsset.Mesh);
 
-        _constantBuffer = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), GPUBufferUsage.Constant, MemoryType.Upload));
-
-        _sampler = ToDispose(GraphicsDevice.CreateSampler(new SamplerDescriptor()));
-
-        _bindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
-            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.Vertex)
-            ));
-
-        _bindGroup = ToDispose(_bindGroupLayout.CreateBindGroup(new BindGroupEntry(0, _constantBuffer)));
-
-        // Material
-        _materialBindGroupLayout = ToDispose(GraphicsDevice.CreateBindGroupLayout(
-            new BindGroupLayoutEntry(new TextureBindingLayout(), 0, ShaderStages.Fragment),
-            new BindGroupLayoutEntry(new SamplerBindingLayout(), 0, ShaderStages.Fragment) //new BindGroupLayoutEntry(SamplerDescription.PointClamp, 0, ShaderStage.Fragment)
-            ));
-        _materialBindGroup = ToDispose(_materialBindGroupLayout.CreateBindGroup(
-            new BindGroupEntry(0, _texture.DefaultView!),
-            new BindGroupEntry(0, _sampler))
-            );
-
-        //PushConstantRange pushConstantRange = new(0, sizeof(Matrix4x4));
-        //PipelineLayoutDescription pipelineLayoutDescription = new(new[] { _bindGroupLayout }, new[] { pushConstantRange }, "PipelineLayout");
-        _pipelineLayout = ToDispose(GraphicsDevice.CreatePipelineLayout(_bindGroupLayout, _materialBindGroupLayout));
-
         using ShaderModule vertexShader = CompileShaderModule("TexturedCube", ShaderStages.Vertex, "vertexMain");
         using ShaderModule fragmentShader = CompileShaderModule("TexturedCube", ShaderStages.Fragment, "fragmentMain");
 
@@ -84,7 +49,7 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
             new(VertexPositionNormalTexture.SizeInBytes, VertexPositionNormalTexture.VertexAttributes)
         };
 
-        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout, vertexBufferLayout, ColorFormats, DepthStencilFormat)
+        RenderPipelineDescriptor renderPipelineDesc = new(default, vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
             Label = "RenderPipeline",
             VertexShader = vertexShader,
@@ -104,7 +69,6 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
         Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView((float)Math.PI / 4, AspectRatio, 0.1f, 100);
         Matrix4x4 viewProjection = Matrix4x4.Multiply(view, projection);
         Matrix4x4 worldViewProjection = Matrix4x4.Multiply(world, viewProjection);
-        _constantBuffer.SetData(worldViewProjection);
 
         RenderPassColorAttachment colorAttachment = new(swapChainTexture.DefaultView!, new Color(0.3f, 0.3f, 0.3f));
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
@@ -115,11 +79,19 @@ public unsafe sealed class DrawMeshSample : GraphicsSampleBase
 
         RenderPassEncoder renderPassEncoder = context.BeginRenderPass(backBufferRenderPass);
         renderPassEncoder.SetPipeline(_renderPipeline!);
-        renderPassEncoder.SetBindGroup(0, _bindGroup);
-        renderPassEncoder.SetBindGroup(1, _materialBindGroup);
-        //context.SetPushConstants(0, worldViewProjection);
+        renderPassEncoder.SetDynamicConstantBuffer(0, worldViewProjection);
+
+        PushConstants pushConstants = new()
+        {
+            textureIndex = _texture.DefaultView!.BindlessReadIndex
+        };
+        renderPassEncoder.SetPushConstants(pushConstants);
 
         _mesh.Draw(renderPassEncoder, 1u);
         renderPassEncoder.EndEncoding();
+    }
+    struct PushConstants
+    {
+        public int textureIndex;
     }
 }

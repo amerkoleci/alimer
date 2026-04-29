@@ -480,6 +480,23 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         }
     }
 
+
+    public void SetPushConstants(bool graphics, void* data, uint size, uint offset)
+    {
+        uint rootParameterIndex = _bindlessManager.PushConstantsIndex;
+        uint num32BitValuesToSet = size / sizeof(uint);
+        uint destOffsetIn32BitValues = offset / sizeof(uint);
+
+        if (graphics)
+        {
+            _commandList6.Get()->SetGraphicsRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
+        }
+        else
+        {
+            _commandList6.Get()->SetComputeRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
+        }
+    }
+
     protected override ComputePassEncoder BeginComputePassCore(in ComputePassDescriptor descriptor)
     {
         _computePassEncoder.Begin(in descriptor);

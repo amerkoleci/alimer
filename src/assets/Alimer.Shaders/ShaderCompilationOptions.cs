@@ -52,7 +52,7 @@ public struct ShaderCompilationOptions
     /// <summary>
     /// SPIRV: register shift for constant (b#) resources
     /// </summary>
-    public uint ShiftSpaceCount { get; set; } = 4;
+    public uint ShiftSpaceCount { get; set; } = 1;
 
     /// <summary>
     /// SPIRV: register shift for constant (b#) resources

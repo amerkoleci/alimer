@@ -78,14 +78,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         _renderBatch = ToDispose(new RenderBatch(Device));
 
-        // TODO: Implement ring buffer
-
-        // Per frame (set 3)
-        FrameBindGroupLayout = ToDispose(Device.CreateBindGroupLayout(
-            "Frame BindGroupLayout",
-            new BindGroupLayoutEntry(new BufferBindingLayout(BufferBindingType.Constant), 0, ShaderStages.All)
-            ));
-
         // TODO: Configure environment texture/sampler in frame bind group
         string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         EnvironmentMap = ToDispose(Texture.FromFile(Device, Path.Combine(texturesPath, "zavelstein_ibl.ktx")));
@@ -125,8 +117,6 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     public Texture DefaultEnvironmentTexture { get; }
     public Texture CheckerTexture { get; }
     public Sampler DefaultSampler { get; }
-
-    public BindGroupLayout FrameBindGroupLayout { get; } 
     public SkyboxRenderer SkyboxRenderer { get; }
     public ShaderSystem ShaderSystem { get; }
 

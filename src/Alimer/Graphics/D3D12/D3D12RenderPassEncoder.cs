@@ -303,13 +303,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
     /// <inheritdoc/>
     protected override void SetPushConstantsCore(void* data, uint size, uint offset)
     {
-        Debug.Assert(_currentPipeline != null);
-
-        uint rootParameterIndex = _currentPipeline.D3DLayout.PushConstantsIndex;
-        uint num32BitValuesToSet = size / sizeof(uint);
-        uint destOffsetIn32BitValues = offset / sizeof(uint);
-
-        _commandBuffer.CommandList->SetGraphicsRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
+        _commandBuffer.SetPushConstants(true, data, size, offset);
     }
 
 

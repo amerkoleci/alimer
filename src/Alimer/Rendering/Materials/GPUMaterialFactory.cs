@@ -20,17 +20,15 @@ public class GPURenderPipeline
 {
     private static int s_nextPipelineId = 1;
 
-    public GPURenderPipeline(RenderPipeline pipeline, PipelineLayout pipelineLayout, RenderOrder renderOrder)
+    public GPURenderPipeline(RenderPipeline pipeline, RenderOrder renderOrder)
     {
         Id = s_nextPipelineId++;
         Pipeline = pipeline;
-        PipelineLayout = pipelineLayout;
         RenderOrder = renderOrder;
     }
 
     public int Id { get; }
     public RenderPipeline Pipeline { get; }
-    public PipelineLayout PipelineLayout { get; }
     public RenderOrder RenderOrder { get; }
 }
 
@@ -102,8 +100,6 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
 
     public abstract ShaderModule CreateFragmentShaderModule(Span<VertexBufferLayout> geometryLayout, Material material);
 
-    protected abstract PipelineLayout CreatePipelineLayout(bool skinned);
-
     public GPURenderPipeline GetPipeline(Span<VertexBufferLayout> geometryLayout, Material material, bool skinned)
     {
         int hashCode = GetPipelineKey(geometryLayout, material, skinned);
@@ -111,11 +107,10 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
         {
             ShaderModule vertexShader = CreateVertexShaderModule(geometryLayout, material, skinned);
             ShaderModule fragmentShader = CreateFragmentShaderModule(geometryLayout, material);
-            PipelineLayout pipelineLayout = ToDispose(CreatePipelineLayout(skinned));
 
             // TODO: Handle BlendState, RasterizerState, DepthStencilState, PrimitiveTopology, etc.
 
-            RenderPipelineDescriptor renderPipelineDesc = new(pipelineLayout,
+            RenderPipelineDescriptor renderPipelineDesc = new(default,
                 geometryLayout,
                 [System.ColorFormat], System.DepthStencilFormat)
             {
@@ -125,7 +120,7 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMate
             };
             RenderPipeline renderPipeline = ToDispose(System.Device.CreateRenderPipeline(in renderPipelineDesc));
 
-            pipeline = new(renderPipeline, pipelineLayout, material.Transparent ? RenderOrder.Transparent : RenderOrder);
+            pipeline = new(renderPipeline, material.Transparent ? RenderOrder.Transparent : RenderOrder);
             _renderPipelines[hashCode] = pipeline;
         }
 

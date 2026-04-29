@@ -81,15 +81,6 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
         return _bindlessShaderReadIndex;
     }
 
-
-    protected override PipelineLayout CreatePipelineLayout(bool skinned)
-    {
-        Span<BindGroupLayout> bindGroupLayouts = [System.FrameBindGroupLayout];
-
-        PipelineLayoutDescriptor descriptor = new(bindGroupLayouts);
-        return System.Device.CreatePipelineLayout(in descriptor);
-    }
-
     public override ShaderModule CreateFragmentShaderModule(Span<VertexBufferLayout> geometryLayout, Material material)
     {
         if (material is not PhysicallyBasedMaterial pbrMaterial)

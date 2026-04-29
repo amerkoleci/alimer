@@ -334,11 +334,6 @@ public abstract unsafe class GraphicsDevice : GraphicsBaseObject
         return CreateBindGroupLayoutCore(in descriptor);
     }
 
-    public BindGroupLayout CreateBindGroupLayout(params Span<BindGroupLayoutEntry> entries)
-    {
-        return CreateBindGroupLayoutCore(new BindGroupLayoutDescriptor(entries));
-    }
-
     public BindGroupLayout CreateBindGroupLayout(string label, params Span<BindGroupLayoutEntry> entries)
     {
         return CreateBindGroupLayoutCore(new BindGroupLayoutDescriptor(entries, label));

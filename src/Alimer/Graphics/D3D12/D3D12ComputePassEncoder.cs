@@ -86,13 +86,7 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
     /// <inheritdoc/>
     protected override void SetPushConstantsCore(void* data, uint size, uint offset)
     {
-        Debug.Assert(_currentPipeline != null);
-
-        uint rootParameterIndex = _currentPipeline.D3DLayout.PushConstantsIndex;
-        uint num32BitValuesToSet = size / sizeof(uint);
-        uint destOffsetIn32BitValues = offset / sizeof(uint);
-
-        _commandBuffer.CommandList->SetComputeRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
+        _commandBuffer.SetPushConstants(false, data, size, offset);
     }
 
     /// <inheritdoc/>

@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using Vortice.Vulkan;
 using static Alimer.Graphics.Constants;
 using static Vortice.Vulkan.Vulkan;
@@ -85,16 +86,20 @@ internal unsafe class VulkanBindlessManager : IDisposable
                 SamplerDescriptor.ComparisonDepth
             ];
 
+            Span<VkSampler> vkStaticSamplers = stackalloc VkSampler[StaticSamplerCount];
             for (int i = 0; i < StaticSamplerCount; ++i)
             {
-                VkSampler sampler = device.GetOrCreateVulkanSampler(staticSamplers[i]);
+                vkStaticSamplers[i] = device.GetOrCreateVulkanSampler(staticSamplers[i]);
+            }
 
+            for (int i = 0; i < StaticSamplerCount; ++i)
+            {
                 ref VkDescriptorSetLayoutBinding binding = ref layoutBindings[bindingIndex++];
                 binding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-                binding.binding = VulkanRegisterShift.Sampler + StaticSamplerRegisterSpaceBegin + (uint)i;
+                binding.binding = VulkanRegisterShift.Sampler + StaticSamplerRegisterSpaceBegin + (uint)i - 1;
                 binding.descriptorCount = 1;
                 binding.stageFlags = VK_SHADER_STAGE_ALL;
-                binding.pImmutableSamplers = &sampler;
+                binding.pImmutableSamplers = (VkSampler*)Unsafe.AsPointer(ref vkStaticSamplers[i]);
             }
 
             // Flags for bindings, excluded static samplers
@@ -129,16 +134,16 @@ internal unsafe class VulkanBindlessManager : IDisposable
             }
             device.SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, _bindingsSetLayout, "Bindings DescriptorSetLayout");
 
-            // Setup descriptor sets
+            // Setup descriptor sets (TODO: Reduce descriptor pool only with what we can bind)
             VkDescriptorSet descriptorSet = VkDescriptorSet.Null;
             result = device.AllocateDescriptorSet(_bindingsSetLayout, &descriptorSet);
             // If we have run out of pool memory and rely on internalPools, create a new internal pool and retry
             if (result == VK_ERROR_OUT_OF_POOL_MEMORY
                 || result == VK_ERROR_FRAGMENTED_POOL)
             {
-                //_device.AllocateDescriptorPool();
-                //result = _device.AllocateDescriptorSet(_layout.Handle, &descriptorSet, maxVariableArrayLength);
-                //result.CheckResult();
+                device.AllocateDescriptorPool();
+                result = device.AllocateDescriptorSet(_bindingsSetLayout, &descriptorSet);
+                result.CheckResult();
             }
             device.SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET, descriptorSet, "Bindings DescriptorSet");
 

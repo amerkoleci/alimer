@@ -107,7 +107,7 @@ public abstract class GraphicsSampleBase : SampleBase
                     shadersPath
                 },
             PackMatrixRowMajor = true,
-            ShiftSpaceCount = 4,
+            ShiftSpaceCount = 1,
             SpirvBShift = VulkanRegisterShift.ContantBuffer,
             SpirvTShift = VulkanRegisterShift.SRV,
             SpirvUShift = VulkanRegisterShift.UAV,
