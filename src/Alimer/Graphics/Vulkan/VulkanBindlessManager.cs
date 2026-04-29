@@ -37,11 +37,13 @@ internal unsafe class VulkanBindlessManager : IDisposable
         uint setLayoutCount = 0;
         VkDescriptorSetLayout* pSetLayouts = stackalloc VkDescriptorSetLayout[(int)DescriptorSet.Count];
         VkResult result = VK_SUCCESS;
+#if VK_MUTABLE_DESCRIPTOR
         if (MutableDescriptorType)
         {
             _descriptorSets = [];
         }
-        else
+        else 
+#endif
         {
             // Bindless samplers
             VkPhysicalDeviceVulkan12Properties properties12 = device.VkAdapter.Properties12;
@@ -185,7 +187,7 @@ internal unsafe class VulkanBindlessManager : IDisposable
 
 
     public VulkanGraphicsDevice Device { get; }
-    public bool MutableDescriptorType { get; }
+    //public bool MutableDescriptorType { get; }
     public VkDescriptorSetLayout BindingsSetLayout => _bindingsSetLayout;
     public VkDescriptorSet BindingsDescriptorSet => _descriptorSets[(int)DescriptorSet.Bindings];
     public VkPipelineLayout PipelineLayout { get; }

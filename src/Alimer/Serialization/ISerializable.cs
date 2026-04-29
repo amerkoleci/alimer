@@ -3,8 +3,11 @@
 
 namespace Alimer.Serialization;
 
+/// <summary>
+/// Base interface that supports serialization and deserialization using <see cref="Serializer"/> and <see cref="Deserializer"/>.
+/// </summary>
 public interface ISerializable
 {
-    void Serialize(ObjectSerializer serializer);
+    void Serialize(Serializer serializer);
     void Deserialize(ObjectDeserializer deserializer);
 }

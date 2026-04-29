@@ -28,6 +28,7 @@ public sealed class SampleBrowserGame : Game
     {
         base.Initialize();
 
+#if TODO_SERIALIZATION
         {
             var testEntity = new Entity("Test Entity");
             CameraComponent camera = testEntity.AddComponent<CameraComponent>();
@@ -37,8 +38,8 @@ public sealed class SampleBrowserGame : Game
             using MemoryStream memoryStream = new();
             using (var serializer = Serializer.CreateJson(memoryStream, true, new JsonWriterOptions() { Indented = true }))
             {
-                using ObjectSerializer objectSerializer = serializer.BeginObject();
-                testEntity.Serialize(objectSerializer);
+                //testEntity.Serialize(serializer);
+                using IDisposable _ = serializer.BeginArray();
             }
             var json = Encoding.UTF8.GetString(memoryStream.ToArray());
 
@@ -49,7 +50,8 @@ public sealed class SampleBrowserGame : Game
                 var testLoadEntity = new Entity();
                 testLoadEntity.Deserialize(objectDeserializer);
             }
-        }
+        } 
+#endif
 
         // Setup shader system (until we have a proper asset pipeline)
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
@@ -62,8 +64,8 @@ public sealed class SampleBrowserGame : Game
         //_runningSample = new HelloWindowSample(Services, MainWindow);
         //_runningSample = new DrawTriangleSample(Services, MainWindow);
         //_runningSample = new DrawIndexedQuadSample(Services, MainWindow);
-        _runningSample = new DrawCubeSample(Services, MainWindow);
-        //_runningSample = new DrawTexturedCubeSample(Services, MainWindow);
+        //_runningSample = new DrawCubeSample(Services, MainWindow);
+        _runningSample = new DrawTexturedCubeSample(Services, MainWindow);
         // _runningSample = new DrawTexturedFromFileCubeSample(Services, MainWindow);
         //_runningSample = new DrawMeshSample(Services, MainWindow);
 

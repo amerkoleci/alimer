@@ -10,33 +10,34 @@ partial class Entity
 {
     internal const int Version = 1;
 
-    public void Serialize(ObjectSerializer serializer)
+    public void Serialize(Serializer serializer)
     {
         if (Flags.HasFlag(EntityFlags.NotSaved))
             return;
 
+        using IDisposable _ = serializer.BeginArray();
         serializer.WriteVersion(Version);
         serializer.Write(Keys.Id, Id);
-        serializer.Write(Keys.Name, Name);
-
-        serializer.Write("Enum", LightType.Point);
-
-        serializer.Write(Keys.Position, Transform.Position);
-        serializer.Write(Keys.Rotation, Transform.Rotation);
-        serializer.Write(Keys.Scale, Transform.Scale);
-
-        if (Components.Count > 0)
-        {
-            using ObjectSerializer componentsArraySerializer = serializer.BeginArray(Keys.Components);
-            foreach (Component component in Components)
-            {
-                if (component is TransformComponent)
-                    continue;
-
-                using ObjectSerializer componentSerializer = componentsArraySerializer.BeginObject();
-                component.Serialize(componentSerializer);
-            }
-        }
+        //serializer.Write(Keys.Name, Name);
+        //
+        //serializer.Write("Enum", LightType.Point);
+        //
+        //serializer.Write(Keys.Position, Transform.Position);
+        //serializer.Write(Keys.Rotation, Transform.Rotation);
+        //serializer.Write(Keys.Scale, Transform.Scale);
+        //
+        //if (Components.Count > 0)
+        //{
+        //    using ObjectSerializer componentsArraySerializer = serializer.BeginArray(Keys.Components);
+        //    foreach (Component component in Components)
+        //    {
+        //        if (component is TransformComponent)
+        //            continue;
+        //
+        //        using ObjectSerializer componentSerializer = componentsArraySerializer.BeginObject();
+        //        component.Serialize(componentSerializer);
+        //    }
+        //}
     }
 
     public void Deserialize(ObjectDeserializer deserializer)

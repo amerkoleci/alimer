@@ -85,6 +85,52 @@ public static partial class MathUtilities
     public static bool IsOne(float a) => IsZero(a - 1.0f);
 
     /// <summary>
+    /// Performs smooth (cubic Hermite) interpolation between 0 and 1.
+    /// </summary>
+    /// <remarks>
+    /// See https://en.wikipedia.org/wiki/Smoothstep
+    /// </remarks>
+    /// <param name="amount">Value between 0 and 1 indicating interpolation amount.</param>
+    public static float SmoothStep(float amount)
+    {
+        return (amount <= 0) ? 0 : (amount >= 1) ? 1 : amount * amount * (3 - (2 * amount));
+    }
+
+    /// <summary>
+    /// Converts a float value from linear to sRGB (gamma) space.
+    /// </summary>
+    /// <param name="linearValue">The linear value to convert.</param>
+    /// <returns>The encoded sRGB value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float LinearToSRgb(float linearValue)
+    {
+        if (linearValue <= 0.0f)
+            return 0.0f;
+        else if (linearValue <= 0.0031308f)
+            return 12.92f * linearValue;
+        else if (linearValue < 1.0f)
+            return 1.055f * MathF.Pow(linearValue, 0.4166667f) - 0.055f;
+        else
+            return MathF.Pow(linearValue, 0.45454545f);
+    }
+
+    /// <summary>
+    /// Convert a float value from sRGB ( gamma) to linear.
+    /// </summary>
+    /// <param name="sRgbValue">The sRGB value to convert.</param>
+    /// <returns>The decoded linear value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float SRgbToLinear(float sRgbValue)
+    {
+        if (sRgbValue <= 0.04045f)
+            return sRgbValue / 12.92f;
+        else if (sRgbValue < 1.0f)
+            return MathF.Pow((sRgbValue + 0.055f) / 1.055f, 2.4f);
+        else
+            return MathF.Pow(sRgbValue, 2.2f);
+    }
+
+    /// <summary>
     /// Calculates the greatest common divisor (GCD) of two unsigned integers using Euclidean algorithm.
     /// </summary>
     public static uint GreatestCommonDivisor(uint a, uint b)

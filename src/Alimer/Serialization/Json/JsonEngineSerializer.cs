@@ -70,15 +70,55 @@ internal partial class JsonEngineSerializer : Serializer, IDisposable
     }
 
     /// <inheritdoc />
-    public override ObjectSerializer BeginObject()
+    public override void Write(string propertyName, int value)
     {
-        return new JsonObjectSerializer(_writer, false);
+        //_writer.WriteNumber(propertyName, value);
+        _writer.WriteNumberValue(value);
     }
 
     /// <inheritdoc />
-    public override ObjectSerializer BeginArray()
+    public override void Write(string propertyName, Guid value)
     {
-        return new JsonObjectSerializer(_writer, true);
+        //_writer.WriteString(propertyName, value.ToString());
+        _writer.WriteStringValue(value.ToString());
+    }
+
+    /// <inheritdoc />
+    public override IDisposable BeginObject()
+    {
+        return new ScopedWriteObject(_writer);
+    }
+
+    /// <inheritdoc />
+    public override IDisposable BeginArray()
+    {
+        return new ScopedWriteArray(_writer);
+    }
+
+    readonly struct ScopedWriteObject : IDisposable
+    {
+        private readonly Utf8JsonWriter _writer;
+
+        public ScopedWriteObject(Utf8JsonWriter writer)
+        {
+            _writer = writer;
+            _writer.WriteStartObject();
+        }
+
+        public void Dispose() => _writer.WriteEndObject();
+    }
+
+    readonly struct ScopedWriteArray : IDisposable
+    {
+        private readonly Utf8JsonWriter _writer;
+
+        public ScopedWriteArray(Utf8JsonWriter writer)
+        {
+            _writer = writer;
+            _writer.WriteStartArray();
+        }
+
+        public void Dispose() => _writer.WriteEndArray();
     }
 }
 

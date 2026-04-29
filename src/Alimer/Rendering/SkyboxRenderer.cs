@@ -9,7 +9,6 @@ public sealed class SkyboxRenderer : IDisposable
 {
     private readonly GPUBuffer _vertexBuffer;
     private readonly GPUBuffer _indexBuffer;
-    private readonly PipelineLayout _pipelineLayout;
     private readonly RenderPipeline _renderPipeline;
 
     public SkyboxRenderer(RenderSystem renderSystem)
@@ -42,15 +41,10 @@ public sealed class SkyboxRenderer : IDisposable
         _vertexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_VERTS, GPUBufferUsage.Vertex);
         _indexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_INDICES, GPUBufferUsage.Index);
 
-        Span <BindGroupLayout> bindGroupLayouts = [renderSystem.FrameBindGroupLayout];
-
-        PipelineLayoutDescriptor descriptor = new(bindGroupLayouts);
-        _pipelineLayout = renderSystem.Device.CreatePipelineLayout(in descriptor);
-
         VertexBufferLayout gpuLayout = new(12, [new VertexAttribute(VertexAttributeSemantic.Position, VertexAttributeFormat.Float32x3)]);
         Span<VertexBufferLayout> geometryLayout = [gpuLayout];
 
-        RenderPipelineDescriptor renderPipelineDesc = new(_pipelineLayout,
+        RenderPipelineDescriptor renderPipelineDesc = new(default,
             geometryLayout,
             [RenderSystem.ColorFormat], RenderSystem.DepthStencilFormat)
         {
@@ -66,7 +60,6 @@ public sealed class SkyboxRenderer : IDisposable
 
     public void Dispose()
     {
-        _pipelineLayout.Dispose();
         _renderPipeline.Dispose();
         _vertexBuffer.Dispose();
         _indexBuffer.Dispose();

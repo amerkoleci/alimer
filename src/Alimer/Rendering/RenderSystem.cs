@@ -402,7 +402,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
     private Texture CreateTextureFromColor(in Color color)
     {
-        ReadOnlySpan<uint> pixels = [color.ToRgba()];
+        ReadOnlySpan<ColorRgba> pixels = [color.ToRgba()];
         return ToDispose(Device.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 1, 1));
     }
 

@@ -53,7 +53,7 @@ static const BindlessResource<StructuredBuffer<GPUMaterialPBR> > bindlessGPUMate
 static const BindlessResource<StructuredBuffer<GPULight> > bindlessGPULight;
 #else
 #endif
-#endif
+#endif  /*#ifdef _SHADER_DEFINITIONS_H_ */
 
 struct PushConstants
 {
@@ -64,7 +64,9 @@ struct PushConstants
 };
 ALIMER_PUSH_CONSTANTS(PushConstants);
 
+#ifdef _SHADER_DEFINITIONS_H_
 // Frame data
 ConstantBuffer<GPUFrameData> frame : register(b0);
+#endif /*#ifdef _SHADER_DEFINITIONS_H_ */
 
 #endif // _ALIMER_SHADER_BINDLESS__

@@ -2,8 +2,8 @@
   <!-- Package versions for package references across all projects -->
   <PropertyGroup>
     <ImGuiVersion>2.2.10-prerelease</ImGuiVersion>
-    <SkiaSharpVersion>3.119.2</SkiaSharpVersion>
-    <AvaloniaVersion>12.0.1</AvaloniaVersion>
+    <SkiaSharpVersion>4.147.0-preview.1.1</SkiaSharpVersion>
+    <AvaloniaVersion>12.0.2</AvaloniaVersion>
     <CodeAnalysisVersion>5.0.0</CodeAnalysisVersion>
   </PropertyGroup>
   <ItemGroup>

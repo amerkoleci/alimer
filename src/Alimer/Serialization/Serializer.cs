@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Alimer.Serialization.Json;
@@ -80,6 +81,11 @@ public abstract partial class Serializer : IDisposable
 
     public abstract void Dispose();
 
-    public abstract ObjectSerializer BeginObject();
-    public abstract ObjectSerializer BeginArray();
+    public abstract void Write(string propertyName, int value);
+    public abstract void Write(string propertyName, Guid value);
+
+    public void WriteVersion(int value) => Write(VersionKey, value);
+
+    public abstract IDisposable BeginObject();
+    public abstract IDisposable BeginArray();
 }

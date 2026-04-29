@@ -729,13 +729,13 @@ public partial class Gltf2
 
     public static int GetCountOfAccessorType(Gltf2.AccessorType type) => type switch
     {
-        Gltf2.AccessorType.Scalar => 1,
-        Gltf2.AccessorType.Vec2 => 2,
-        Gltf2.AccessorType.Vec3 => 3,
-        Gltf2.AccessorType.Vec4 => 4,
-        Gltf2.AccessorType.Mat2 => 4,
-        Gltf2.AccessorType.Mat3 => 9,
-        Gltf2.AccessorType.Mat4 => 16,
+        AccessorType.Scalar => 1,
+        AccessorType.Vec2 => 2,
+        AccessorType.Vec3 => 3,
+        AccessorType.Vec4 => 4,
+        AccessorType.Mat2 => 4,
+        AccessorType.Mat3 => 9,
+        AccessorType.Mat4 => 16,
         _ => throw new NotSupportedException("This type is not supported.")
     };
 

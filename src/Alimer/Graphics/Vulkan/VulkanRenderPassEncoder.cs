@@ -76,7 +76,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
                 imageLayout = VkImageLayout.ColorAttachmentOptimal,
                 loadOp = attachment.LoadAction.ToVk(),
                 storeOp = attachment.StoreAction.ToVk(),
-                clearValue = new VkClearValue(attachment.ClearColor.Red, attachment.ClearColor.Green, attachment.ClearColor.Blue, attachment.ClearColor.Alpha)
+                clearValue = new VkClearValue(attachment.ClearColor.R, attachment.ClearColor.G, attachment.ClearColor.B, attachment.ClearColor.A)
             };
 
             if (attachment.ResolveView is not null)

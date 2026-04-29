@@ -153,7 +153,7 @@ public readonly partial struct ColorRgba
     }
 
     /// <summary>
-    /// Performs an implicit conversion from <see cref="Color"/> to <see cref="Color4"/>.
+    /// Performs an implicit conversion from <see cref="ColorRgba"/> to <see cref="Color"/>.
     /// </summary>
     /// <param name="value">The value.</param>
     /// <returns>The result of the conversion.</returns>
@@ -178,7 +178,7 @@ public readonly partial struct ColorRgba
     /// </summary>
     /// <param name="value">The value.</param>
     /// <returns>The result of the conversion.</returns>
-    public static explicit operator ColorRgba(in Color value) => new(value.Red, value.Green, value.Blue, value.Alpha);
+    public static explicit operator ColorRgba(in Color value) => new(value.R, value.G, value.B, value.A);
 
     /// <summary>
     /// Performs an explicit conversion from <see cref="Color"/> to <see cref="uint"/>.

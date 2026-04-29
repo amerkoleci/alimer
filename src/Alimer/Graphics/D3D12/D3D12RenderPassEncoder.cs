@@ -85,10 +85,10 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
 
                 case LoadAction.Clear:
                     RTVs[slot].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[0] = attachment.ClearColor.Red;
-                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[1] = attachment.ClearColor.Green;
-                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[2] = attachment.ClearColor.Blue;
-                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[3] = attachment.ClearColor.Alpha;
+                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[0] = attachment.ClearColor.R;
+                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[1] = attachment.ClearColor.G;
+                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[2] = attachment.ClearColor.B;
+                    RTVs[slot].BeginningAccess.Clear.ClearValue.Color[3] = attachment.ClearColor.A;
                     break;
                 case LoadAction.Discard:
                     RTVs[slot].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;

@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Serialization;
-//using static Alimer.Utilities.VectorUtilities;f
+using static Alimer.Numerics.MathUtilities;
 
 namespace Alimer.Numerics;
 
@@ -82,7 +82,7 @@ public readonly partial struct Color
     /// <param name="red">The value of the red component.</param>
     /// <param name="green">The value of the green component.</param>
     /// <param name="blue">The value of the blue component.</param>
-    public Color(int red, int green, int blue, float alpha)
+    public Color(int red, int green, int blue, int alpha)
     {
         _value = Vector128.Create(red / 255.0f, green / 255.0f, blue / 255.0f, alpha / 255.0f);
     }
@@ -154,7 +154,7 @@ public readonly partial struct Color
     /// <summary>
     /// Gets the value of the red component.
     /// </summary>
-    public float Red
+    public float R
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _value.ToScalar();
@@ -163,7 +163,7 @@ public readonly partial struct Color
     /// <summary>
     /// Gets the value of the green component.
     /// </summary>
-    public float Green
+    public float G
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _value.GetElement(1);
@@ -172,7 +172,7 @@ public readonly partial struct Color
     /// <summary>
     /// Gets the value of the blue component.
     /// </summary>
-    public float Blue
+    public float B
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _value.GetElement(2);
@@ -181,7 +181,7 @@ public readonly partial struct Color
     /// <summary>
     /// Gets the value of the alpha component.
     /// </summary>
-    public float Alpha
+    public float A
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _value.GetElement(3);
@@ -190,21 +190,36 @@ public readonly partial struct Color
     /// <summary>
     /// Return sum of RGB components.
     /// </summary>
-    public readonly float SumRGB => Red + Green + Blue;
+    public readonly float SumRGB => R + G + B;
 
     /// <summary>
     /// Return average value of the RGB channels.
     /// </summary>
-    public readonly float Average => (Red + Green + Blue) / 3.0f;
+    public readonly float Average => (R + G + B) / 3.0f;
 
     /// <summary>
     /// Return the 'grayscale' representation of RGB values, as used by JPEG and PAL/NTSC among others.
     /// </summary>
-    public readonly float Luma => Red * 0.299f + Green * 0.587f + Blue * 0.114f;
+    public readonly float Luma => R * 0.299f + G * 0.587f + B * 0.114f;
 
-    /// <summary>Creates a new <see cref="Color" /> instance with <see cref="Red" /> set to the specified value.</summary>
+    /// <summary>
+    /// Deconstructs the vector's components into named variables.
+    /// </summary>
+    /// <param name="r">The R component</param>
+    /// <param name="g">The G component</param>
+    /// <param name="b">The B component</param>
+    /// <param name="a">The A component</param>
+    public readonly void Deconstruct(out float r, out float g, out float b, out float a)
+    {
+        r = R;
+        g = G;
+        b = B;
+        a = A;
+    }
+
+    /// <summary>Creates a new <see cref="Color" /> instance with <see cref="R" /> set to the specified value.</summary>
     /// <param name="red">The new value of the red component.</param>
-    /// <returns>A new <see cref="Color" /> instance with <see cref="Red" /> set to <paramref name="red" />.</returns>
+    /// <returns>A new <see cref="Color" /> instance with <see cref="R" /> set to <paramref name="red" />.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Color WithRed(float red)
     {
@@ -212,13 +227,33 @@ public readonly partial struct Color
         return new Color(result);
     }
 
-    /// <summary>Creates a new <see cref="Color" /> instance with <see cref="Green" /> set to the specified value.</summary>
+    /// <summary>Creates a new <see cref="Color" /> instance with <see cref="G" /> set to the specified value.</summary>
     /// <param name="green">The new value of the green component.</param>
-    /// <returns>A new <see cref="Color" /> instance with <see cref="Green" /> set to <paramref name="green" />.</returns>
+    /// <returns>A new <see cref="Color" /> instance with <see cref="G" /> set to <paramref name="green" />.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Color WithGreen(float green)
     {
         Vector128<float> result = _value.WithElement(0, green);
+        return new Color(result);
+    }
+
+    /// <summary>Creates a new <see cref="Color" /> instance with <see cref="B" /> set to the specified value.</summary>
+    /// <param name="blue">The new value of the blue component.</param>
+    /// <returns>A new <see cref="Color" /> instance with <see cref="B" /> set to <paramref name="blue" />.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Color WithBlue(float blue)
+    {
+        Vector128<float> result = _value.WithElement(0, blue);
+        return new Color(result);
+    }
+
+    /// <summary>Creates a new <see cref="Color" /> instance with <see cref="A" /> set to the specified value.</summary>
+    /// <param name="alpha">The new value of the alpha component.</param>
+    /// <returns>A new <see cref="Color" /> instance with <see cref="A" /> set to <paramref name="alpha" />.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public Color WithAlpha(float alpha)
+    {
+        Vector128<float> result = _value.WithElement(0, alpha);
         return new Color(result);
     }
 
@@ -228,10 +263,10 @@ public readonly partial struct Color
     /// <returns>A packed integer containing all four color components.</returns>
     public int ToBgra()
     {
-        uint a = (uint)(Alpha * 255.0f) & 255;
-        uint r = (uint)(Red * 255.0f) & 255;
-        uint g = (uint)(Green * 255.0f) & 255;
-        uint b = (uint)(Blue * 255.0f) & 255;
+        uint a = (uint)(A * 255.0f) & 255;
+        uint r = (uint)(R * 255.0f) & 255;
+        uint g = (uint)(G * 255.0f) & 255;
+        uint b = (uint)(B * 255.0f) & 255;
 
         uint value = b;
         value |= g << 8;
@@ -247,66 +282,228 @@ public readonly partial struct Color
     /// <returns>A packed integer containing all four color components.</returns>
     public void ToBgra(out byte r, out byte g, out byte b, out byte a)
     {
-        b = (byte)(Blue * 255.0f);
-        g = (byte)(Green * 255.0f);
-        r = (byte)(Red * 255.0f);
-        a = (byte)(Alpha * 255.0f);
+        b = (byte)(B * 255.0f);
+        g = (byte)(G * 255.0f);
+        r = (byte)(R * 255.0f);
+        a = (byte)(A * 255.0f);
+    }
+
+    public readonly Vector128<float> AsVector128() => _value;
+
+    public readonly Vector3 ToVector3() => new(R, G, B);
+    public readonly Vector4 ToVector4() => new(R, G, B, A);
+    public readonly ColorRgba ToRgba() => new(R, G, B, A);
+
+    /// <summary>
+    /// Converts this color from linear space to sRGB space.
+    /// </summary>
+    /// <returns>A color3 in sRGB space.</returns>
+    public readonly Color ToSRgb()
+    {
+        return new(LinearToSRgb(R), LinearToSRgb(G), LinearToSRgb(B), A);
     }
 
     /// <summary>
-    /// Converts the color into a packed integer.
+    /// Converts this color from sRGB space to linear space.
     /// </summary>
-    /// <returns>A packed integer containing all four color components.</returns>
-    public uint ToRgba()
+    /// <returns>A color4 in linear space.</returns>
+    public readonly Color ToLinear()
     {
-        uint r = (uint)(Red * 255.0f) & 255;
-        uint g = (uint)(Green * 255.0f) & 255;
-        uint b = (uint)(Blue * 255.0f) & 255;
-        uint a = (uint)(Alpha * 255.0f) & 255;
-
-        uint value = r;
-        value |= g << 8;
-        value |= b << 16;
-        value |= a << 24;
-
-        return value;
+        return new(SRgbToLinear(R), SRgbToLinear(G), SRgbToLinear(B), A);
     }
 
     /// <summary>
-    /// Converts the color into a packed integer.
+    /// Adds two colors.
     /// </summary>
-    /// <returns>A packed integer containing all four color components.</returns>
-    public void ToRgba(out byte r, out byte g, out byte b, out byte a)
+    /// <param name="left">The first color to add.</param>
+    /// <param name="right">The second color to add.</param>
+    /// <returns>The sum of the two colors.</returns>
+    public static Color Add(Color left, Color right)
     {
-        r = (byte)(Red * 255.0f);
-        g = (byte)(Green * 255.0f);
-        b = (byte)(Blue * 255.0f);
-        a = (byte)(Alpha * 255.0f);
+        return new(left._value + right._value);
     }
 
-    public readonly Vector3 ToVector3() => new(Red, Green, Blue);
-
-    public readonly Vector4 ToVector4() => new(Red, Green, Blue, Alpha);
-
-    /// <summary>Creates a new <see cref="Color" /> instance with <see cref="Blue" /> set to the specified value.</summary>
-    /// <param name="blue">The new value of the blue component.</param>
-    /// <returns>A new <see cref="Color" /> instance with <see cref="Blue" /> set to <paramref name="blue" />.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Color WithBlue(float blue)
+    /// <summary>
+    /// Subtracts two colors.
+    /// </summary>
+    /// <param name="left">The first color to subtract.</param>
+    /// <param name="right">The second color to subtract</param>
+    /// <returns>The difference of the two colors.</returns>
+    public static Color Subtract(Color left, Color right)
     {
-        Vector128<float> result = _value.WithElement(0, blue);
-        return new Color(result);
+        return new(left._value - right._value);
     }
 
-    /// <summary>Creates a new <see cref="Color" /> instance with <see cref="Alpha" /> set to the specified value.</summary>
-    /// <param name="alpha">The new value of the alpha component.</param>
-    /// <returns>A new <see cref="Color" /> instance with <see cref="Alpha" /> set to <paramref name="alpha" />.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Color WithAlpha(float alpha)
+    /// <summary>
+    /// Modulates two colors.
+    /// </summary>
+    /// <param name="left">The first color to modulate.</param>
+    /// <param name="right">The second color to modulate.</param>
+    /// <returns>The modulated color.</returns>
+    public static Color Modulate(Color left, Color right)
     {
-        Vector128<float> result = _value.WithElement(0, alpha);
-        return new Color(result);
+        return new(left._value * right._value);
     }
+
+    /// <summary>
+    /// Scales a color.
+    /// </summary>
+    /// <param name="value">The color to scale.</param>
+    /// <param name="scale">The amount by which to scale.</param>
+    /// <returns>The scaled color.</returns>
+    public static Color Scale(Color value, float scale)
+    {
+        return new(value._value * scale);
+    }
+
+    /// <summary>
+    /// Negates a color.
+    /// </summary>
+    /// <param name="value">The color to negate.</param>
+    /// <returns>The negated color.</returns>
+    public static Color Negate(Color value) => new(Vector128.Negate(value._value));
+
+    /// <summary>
+    /// Restricts a value to be within a specified range.
+    /// </summary>
+    /// <param name="value">The value to clamp.</param>
+    /// <param name="min">The minimum value.</param>
+    /// <param name="max">The maximum value.</param>
+    /// <returns>The clamped value.</returns>
+    public static Color Clamp(Color value, Color min, Color max)
+    {
+        return new(Vector128.Clamp(value._value, min._value, max._value));
+    }
+
+    /// <summary>
+    /// Performs a linear interpolation between two colors.
+    /// </summary>
+    /// <param name="start">Start color.</param>
+    /// <param name="end">End color.</param>
+    /// <param name="amount">Value between 0 and 1 indicating the weight of <paramref name="end"/>.</param>
+    /// <returns>The linear interpolation of the two colors.</returns>
+    /// <remarks>
+    /// Passing <paramref name="amount"/> a value of 0 will cause <paramref name="start"/> to be returned; a value of 1 will cause <paramref name="end"/> to be returned. 
+    /// </remarks>
+    public static Color Lerp(Color start, Color end, float amount)
+    {
+        return new(Vector128.Lerp(start._value, end._value, Vector128.Create(amount)));
+    }
+
+    /// <summary>
+    /// Performs a linear interpolation between two colors.
+    /// </summary>
+    /// <param name="start">Start color.</param>
+    /// <param name="end">End color.</param>
+    /// <param name="amount">Value between 0 and 1 indicating the weight of <paramref name="end"/>.</param>
+    /// <returns>The linear interpolation of the two colors.</returns>
+    /// <remarks>
+    /// Passing <paramref name="amount"/> a value of 0 will cause <paramref name="start"/> to be returned; a value of 1 will cause <paramref name="end"/> to be returned. 
+    /// </remarks>
+    public static Color Lerp(Color start, Color end, Color amount)
+    {
+        return new(Vector128.Lerp(start._value, end._value, amount._value));
+    }
+
+    /// <summary>
+    /// Performs a cubic interpolation between two colors.
+    /// </summary>
+    /// <param name="start">Start color.</param>
+    /// <param name="end">End color.</param>
+    /// <param name="amount">Value between 0 and 1 indicating the weight of <paramref name="end"/>.</param>
+    /// <param name="result">When the method completes, contains the cubic interpolation of the two colors.</param>
+    public static Color SmoothStep(Color start, Color end, float amount)
+    {
+        amount = MathUtilities.SmoothStep(amount);
+        return Lerp(start, end, amount);
+    }
+
+    /// <summary>
+    /// Returns a color containing the largest components of the specified colors.
+    /// </summary>
+    /// <param name="left">The first source color.</param>
+    /// <param name="right">The second source color.</param>
+    /// <returns>A color containing the largest components of the source colors.</returns>
+    public static Color Max(Color left, Color right)
+    {
+        return new(Vector128.Max(left._value, right._value));
+    }
+
+    /// <summary>
+    /// Returns a color containing the smallest components of the specified colors.
+    /// </summary>
+    /// <param name="left">The first source color.</param>
+    /// <param name="right">The second source color.</param>
+    /// <returns>A color containing the smallest components of the source colors.</returns>
+    public static Color Min(Color left, Color right)
+    {
+        return new(Vector128.Min(left._value, right._value));
+    }
+
+    /// <summary>
+    /// Premultiplies the color components by the alpha value.
+    /// </summary>
+    /// <param name="value">The color to premultiply.</param>
+    /// <returns>A color with premultiplied alpha.</returns>
+    public static Color PremultiplyAlpha(Color value)
+    {
+        return new(value.R * value.A, value.G * value.A, value.B * value.A, value.A);
+    }
+
+    /// <summary>
+    /// Adds two colors.
+    /// </summary>
+    /// <param name="left">The first color to add.</param>
+    /// <param name="right">The second color to add.</param>
+    /// <returns>The sum of the two colors.</returns>
+    public static Color operator +(Color left, Color right) => new(left._value + right._value);
+
+    /// <summary>
+    /// Assert a color (return it unchanged).
+    /// </summary>
+    /// <param name="value">The color to assert (unchanged).</param>
+    /// <returns>The asserted (unchanged) color.</returns>
+    public static Color operator +(Color value) => value;
+
+    /// <summary>
+    /// Subtracts two colors.
+    /// </summary>
+    /// <param name="left">The first color to subtract.</param>
+    /// <param name="right">The second color to subtract.</param>
+    /// <returns>The difference of the two colors.</returns>
+    public static Color operator -(Color left, Color right) => new(left._value - right._value);
+
+    /// <summary>
+    /// Negates a color.
+    /// </summary>
+    /// <param name="value">The color to negate.</param>
+    /// <returns>A negated color.</returns>
+    public static Color operator -(Color value) => new(Vector128.Negate(value._value));
+
+    /// <summary>
+    /// Scales a color.
+    /// </summary>
+    /// <param name="scale">The factor by which to scale the color.</param>
+    /// <param name="value">The color to scale.</param>
+    /// <returns>The scaled color.</returns>
+    public static Color operator *(float scale, Color value) => new(scale * value._value);
+
+    /// <summary>
+    /// Scales a color.
+    /// </summary>
+    /// <param name="value">The factor by which to scale the color.</param>
+    /// <param name="scale">The color to scale.</param>
+    /// <returns>The scaled color.</returns>
+    public static Color operator *(Color value, float scale) => new(value._value * scale);
+
+    /// <summary>
+    /// Modulates two colors.
+    /// </summary>
+    /// <param name="left">The first color to modulate.</param>
+    /// <param name="right">The second color to modulate.</param>
+    /// <returns>The modulated color.</returns>
+    public static Color operator *(Color left, Color right) => new(left._value * right._value);
+
 
     /// <summary>Compares two colors to determine equality.</summary>
     /// <param name="left">The color to compare with <paramref name="right" />.</param>
@@ -329,31 +526,31 @@ public readonly partial struct Color
     public bool Equals(Color other) => this == other;
 
     /// <inheritdoc />
-    public override int GetHashCode() => HashCode.Combine(Red, Green, Blue, Alpha);
+    public override int GetHashCode() => HashCode.Combine(R, G, B, A);
 
     /// <inheritdoc />
     public override string ToString() => ToString(format: null, formatProvider: null);
 
     /// <inheritdoc />
     public string ToString(string? format, IFormatProvider? formatProvider)
-    => $"{nameof(Color)} {{ Red = {Red.ToString(format, formatProvider)}, Green = {Green.ToString(format, formatProvider)}, Blue = {Blue.ToString(format, formatProvider)}, Alpha = {Alpha.ToString(format, formatProvider)} }}";
+    => $"{nameof(Color)} {{ R = {R.ToString(format, formatProvider)}, G = {G.ToString(format, formatProvider)}, B = {B.ToString(format, formatProvider)}, A = {A.ToString(format, formatProvider)} }}";
 
     /// <inheritdoc />
     public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
     {
         int numWritten = 0;
 
-        if (!"Color { Red = ".TryCopyTo(destination))
+        if (!"Color { R = ".TryCopyTo(destination))
         {
             charsWritten = 0;
             return false;
         }
-        int partLength = "Color { Red = ".Length;
+        int partLength = "Color { R = ".Length;
 
         numWritten += partLength;
         destination = destination.Slice(numWritten);
 
-        if (!Red.TryFormat(destination, out partLength, format, provider))
+        if (!R.TryFormat(destination, out partLength, format, provider))
         {
             charsWritten = 0;
             return false;
@@ -362,36 +559,17 @@ public readonly partial struct Color
         numWritten += partLength;
         destination = destination.Slice(partLength);
 
-        if (!", Green = ".TryCopyTo(destination))
+        if (!", G = ".TryCopyTo(destination))
         {
             charsWritten = 0;
             return false;
         }
-        partLength = ", Green = ".Length;
+        partLength = ", G = ".Length;
 
         numWritten += partLength;
         destination = destination.Slice(partLength);
 
-        if (!Green.TryFormat(destination, out partLength, format, provider))
-        {
-            charsWritten = 0;
-            return false;
-        }
-
-        numWritten += partLength;
-        destination = destination.Slice(partLength);
-
-        if (!", Blue = ".TryCopyTo(destination))
-        {
-            charsWritten = 0;
-            return false;
-        }
-        partLength = ", Blue = ".Length;
-
-        numWritten += partLength;
-        destination = destination.Slice(partLength);
-
-        if (!Blue.TryFormat(destination, out partLength, format, provider))
+        if (!G.TryFormat(destination, out partLength, format, provider))
         {
             charsWritten = 0;
             return false;
@@ -400,17 +578,36 @@ public readonly partial struct Color
         numWritten += partLength;
         destination = destination.Slice(partLength);
 
-        if (!", Alpha = ".TryCopyTo(destination))
+        if (!", B = ".TryCopyTo(destination))
         {
             charsWritten = 0;
             return false;
         }
-        partLength = ", Alpha = ".Length;
+        partLength = ", B = ".Length;
 
         numWritten += partLength;
         destination = destination.Slice(partLength);
 
-        if (!Alpha.TryFormat(destination, out partLength, format, provider))
+        if (!B.TryFormat(destination, out partLength, format, provider))
+        {
+            charsWritten = 0;
+            return false;
+        }
+
+        numWritten += partLength;
+        destination = destination.Slice(partLength);
+
+        if (!", A = ".TryCopyTo(destination))
+        {
+            charsWritten = 0;
+            return false;
+        }
+        partLength = ", A = ".Length;
+
+        numWritten += partLength;
+        destination = destination.Slice(partLength);
+
+        if (!A.TryFormat(destination, out partLength, format, provider))
         {
             charsWritten = 0;
             return false;
@@ -435,17 +632,17 @@ public readonly partial struct Color
     {
         int numWritten = 0;
 
-        if (!"Color { Red = "u8.TryCopyTo(utf8Destination))
+        if (!"Color { R = "u8.TryCopyTo(utf8Destination))
         {
             bytesWritten = 0;
             return false;
         }
-        int partLength = "Color { Red = "u8.Length;
+        int partLength = "Color { R = "u8.Length;
 
         numWritten += partLength;
         utf8Destination = utf8Destination.Slice(numWritten);
 
-        if (!Red.TryFormat(utf8Destination, out partLength, format, provider))
+        if (!R.TryFormat(utf8Destination, out partLength, format, provider))
         {
             bytesWritten = 0;
             return false;
@@ -454,36 +651,17 @@ public readonly partial struct Color
         numWritten += partLength;
         utf8Destination = utf8Destination.Slice(partLength);
 
-        if (!", Green = "u8.TryCopyTo(utf8Destination))
+        if (!", G = "u8.TryCopyTo(utf8Destination))
         {
             bytesWritten = 0;
             return false;
         }
-        partLength = ", Green = "u8.Length;
+        partLength = ", G = "u8.Length;
 
         numWritten += partLength;
         utf8Destination = utf8Destination.Slice(partLength);
 
-        if (!Green.TryFormat(utf8Destination, out partLength, format, provider))
-        {
-            bytesWritten = 0;
-            return false;
-        }
-
-        numWritten += partLength;
-        utf8Destination = utf8Destination.Slice(partLength);
-
-        if (!", Blue = "u8.TryCopyTo(utf8Destination))
-        {
-            bytesWritten = 0;
-            return false;
-        }
-        partLength = ", Blue = "u8.Length;
-
-        numWritten += partLength;
-        utf8Destination = utf8Destination.Slice(partLength);
-
-        if (!Blue.TryFormat(utf8Destination, out partLength, format, provider))
+        if (!G.TryFormat(utf8Destination, out partLength, format, provider))
         {
             bytesWritten = 0;
             return false;
@@ -492,17 +670,36 @@ public readonly partial struct Color
         numWritten += partLength;
         utf8Destination = utf8Destination.Slice(partLength);
 
-        if (!", Alpha = "u8.TryCopyTo(utf8Destination))
+        if (!", B = "u8.TryCopyTo(utf8Destination))
         {
             bytesWritten = 0;
             return false;
         }
-        partLength = ", Alpha = "u8.Length;
+        partLength = ", B = "u8.Length;
 
         numWritten += partLength;
         utf8Destination = utf8Destination.Slice(partLength);
 
-        if (!Alpha.TryFormat(utf8Destination, out partLength, format, provider))
+        if (!B.TryFormat(utf8Destination, out partLength, format, provider))
+        {
+            bytesWritten = 0;
+            return false;
+        }
+
+        numWritten += partLength;
+        utf8Destination = utf8Destination.Slice(partLength);
+
+        if (!", A = "u8.TryCopyTo(utf8Destination))
+        {
+            bytesWritten = 0;
+            return false;
+        }
+        partLength = ", A = "u8.Length;
+
+        numWritten += partLength;
+        utf8Destination = utf8Destination.Slice(partLength);
+
+        if (!A.TryFormat(utf8Destination, out partLength, format, provider))
         {
             bytesWritten = 0;
             return false;

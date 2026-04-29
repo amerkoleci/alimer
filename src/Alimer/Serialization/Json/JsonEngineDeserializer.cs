@@ -30,9 +30,10 @@ internal partial class JsonEngineDeserializer : Deserializer
         _buffer = Encoding.UTF8.GetBytes(json);
         Utf8JsonReader reader = new(_buffer, _options);
         _rootElement = JsonElement.ParseValue(ref reader);
-        if (_rootElement.ValueKind != JsonValueKind.Object)
+        if (_rootElement.ValueKind != JsonValueKind.Object
+            && _rootElement.ValueKind != JsonValueKind.Array)
         {
-            throw new JsonException("Expected start of JSON object.");
+            throw new JsonException("Expected start of JSON object or array.");
         }
 
         _currentElement = _rootElement;
