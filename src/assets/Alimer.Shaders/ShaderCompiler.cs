@@ -266,7 +266,7 @@ public sealed unsafe partial class ShaderCompiler
         string? warningAndErrors = default;
         if (errors.Get() is not null && errors.Get()->GetStringLength() != 0)
         {
-            warningAndErrors = new Utf8String(errors.Get()->GetStringPointer(), (int)errors.Get()->GetStringLength()).ToString()!;
+            warningAndErrors = new Utf8String((byte*)errors.Get()->GetStringPointer(), (int)errors.Get()->GetStringLength()).ToString()!;
             //Log.Warn"Warnings and Errors:\n%S\n", pErrors->GetStringPointer());
         }
 

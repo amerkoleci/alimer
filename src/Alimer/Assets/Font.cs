@@ -26,7 +26,7 @@ public sealed class Font : Asset
 
     private Font(nint handle)
     {
-        Debug.Assert(handle != null);
+        Debug.Assert(handle != 0);
 
         _handle = handle;
 

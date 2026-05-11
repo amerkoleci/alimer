@@ -3,7 +3,6 @@
 
 using Alimer.Utilities;
 using Vortice.Vulkan;
-using XenoAtom.Collections;
 using static Vortice.Vulkan.Vulkan;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
@@ -42,8 +41,8 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         VkExtensionProperties* availableInstanceExtensions = stackalloc VkExtensionProperties[(int)extensionCount];
         vkEnumerateInstanceExtensionProperties(null, &extensionCount, availableInstanceExtensions).CheckResult();
 
-        UnsafeList<Utf8String> instanceExtensions = [];
-        UnsafeList<Utf8String> instanceLayers = [];
+        HashSet<Utf8String> instanceExtensions = [];
+        HashSet<Utf8String> instanceLayers = [];
         bool validationFeatures = false;
         bool hasPortability = false;
         for (int i = 0; i < extensionCount; i++)
@@ -122,7 +121,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         if (options.ValidationMode != GraphicsValidationMode.Disabled)
         {
             // Determine the optimal validation layers to enable that are necessary for useful debugging
-            UnsafeList<Utf8String> validationLayers =
+            HashSet<Utf8String> validationLayers =
             [
                 VK_LAYER_KHRONOS_VALIDATION_EXTENSION_NAME
             ];
@@ -322,7 +321,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         }
     }
 
-    private static bool ValidateLayers(UnsafeList<Utf8String> required, Span<VkLayerProperties> availableLayers)
+    private static bool ValidateLayers(HashSet<Utf8String> required, Span<VkLayerProperties> availableLayers)
     {
         foreach (Utf8String layer in required)
         {

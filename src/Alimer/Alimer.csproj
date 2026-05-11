@@ -60,7 +60,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="XenoAtom.Collections" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="SkiaSharp.HarfBuzz" />
 

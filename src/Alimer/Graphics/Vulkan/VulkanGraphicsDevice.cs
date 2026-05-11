@@ -4,7 +4,6 @@
 using Alimer.Utilities;
 using SkiaSharp;
 using Vortice.Vulkan;
-using XenoAtom.Collections;
 using static Alimer.Graphics.Vulkan.Vma;
 using static Alimer.Graphics.Vulkan.VmaMemoryUsage;
 using static Alimer.Graphics.Vulkan.VmaAllocatorCreateFlags;
@@ -237,7 +236,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
 
         // Setup extensions and features
-        UnsafeList<Utf8String> enabledDeviceExtensions = [];
+        HashSet<Utf8String> enabledDeviceExtensions = [];
         enabledDeviceExtensions.Add(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
         VkPhysicalDeviceFeatures2 features2 = _adapter.Features2;
