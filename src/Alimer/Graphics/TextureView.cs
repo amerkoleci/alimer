@@ -62,8 +62,8 @@ public abstract class TextureView : IGraphicsBindableResource
         }
     }
 
-    public uint Width => Texture.GetWidth(BaseMipLevel);
-    public uint Height => Texture.GetHeight(BaseMipLevel);
+    public uint Width => Texture.GetLevelWidth(BaseMipLevel);
+    public uint Height => Texture.GetLevelHeight(BaseMipLevel);
 
     protected virtual void OnLabelChanged(string? newLabel)
     {

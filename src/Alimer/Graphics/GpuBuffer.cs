@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Alimer.Graphics;
 
@@ -39,7 +40,12 @@ public abstract unsafe class GPUBuffer : GraphicsObject, IGraphicsBindableResour
     public abstract GPUAddress GpuAddress { get; }
 
     internal BufferStates CurrentState { get; set; }
-    internal abstract void* GetMappedData();
+
+    /// <summary>
+    /// Get buffer mapped data.
+    /// </summary>
+    /// <returns></returns>
+    public abstract void* GetMappedData();
 
     public GPUBufferView CreateView(in GPUBufferViewDescriptor descriptor)
     {
@@ -89,6 +95,14 @@ public abstract unsafe class GPUBuffer : GraphicsObject, IGraphicsBindableResour
     }
 
     protected abstract GPUBufferView CreateViewCore(in GPUBufferViewDescriptor descriptor);
-    protected abstract void SetDataUnsafe(void* sourcePtr, uint offsetInBytes, uint sizeInBytes);
-    protected abstract void GetDataUnsafe(void* destinationPtr, uint offsetInBytes, uint sizeInBytes);
+
+    protected void SetDataUnsafe(void* sourcePtr, uint offsetInBytes, uint sizeInBytes)
+    {
+        NativeMemory.Copy(sourcePtr, (byte*)GetMappedData() + offsetInBytes, sizeInBytes);
+    }
+
+    protected void GetDataUnsafe(void* destinationPtr, uint offsetInBytes, uint sizeInBytes)
+    {
+        NativeMemory.Copy((byte*)GetMappedData() + offsetInBytes, destinationPtr, sizeInBytes);
+    }
 }

@@ -4,6 +4,12 @@
 #ifndef _SHADER_DEFINITIONS_H_
 #define _SHADER_DEFINITIONS_H_
 
+#ifdef __cplusplus
+using bool32 = uint32_t;
+#else
+#define bool32 bool
+#endif
+
 struct DispatchIndirectCommand
 {
     uint x;
@@ -101,6 +107,13 @@ struct GPUMaterialPBR
     int normalUVSet;
     int metallicRoughnessUVSet;
     int emissiveUVSet;
+};
+
+struct GPUSpriteBatchData
+{
+    float2 TextureSize;
+    float2 ViewportSize;
+    bool32 LinearSampling;
 };
 
 #ifdef __cplusplus

@@ -268,6 +268,13 @@ public static partial class MathUtilities
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsNegativeOrNonFinite(float value)
+    {
+        uint bits = BitConverter.SingleToUInt32Bits(value);
+        return bits >= 0x7F80_0000;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNegativeOrNonFinite(double value)
     {
         ulong bits = BitConverter.DoubleToUInt64Bits(value);

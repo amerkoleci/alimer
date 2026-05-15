@@ -19,7 +19,7 @@ internal unsafe class D3D12Buffer : GPUBuffer
 {
     private readonly ComPtr<ID3D12Resource> _handle;
     private readonly ComPtr<D3D12MA_Allocation> _allocation;
-    public readonly void* pMappedData;
+    private readonly void* _pMappedData;
 
     public D3D12Buffer(D3D12GraphicsDevice device, in GPUBufferDescriptor descriptor, void* initialData)
         : base(descriptor)
@@ -125,14 +125,14 @@ internal unsafe class D3D12Buffer : GPUBuffer
         {
             void* mappedData;
             ThrowIfFailed(_handle.Get()->Map(0, null, &mappedData));
-            pMappedData = mappedData;
+            _pMappedData = mappedData;
         }
         else if (descriptor.MemoryType == MemoryType.Upload)
         {
             D3D12_RANGE readRange = default;
             void* mappedData;
             ThrowIfFailed(_handle.Get()->Map(0, &readRange, &mappedData));
-            pMappedData = mappedData;
+            _pMappedData = mappedData;
         }
 
         // Issue data copy on request
@@ -142,12 +142,12 @@ internal unsafe class D3D12Buffer : GPUBuffer
             void* mappedData = null;
             if (descriptor.MemoryType == MemoryType.Upload)
             {
-                mappedData = pMappedData;
+                mappedData = _pMappedData;
             }
             else
             {
                 context = device.Allocate(descriptor.Size);
-                mappedData = context.UploadBuffer.pMappedData;
+                mappedData = context.UploadBuffer._pMappedData;
             }
 
             Unsafe.CopyBlockUnaligned(mappedData, initialData, (uint)descriptor.Size);
@@ -203,17 +203,6 @@ internal unsafe class D3D12Buffer : GPUBuffer
 
     protected override GPUBufferView CreateViewCore(in GPUBufferViewDescriptor descriptor) => new D3D12BufferView(this, descriptor);
 
-    internal override void* GetMappedData() => pMappedData;
-
-    /// <inheitdoc />
-    protected override void SetDataUnsafe(void* sourcePtr, uint offsetInBytes, uint sizeInBytes)
-    {
-        NativeMemory.Copy(sourcePtr, (byte*)pMappedData + offsetInBytes, sizeInBytes);
-    }
-
-    /// <inheitdoc />
-    protected override void GetDataUnsafe(void* destinationPtr, uint offsetInBytes, uint sizeInBytes)
-    {
-        NativeMemory.Copy((byte*)pMappedData + offsetInBytes, destinationPtr, sizeInBytes);
-    }
+    /// <inheritdoc />
+    public override void* GetMappedData() => _pMappedData;
 }

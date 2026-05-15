@@ -103,6 +103,12 @@ namespace
     }
 }
 
+struct AudioDevice final
+{
+    AudioDeviceType deviceType;
+    const ma_device_info* info;
+};
+
 struct AudioContext final
 {
     std::atomic_uint32_t refCount;
@@ -178,7 +184,7 @@ static AudioDeviceCallback* s_enumerateCallback = nullptr;
 static ma_bool32 enumDevicesCallback(ma_context* context, ma_device_type type, const ma_device_info* info, void* userdata)
 {
     const AudioDeviceType deviceType = FromMiniaudio(type);
-    AudioDevice device = { deviceType, sizeof(info->id), &info->id, info->name, info->isDefault };
+    AudioDevice device = { deviceType, info };
     s_enumerateCallback(&device, userdata);
     return MA_TRUE;
 }
@@ -194,6 +200,22 @@ void alimerAudioContextEnumerateDevices(AudioContext* context, AudioDeviceCallba
     }
 }
 
+/* AudioDevice */
+AudioDeviceType alimerAudioDeviceGetType(AudioDevice* device)
+{
+    return device->deviceType;
+}
+
+const char* alimerAudioDeviceGetName(AudioDevice* device)
+{
+    return device->info->name;
+}
+
+Bool32 alimerAudioDeviceIsDefault(AudioDevice* device)
+{
+    return device->info->isDefault;
+}
+
 /* AudioEngine */
 AudioEngine* alimerAudioEngineCreate(AudioContext* context, const AudioConfig* config)
 {
@@ -201,8 +223,10 @@ AudioEngine* alimerAudioEngineCreate(AudioContext* context, const AudioConfig* c
     engine->refCount.store(1);
 
     ma_device_config deviceConfig = ma_device_config_init(ma_device_type_playback);
-    //if (playbackDevice)
-    //    deviceConfig.playback.pDeviceID = reinterpret_cast<const ma_device_id*>(&playbackDevice->data[0]);
+    if (config && config->playbackDevice)
+    {
+        deviceConfig.playback.pDeviceID = &config->playbackDevice->info->id;
+    }
 
     // Device config for engines (taken from ma_engine_init)
     deviceConfig.playback.format = ma_format_f32;
@@ -211,15 +235,15 @@ AudioEngine* alimerAudioEngineCreate(AudioContext* context, const AudioConfig* c
     deviceConfig.sampleRate = (config != nullptr && config->sampleRate > 0) ? config->sampleRate : 0;
     deviceConfig.pUserData = engine;
     deviceConfig.dataCallback = [](ma_device* device, void* pOutput, const void* pInput, ma_uint32 frameCount)
-    {
-        AudioEngine& thisEngine = *static_cast<AudioEngine*>(device->pUserData);
-        std::unique_lock callbackLock(thisEngine.readMutex);
-        ma_engine_read_pcm_frames(&thisEngine.handle, pOutput, frameCount, nullptr);
-    };
+        {
+            AudioEngine& thisEngine = *static_cast<AudioEngine*>(device->pUserData);
+            std::unique_lock callbackLock(thisEngine.readMutex);
+            ma_engine_read_pcm_frames(&thisEngine.handle, pOutput, frameCount, nullptr);
+        };
     deviceConfig.notificationCallback = [](const ma_device_notification* pNotification)
-    {
-        ALIMER_UNUSED(pNotification);
-    };
+        {
+            ALIMER_UNUSED(pNotification);
+        };
     ma_result result = ma_device_init(&context->handle, &deviceConfig, &engine->device);
     if (result != MA_SUCCESS)
     {

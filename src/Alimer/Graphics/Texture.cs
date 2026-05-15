@@ -213,7 +213,7 @@ public abstract partial class Texture : GraphicsObject, IGraphicsBindableResourc
     /// </summary>
     /// <param name="mipLevel"></param>
     /// <returns></returns>
-    public uint GetWidth(uint mipLevel = 0)
+    public uint GetLevelWidth(uint mipLevel = 0)
     {
         return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Width >> (int)mipLevel) : 0;
     }
@@ -223,7 +223,7 @@ public abstract partial class Texture : GraphicsObject, IGraphicsBindableResourc
     /// </summary>
     /// <param name="mipLevel"></param>
     /// <returns></returns>
-    public uint GetHeight(uint mipLevel = 0)
+    public uint GetLevelHeight(uint mipLevel = 0)
     {
         return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Height >> (int)mipLevel) : 0;
     }
@@ -233,7 +233,7 @@ public abstract partial class Texture : GraphicsObject, IGraphicsBindableResourc
     /// </summary>
     /// <param name="mipLevel"></param>
     /// <returns></returns>
-    public uint GetDepth(uint mipLevel = 0)
+    public uint GetLevelDepth(uint mipLevel = 0)
     {
         return (mipLevel == 0) || (mipLevel < MipLevelCount) ? Math.Max(1, Depth >> (int)mipLevel) : 0;
     }

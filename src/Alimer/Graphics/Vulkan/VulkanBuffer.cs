@@ -16,7 +16,7 @@ internal unsafe class VulkanBuffer : GPUBuffer
     private VkBuffer _handle = VkBuffer.Null;
     private VmaAllocation _allocation = default;
 
-    public readonly void* pMappedData;
+    private readonly void* _pMappedData;
     private readonly ulong _mappedSize;
 
     public VulkanBuffer(VulkanGraphicsDevice device, in GPUBufferDescriptor descriptor, void* initialData)
@@ -126,7 +126,7 @@ internal unsafe class VulkanBuffer : GPUBuffer
 
         if ((memoryInfo.flags & VMA_ALLOCATION_CREATE_MAPPED_BIT) != 0)
         {
-            pMappedData = allocationInfo.pMappedData;
+            _pMappedData = allocationInfo.pMappedData;
             _mappedSize = allocationInfo.size;
         }
 
@@ -146,12 +146,12 @@ internal unsafe class VulkanBuffer : GPUBuffer
             void* mappedData;
             if (descriptor.MemoryType == MemoryType.Upload)
             {
-                mappedData = this.pMappedData;
+                mappedData = _pMappedData;
             }
             else
             {
                 context = device.Allocate(createInfo.size);
-                mappedData = context.UploadBuffer.pMappedData;
+                mappedData = context.UploadBuffer._pMappedData;
             }
 
             Unsafe.CopyBlockUnaligned(mappedData, initialData, (uint)descriptor.Size);
@@ -286,17 +286,6 @@ internal unsafe class VulkanBuffer : GPUBuffer
 
     protected override GPUBufferView CreateViewCore(in GPUBufferViewDescriptor descriptor) => new VulkanBufferView(this, descriptor);
 
-    internal override void* GetMappedData() => pMappedData;
-
-    /// <inheitdoc />
-    protected override void SetDataUnsafe(void* sourcePtr, uint offsetInBytes, uint sizeInBytes)
-    {
-        NativeMemory.Copy(sourcePtr, (byte*)pMappedData + offsetInBytes, sizeInBytes);
-    }
-
-    /// <inheitdoc />
-    protected override void GetDataUnsafe(void* destinationPtr, uint offsetInBytes, uint sizeInBytes)
-    {
-        NativeMemory.Copy((byte*)pMappedData + offsetInBytes, destinationPtr, sizeInBytes);
-    }
+    /// <inheritdoc />
+    public override void* GetMappedData() => _pMappedData;
 }

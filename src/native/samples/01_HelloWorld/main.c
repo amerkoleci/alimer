@@ -21,10 +21,26 @@
 #endif
 #include <assert.h>
 
+#define ALIMER_UNUSED(x) (void)(x)
+
+#if defined(ALIMER_AUDIO)
+static void OnAudioDeviceCallback(AudioDevice* device, void* userdata)
+{
+    AudioDeviceType type = alimerAudioDeviceGetType(device);
+    const char* name = alimerAudioDeviceGetName(device);
+    Bool32 isDefault = alimerAudioDeviceIsDefault(device);
+    ALIMER_UNUSED(type);
+    ALIMER_UNUSED(name);
+    ALIMER_UNUSED(isDefault);
+    ALIMER_UNUSED(userdata);
+}
+#endif
+
 int main(void)
 {
 #if defined(ALIMER_AUDIO)
     AudioContext* context = alimerAudioContextInit();
+    alimerAudioContextEnumerateDevices(context, OnAudioDeviceCallback, NULL);
     AudioEngine* engine = alimerAudioEngineCreate(context, NULL);
 #endif
 

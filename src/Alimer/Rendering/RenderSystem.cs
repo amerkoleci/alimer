@@ -87,6 +87,9 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
 
         MainWindow.SizeChanged += OnCanvasSizeChanged;
         Resize(MainWindow.SizeInPixels);
+
+        // Register ourself as a service
+        services.AddService(this);
     }
 
     public IServiceRegistry Services { get; }

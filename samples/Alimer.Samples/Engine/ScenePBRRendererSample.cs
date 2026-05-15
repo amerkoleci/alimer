@@ -18,6 +18,7 @@ public sealed class ScenePBRRendererSample : SampleBase
     private readonly Entity _cameraEntity;
     private readonly Entity _damagedHelmetEntity;
     //private readonly Texture _environmentMap;
+    //private readonly SpriteBatch _spriteBatch;
 
     public ScenePBRRendererSample(IServiceRegistry services)
         : base("Engine - Scene Cube")
@@ -98,6 +99,9 @@ public sealed class ScenePBRRendererSample : SampleBase
         }
 
         Scene.RootEntity = root;
+
+        //RenderSystem renderSystem = services.GetService<RenderSystem>();
+        //_spriteBatch = ToDispose(new SpriteBatch(services, renderSystem.ColorFormat, renderSystem.DepthStencilFormat));
     }
 
     public IServiceRegistry Services { get; }
@@ -167,6 +171,7 @@ public sealed class ScenePBRRendererSample : SampleBase
 
     public override void Draw(CommandBuffer context, Texture swapChainTexture)
     {
+        //_spriteBatch.
         //_cubeEntity.GetComponent<RigidBodyComponent>().LinearVelocity = new Vector3(100, -100.0f, 0.0f);
     }
 }

@@ -7,6 +7,7 @@
 #include "alimer_platform.h"
 
 /* Forward */
+typedef struct AudioDevice AudioDevice;
 typedef struct AudioContext AudioContext;
 typedef struct AudioEngine AudioEngine;
 typedef struct AudioClip AudioClip;
@@ -49,15 +50,8 @@ typedef enum AudioFormat {
 } AudioFormat;
 
 /* Structs */
-typedef struct AudioDevice {
-    AudioDeviceType deviceType;
-    size_t idSize;
-    const void* id;
-    const char* name;
-    Bool32 isDefault;
-} AudioDevice;
-
 typedef struct AudioConfig {
+    AudioDevice* playbackDevice DEFAULT_INITIALIZER(nullptr);
     /// Audio output channel count.
     uint32_t channelCount DEFAULT_INITIALIZER(0);
     /// Audio output sample rate.
@@ -67,9 +61,15 @@ typedef struct AudioConfig {
 /* Callbacks */
 typedef void AudioDeviceCallback(AudioDevice* device, void* userdata);
 
+/* AudioContext */
 ALIMER_API AudioContext* alimerAudioContextInit(void);
 ALIMER_API void alimerAudioContextDestroy(AudioContext* context);
 ALIMER_API void alimerAudioContextEnumerateDevices(AudioContext* context, AudioDeviceCallback* callback, void* userdata);
+
+/* AudioDevice */
+ALIMER_API AudioDeviceType alimerAudioDeviceGetType(AudioDevice* device);
+ALIMER_API const char* alimerAudioDeviceGetName(AudioDevice* device);
+ALIMER_API Bool32 alimerAudioDeviceIsDefault(AudioDevice* device);
 
 ALIMER_API AudioEngine* alimerAudioEngineCreate(AudioContext* context, const AudioConfig* config);
 ALIMER_API void alimerAudioEngineDestroy(AudioEngine* engine);

@@ -19,7 +19,7 @@
     <!-- Graphics -->
     <PackageVersion Include="TerraFX.Interop.Windows" Version="10.0.26100.6" />
     <PackageVersion Include="TerraFX.Interop.D3D12MemoryAllocator" Version="3.1.0" />
-    <PackageVersion Include="Vortice.Vulkan" Version="3.2.1" />
+    <PackageVersion Include="Vortice.Vulkan" Version="3.2.2" />
     <!-- Others -->
     <PackageVersion Include="DotRecast.Recast" Version="2026.1.3" />
     <PackageVersion Include="Hexa.NET.ImGui" Version="$(ImGuiVersion)" />

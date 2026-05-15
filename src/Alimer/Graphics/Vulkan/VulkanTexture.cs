@@ -232,7 +232,7 @@ internal unsafe class VulkanTexture : Texture
             else
             {
                 context = VkDevice.Allocate(allocationInfo.size);
-                mappedData = context.UploadBuffer.pMappedData;
+                mappedData = context.UploadBuffer.GetMappedData();
             }
 
             PixelFormatInfo formatInfo = descriptor.Format.GetFormatInfo();

@@ -9,7 +9,7 @@ public abstract class SampleBase : DisposableObject
 {
     protected SampleBase(string name)
     {
-        ArgumentNullException.ThrowIfNullOrEmpty(name, nameof(name));
+        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
 
         Name = name;
     }

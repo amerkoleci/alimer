@@ -15,9 +15,9 @@ static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE = 3;
 static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER = 4;
 
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLER)]] SamplerState bindlessSamplers[];
-[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D bindlessTexture2D[];
-[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2DArray bindlessTexture2DArray[];
-[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] TextureCube bindlessTextureCube[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2D<float4> bindlessTexture2D[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2DArray<float4> bindlessTexture2DArray[];
+[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] TextureCube<float4> bindlessTextureCube[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE)]] RWTexture2D<float4> bindlessRWTexture2D[];
 #elif ALIMER_SHADER_MODEL >= 66
 template<typename T>
@@ -31,9 +31,9 @@ struct BindlessResource<SamplerState>
 	SamplerState operator[](uint index) { return (SamplerState)SamplerDescriptorHeap[index]; }
 };
 static const BindlessResource<SamplerState> bindlessSamplers;
-static const BindlessResource<Texture2D> bindlessTexture2D;
-static const BindlessResource<Texture2DArray> bindlessTexture2DArray;
-static const BindlessResource<TextureCube> bindlessTextureCube;
+static const BindlessResource<Texture2D<float4> > bindlessTexture2D;
+static const BindlessResource<Texture2DArray<float4> > bindlessTexture2DArray;
+static const BindlessResource<TextureCube<float4> > bindlessTextureCube;
 static const BindlessResource<RWTexture2D<float4> > bindlessRWTexture2D;
 #else
 SamplerState bindlessSamplers[] : register(s0, space4);

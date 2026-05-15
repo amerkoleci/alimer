@@ -93,3 +93,10 @@ public struct PBRPushConstants
     public int LightBufferIndex;
     private int _pad;
 }
+
+public struct GPUSpriteBatchData : IShaderConstantBuffer
+{
+    public float2 TextureSize;
+    public float2 ViewportSize;
+    public uint LinearSampling; // Bool32
+}

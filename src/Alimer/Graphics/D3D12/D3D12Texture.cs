@@ -248,7 +248,7 @@ internal unsafe class D3D12Texture : Texture
             else
             {
                 uploadContext = DXDevice.Allocate(allocatedSize);
-                mappedData = uploadContext.UploadBuffer.pMappedData;
+                mappedData = uploadContext.UploadBuffer.GetMappedData();
             }
 
             for (uint i = 0; i < numSubResources; ++i)
@@ -256,10 +256,12 @@ internal unsafe class D3D12Texture : Texture
                 if (_rowSizesInBytes[i] > unchecked((ulong)-1))
                     continue;
 
-                D3D12_MEMCPY_DEST DestData = new();
-                DestData.pData = (void*)((ulong)mappedData + _footprints[i].Offset);
-                DestData.RowPitch = _footprints[i].Footprint.RowPitch;
-                DestData.SlicePitch = _footprints[i].Footprint.RowPitch * _numRows[i];
+                D3D12_MEMCPY_DEST DestData = new()
+                {
+                    pData = (void*)((ulong)mappedData + _footprints[i].Offset),
+                    RowPitch = _footprints[i].Footprint.RowPitch,
+                    SlicePitch = _footprints[i].Footprint.RowPitch * _numRows[i]
+                };
                 MemcpySubresource(&DestData, &data[i], (nuint)_rowSizesInBytes[i], _numRows[i], _footprints[i].Footprint.Depth);
 
                 if (uploadContext.IsValid)
