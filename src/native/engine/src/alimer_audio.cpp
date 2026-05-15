@@ -122,11 +122,18 @@ struct AudioEngine final
     ma_device device;
     ma_engine handle;
     ma_node* endpointNode = nullptr;
+    ma_node_graph* nodeGraph = nullptr;
+    uint32_t listenerCount = 0;
 };
 
 struct AudioClip final
 {
+    std::atomic_uint32_t refCount;
+    ma_data_source_base dataSource;
+};
 
+struct AudioSource final
+{
     std::atomic_uint32_t refCount;
 };
 
@@ -211,9 +218,9 @@ const char* alimerAudioDeviceGetName(AudioDevice* device)
     return device->info->name;
 }
 
-Bool32 alimerAudioDeviceIsDefault(AudioDevice* device)
+bool alimerAudioDeviceIsDefault(AudioDevice* device)
 {
-    return device->info->isDefault;
+    return device->info->isDefault == MA_TRUE;
 }
 
 /* AudioEngine */
@@ -266,6 +273,8 @@ AudioEngine* alimerAudioEngineCreate(AudioContext* context, const AudioConfig* c
     }
 
     engine->endpointNode = ma_engine_get_endpoint(&engine->handle);
+    engine->nodeGraph = ma_engine_get_node_graph(&engine->handle);
+    engine->listenerCount = ma_engine_get_listener_count(&engine->handle);
 
     return engine;
 }
@@ -353,10 +362,26 @@ uint32_t alimerAudioEngineGetSampleRate(AudioEngine* engine)
     return ma_engine_get_sample_rate(&engine->handle);
 }
 
+bool alimerAudioListenerIsEnabled(AudioEngine* engine)
+{
+    return ma_engine_listener_is_enabled(&engine->handle, 0) == MA_TRUE;
+}
+
 AudioClip* alimerAudioClipCreate(const char* filepath)
 {
     AudioClip* clip = new AudioClip();
     clip->refCount.store(1);
+
+    ma_data_source_config config = ma_data_source_config_init();
+    //config.vtable = &s_soundDataSourceFuncs;
+
+    ma_result result = ma_data_source_init(&config, &clip->dataSource);
+    if (result != MA_SUCCESS)
+    {
+        //throw std::runtime_error(Format("ma_data_source_init failed: {}", ma_result_description(result)));
+        delete clip;
+        return nullptr;
+    }
 
     //ma_decoder_config config{};
     //clip->channel_count = config.channels = 1;
@@ -373,6 +398,44 @@ AudioClip* alimerAudioClipCreate(const char* filepath)
     //}
 
     return clip;
+}
+
+uint32_t alimerAudioClipAddRef(AudioClip* clip)
+{
+    return ++clip->refCount;
+}
+
+uint32_t alimerAudioClipRelease(AudioClip* clip)
+{
+    uint32_t newCount = --clip->refCount;
+    if (newCount == 0)
+    {
+        delete clip;
+    }
+    return newCount;
+}
+
+/* AudioSource */
+AudioSource* alimerAudioSourceCreate(void)
+{
+    AudioSource* source = new AudioSource();
+    source->refCount.store(1);
+    return source;
+}
+
+uint32_t alimerAudioSourceAddRef(AudioSource* source)
+{
+    return ++source->refCount;
+}
+
+uint32_t alimerAudioSourceRelease(AudioSource* source)
+{
+    uint32_t newCount = --source->refCount;
+    if (newCount == 0)
+    {
+        delete source;
+    }
+    return newCount;
 }
 
 #endif /* defined(ALIMER_AUDIO) */

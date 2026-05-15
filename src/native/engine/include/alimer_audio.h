@@ -11,6 +11,7 @@ typedef struct AudioDevice AudioDevice;
 typedef struct AudioContext AudioContext;
 typedef struct AudioEngine AudioEngine;
 typedef struct AudioClip AudioClip;
+typedef struct AudioSource AudioSource;
 
 /* Enums */
 typedef enum AudioDeviceType {
@@ -69,8 +70,9 @@ ALIMER_API void alimerAudioContextEnumerateDevices(AudioContext* context, AudioD
 /* AudioDevice */
 ALIMER_API AudioDeviceType alimerAudioDeviceGetType(AudioDevice* device);
 ALIMER_API const char* alimerAudioDeviceGetName(AudioDevice* device);
-ALIMER_API Bool32 alimerAudioDeviceIsDefault(AudioDevice* device);
+ALIMER_API bool alimerAudioDeviceIsDefault(AudioDevice* device);
 
+/* AudioEngine */
 ALIMER_API AudioEngine* alimerAudioEngineCreate(AudioContext* context, const AudioConfig* config);
 ALIMER_API void alimerAudioEngineDestroy(AudioEngine* engine);
 ALIMER_API void alimerAudioEngineStart(AudioEngine* engine);
@@ -84,6 +86,16 @@ ALIMER_API void alimerAudioEngineSetVolume(AudioEngine* engine, float value, Vol
 ALIMER_API uint32_t alimerAudioEngineGetChannelCount(AudioEngine* engine);
 ALIMER_API uint32_t alimerAudioEngineGetSampleRate(AudioEngine* engine);
 
+ALIMER_API bool alimerAudioListenerIsEnabled(AudioEngine* engine);
+
+/* AudioClip */
 ALIMER_API AudioClip* alimerAudioClipCreate(const char* filepath);
+ALIMER_API uint32_t alimerAudioClipAddRef(AudioClip* clip);
+ALIMER_API uint32_t alimerAudioClipRelease(AudioClip* clip);
+
+/* AudioSource */
+ALIMER_API AudioSource* alimerAudioSourceCreate(void);
+ALIMER_API uint32_t alimerAudioSourceAddRef(AudioSource* source);
+ALIMER_API uint32_t alimerAudioSourceRelease(AudioSource* source);
 
 #endif /* ALIMER_AUDIO_H_ */

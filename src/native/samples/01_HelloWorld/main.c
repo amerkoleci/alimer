@@ -42,6 +42,9 @@ int main(void)
     AudioContext* context = alimerAudioContextInit();
     alimerAudioContextEnumerateDevices(context, OnAudioDeviceCallback, NULL);
     AudioEngine* engine = alimerAudioEngineCreate(context, NULL);
+
+    AudioClip* clip = alimerAudioClipCreate("shortcuts.ogg");
+    alimerAudioClipRelease(clip);
 #endif
 
     Image* image = alimerImageCreate1D(PixelFormat_RGBA8Unorm, 512, 1, 0);
