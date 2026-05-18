@@ -1,11 +1,9 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#include "Alimer.hlsli"
-#include "BRDF.hlsli"
-#include "ShaderTypes.h"
 #include "VertexInputOutput.hlsli"
-#include "AlimerBindless.hlsli"
+#include "AlimerScene.hlsli"
+#include "BRDF.hlsli"
 
 struct SurfaceInfo
 {

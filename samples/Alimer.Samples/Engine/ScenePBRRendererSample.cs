@@ -18,7 +18,7 @@ public sealed class ScenePBRRendererSample : SampleBase
     private readonly Entity _cameraEntity;
     private readonly Entity _damagedHelmetEntity;
     //private readonly Texture _environmentMap;
-    //private readonly SpriteBatch _spriteBatch;
+    private readonly SpriteBatch _spriteBatch;
 
     public ScenePBRRendererSample(IServiceRegistry services)
         : base("Engine - Scene Cube")
@@ -100,8 +100,8 @@ public sealed class ScenePBRRendererSample : SampleBase
 
         Scene.RootEntity = root;
 
-        //RenderSystem renderSystem = services.GetService<RenderSystem>();
-        //_spriteBatch = ToDispose(new SpriteBatch(services, renderSystem.ColorFormat, renderSystem.DepthStencilFormat));
+        RenderSystem renderSystem = services.GetService<RenderSystem>();
+        _spriteBatch = ToDispose(new SpriteBatch(services, renderSystem.ColorFormat, renderSystem.DepthStencilFormat));
     }
 
     public IServiceRegistry Services { get; }
@@ -163,15 +163,15 @@ public sealed class ScenePBRRendererSample : SampleBase
 
         if (Input.IsKeyDown(Keys.Space))
         {
-            //cameraEntity->LookAt(Vector3::Zero);
+            //_cameraEntity.LookAt(Vector3.Zero);
         }
 
-        //_damagedHelmetEntity.Transform.Rotate(10 * deltaTime, 20 * deltaTime, 30 * deltaTime);
+        _damagedHelmetEntity.Transform.Rotate(10 * deltaTime, 20 * deltaTime, 30 * deltaTime);
     }
 
-    public override void Draw(CommandBuffer context, Texture swapChainTexture)
+    public override void Draw(CommandBuffer commandBuffer, Texture swapChainTexture)
     {
-        //_spriteBatch.
+        //_spriteBatch.Begin()
         //_cubeEntity.GetComponent<RigidBodyComponent>().LinearVelocity = new Vector3(100, -100.0f, 0.0f);
     }
 }

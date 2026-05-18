@@ -30,8 +30,6 @@
 #   define ALIMER_PUSH_CONSTANTS(Type) ConstantBuffer<Type> push : register(b999, space0)
 #endif
 
-#include "Math.hlsli"
-
 /* Static Samplers */
 SamplerState SamplerPointClamp : register(s100);
 SamplerState SamplerPointWrap : register(s101);

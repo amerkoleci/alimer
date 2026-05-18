@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using static Alimer.Utilities.UnsafeUtilities;
 
 namespace Alimer.Graphics;
 
@@ -49,6 +50,24 @@ public abstract unsafe class GPUBuffer : GraphicsObject, IGraphicsBindableResour
 
     public GPUBufferView CreateView(in GPUBufferViewDescriptor descriptor)
     {
+        return CreateViewCore(in descriptor);
+    }
+
+    public GPUBufferView CreateStructuredView(uint elementOffset, uint elementCount, uint elementSize)
+    {
+        GPUBufferViewDescriptor descriptor = GPUBufferViewDescriptor.CreateStructured(elementOffset, elementCount, elementSize);
+        return CreateViewCore(in descriptor);
+    }
+
+    public GPUBufferView CreateStructuredView<T>(uint elementOffset = 0, uint elementCount = 0)
+        where T : unmanaged
+    {
+        if (elementCount == 0)
+        {
+            elementCount = (uint)(Size / SizeOf<T>());
+        }
+
+        GPUBufferViewDescriptor descriptor = GPUBufferViewDescriptor.CreateStructured(elementOffset, elementCount, SizeOf<T>());
         return CreateViewCore(in descriptor);
     }
 

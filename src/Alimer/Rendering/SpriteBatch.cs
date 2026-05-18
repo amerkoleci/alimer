@@ -41,6 +41,7 @@ public class SpriteBatch : DisposableObject
 {
     private const uint MaxBatchSize = 1024;
     private readonly GPUBuffer _spriteBuffer;
+    private readonly GPUBufferView _spriteBufferView;
     private readonly GPUBuffer _spriteIndexBuffer;
     private readonly RenderPipeline _renderPipeline;
     private RenderPassEncoder? _encoder;
@@ -59,6 +60,7 @@ public class SpriteBatch : DisposableObject
             Label = "SpriteBatch Buffer"
         };
         _spriteBuffer = GraphicsDevice.CreateBuffer(in spriteBufferDesc);
+        _spriteBufferView = _spriteBuffer.CreateStructuredView<SpriteDrawData>();
 
         // Create the index buffer
         ReadOnlySpan<ushort> indices = [0, 1, 2, 3, 0, 2];
@@ -75,7 +77,7 @@ public class SpriteBatch : DisposableObject
             BlendState = BlendState.NonPremultiplied,
             DepthStencilState = DepthStencilState.DepthDefault
         };
-        _renderPipeline = ToDispose(GraphicsDevice.CreateRenderPipeline(renderPipelineDesc));
+        _renderPipeline = GraphicsDevice.CreateRenderPipeline(renderPipelineDesc);
     }
 
     public GraphicsDevice GraphicsDevice { get; }
@@ -91,6 +93,7 @@ public class SpriteBatch : DisposableObject
         {
             _spriteBuffer.Dispose();
             _spriteIndexBuffer.Dispose();
+            _renderPipeline.Dispose();
         }
     }
 
@@ -147,7 +150,9 @@ public class SpriteBatch : DisposableObject
         GPUSpriteBatchData perBatchData = new()
         {
             ViewportSize = _viewportSize,
-            TextureSize = new Vector2(texture.Width, texture.Height)
+            TextureSize = new Vector2(texture.Width, texture.Height),
+            SpriteBufferIndex = _spriteBufferView.BindlessReadIndex,
+            SpriteTextureIndex = texture.DefaultView!.BindlessReadIndex
         };
 
         _encoder.SetPushConstants(perBatchData);

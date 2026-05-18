@@ -30,6 +30,7 @@
   <Folder Name="/shaders/">
     <File Path="assets/Shaders/Alimer.hlsli" />
     <File Path="assets/Shaders/AlimerBindless.hlsli" />
+    <File Path="assets/Shaders/AlimerScene.hlsli" />
     <File Path="assets/Shaders/BRDF.hlsli" />
     <File Path="assets/Shaders/ColorSpace.hlsli" />
     <File Path="assets/Shaders/FullScreenQuad.hlsl" />

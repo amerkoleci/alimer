@@ -1,7 +1,5 @@
-#include "Alimer.hlsli"
 #include "VertexInputOutput.hlsli"
-#include "ShaderTypes.h"
-#include "AlimerBindless.hlsli"
+#include "AlimerScene.hlsli"
 
 [shader("vertex")]
 VertexOutput vertexMain(in VertexInput input, uint instanceId: SV_InstanceID)

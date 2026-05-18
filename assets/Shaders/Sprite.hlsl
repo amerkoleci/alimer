@@ -1,8 +1,7 @@
-#include "Alimer.hlsli"
 #include "ShaderTypes.h"
 #include "AlimerBindless.hlsli"
 
-struct SpriteDrawData
+struct GPUSpriteDrawData
 {
     float2 Position;
     float2 Scale;
@@ -18,6 +17,7 @@ struct VertexOutput {
 };
 
 ALIMER_PUSH_CONSTANTS(GPUSpriteBatchData);
+ALIMER_STRUCTURED_BUFFER(GPUSpriteDrawData, bindlessGPUSpriteDrawData);
 
 [shader("vertex")]
 VertexOutput vertexMain(in uint vertexIndex : SV_VertexID, in uint instanceIndex : SV_InstanceID)
@@ -31,7 +31,8 @@ VertexOutput vertexMain(in uint vertexIndex : SV_VertexID, in uint instanceIndex
         vtxPosition = float2(0.0f, 1.0f);
 
     // Scale the quad so that it's texture-sized
-    SpriteDrawData instanceData = spriteBuffer[instanceIndex];
+    StructuredBuffer<GPUSpriteDrawData> spriteBuffer = bindlessGPUSpriteDrawData[push.SpriteBufferIndex];
+    GPUSpriteDrawData instanceData = spriteBuffer[instanceIndex];
     float2 positionSS = vtxPosition * instanceData.SourceRect.zw;
 
     // Apply transforms in screen space
@@ -62,5 +63,7 @@ VertexOutput vertexMain(in uint vertexIndex : SV_VertexID, in uint instanceIndex
 [shader("pixel")]
 float4 fragmentMain(in VertexOutput input) : SV_TARGET
 {
+    Texture2D<float4> spriteTexture = bindlessTexture2D[push.SpriteTextureIndex];
+    SamplerState spriteSampler = SamplerLinearWrap; // bindlessSamplers[material.samplerIndex];
     return spriteTexture.Sample(spriteSampler, input.TexCoord) * input.Color;
 }

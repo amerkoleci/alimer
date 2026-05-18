@@ -98,5 +98,8 @@ public struct GPUSpriteBatchData : IShaderConstantBuffer
 {
     public float2 TextureSize;
     public float2 ViewportSize;
-    public uint LinearSampling; // Bool32
+    public int SpriteBufferIndex;
+    public int SpriteTextureIndex;
+    private float2 _padding0;
+    //public uint LinearSampling; // Bool32
 }

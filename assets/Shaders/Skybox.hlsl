@@ -1,10 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#include "Alimer.hlsli"
-#include "ShaderTypes.h"
 #include "VertexInputOutput.hlsli"
-#include "AlimerBindless.hlsli"
+#include "AlimerScene.hlsli"
 
 [shader("vertex")]
 VertexSkyboxOutput vertexMain(in VertexSkyboxInput input)

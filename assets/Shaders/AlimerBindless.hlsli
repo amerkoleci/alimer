@@ -19,6 +19,9 @@ static const uint DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER = 4;
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] Texture2DArray<float4> bindlessTexture2DArray[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE)]] TextureCube<float4> bindlessTextureCube[];
 [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_IMAGE)]] RWTexture2D<float4> bindlessRWTexture2D[];
+
+#define ALIMER_STRUCTURED_BUFFER(type, name) [[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<type> name[]
+
 #elif ALIMER_SHADER_MODEL >= 66
 template<typename T>
 struct BindlessResource
@@ -35,38 +38,12 @@ static const BindlessResource<Texture2D<float4> > bindlessTexture2D;
 static const BindlessResource<Texture2DArray<float4> > bindlessTexture2DArray;
 static const BindlessResource<TextureCube<float4> > bindlessTextureCube;
 static const BindlessResource<RWTexture2D<float4> > bindlessRWTexture2D;
+
+#define ALIMER_STRUCTURED_BUFFER(type, name) static const BindlessResource<StructuredBuffer<type> > name
+
 #else
 SamplerState bindlessSamplers[] : register(s0, space4);
 Texture2D bindlessTexture2D[] : register(t0, space5);
 #endif
-
-#ifdef _SHADER_DEFINITIONS_H_
-
-/* TODO: Handle in common and better way */
-#if defined(ALIMER_SPIRV)
-[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<GPUInstance> bindlessGPUInstance[];
-[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<GPUMaterialPBR> bindlessGPUMaterial[];
-[[vk::binding(0, DESCRIPTOR_SET_BINDLESS_STORAGE_BUFFER)]] StructuredBuffer<GPULight> bindlessGPULight[];
-#elif ALIMER_SHADER_MODEL >= 66
-static const BindlessResource<StructuredBuffer<GPUInstance> > bindlessGPUInstance;
-static const BindlessResource<StructuredBuffer<GPUMaterialPBR> > bindlessGPUMaterial;
-static const BindlessResource<StructuredBuffer<GPULight> > bindlessGPULight;
-#else
-#endif
-#endif  /*#ifdef _SHADER_DEFINITIONS_H_ */
-
-struct PushConstants
-{
-    int InstanceBufferIndex;
-    int MaterialBufferIndex;
-    int LightBufferIndex;
-    float _pad;
-};
-ALIMER_PUSH_CONSTANTS(PushConstants);
-
-#ifdef _SHADER_DEFINITIONS_H_
-// Frame data
-ConstantBuffer<GPUFrameData> frame : register(b0);
-#endif /*#ifdef _SHADER_DEFINITIONS_H_ */
 
 #endif // _ALIMER_SHADER_BINDLESS__

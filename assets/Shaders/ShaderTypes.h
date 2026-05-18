@@ -113,7 +113,10 @@ struct GPUSpriteBatchData
 {
     float2 TextureSize;
     float2 ViewportSize;
-    bool32 LinearSampling;
+    int SpriteBufferIndex;
+    int SpriteTextureIndex;
+    //bool32 LinearSampling;
+    float2 _padding0;
 };
 
 #ifdef __cplusplus

@@ -45,7 +45,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         _clock = Stopwatch.StartNew();
     }
 
-    public override void Draw(CommandBuffer context, Texture swapChainTexture)
+    public override void Draw(CommandBuffer commandBuffer, Texture swapChainTexture)
     {
         float time = _clock.ElapsedMilliseconds / 1000.0f;
         Matrix4x4 world = Matrix4x4.CreateRotationX(time) * Matrix4x4.CreateRotationY(time * 2) * Matrix4x4.CreateRotationZ(time * .7f);
@@ -65,7 +65,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
             Label = "BackBuffer"u8
         };
 
-        RenderPassEncoder renderPassEncoder = context.BeginRenderPass(backBufferRenderPass);
+        RenderPassEncoder renderPassEncoder = commandBuffer.BeginRenderPass(backBufferRenderPass);
         renderPassEncoder.SetPipeline(_renderPipeline!);
         renderPassEncoder.SetConstantBuffer(0, _constantBuffer0);
         //renderPassEncoder.SetDynamicConstantBuffer(0, worldViewProjection);

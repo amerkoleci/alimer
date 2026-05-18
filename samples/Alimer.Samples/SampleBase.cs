@@ -21,7 +21,7 @@ public abstract class SampleBase : DisposableObject
     }
 
 
-    public virtual void Draw(CommandBuffer context, Texture outputTexture)
+    public virtual void Draw(CommandBuffer commandBuffer, Texture outputTexture)
     {
 
     }
