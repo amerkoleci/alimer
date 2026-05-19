@@ -60,12 +60,12 @@ public abstract class Game : DisposableObject, IGame
         _services.AddService(ShaderSystem);
 
         AudioDeviceOptions audioOptions = new();
-        AudioDevice = AudioDevice.Create(in audioOptions);
+        AudioEngine = AudioEngine.Create(in audioOptions);
 
         _services.AddService(Input);
         _services.AddService(GraphicsManager);
         _services.AddService(GraphicsDevice);
-        _services.AddService(AudioDevice);
+        _services.AddService(AudioEngine);
         _services.AddService(MainWindow);
         SceneSystem = new SceneSystem(Services);
         Services.AddService(SceneSystem);
@@ -118,9 +118,9 @@ public abstract class Game : DisposableObject, IGame
     public GraphicsDevice GraphicsDevice { get; }
 
     /// <summary>
-    /// Gets the <see cref="Audio.AudioDevice"/> instance.
+    /// Gets the <see cref="Audio.AudioEngine"/> instance.
     /// </summary>
-    public AudioDevice AudioDevice { get; private set; }
+    public AudioEngine AudioEngine { get; private set; }
 
     /// <summary>
     /// Get the list of game systems.
@@ -152,8 +152,9 @@ public abstract class Game : DisposableObject, IGame
 
         GraphicsDevice.WaitIdle();
         GraphicsDevice.Dispose();
-        AudioDevice.Dispose();
+        AudioEngine.Dispose();
         GraphicsManager.Dispose();
+        AudioSystem.Shutdown();
         _platform.Destroy();
     }
 

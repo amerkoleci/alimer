@@ -11,6 +11,7 @@ using static Alimer.SDL3.SDL_InitFlags;
 using static Alimer.SDL3.SDL_EventAction;
 using static Alimer.SDL3.SDL_EventType;
 using System.Runtime.InteropServices.Marshalling;
+using Alimer.Audio;
 
 namespace Alimer;
 
@@ -142,6 +143,11 @@ internal unsafe class SDLPlatform : GamePlatform
             case SDL_EVENT_WINDOW_MOUSE_LEAVE:
                 _input.HandleEvent(in evt);
                 break;
+
+            //case SDL_EVENT_AUDIO_DEVICE_ADDED:
+            //case SDL_EVENT_AUDIO_DEVICE_REMOVED:
+            //    AudioSystem.ScanDevices();
+            //    break;
 
             default:
                 if (evt.type >= SDL_EVENT_WINDOW_FIRST

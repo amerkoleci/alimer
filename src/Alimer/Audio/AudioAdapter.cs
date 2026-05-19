@@ -2,16 +2,17 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Utilities;
+using static Alimer.AlimerApi;
 
 namespace Alimer.Audio;
 
 public sealed class AudioAdapter
 {
-    internal unsafe AudioAdapter(AlimerApi.AudioDevice* device, AudioDeviceType type)
+    internal unsafe AudioAdapter(AlimerApi.AudioDevice device, AudioDeviceType type)
     {
-        Name = Utf8CustomMarshaller.ConvertToManaged(device->name) ?? string.Empty;
-        Type = device->deviceType;
-        IsDefault = device->isDefault;
+        Name = Utf8CustomMarshaller.ConvertToManaged(alimerAudioDeviceGetName(device)) ?? string.Empty;
+        Type = type;
+        IsDefault = alimerAudioDeviceIsDefault(device);
     }
 
     public string Name { get; }

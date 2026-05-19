@@ -13,23 +13,7 @@ namespace Alimer;
 
 unsafe partial class AlimerApi
 {
-    #region Enums
-    public enum VolumeUnit
-    {
-        Linear = 0,
-        Decibels = 1,
-    }
-    #endregion
-
     #region Structs
-    public struct AudioDevice
-    {
-        public AudioDeviceType deviceType;
-        public nuint idSize;
-        public void* id;
-        public byte* name;
-        public Bool32 isDefault;
-    }
 
     public struct AudioConfig
     {
@@ -46,26 +30,26 @@ unsafe partial class AlimerApi
 
     #region Handles
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public readonly partial struct AudioContext(nint handle) : IEquatable<AudioContext>
+    public readonly partial struct AudioDevice(nint handle) : IEquatable<AudioDevice>
     {
         public nint Handle { get; } = handle;
         public readonly bool IsNull => Handle == 0;
         public readonly bool IsNotNull => Handle != 0;
 
-        public static AudioContext Null => new(0);
-        public static implicit operator AudioContext(nint handle) => new(handle);
-        public static implicit operator nint(AudioContext handle) => handle.Handle;
+        public static AudioDevice Null => new(0);
+        public static implicit operator AudioDevice(nint handle) => new(handle);
+        public static implicit operator nint(AudioDevice handle) => handle.Handle;
 
-        public static bool operator ==(AudioContext left, AudioContext right) => left.Handle == right.Handle;
-        public static bool operator !=(AudioContext left, AudioContext right) => left.Handle != right.Handle;
-        public static bool operator ==(AudioContext left, nint right) => left.Handle == right;
-        public static bool operator !=(AudioContext left, nint right) => left.Handle != right;
-        public bool Equals(AudioContext other) => Handle == other.Handle;
+        public static bool operator ==(AudioDevice left, AudioDevice right) => left.Handle == right.Handle;
+        public static bool operator !=(AudioDevice left, AudioDevice right) => left.Handle != right.Handle;
+        public static bool operator ==(AudioDevice left, nint right) => left.Handle == right;
+        public static bool operator !=(AudioDevice left, nint right) => left.Handle != right;
+        public bool Equals(AudioDevice other) => Handle == other.Handle;
         /// <inheritdoc/>
-        public override bool Equals([NotNullWhen(true)] object? obj) => obj is AudioContext handle && Equals(handle);
+        public override bool Equals([NotNullWhen(true)] object? obj) => obj is AudioDevice handle && Equals(handle);
         /// <inheritdoc/>
         public override readonly int GetHashCode() => Handle.GetHashCode();
-        private readonly string DebuggerDisplay => $"{nameof(AudioContext)} [0x{Handle:X}]";
+        private readonly string DebuggerDisplay => $"{nameof(AudioDevice)} [0x{Handle:X}]";
     }
 
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
@@ -93,16 +77,27 @@ unsafe partial class AlimerApi
     #endregion
 
     [LibraryImport(LibraryName)]
-    public static partial AudioContext alimerAudioContextInit();
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool alimerAudioInit();
 
     [LibraryImport(LibraryName)]
-    public static partial void alimerAudioContextDestroy(AudioContext context);
+    public static partial void alimerAudioShutdown();
 
     [LibraryImport(LibraryName)]
-    public static partial void alimerAudioContextEnumerateDevices(AudioContext context, delegate* unmanaged<AudioDevice*, nint, void> callback, nint userdata);
+    public static partial void alimerAudioEnumerateDevices(delegate* unmanaged<AudioDevice, nint, void> callback, nint userdata);
 
     [LibraryImport(LibraryName)]
-    public static partial AudioEngine alimerAudioEngineCreate(AudioContext context, AudioConfig* config);
+    public static partial AudioDeviceType alimerAudioDeviceGetType(AudioDevice device);
+
+    [LibraryImport(LibraryName)]
+    public static partial byte* alimerAudioDeviceGetName(AudioDevice device);
+
+    [LibraryImport(LibraryName)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool alimerAudioDeviceIsDefault(AudioDevice device);
+
+    [LibraryImport(LibraryName)]
+    public static partial AudioEngine alimerAudioEngineCreate(AudioConfig* config);
     [LibraryImport(LibraryName)]
     public static partial void alimerAudioEngineDestroy(AudioEngine engine);
     [LibraryImport(LibraryName)]
@@ -124,4 +119,30 @@ unsafe partial class AlimerApi
     public static partial int alimerAudioEngineGetChannelCount(AudioEngine engine);
     [LibraryImport(LibraryName)]
     public static partial int alimerAudioEngineGetSampleRate(AudioEngine engine);
+
+    /* AudioClip */
+    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    public static partial nint alimerAudioClipCreate(string filepath);
+    [LibraryImport(LibraryName)]
+    public static partial nint alimerAudioClipCreateFromMemory(void* pData, nuint dataSize);
+    [LibraryImport(LibraryName)]
+    public static partial uint alimerAudioClipAddRef(nint clip);
+    [LibraryImport(LibraryName)]
+    public static partial uint alimerAudioClipRelease(nint clip);
+
+    /* AudioSource */
+    [LibraryImport(LibraryName)]
+    public static partial nint alimerAudioSourceCreate(AudioEngine engine, nint clip);
+    [LibraryImport(LibraryName)]
+    public static partial uint alimerAudioSourceAddRef(nint source);
+    [LibraryImport(LibraryName)]
+    public static partial uint alimerAudioSourceRelease(nint source);
+    [LibraryImport(LibraryName)]
+    public static partial void alimerAudioSourcePlay(nint source);
+    [LibraryImport(LibraryName)]
+    public static partial void alimerAudioSourceStop(nint source);
+    [LibraryImport(LibraryName)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool alimerAudioSourceIsPlaying(nint source);
+
 }

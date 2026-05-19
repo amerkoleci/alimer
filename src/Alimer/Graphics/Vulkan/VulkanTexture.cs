@@ -183,7 +183,7 @@ internal unsafe class VulkanTexture : Texture
             mipLevels = (uint)MipLevelCount,
             arrayLayers = arrayLayers,
             samples = SampleCount.ToVk(),
-            tiling = VkImageTiling.Optimal,
+            tiling = VK_IMAGE_TILING_OPTIMAL,
             usage = usage
         };
 

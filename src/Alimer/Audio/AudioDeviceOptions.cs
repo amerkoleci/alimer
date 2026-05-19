@@ -4,18 +4,13 @@
 namespace Alimer.Audio;
 
 /// <summary>
-/// Structure that describes options the <see cref="AudioDevice"/>.
+/// Structure that describes options the <see cref="AudioEngine"/>.
 /// </summary>
 public record struct AudioDeviceOptions
 {
     public AudioDeviceOptions()
     {
     }
-
-    /// <summary>
-    /// Gets the <see cref="AudioDevice"/> creation flags.
-    /// </summary>
-    public AudioDeviceFlags Flags { get; set; } = AudioDeviceFlags.Default;
 
     /// <summary>
     /// The sample rate to which all sources will be resampled to (if required). 

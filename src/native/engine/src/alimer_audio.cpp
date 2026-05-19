@@ -311,10 +311,10 @@ void alimerAudioEngineDestroy(AudioEngine* engine)
 
 void alimerAudioEngineStart(AudioEngine* engine)
 {
-    ma_result result = ma_device_start(&engine->device);
+    ma_result result = ma_engine_start(&engine->handle);
     if (result != MA_SUCCESS)
     {
-        alimerLogError(LogCategory_Audio, "ma_device_start failed: %s", ma_result_description(result));
+        alimerLogError(LogCategory_Audio, "ma_engine_start failed: %s", ma_result_description(result));
     }
 }
 

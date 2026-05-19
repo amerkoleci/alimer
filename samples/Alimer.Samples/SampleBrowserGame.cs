@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Text;
 using System.Text.Json;
 using Alimer.Assets;
+using Alimer.Audio;
 using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Physics;
@@ -17,6 +18,7 @@ namespace Alimer.Samples;
 public sealed class SampleBrowserGame : Game
 {
     private SampleBase _runningSample = null!;
+    private AudioSource _audioSource = null!;
 
     public SampleBrowserGame(GraphicsBackend preferredGraphicsBackend = GraphicsBackend.Default)
         : base(preferredGraphicsBackend)
@@ -60,6 +62,11 @@ public sealed class SampleBrowserGame : Game
 
         //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         //Image image = Image.FromFile(Path.Combine(texturesPath, "10points.png"));
+
+        string soundsPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Sounds");
+        using AudioClip audioClip = AudioClip.FromFile(Path.Combine(soundsPath, "BGM.mp3"));
+        _audioSource = AudioEngine.CreateAudioSource(audioClip);
+        _audioSource.Play();
 
         //_runningSample = new HelloWindowSample(Services, MainWindow);
         //_runningSample = new DrawTriangleSample(Services, MainWindow);
