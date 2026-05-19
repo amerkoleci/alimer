@@ -39,12 +39,27 @@ static void OnAudioDeviceCallback(AudioDevice* device, void* userdata)
 int main(void)
 {
 #if defined(ALIMER_AUDIO)
-    AudioContext* context = alimerAudioContextInit();
-    alimerAudioContextEnumerateDevices(context, OnAudioDeviceCallback, NULL);
-    AudioEngine* engine = alimerAudioEngineCreate(context, NULL);
+    if (!alimerAudioInit())
+    {
+        return EXIT_FAILURE;
+    }
 
-    AudioClip* clip = alimerAudioClipCreate("shortcuts.ogg");
-    alimerAudioClipRelease(clip);
+    alimerAudioEnumerateDevices(OnAudioDeviceCallback, NULL);
+    AudioEngine* engine = alimerAudioEngineCreate(NULL);
+
+    AudioClip* clip1 = alimerAudioClipCreate("audio/shortcuts.ogg");
+    AudioClip* clip2 = alimerAudioClipCreate("audio/BGM.mp3");
+
+    // Source 1 with clip 1
+    AudioSource* source1 = alimerAudioSourceCreate(engine, clip1);
+    alimerAudioSourcePlay(source1);
+
+    // Source 2 with clip 2
+    AudioSource* source2 = alimerAudioSourceCreate(engine, clip2);
+    alimerAudioSourcePlay(source2);
+
+    alimerAudioClipRelease(clip1);
+    alimerAudioClipRelease(clip2);
 #endif
 
     Image* image = alimerImageCreate1D(PixelFormat_RGBA8Unorm, 512, 1, 0);
@@ -64,8 +79,15 @@ int main(void)
 #endif
 
 #if defined(ALIMER_AUDIO)
+    while (true)
+    {
+
+    }
+
+    alimerAudioSourceRelease(source1);
+    alimerAudioSourceRelease(source2);
     alimerAudioEngineDestroy(engine);
-    alimerAudioContextDestroy(context);
+    alimerAudioShutdown();
 #endif
 
 #if defined(ALIMER_PHYSICS)
