@@ -14,7 +14,7 @@ on:
       - 'src/native/**'
 jobs:
   windows:
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     steps:
     - name: Checkout
       uses: actions/checkout@v6
@@ -26,7 +26,7 @@ jobs:
         ninjaVersion: latest
       
     - name: Configure win-x64
-      run: cmake -S "src/native" -B "build_win_64" -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="win-x64-sdk" -DALIMER_SAMPLES=OFF
+      run: cmake -S "src/native" -B "build_win_64" -G "Visual Studio 18 2026" -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="win-x64-sdk" -DALIMER_SAMPLES=OFF
     - name: Build win-x64
       run: cmake --build build_win_64 --target install --config Release
 
