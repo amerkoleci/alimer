@@ -33,6 +33,14 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/unordered_dense/include/ankerl
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/ThirdParty
 )
 
+# miniaudio
+add_library(miniaudio INTERFACE)
+target_include_directories(miniaudio INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/miniaudio")
+target_sources(miniaudio INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/miniaudio/miniaudio.h)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/miniaudio
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/ThirdParty
+)
+
 # lz4
 add_subdirectory(lz4)
 set_property(TARGET lz4 PROPERTY FOLDER "ThirdParty")

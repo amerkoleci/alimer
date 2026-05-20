@@ -3228,28 +3228,29 @@ bool SDL_IsGamepad(SDL_JoystickID instance_id)
  */
 bool SDL_ShouldIgnoreGamepad(Uint16 vendor_id, Uint16 product_id, Uint16 version, const char *name)
 {
-    int i;
-    for (i = 0; i < SDL_arraysize(SDL_gamepad_blacklist_words); i++) {
-        const struct SDL_GamepadBlacklistWords *blacklist_word = &SDL_gamepad_blacklist_words[i];
+    if (name) {
+        for (int i = 0; i < SDL_arraysize(SDL_gamepad_blacklist_words); i++) {
+            const struct SDL_GamepadBlacklistWords *blacklist_word = &SDL_gamepad_blacklist_words[i];
 
-        switch (blacklist_word->pos) {
-            case GAMEPAD_BLACKLIST_BEGIN:
-                if (SDL_startswith(name, blacklist_word->str)) {
-                    return true;
-                }
-                break;
+            switch (blacklist_word->pos) {
+                case GAMEPAD_BLACKLIST_BEGIN:
+                    if (SDL_startswith(name, blacklist_word->str)) {
+                        return true;
+                    }
+                    break;
 
-            case GAMEPAD_BLACKLIST_END:
-                if (SDL_endswith(name, blacklist_word->str)) {
-                    return true;
-                }
-                break;
+                case GAMEPAD_BLACKLIST_END:
+                    if (SDL_endswith(name, blacklist_word->str)) {
+                        return true;
+                    }
+                    break;
 
-            case GAMEPAD_BLACKLIST_ANYWHERE:
-                if (SDL_strstr(name, blacklist_word->str) != NULL) {
-                    return true;
-                }
-                break;
+                case GAMEPAD_BLACKLIST_ANYWHERE:
+                    if (SDL_strstr(name, blacklist_word->str) != NULL) {
+                        return true;
+                    }
+                    break;
+            }
         }
     }
 

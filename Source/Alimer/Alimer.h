@@ -28,6 +28,11 @@
 #include <Alimer/IO/MemoryStream.h>
 #include <Alimer/IO/FileSystem.h>
 
+// Audio
+#include <Alimer/Audio/AudioClip.h>
+#include <Alimer/Audio/AudioSource.h>
+#include <Alimer/Audio/Audio.h>
+
 // Renderer
 #include <Alimer/Shaders/ShaderDefinitions.h>
 #if TODO
@@ -36,11 +41,6 @@
 #include <Alimer/Renderer/Font.h>
 #include <Alimer/Renderer/SpriteBatch.h>
 #include <Alimer/Renderer/SceneRenderer.h>
-
-// Audio
-#include <Alimer/Audio/AudioClip.h>
-#include <Alimer/Audio/AudioSource.h>
-#include <Alimer/Audio/Audio.h>
 
 // Animation
 #include "Alimer/Animations/AnimationSystem.h"

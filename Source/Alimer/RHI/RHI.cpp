@@ -313,7 +313,7 @@ namespace Alimer
             return nullptr;
         }
 
-        NativeHandle handle(nullptr);
+        RHINativeHandle handle(nullptr);
         return CreateBufferCore(desc, handle, initialData);
     }
 
@@ -470,7 +470,7 @@ namespace Alimer
         return CreateTextureCore(creationDesc, initialData);
     }
 
-    RHITextureRef RHIDevice::CreateTextureFromNativeHandle(NativeHandle handle, const TextureDescriptor& descriptor)
+    RHITextureRef RHIDevice::CreateTextureFromNativeHandle(RHINativeHandle handle, const TextureDescriptor& descriptor)
     {
         if (!ValidateTextureDesc(descriptor))
         {
@@ -537,18 +537,18 @@ namespace Alimer
         return CreateRenderPipelineCore(desc);
     }
 
-    QueryHeapRef RHIDevice::CreateQueryHeap(const QueryHeapDescriptor& descriptor)
+    RHIQueryHeapRef RHIDevice::CreateQueryHeap(const RHIQueryHeapDesc& desc)
     {
-        ALIMER_ASSERT(descriptor.count > 0 && descriptor.count < kQuerySetMaxQueries);
+        ALIMER_ASSERT(desc.count > 0 && desc.count < kQuerySetMaxQueries);
 
-        if (descriptor.type == QueryType::PipelineStatistics
+        if (desc.type == RHIQueryType::PipelineStatistics
             && !QueryFeatureSupport(Feature::PipelineStatisticsQuery))
         {
             LOGE("PipelineStatistics queries are not supported");
             return nullptr;
         }
 
-        return CreateQueryHeapCore(descriptor);
+        return CreateQueryHeapCore(desc);
     }
 
     /* RHIFactory */
@@ -893,7 +893,17 @@ namespace Alimer
         return s_VertexFormatTable[ecast(format)];
     }
 
-    RHIShaderModuleRef RHILoadShader(RHIDevice* device, RHIShaderStages stage, const char* fileName, const Vector<ShaderMacro>* pDefines)
+    RHIShaderModuleRef RHILoadShader(RHIDevice* device, RHIShaderStages stage, const char* fileName)
+    {
+        return RHILoadShader(device, stage, fileName, nullptr, 0);
+    }
+
+    RHIShaderModuleRef RHILoadShader(RHIDevice* device, RHIShaderStages stage, const char* fileName, const Vector<RHIShaderMacro>& defines)
+    {
+        return RHILoadShader(device, stage, fileName, defines.data(), defines.size());
+    }
+
+    RHIShaderModuleRef RHILoadShader(RHIDevice* device, RHIShaderStages stage, const char* fileName, const RHIShaderMacro* pDefines, size_t definesCount)
     {
         bool dxil = false;
         std::string shaderExt = ".bin";
@@ -904,10 +914,11 @@ namespace Alimer
 
         const char* stageName = GetEntryPointName(stage);
         std::vector<ShaderMake::ShaderConstant> constants;
-        if (pDefines)
+        if (pDefines && definesCount > 0)
         {
-            for (const ShaderMacro& define : *pDefines)
+            for (size_t i = 0; i < definesCount; ++i)
             {
+                const RHIShaderMacro& define = pDefines[i];
                 constants.push_back(ShaderMake::ShaderConstant{ define.name.c_str(), define.definition.c_str() });
             }
         }

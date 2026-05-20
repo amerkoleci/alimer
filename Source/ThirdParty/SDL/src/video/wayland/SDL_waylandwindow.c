@@ -758,10 +758,10 @@ static void handle_xdg_surface_configure(void *data, struct xdg_surface *xdg, ui
         wind->pending_config_ack = false;
         ConfigureWindowGeometry(window);
         xdg_surface_ack_configure(xdg, serial);
-    } else {
+    } else if (!wind->pending_config_ack) {
         wind->pending_config_ack = true;
 
-        // Send an exposure event so that clients doing deferred updates will trigger a frame callback and make guaranteed forward progress when resizing.
+        // Always send an exposure event during a new frame to ensure forward progress if the frame callback already occurred.
         SDL_SendWindowEvent(window, SDL_EVENT_WINDOW_EXPOSED, 0, 0);
     }
 
@@ -1462,6 +1462,11 @@ static void decoration_frame_configure(struct libdecor_frame *frame,
         struct libdecor_state *state = libdecor_state_new(wind->current.logical_width, wind->current.logical_height);
         libdecor_frame_commit(frame, state, configuration);
         libdecor_state_free(state);
+
+        // Always send an exposure event during a new frame to ensure forward progress if the frame callback already occurred.
+        if (started_resize) {
+            SDL_SendWindowEvent(window, SDL_EVENT_WINDOW_EXPOSED, 0, 0);
+        }
     }
 
     if (wind->shell_surface_status == WAYLAND_SHELL_SURFACE_STATUS_WAITING_FOR_CONFIGURE) {

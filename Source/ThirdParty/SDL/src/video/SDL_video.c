@@ -1420,11 +1420,16 @@ bool SDL_GetClosestFullscreenDisplayMode(SDL_DisplayID displayID, int w, int h, 
                 continue;
             }
 
-            if (mode->w == closest->w && mode->h == closest->h &&
-                SDL_fabsf(closest->refresh_rate - refresh_rate) < SDL_fabsf(mode->refresh_rate - refresh_rate)) {
-                /* We already found a mode and the new mode is further from our
-                 * refresh rate target */
-                continue;
+            if (mode->w == closest->w && mode->h == closest->h) {
+                if (SDL_fabsf(closest->refresh_rate - refresh_rate) < SDL_fabsf(mode->refresh_rate - refresh_rate)) {
+                    /* We already found a mode and the new mode is further from our
+                     * refresh rate target */
+                    continue;
+                }
+                if (SDL_BYTESPERPIXEL(closest->format) >= SDL_BYTESPERPIXEL(mode->format)) {
+                    // Prefer the highest color depth
+                    continue;
+                }
             }
         }
 
@@ -5913,7 +5918,7 @@ bool SDL_ScreenKeyboardShown(SDL_Window *window)
 
 void SDL_SendScreenKeyboardShown(void)
 {
-    if (_this->screen_keyboard_shown) {
+    if (!_this || _this->screen_keyboard_shown) {
         return;
     }
 
@@ -5929,7 +5934,7 @@ void SDL_SendScreenKeyboardShown(void)
 
 void SDL_SendScreenKeyboardHidden(void)
 {
-    if (!_this->screen_keyboard_shown) {
+    if (!_this || !_this->screen_keyboard_shown) {
         return;
     }
 

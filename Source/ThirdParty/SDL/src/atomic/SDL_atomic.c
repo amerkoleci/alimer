@@ -33,18 +33,16 @@
 #include <atomic.h>
 #endif
 
-// The __atomic_load_n() intrinsic showed up in different times for different compilers.
-#ifdef __clang__
-#if __has_builtin(__atomic_load_n) || defined(HAVE_GCC_ATOMICS)
-/* !!! FIXME: this advertises as available in the NDK but uses an external symbol we don't have.
-   It might be in a later NDK or we might need an extra library? --ryan. */
-#ifndef SDL_PLATFORM_ANDROID
+// The __atomic intrinsics showed up in different times for different compilers.
+#if (defined(__GNUC__) && (__GNUC__ >= 5)) || (defined(__clang__) && defined(HAVE_GCC_ATOMICS))
+#define HAVE_ATOMIC_LOAD_N 1
+#define HAVE_ATOMIC_EXCHANGE_N 1
+#else
+#if SDL_HAS_BUILTIN(__atomic_load_n)
 #define HAVE_ATOMIC_LOAD_N 1
 #endif
-#endif
-#elif defined(__GNUC__)
-#if (__GNUC__ >= 5)
-#define HAVE_ATOMIC_LOAD_N 1
+#if SDL_HAS_BUILTIN(__atomic_exchange_n)
+#define HAVE_ATOMIC_EXCHANGE_N 1
 #endif
 #endif
 
@@ -182,7 +180,14 @@ int SDL_SetAtomicInt(SDL_AtomicInt *a, int v)
 #ifdef HAVE_MSC_ATOMICS
     SDL_COMPILE_TIME_ASSERT(atomic_set, sizeof(long) == sizeof(a->value));
     return _InterlockedExchange((long *)&a->value, v);
+#elif defined(HAVE_ATOMIC_EXCHANGE_N)
+    return __atomic_exchange_n(&a->value, v, __ATOMIC_SEQ_CST);
 #elif defined(HAVE_GCC_ATOMICS)
+    // __sync_lock_test_and_set() is designed for locking rather than a
+    // generic atomic exchange, so it only provides an acquire barrier
+    // and may not store the exact value on all architectures. We prefer
+    // __atomic_exchange_n() instead on all modern compilers.
+    __sync_synchronize();
     return __sync_lock_test_and_set(&a->value, v);
 #elif defined(SDL_PLATFORM_SOLARIS)
     SDL_COMPILE_TIME_ASSERT(atomic_set, sizeof(uint_t) == sizeof(a->value));
@@ -201,7 +206,14 @@ Uint32 SDL_SetAtomicU32(SDL_AtomicU32 *a, Uint32 v)
 #ifdef HAVE_MSC_ATOMICS
     SDL_COMPILE_TIME_ASSERT(atomic_set, sizeof(long) == sizeof(a->value));
     return _InterlockedExchange((long *)&a->value, v);
+#elif defined(HAVE_ATOMIC_EXCHANGE_N)
+    return __atomic_exchange_n(&a->value, v, __ATOMIC_SEQ_CST);
 #elif defined(HAVE_GCC_ATOMICS)
+    // __sync_lock_test_and_set() is designed for locking rather than a
+    // generic atomic exchange, so it only provides an acquire barrier
+    // and may not store the exact value on all architectures. We prefer
+    // __atomic_exchange_n() instead on all modern compilers.
+    __sync_synchronize();
     return __sync_lock_test_and_set(&a->value, v);
 #elif defined(SDL_PLATFORM_SOLARIS)
     SDL_COMPILE_TIME_ASSERT(atomic_set, sizeof(uint_t) == sizeof(a->value));
@@ -219,7 +231,14 @@ void *SDL_SetAtomicPointer(void **a, void *v)
 {
 #ifdef HAVE_MSC_ATOMICS
     return _InterlockedExchangePointer(a, v);
+#elif defined(HAVE_ATOMIC_EXCHANGE_N)
+    return __atomic_exchange_n(a, v, __ATOMIC_SEQ_CST);
 #elif defined(HAVE_GCC_ATOMICS)
+    // __sync_lock_test_and_set() is designed for locking rather than a
+    // generic atomic exchange, so it only provides an acquire barrier
+    // and may not store the exact value on all architectures. We prefer
+    // __atomic_exchange_n() instead on all modern compilers.
+    __sync_synchronize();
     return __sync_lock_test_and_set(a, v);
 #elif defined(SDL_PLATFORM_SOLARIS)
     return atomic_swap_ptr(a, v);

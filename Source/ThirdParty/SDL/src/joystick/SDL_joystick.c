@@ -448,6 +448,7 @@ static Uint32 initial_blacklist_devices[] = {
     MAKE_VIDPID(0x20d6, 0x0002), // PowerA Enhanced Wireless Controller for Nintendo Switch (charging port only)
     MAKE_VIDPID(0x31e3, 0x1310), // Wooting 60HE (ARM)
     MAKE_VIDPID(0x3297, 0x1969), // Moonlander MK1 Keyboard
+    MAKE_VIDPID(0x3434, 0x0121), // Keychron Q3 System Control
     MAKE_VIDPID(0x3434, 0x0211), // Keychron K1 Pro System Control
     MAKE_VIDPID(0x3434, 0x0353), // Keychron V5 System Control
     MAKE_VIDPID(0x3434, 0xd030), // Keychron Link
@@ -476,6 +477,8 @@ static Uint32 initial_flightstick_devices[] = {
     MAKE_VIDPID(0x10f5, 0x7084), // Turtle Beach VelocityOne
     MAKE_VIDPID(0x231d, 0x0126), // Gunfighter Mk.III 'Space Combat Edition' (right)
     MAKE_VIDPID(0x231d, 0x0127), // Gunfighter Mk.III 'Space Combat Edition' (left)
+    MAKE_VIDPID(0x3344, 0x4391), // VIRPIL Controls R-VPC Stick MT-50CM3
+    MAKE_VIDPID(0x3344, 0x8390), // VIRPIL Controls L-VPC Stick MT-50CM3
     MAKE_VIDPID(0x362c, 0x0001), // Yawman Arrow
 };
 static SDL_vidpid_list flightstick_devices = {
@@ -523,6 +526,7 @@ static Uint32 initial_throttle_devices[] = {
     MAKE_VIDPID(0x044f, 0x0404), // HOTAS Warthog Throttle
     MAKE_VIDPID(0x0738, 0xa221), // Saitek Pro Flight X-56 Rhino Throttle
     MAKE_VIDPID(0x10f5, 0x7085), // Turtle Beach VelocityOne Throttle
+    MAKE_VIDPID(0x3344, 0x0196), // VIRPIL Controls VPC VMAX Prime Throttle
 };
 static SDL_vidpid_list throttle_devices = {
     SDL_HINT_JOYSTICK_THROTTLE_DEVICES, 0, 0, NULL,

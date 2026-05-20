@@ -595,18 +595,18 @@ namespace Alimer
             }
         }
 
-        constexpr VkQueryType ToVkQueryType(QueryType type)
+        constexpr VkQueryType ToVkQueryType(RHIQueryType type)
         {
             switch (type)
             {
-                case QueryType::Occlusion:
-                case QueryType::BinaryOcclusion:
-                    return VK_QUERY_TYPE_OCCLUSION;
-
-                case QueryType::Timestamp:
+                case RHIQueryType::Timestamp:
                     return VK_QUERY_TYPE_TIMESTAMP;
 
-                case QueryType::PipelineStatistics:
+                case RHIQueryType::Occlusion:
+                case RHIQueryType::BinaryOcclusion:
+                    return VK_QUERY_TYPE_OCCLUSION;
+
+                case RHIQueryType::PipelineStatistics:
                     return VK_QUERY_TYPE_PIPELINE_STATISTICS;
 
                 default:
@@ -614,18 +614,18 @@ namespace Alimer
             }
         }
 
-        constexpr uint32_t GetQueryResultSize(QueryType type)
+        constexpr uint32_t GetQueryResultSize(RHIQueryType type)
         {
             constexpr uint32_t highestBitInPipelineStatsBits = 11;
 
             switch (type)
             {
-                case QueryType::Occlusion:
-                case QueryType::BinaryOcclusion:
-                case QueryType::Timestamp:
+                case RHIQueryType::Occlusion:
+                case RHIQueryType::BinaryOcclusion:
+                case RHIQueryType::Timestamp:
                     return sizeof(uint64_t);
 
-                case QueryType::PipelineStatistics:
+                case RHIQueryType::PipelineStatistics:
                     return highestBitInPipelineStatsBits * sizeof(uint64_t);
 
                 default:
@@ -807,7 +807,6 @@ namespace Alimer
             { BufferStates::VertexBuffer, VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT, VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT },
             { BufferStates::IndexBuffer, VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT },
             { BufferStates::ConstantBuffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_UNIFORM_READ_BIT },
-            { BufferStates::Predication, VK_PIPELINE_STAGE_2_CONDITIONAL_RENDERING_BIT_EXT, VK_ACCESS_2_CONDITIONAL_RENDERING_READ_BIT_EXT },
             #if TODO
             { ResourceStates::IndirectArgument, VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT },
             { ResourceStates::StreamOut, VK_PIPELINE_STAGE_2_TRANSFORM_FEEDBACK_BIT_EXT, VK_ACCESS_2_TRANSFORM_FEEDBACK_WRITE_BIT_EXT },
@@ -984,7 +983,7 @@ namespace Alimer
         void SetLabel(const char* label) override;
         void* GetMappedData() const override { return pMappedData; }
         GPUAddress GetGPUAddress() const override { return deviceAddress; }
-        NativeHandle GetNativeHandle(NativeHandleType objectType) override;
+        RHINativeHandle GetNativeHandle(NativeHandleType objectType) override;
         void SetCurrentState(BufferStates state) const
         {
             currentState = state;
@@ -1022,7 +1021,7 @@ namespace Alimer
         uint64_t GetAllocatedSize() const { return allocatedSize; }
         void SetLabel(const char* label) override;
         RHITextureViewRef CreateView(const RHITextureViewDesc& desc) const override;
-        NativeHandle GetNativeHandle(NativeHandleType objectType) override;
+        RHINativeHandle GetNativeHandle(NativeHandleType objectType) override;
     };
 
     struct VulkanTextureView final : public RHITextureView
@@ -1040,7 +1039,7 @@ namespace Alimer
         ~VulkanTextureView() override;
 
         void SetLabel(const char* label) override;
-        NativeHandle GetNativeHandle(NativeHandleType objectType) override;
+        RHINativeHandle GetNativeHandle(NativeHandleType objectType) override;
     };
 
     struct VulkanSampler final : public Sampler
@@ -1084,10 +1083,10 @@ namespace Alimer
         void SetLabel(const char* label) override;
     };
 
-    struct VulkanQueryHeap final : public QueryHeap
+    struct VulkanQueryHeap final : public RHIQueryHeap
     {
         VulkanDevice* device = nullptr;
-        QueryHeapDescriptor desc;
+        RHIQueryHeapDesc desc;
         VkQueryPool handle = VK_NULL_HANDLE;
         uint32_t queryResultSize = 0;
 
@@ -1095,7 +1094,7 @@ namespace Alimer
         void SetLabel(const char* label) override;
 
         uint32_t GetCount() const override { return desc.count; }
-        QueryType GetType() const override { return desc.type; }
+        RHIQueryType GetType() const override { return desc.type; }
     };
 
     struct VulkanSurface final : public RHISurface
@@ -1289,19 +1288,16 @@ namespace Alimer
 
         void FlushBindGroups(const DescriptorBindingTable& table, bool graphics);
 
-        void BeginQuery(const QueryHeap* heap, uint32_t index) override;
-        void EndQuery(const QueryHeap* heap, uint32_t index) override;
-        void ResolveQuery(const QueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset) override;
-        void ResetQuery(const QueryHeap* heap, uint32_t index, uint32_t count) override;
+        void BeginQuery(const RHIQueryHeap* heap, uint32_t index) override;
+        void EndQuery(const RHIQueryHeap* heap, uint32_t index) override;
+        void ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset) override;
+        void ResetQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count) override;
 
         /* GraphicsContext */
         RHITexture* AcquireSurfaceTexture(RHISurface* surface) override;
 
         ComputePassEncoder* BeginComputePassCore(const RHIComputePassDesc& desc) override;
         RenderPassEncoder* BeginRenderPassCore(const RenderPassDesc& desc) override;
-
-        void BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation) override;
-        void EndPredication() override;
 
     private:
         static constexpr uint32_t kMaxBarrierCount = 16;
@@ -1388,7 +1384,6 @@ namespace Alimer
         void BindDescriptorSets(VkCommandBuffer commandBuffer, VkPipelineBindPoint bindPoint);
 
     private:
-
         VkDescriptorSet descriptorSets[DESCRIPTOR_SET_COUNT] = {};
     };
 
@@ -1440,7 +1435,6 @@ namespace Alimer
         bool rayQuery;
         bool fragmentShadingRate;
         bool meshShader;
-        bool conditionalRendering;
         bool unifiedImageLayouts;
         bool mutableDescriptorType;
         bool descriptorHeap;
@@ -1497,9 +1491,9 @@ namespace Alimer
         bool WaitIdle() override;
         uint64_t CommitFrame() override;
 
-        RHIBufferRef CreateBufferCore(const RHIBufferDesc& desc, NativeHandle nativeHandle, const void* initialData) override;
+        RHIBufferRef CreateBufferCore(const RHIBufferDesc& desc, RHINativeHandle nativeHandle, const void* initialData) override;
         RHITextureRef CreateTextureCore(const TextureDescriptor& desc, const TextureData* initialData) override;
-        RHITextureRef CreateTextureFromNativeHandleCore(NativeHandle handle, const TextureDescriptor& desc) override;
+        RHITextureRef CreateTextureFromNativeHandleCore(RHINativeHandle handle, const TextureDescriptor& desc) override;
         SamplerRef CreateSamplerCore(const SamplerDesc& desc) override;
 
         VkSampler GetOrCreateVulkanSampler(const SamplerDesc* desc);
@@ -1508,7 +1502,7 @@ namespace Alimer
         RHIShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) override;
         ComputePipelineRef CreateComputePipelineCore(const RHIComputePipelineDesc& desc) override;
         RenderPipelineRef CreateRenderPipelineCore(const RHIRenderPipelineDesc& desc) override;
-        QueryHeapRef CreateQueryHeapCore(const QueryHeapDescriptor& desc) override;
+        RHIQueryHeapRef CreateQueryHeapCore(const RHIQueryHeapDesc& desc) override;
 
         void WriteShadingRateValue(ShadingRate rate, void* dest) const override;
 
@@ -1525,7 +1519,7 @@ namespace Alimer
         bool QueryFeatureSupport(Feature feature) override;
         PixelFormatSupport QueryPixelFormatSupport(PixelFormat format) override;
         bool QueryVertexFormatSupport(VertexAttributeFormat format);
-        NativeHandle GetNativeHandle(NativeHandleType objectType) override;
+        RHINativeHandle GetNativeHandle(NativeHandleType objectType) override;
         VkFormat ToVkFormat(PixelFormat format);
         bool IsDepthStencilFormatSupported(VkFormat format) const;
 
@@ -1657,7 +1651,6 @@ namespace Alimer
         VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{};
         VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeatures{};
         VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{};
-        VkPhysicalDeviceConditionalRenderingFeaturesEXT conditionalRenderingFeatures{};
         VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR unifiedImageLayoutsFeatures{};
         VkPhysicalDeviceDescriptorHeapFeaturesEXT descriptorHeapFeaturesEXT{};
 
@@ -1681,6 +1674,7 @@ namespace Alimer
         bool Init();
 
         RHIDeviceRef CreateDevice(const RHIDeviceDesc& desc) override;
+        RHINativeHandle GetNativeHandle(NativeHandleType objectType) override;
 
         VkFormat ToVkFormat(PixelFormat format);
         bool IsDepthStencilFormatSupported(VkFormat format) const;
@@ -1707,6 +1701,7 @@ namespace Alimer
         RHIBackend GetBackend() const override { return RHIBackend::Vulkan; }
 
         RHISurfaceRef CreateSurface(void* window, void* display) override;
+        RHINativeHandle GetNativeHandle(NativeHandleType objectType) override;
 
         PhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice);
         QueueFamilyIndices QueryQueueFamilies(VkPhysicalDevice physicalDevice, bool supportsVideoQueue);
@@ -1740,14 +1735,14 @@ namespace Alimer
         //allocation->SetName(device->allocator, newLabel.data());
     }
 
-    NativeHandle VulkanBuffer::GetNativeHandle(NativeHandleType objectType)
+    RHINativeHandle VulkanBuffer::GetNativeHandle(NativeHandleType objectType)
     {
         switch (objectType)
         {
             case NativeHandleType::VK_Buffer:
-                return NativeHandle(handle);
+                return RHINativeHandle(handle);
             case NativeHandleType::SharedHandle:
-                return NativeHandle(sharedHandle);
+                return RHINativeHandle(sharedHandle);
             default:
                 return nullptr;
         }
@@ -1787,14 +1782,14 @@ namespace Alimer
         //allocation->SetName(device->allocator, newLabel.data());
     }
 
-    NativeHandle VulkanTexture::GetNativeHandle(NativeHandleType objectType)
+    RHINativeHandle VulkanTexture::GetNativeHandle(NativeHandleType objectType)
     {
         switch (objectType)
         {
             case NativeHandleType::VK_Image:
-                return NativeHandle(handle);
+                return RHINativeHandle(handle);
             case NativeHandleType::SharedHandle:
-                return NativeHandle(sharedHandle);
+                return RHINativeHandle(sharedHandle);
             default:
                 return nullptr;
         }
@@ -1864,12 +1859,12 @@ namespace Alimer
         device->SetObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<uint64_t>(handle), label);
     }
 
-    NativeHandle VulkanTextureView::GetNativeHandle(NativeHandleType objectType)
+    RHINativeHandle VulkanTextureView::GetNativeHandle(NativeHandleType objectType)
     {
         switch (objectType)
         {
             case NativeHandleType::VK_ImageView:
-                return NativeHandle(handle);
+                return RHINativeHandle(handle);
             default:
                 return nullptr;
         }
@@ -3234,54 +3229,54 @@ namespace Alimer
 
     }
 
-    void VulkanCommandBuffer::BeginQuery(const QueryHeap* heap, uint32_t index)
+    void VulkanCommandBuffer::BeginQuery(const RHIQueryHeap* heap, uint32_t index)
     {
         auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
 
         switch (vulkanHeap->desc.type)
         {
-            case QueryType::Occlusion:
+            case RHIQueryType::Occlusion:
                 device->vkCmdBeginQuery(commandBuffer, vulkanHeap->handle, index, VK_QUERY_CONTROL_PRECISE_BIT);
                 break;
-            case QueryType::BinaryOcclusion:
-            case QueryType::PipelineStatistics:
+            case RHIQueryType::BinaryOcclusion:
+            case RHIQueryType::PipelineStatistics:
                 device->vkCmdBeginQuery(commandBuffer, vulkanHeap->handle, index, 0);
                 break;
 
             default:
-            case QueryType::Timestamp:
+            case RHIQueryType::Timestamp:
                 break;
         }
     }
 
-    void VulkanCommandBuffer::EndQuery(const QueryHeap* heap, uint32_t index)
+    void VulkanCommandBuffer::EndQuery(const RHIQueryHeap* heap, uint32_t index)
     {
-        auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
+        auto backendHeap = static_cast<const VulkanQueryHeap*>(heap);
 
-        switch (vulkanHeap->desc.type)
+        switch (backendHeap->desc.type)
         {
-            case QueryType::Timestamp:
+            case RHIQueryType::Timestamp:
                 // Should be VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT?
-                device->vkCmdWriteTimestamp2(commandBuffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, vulkanHeap->handle, index);
+                device->vkCmdWriteTimestamp2(commandBuffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, backendHeap->handle, index);
                 break;
-            case QueryType::Occlusion:
-            case QueryType::BinaryOcclusion:
-            case QueryType::PipelineStatistics:
-                device->vkCmdEndQuery(commandBuffer, vulkanHeap->handle, index);
+            case RHIQueryType::Occlusion:
+            case RHIQueryType::BinaryOcclusion:
+            case RHIQueryType::PipelineStatistics:
+                device->vkCmdEndQuery(commandBuffer, backendHeap->handle, index);
                 break;
         }
     }
 
-    void VulkanCommandBuffer::ResolveQuery(const QueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset)
+    void VulkanCommandBuffer::ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset)
     {
-        auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
-        auto vulkanDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
+        auto backendHeap = static_cast<const VulkanQueryHeap*>(heap);
+        auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
 
         VkQueryResultFlags flags = VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT;
 
-        switch (vulkanHeap->desc.type)
+        switch (backendHeap->desc.type)
         {
-            case QueryType::BinaryOcclusion:
+            case RHIQueryType::BinaryOcclusion:
                 flags |= VK_QUERY_RESULT_PARTIAL_BIT;
                 break;
             default:
@@ -3290,20 +3285,20 @@ namespace Alimer
 
         device->vkCmdCopyQueryPoolResults(
             commandBuffer,
-            vulkanHeap->handle,
+            backendHeap->handle,
             index,
             count,
-            vulkanDestBuffer->handle,
+            backendDestBuffer->handle,
             destinationOffset,
-            vulkanHeap->queryResultSize,
+            backendHeap->queryResultSize,
             flags
         );
     }
 
-    void VulkanCommandBuffer::ResetQuery(const QueryHeap* heap, uint32_t index, uint32_t count)
+    void VulkanCommandBuffer::ResetQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count)
     {
-        auto vulkanHeap = static_cast<const VulkanQueryHeap*>(heap);
-        device->vkCmdResetQueryPool(commandBuffer, vulkanHeap->handle, index, count);
+        auto backendHeap = static_cast<const VulkanQueryHeap*>(heap);
+        device->vkCmdResetQueryPool(commandBuffer, backendHeap->handle, index, count);
     }
 
     RHITexture* VulkanCommandBuffer::AcquireSurfaceTexture(RHISurface* surface)
@@ -3363,35 +3358,6 @@ namespace Alimer
     {
         _renderPassEncoder->Begin(desc);
         return _renderPassEncoder;
-    }
-
-    void VulkanCommandBuffer::BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation)
-    {
-        if (device->_adapter->conditionalRenderingFeatures.conditionalRendering == VK_TRUE)
-        {
-            auto vulkanBuffer = static_cast<const VulkanBuffer*>(buffer);
-            BufferBarrier(vulkanBuffer, BufferStates::Predication);
-            CommitBarriers();
-
-            VkConditionalRenderingBeginInfoEXT info = {};
-            info.sType = VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT;
-            if (operation == PredicationOperation::NotEqualZero)
-            {
-                info.flags = VK_CONDITIONAL_RENDERING_INVERTED_BIT_EXT;
-            }
-            info.buffer = vulkanBuffer->handle;
-            info.offset = offset;
-
-            device->vkCmdBeginConditionalRenderingEXT(commandBuffer, &info);
-        }
-    }
-
-    void VulkanCommandBuffer::EndPredication()
-    {
-        if (device->_adapter->conditionalRenderingFeatures.conditionalRendering == VK_TRUE)
-        {
-            device->vkCmdEndConditionalRenderingEXT(commandBuffer);
-        }
     }
 
     void VulkanBindlessDescriptorHeap::Init(VulkanDevice* device, VkDescriptorType type, uint32_t descriptorCount)
@@ -3836,11 +3802,6 @@ namespace Alimer
         if (extensions.meshShader)
         {
             enabledDeviceExtensions.push_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
-        }
-
-        if (extensions.conditionalRendering)
-        {
-            enabledDeviceExtensions.push_back(VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME);
         }
 
         if (extensions.unifiedImageLayouts)
@@ -4618,7 +4579,7 @@ namespace Alimer
         return _frameCount;
     }
 
-    RHIBufferRef VulkanDevice::CreateBufferCore(const RHIBufferDesc& desc, NativeHandle nativeHandle, const void* initialData)
+    RHIBufferRef VulkanDevice::CreateBufferCore(const RHIBufferDesc& desc, RHINativeHandle nativeHandle, const void* initialData)
     {
         SharedPtr<VulkanBuffer> buffer(new VulkanBuffer(this, desc));
 
@@ -4679,12 +4640,6 @@ namespace Alimer
         {
             createInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
             needBufferDeviceAddress = true;
-        }
-
-        if (CheckBitsAny(desc.usage, RHIBufferUsage::Predication)
-            && QueryFeatureSupport(Feature::Predication))
-        {
-            createInfo.usage |= VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT;
         }
 
         if (CheckBitsAny(desc.usage, RHIBufferUsage::RayTracing)
@@ -4832,11 +4787,6 @@ namespace Alimer
                 if (CheckBitsAny(desc.usage, RHIBufferUsage::Indirect))
                 {
                     barrier.dstAccessMask |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
-                }
-
-                if (CheckBitsAny(desc.usage, RHIBufferUsage::Predication))
-                {
-                    barrier.dstAccessMask |= VK_ACCESS_2_CONDITIONAL_RENDERING_READ_BIT_EXT;
                 }
 
                 if (CheckBitsAny(desc.usage, RHIBufferUsage::RayTracing))
@@ -5299,7 +5249,7 @@ namespace Alimer
         return texture;
     }
 
-    RHITextureRef VulkanDevice::CreateTextureFromNativeHandleCore(NativeHandle handle, const TextureDescriptor& desc)
+    RHITextureRef VulkanDevice::CreateTextureFromNativeHandleCore(RHINativeHandle handle, const TextureDescriptor& desc)
     {
         if (handle.type != NativeHandleType::VK_Image)
             return nullptr;
@@ -5796,14 +5746,14 @@ namespace Alimer
         return pipeline;
     }
 
-    QueryHeapRef VulkanDevice::CreateQueryHeapCore(const QueryHeapDescriptor& desc)
+    RHIQueryHeapRef VulkanDevice::CreateQueryHeapCore(const RHIQueryHeapDesc& desc)
     {
         VkQueryPoolCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
         createInfo.queryType = ToVkQueryType(desc.type);
         createInfo.queryCount = desc.count;
 
-        if (desc.type == QueryType::PipelineStatistics)
+        if (desc.type == RHIQueryType::PipelineStatistics)
         {
             VkQueryPipelineStatisticFlags pipelineStatistics = VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_VERTICES_BIT
                 | VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_PRIMITIVES_BIT
@@ -6106,9 +6056,6 @@ namespace Alimer
 
                 return false;
 
-            case Feature::Predication:
-                return _adapter->conditionalRenderingFeatures.conditionalRendering == VK_TRUE;
-
             default:
                 return false;
         }
@@ -6247,16 +6194,16 @@ namespace Alimer
         return true;
     }
 
-    NativeHandle VulkanDevice::GetNativeHandle(NativeHandleType objectType)
+    RHINativeHandle VulkanDevice::GetNativeHandle(NativeHandleType objectType)
     {
         switch (objectType)
         {
             case NativeHandleType::VK_Instance:
-                return NativeHandle(_adapter->factory->handle);
+                return RHINativeHandle(_adapter->factory->handle);
             case NativeHandleType::VK_PhysicalDevice:
-                return NativeHandle(_adapter->handle);
+                return RHINativeHandle(_adapter->handle);
             case NativeHandleType::VK_Device:
-                return NativeHandle(handle);
+                return RHINativeHandle(handle);
             default:
                 return nullptr;
         }
@@ -6745,12 +6692,6 @@ namespace Alimer
             addToPropertiesChain(&meshShaderProperties);
         }
 
-        if (extensions.conditionalRendering)
-        {
-            conditionalRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT;
-            addToFeatureChain(&conditionalRenderingFeatures);
-        }
-
         if (extensions.unifiedImageLayouts)
         {
             unifiedImageLayoutsFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFIED_IMAGE_LAYOUTS_FEATURES_KHR;
@@ -6848,6 +6789,17 @@ namespace Alimer
         }
 
         return device;
+    }
+
+    RHINativeHandle VulkanAdapter::GetNativeHandle(NativeHandleType objectType)
+    {
+        switch (objectType)
+        {
+            case NativeHandleType::VK_PhysicalDevice:
+                return RHINativeHandle(handle);
+            default:
+                return nullptr;
+        }
     }
 
     VkFormat VulkanAdapter::ToVkFormat(PixelFormat format)
@@ -7310,6 +7262,17 @@ namespace Alimer
         return resultSurface;
     }
 
+    RHINativeHandle VulkanFactory::GetNativeHandle(NativeHandleType objectType)
+    {
+        switch (objectType)
+        {
+            case NativeHandleType::VK_Instance:
+                return RHINativeHandle(handle);
+            default:
+                return nullptr;
+        }
+    }
+
     PhysicalDeviceExtensions VulkanFactory::QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice)
     {
         uint32_t count = 0;
@@ -7424,10 +7387,6 @@ namespace Alimer
             else if (strcmp(vk_extensions[i].extensionName, VK_EXT_MESH_SHADER_EXTENSION_NAME) == 0)
             {
                 extensions.meshShader = true;
-            }
-            else if (strcmp(vk_extensions[i].extensionName, VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME) == 0)
-            {
-                extensions.conditionalRendering = true;
             }
             else if (strcmp(vk_extensions[i].extensionName, VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME) == 0)
             {

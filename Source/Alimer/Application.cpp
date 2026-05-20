@@ -6,6 +6,7 @@
 #include "Alimer/Core/Timer.h"
 #include "Alimer/Core/JobSystem.h"
 #include "Alimer/Input.h"
+#include "Alimer/Audio/Audio.h"
 #include "Alimer/Application.h"
 #include "Alimer/Assets/AssetManager.h"
 #include <thread>
@@ -50,6 +51,7 @@ Application::~Application()
     _rhiDevice.Reset();
     _rhiFactory.Reset();
     Input::Shutdown();
+    Audio::Shutdown();
     Log::Shutdown();
     JobSystem::Shutdown();
     PlatformShutdown();
@@ -102,6 +104,7 @@ void Application::InitBeforeRun()
 {
     JobSystem::Context ctx;
     JobSystem::Execute(ctx, [](JobSystem::JobArgs /*args*/) { Input::Initialize(); Input::Update(); });
+    JobSystem::Execute(ctx, [](JobSystem::JobArgs /*args*/) { Audio::Initialize(); });
     JobSystem::Execute(ctx, [&](JobSystem::JobArgs /*args*/) { gAssets().Start(_options.assetsDirectory); });
 
     // Create RHI factory and device.

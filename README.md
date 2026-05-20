@@ -25,3 +25,4 @@ Uses the following open-source and third-party libraries:
 - [Metal-cpp](https://developer.apple.com/metal/cpp/): Metal-cpp is a low-overhead C++ interface for Metal
 - [RapidJSON](https://rapidjson.org/): A fast JSON parser/generator for C++ with both SAX/DOM style API
 - [cgltf](https://github.com/jkuhlmann/cgltf): Single-file glTF 2.0 loader and writer written in C99
+- [miniaudio](https://github.com/mackron/miniaudio): Audio playback and capture library written in C, in a single source file

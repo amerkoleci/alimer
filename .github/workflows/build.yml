@@ -19,11 +19,11 @@ env:
 
 jobs:
   windows:
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
 
     - name: Get CMake and Ninja
       uses: lukka/get-cmake@latest
@@ -31,11 +31,8 @@ jobs:
         cmakeVersion: latestrc
         ninjaVersion: latest
 
-    - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@v2
-
     - name: Configure win-x64
-      run: cmake -S "." -B "build_win_64" -G "Visual Studio 17 2022" -A x64 -D CMAKE_SYSTEM_VERSION=10.0.26100.0 -DCMAKE_INSTALL_PREFIX="win-x64-sdk"
+      run: cmake -S "." -B "build_win_64" -G "Visual Studio 18 2026" -A x64 -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX="win-x64-sdk"
 
     - name: Build win-x64
       run: cmake --build build_win_64 --config Distribution --target install --verbose --parallel  
@@ -43,7 +40,7 @@ jobs:
   linux:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Get CMake and Ninja
       uses: lukka/get-cmake@latest
@@ -72,7 +69,7 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Get CMake and Ninja
       uses: lukka/get-cmake@latest

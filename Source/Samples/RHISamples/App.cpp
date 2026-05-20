@@ -47,6 +47,10 @@ void RHISamplesApp::Initialize()
         GetMainWindow()->GetColorFormat(),
         depthStencilFormat);
 
+    AudioClipRef clip = gAssets().Load<AudioClip>("Sounds/BGM.mp3");
+    AudioSource* source = new AudioSource(clip.Get());
+    source->Play();
+
     {
         JsonSerializer serializer;
         float x = 3.0f;
@@ -60,6 +64,7 @@ void RHISamplesApp::Initialize()
         serializer.Serialize(nullptr, hello);
         serializer.Serialize(nullptr, vec2);
         serializer.EndObject();
+#if 0
         std::string str = serializer.ToString();
         LOGI("Serialized JSON: {}", str);
 
@@ -73,7 +78,9 @@ void RHISamplesApp::Initialize()
         deserializer.EndObject();
 
         //deserializer.BeginObject("TestArrayNone", false);
-       // deserializer.EndObject();
+       // deserializer.EndObject();  
+#endif // 0
+
     }
 }
 

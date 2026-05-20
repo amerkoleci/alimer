@@ -180,7 +180,7 @@ static void xinput2_parse_scrollable_valuators(const XIDeviceEvent *xev)
                             const double y = info->scroll_type == XIScrollTypeVertical ? delta : 0;
 
                             SDL_Mouse *mouse = SDL_GetMouse();
-                            SDL_SendMouseWheel(xev->time, mouse->focus, (SDL_MouseID)xev->sourceid, (float)x, (float)y, SDL_MOUSEWHEEL_NORMAL);
+                            SDL_SendMouseWheel(xev->time, mouse->focus, (SDL_MouseID)xev->sourceid, (float)-x, (float)y, SDL_MOUSEWHEEL_NORMAL);
                         }
                         info->prev_value = current_val;
                         info->prev_value_valid = true;
@@ -607,8 +607,16 @@ void X11_HandleXinput2Event(SDL_VideoDevice *_this, XGenericEventCookie *cookie)
             SDL_WindowData *windowdata = X11_FindWindow(videodata, xev->event);
             int x_ticks = 0, y_ticks = 0;
 
-            // Slave pointer devices don't have button remapping applied automatically, so do it manually.
+            // Store the button serial to filter out redundant core button events.
+            videodata->xinput_last_button_serial = xev->serial;
+
             if (xev->deviceid != videodata->xinput_master_pointer_device) {
+                // Ignore slave button events on non-focused windows, or focus can be incorrectly set while a grab is active.
+                if (SDL_GetMouseFocus() != windowdata->window) {
+                    break;
+                }
+
+                // Slave pointer devices don't have button remapping applied automatically, so do it manually.
                 if (button <= xinput2_pointer_button_map_size) {
                     button = xinput2_pointer_button_map[button - 1];
                 }

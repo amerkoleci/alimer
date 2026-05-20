@@ -74,17 +74,17 @@ _MTL_ENUM(NS::Integer, TextureSparseTier) {
 };
 
 _MTL_OPTIONS(NS::UInteger, ResourceOptions) {
-    ResourceCPUCacheModeDefaultCache = 0,
-    ResourceCPUCacheModeWriteCombined = 1,
-    ResourceStorageModeShared = 0,
-    ResourceStorageModeManaged = 1 << 4,
-    ResourceStorageModePrivate = 1 << 5,
-    ResourceStorageModeMemoryless = 1 << 5,
-    ResourceHazardTrackingModeDefault = 0,
-    ResourceHazardTrackingModeUntracked = 1 << 8,
-    ResourceHazardTrackingModeTracked = 1 << 9,
-    ResourceOptionCPUCacheModeDefault = 0,
-    ResourceOptionCPUCacheModeWriteCombined = 1,
+    ResourceCPUCacheModeDefaultCache = 0x0,
+    ResourceCPUCacheModeWriteCombined = 0x1,
+    ResourceStorageModeShared = 0x0,
+    ResourceStorageModeManaged = 0x10,
+    ResourceStorageModePrivate = 0x20,
+    ResourceStorageModeMemoryless = 0x30,
+    ResourceHazardTrackingModeDefault = 0x0,
+    ResourceHazardTrackingModeUntracked = 0x100,
+    ResourceHazardTrackingModeTracked = 0x200,
+    ResourceOptionCPUCacheModeDefault [[deprecated("use MTL::ResourceCPUCacheModeDefaultCache instead")]] = ResourceCPUCacheModeDefaultCache,
+    ResourceOptionCPUCacheModeWriteCombined [[deprecated("use MTL::ResourceCPUCacheModeWriteCombined instead")]] = ResourceCPUCacheModeWriteCombined,
 };
 
 class Resource : public NS::Referencing<Resource, Allocation>

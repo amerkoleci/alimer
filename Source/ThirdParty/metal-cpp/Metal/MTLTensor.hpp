@@ -46,6 +46,8 @@ _MTL_ENUM(NS::Integer, TensorDataType) {
     TensorDataTypeUInt16 = 41,
     TensorDataTypeInt32 = 29,
     TensorDataTypeUInt32 = 33,
+    TensorDataTypeInt4 = 143,
+    TensorDataTypeUInt4 = 144,
 };
 
 _MTL_ENUM(NS::Integer, TensorError) {

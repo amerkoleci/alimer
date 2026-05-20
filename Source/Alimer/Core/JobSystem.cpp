@@ -6,6 +6,7 @@
 #include "Alimer/Core/Vector.h"
 #include "Alimer/Core/Stopwatch.h"
 #include "Alimer/Core/JobSystem.h"
+#include "Alimer/Math/MathHelper.h"
 #include <chrono>
 
 #include <memory>
@@ -24,36 +25,13 @@
 #include <sys/resource.h>
 #endif
 
-namespace
-{
-#if defined(_WIN32)
-    inline long AtomicAdd(volatile long* ptr, long val)
-    {
-        return _InterlockedExchangeAdd(ptr, val);
-    }
-    inline long AtomicOr(volatile long* ptr, long mask)
-    {
-        return _InterlockedOr(ptr, mask);
-    }
-#else
-    inline long AtomicAdd(volatile long* ptr, long val)
-    {
-        return __atomic_fetch_add(ptr, val, __ATOMIC_SEQ_CST);
-    }
-    inline long AtomicOr(volatile long* ptr, long mask)
-    {
-        return __atomic_fetch_or(ptr, mask, __ATOMIC_SEQ_CST);
-    }
+#if defined(__APPLE__)
+#include <sys/qos.h>
 #endif
-    inline long AtomicLoad(const volatile long* ptr)
-    {
-        return AtomicOr((volatile long*)ptr, 0);
-    }
-}
 
 namespace Alimer::JobSystem
 {
-    struct Job final
+    struct alignas(64) Job
     {
         std::function<void(JobArgs)> task;
         Context* ctx;
@@ -62,13 +40,15 @@ namespace Alimer::JobSystem
         uint32_t groupJobEnd;
         uint32_t sharedMemorySize;
 
-        inline void Execute()
+        inline uint32_t Execute()
         {
-            JobArgs args;
+            JobArgs args{};
             args.groupID = groupID;
             if (sharedMemorySize > 0)
             {
-                args.sharedMemory = alloca(sharedMemorySize);
+                static constexpr uint32_t alignment = 64; // avx-512 alignment is assumed at max
+                args.sharedMemory = alloca(sharedMemorySize + alignment); // overestimated alignment to not overwrite after allocation from the aligned pointer
+                args.sharedMemory = (void*)Align((uint64_t)args.sharedMemory, (uint64_t)alignment);
             }
             else
             {
@@ -84,7 +64,7 @@ namespace Alimer::JobSystem
                 task(args);
             }
 
-            AtomicAdd(&ctx->counter, -1);
+            return ctx->counter.fetch_sub(1, std::memory_order_relaxed); // returns context counter's previous value
         }
     };
 
@@ -117,8 +97,29 @@ namespace Alimer::JobSystem
         Vector<std::thread> threads;
         std::unique_ptr<JobQueue[]> jobQueuePerThread;
         std::atomic<uint32_t> nextQueue{ 0 };
-        std::condition_variable wakeCondition;
-        std::mutex wakeMutex;
+        std::condition_variable sleepingCondition; // for workers that are sleeping
+        std::mutex sleepingMutex; // for workers that are sleeping
+        std::condition_variable waitingCondition; // for unblocking a Wait()
+        std::mutex waitingMutex; // for unblocking a Wait()
+        uint8_t mod_lut[256] = {}; // lookup table from atomic uint8_t -> threadID (avoiding modulo)
+
+        constexpr uint8_t constrain_queue_index(uint8_t idx) const
+        {
+            //idx = idx % numThreads;
+            idx = mod_lut[idx]; // this has the modulo precomputed at Initialize()
+            return idx;
+        }
+
+        inline uint8_t next_queue_index()
+        {
+            uint8_t idx = nextQueue.fetch_add(1, std::memory_order_relaxed);
+            return constrain_queue_index(idx);
+        }
+
+        inline JobQueue& next_queue()
+        {
+            return jobQueuePerThread[next_queue_index()];
+        }
 
         // Start working on a job queue
         //	After the job queue is finished, it can switch to an other queue and steal jobs from there
@@ -127,10 +128,17 @@ namespace Alimer::JobSystem
             Job job;
             for (uint32_t i = 0; i < numThreads; ++i)
             {
-                JobQueue& job_queue = jobQueuePerThread[startingQueue % numThreads];
+                JobQueue& job_queue = jobQueuePerThread[constrain_queue_index(startingQueue)];
                 while (job_queue.pop_front(job))
                 {
-                    job.Execute();
+                    uint32_t progress_before = job.Execute();
+                    if (progress_before == 1)
+                    {
+                        // This is likely the last job because the counter was 1 before it was decremented in execute()
+                        //	So wake up the waiting threads here
+                        std::unique_lock<std::mutex> lock(waitingMutex);
+                        waitingCondition.notify_all();
+                    }
                 }
                 startingQueue++; // go to next queue
             }
@@ -147,7 +155,7 @@ namespace Alimer::JobSystem
 
         void Shutdown()
         {
-            if (!numCores)
+            if (IsShuttingDown())
                 return;
 
             alive.store(false); // indicate that new jobs cannot be started from this point
@@ -157,7 +165,7 @@ namespace Alimer::JobSystem
                 {
                     for (auto& x : resources)
                     {
-                        x.wakeCondition.notify_all(); // wakes up sleeping worker threads
+                        x.sleepingCondition.notify_all(); // wakes up sleeping worker threads
                     }
                 }
                 });
@@ -223,22 +231,37 @@ namespace Alimer::JobSystem
             res.jobQueuePerThread.reset(new JobQueue[res.numThreads]);
             res.threads.reserve(res.numThreads);
 
+            // Precompute lookup table of modulos to avoid divs at runtime:
+            for (uint32_t i = 0; i < ALIMER_STATIC_ARRAY_SIZE(res.mod_lut); ++i)
+            {
+                res.mod_lut[i] = i % res.numThreads;
+            }
+
             for (uint32_t threadID = 0; threadID < res.numThreads; ++threadID)
             {
-#if ALIMER_PLATFORM_LINUX
                 std::thread& worker = res.threads.emplace_back([threadID, priority, &res] {
+
+#if defined(__FREEBSD__)
+                    // TODO: FreeBSD's setpriority is incompatible with the expected Linux non-standard behavior
+#elif ALIMER_PLATFORM_LINUX
+
+                    // from the sched(2) manpage:
+                    // In the current [Linux 2.6.23+] implementation, each unit of
+                    // difference in the nice values of two processes results in a
+                    // factor of 1.25 in the degree to which the scheduler favors
+                    // the higher priority process.
+                    //
+                    // so 3 would mean that other (prio 0) threads are around twice as important
 
                     switch (priority) {
                         case Priority::Low:
-                        case Priority::Streaming:
-                            // from the sched(2) manpage:
-                            // In the current [Linux 2.6.23+] implementation, each unit of
-                            // difference in the nice values of two processes results in a
-                            // factor of 1.25 in the degree to which the scheduler favors
-                            // the higher priority process.
-                            //
-                            // so 3 would mean that other (prio 0) threads are around twice as important
                             if (setpriority(PRIO_PROCESS, 0, 3) != 0)
+                            {
+                                perror("setpriority");
+                            }
+                            break;
+                        case Priority::Streaming:
+                            if (setpriority(PRIO_PROCESS, 0, 2) != 0)
                             {
                                 perror("setpriority");
                             }
@@ -249,19 +272,32 @@ namespace Alimer::JobSystem
                         default:
                             assert(0);
                     }
-#else
-                std::thread& worker = res.threads.emplace_back([threadID, &res] {
+#elif defined(__APPLE__)
+                    switch (priority)
+                    {
+                        case Priority::High:
+                            pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
+                            break;
+                        case Priority::Low:
+                            pthread_set_qos_class_self_np(QOS_CLASS_UTILITY, 0);
+                            break;
+                        case Priority::Streaming:
+                            pthread_set_qos_class_self_np(QOS_CLASS_BACKGROUND, 0);
+                            break;
+                        default:
+                            assert(0);
+                    }
 #endif
-                    while (internal_state.alive.load())
+
+                    while (internal_state.alive.load(std::memory_order_relaxed))
                     {
                         res.work(threadID);
 
                         // finished with jobs, put to sleep
-                        std::unique_lock<std::mutex> lock(res.wakeMutex);
-                        res.wakeCondition.wait(lock);
+                        std::unique_lock<std::mutex> lock(res.sleepingMutex);
+                        res.sleepingCondition.wait(lock);
                     }
-
-                    });
+                });
 
                 auto handle = worker.native_handle();
 
@@ -272,7 +308,7 @@ namespace Alimer::JobSystem
                     core = internal_state.numCores - 1 - threadID;
                 }
 
-#if defined(_WIN32)
+#ifdef _WIN32
                 // Do Windows-specific thread setup:
 
                 // Put each thread on to dedicated core:
@@ -300,7 +336,7 @@ namespace Alimer::JobSystem
                 }
                 else if (priority == Priority::Streaming)
                 {
-                    BOOL priority_result = SetThreadPriority(handle, THREAD_PRIORITY_LOWEST);
+                    BOOL priority_result = SetThreadPriority(handle, THREAD_PRIORITY_BELOW_NORMAL);
                     assert(priority_result != 0);
 
                     std::wstring wthreadname = L"wi::job_st_" + std::to_wstring(threadID);
@@ -308,9 +344,9 @@ namespace Alimer::JobSystem
                     assert(SUCCEEDED(hr));
                 }
 
-#elif ALIMER_PLATFORM_LINUX
+#elif defined(PLATFORM_LINUX)
 #define handle_error_en(en, msg) \
-               do { errno = en; perror(msg); } while (0)
+			   do { errno = en; perror(msg); } while (0)
 
                 int ret;
                 cpu_set_t cpuset;
@@ -359,7 +395,10 @@ namespace Alimer::JobSystem
             0, //timer.elapsed(),
             GetThreadCount(Priority::High),
             GetThreadCount(Priority::Low),
-            GetThreadCount(Priority::Streaming));
+            GetThreadCount(Priority::Streaming)
+        );
+
+        std::atexit(Shutdown);
     }
 
     void Shutdown()
@@ -367,17 +406,22 @@ namespace Alimer::JobSystem
         internal_state.Shutdown();
     }
 
+    bool IsShuttingDown()
+    {
+        return internal_state.alive.load(std::memory_order_relaxed) == false;
+    }
+
     uint32_t GetThreadCount(Priority priority)
     {
         return internal_state.resources[ecast(priority)].numThreads;
     }
 
-    void Execute(Context & ctx, const std::function<void(JobArgs)>&task)
+    void Execute(Context& ctx, const std::function<void(JobArgs)>& task)
     {
         PriorityResources& res = internal_state.resources[int(ctx.priority)];
 
         // Context state is updated:
-        AtomicAdd(&ctx.counter, 1);
+        ctx.counter.fetch_add(1, std::memory_order_relaxed);
 
         Job job;
         job.ctx = &ctx;
@@ -394,11 +438,11 @@ namespace Alimer::JobSystem
             return;
         }
 
-        res.jobQueuePerThread[res.nextQueue.fetch_add(1) % res.numThreads].push_back(job);
-        res.wakeCondition.notify_one();
+        res.next_queue().push_back(job);
+        res.sleepingCondition.notify_one();
     }
 
-    void Dispatch(Context & ctx, uint32_t jobCount, uint32_t groupSize, const std::function<void(JobArgs)>&task, size_t sharedMemorySize)
+    void Dispatch(Context& ctx, uint32_t jobCount, uint32_t groupSize, const std::function<void(JobArgs)>& task, size_t sharedMemorySize)
     {
         if (jobCount == 0 || groupSize == 0)
         {
@@ -409,7 +453,7 @@ namespace Alimer::JobSystem
         const uint32_t groupCount = DispatchGroupCount(jobCount, groupSize);
 
         // Context state is updated:
-        AtomicAdd(&ctx.counter, groupCount);
+        ctx.counter.fetch_add(groupCount, std::memory_order_relaxed);
 
         Job job;
         job.ctx = &ctx;
@@ -430,13 +474,13 @@ namespace Alimer::JobSystem
             }
             else
             {
-                res.jobQueuePerThread[res.nextQueue.fetch_add(1) % res.numThreads].push_back(job);
+                res.next_queue().push_back(job);
             }
         }
 
         if (res.numThreads > 1)
         {
-            res.wakeCondition.notify_all();
+            res.sleepingCondition.notify_all();
         }
     }
 
@@ -446,32 +490,39 @@ namespace Alimer::JobSystem
         return (jobCount + groupSize - 1) / groupSize;
     }
 
-    bool IsBusy(const Context & ctx)
+    bool IsBusy(const Context& ctx)
     {
         // Whenever the context label is greater than zero, it means that there is still work that needs to be done
-        return AtomicLoad(&ctx.counter) > 0;
+        return ctx.counter.load(std::memory_order_relaxed) > 0;
     }
 
-    void Wait(const Context & ctx)
+    void Wait(const Context& ctx)
     {
-        if (!IsBusy(ctx))
-            return;
-
-        PriorityResources& res = internal_state.resources[int(ctx.priority)];
-
-        // Wake any threads that might be sleeping:
-        res.wakeCondition.notify_all();
-
-        // work() will pick up any jobs that are on stand by and execute them on this thread:
-        res.work(res.nextQueue.fetch_add(1) % res.numThreads);
-
-        while (IsBusy(ctx))
+        if (IsBusy(ctx))
         {
-            // If we are here, then there are still remaining jobs that work() couldn't pick up.
-            //	In this case those jobs are not standing by on a queue but currently executing
-            //	on other threads, so they cannot be picked up by this thread.
-            //	Allow to swap out this thread by OS to not spin endlessly for nothing
-            std::this_thread::yield();
+            PriorityResources& res = internal_state.resources[int(ctx.priority)];
+
+            // Wake any threads that might be sleeping:
+            res.sleepingCondition.notify_all();
+
+            // work() will pick up any jobs that are on standby and execute them on this thread:
+            res.work(res.next_queue_index());
+
+            while (IsBusy(ctx))
+            {
+                // If we are here, then there are still remaining jobs that work() couldn't pick up.
+                //	The thread enters a sleep until the !IsBusy() waitCondition is signaled
+                std::unique_lock<std::mutex> lock(res.waitingMutex);
+                if (IsBusy(ctx)) // check after locking, to not enter wait when it was completed after lock
+                {
+                    res.waitingCondition.wait(lock, [&ctx] { return !IsBusy(ctx); });
+                }
+            }
         }
+    }
+
+    uint32_t GetRemainingJobCount(const Context& ctx)
+    {
+        return ctx.counter.load(std::memory_order_relaxed);
     }
 }

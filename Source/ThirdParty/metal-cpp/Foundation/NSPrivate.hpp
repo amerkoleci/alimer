@@ -184,6 +184,8 @@ namespace Private
             "bundleWithPath:");
         _NS_PRIVATE_DEF_SEL(bundleWithURL_,
             "bundleWithURL:");
+        _NS_PRIVATE_DEF_SEL(bytes,
+            "bytes");
         _NS_PRIVATE_DEF_SEL(caseInsensitiveCompare_,
             "caseInsensitiveCompare:");
         _NS_PRIVATE_DEF_SEL(characterAtIndex_,
@@ -370,8 +372,6 @@ namespace Private
             "maximumLengthOfBytesUsingEncoding:");
         _NS_PRIVATE_DEF_SEL(methodSignatureForSelector_,
             "methodSignatureForSelector:");
-        _NS_PRIVATE_DEF_SEL(mutableBytes,
-            "mutableBytes");
         _NS_PRIVATE_DEF_SEL(name,
             "name");
         _NS_PRIVATE_DEF_SEL(nextObject,

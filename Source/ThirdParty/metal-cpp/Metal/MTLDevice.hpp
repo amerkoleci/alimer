@@ -224,6 +224,11 @@ _MTL_ENUM(NS::UInteger, CounterSamplingPoint) {
     CounterSamplingPointAtBlitBoundary = 4,
 };
 
+_MTL_ENUM(NS::Integer, DeviceError) {
+    DeviceErrorNone = 0,
+    DeviceErrorNotSupported = 1,
+};
+
 _MTL_OPTIONS(NS::UInteger, PipelineOption) {
     PipelineOptionNone = 0,
     PipelineOptionArgumentInfo = 1,
@@ -554,6 +559,8 @@ public:
 
     bool         supportsFunctionPointers() const;
     bool         supportsFunctionPointersFromRender() const;
+
+    bool         supportsPlacementSparse() const;
 
     bool         supportsPrimitiveMotionBlur() const;
 
@@ -1435,6 +1442,11 @@ _MTL_INLINE bool MTL::Device::supportsFunctionPointers() const
 _MTL_INLINE bool MTL::Device::supportsFunctionPointersFromRender() const
 {
     return Object::sendMessageSafe<bool>(this, _MTL_PRIVATE_SEL(supportsFunctionPointersFromRender));
+}
+
+_MTL_INLINE bool MTL::Device::supportsPlacementSparse() const
+{
+    return Object::sendMessageSafe<bool>(this, _MTL_PRIVATE_SEL(supportsPlacementSparse));
 }
 
 _MTL_INLINE bool MTL::Device::supportsPrimitiveMotionBlur() const

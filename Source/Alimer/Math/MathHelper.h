@@ -164,6 +164,12 @@ namespace Alimer
         return 0 == ((size_t)value & (alignment - 1));
     }
 
+    template<typename T>
+    constexpr T Align(T value, T alignment)
+    {
+        return ((value + alignment - T(1)) / alignment) * alignment;
+    }
+
     template <typename T>
     constexpr T DivideByMultiple(T value, size_t alignment)
     {

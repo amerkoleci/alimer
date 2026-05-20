@@ -18,6 +18,7 @@
 
 | Version | Changes |
 |-|-|
+| macOS 26.4, iOS 26.4 | Add all the Metal APIs in macOS 26.4, iOS 26.4. Bugfixing and other improvements. |
 | macOS 26, iOS 26 | Add all the Metal APIs in macOS 26, iOS 26, including support for the **Apple10** GPU family. <br/>Add support for Metal 4 and new denoiser and temporal scalers in MetalFX.|
 | macOS 15, iOS 18 | Add all the Metal APIs in macOS 15 and iOS 18. |
 | macOS 14, iOS 17 | Add support for the **MetalFX** framework. <br/>Add all the APIs in macOS 14 and iOS 17. |

@@ -71,7 +71,9 @@ namespace MTL::Private
     }
 } // MTL::Private
 
-#if defined(__MAC_26_0) || defined(__IPHONE_26_0) || defined(__TVOS_26_0)
+#if (TARGET_OS_OSX    && __MAC_26_0   && (__MAC_OS_X_VERSION_MIN_REQUIRED  >= __MAC_26_0))                           || \
+    (TARGET_OS_IPHONE && _IPHONE_26_0 && (__IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_26_0) && (!TARGET_OS_VISION)) || \
+    (TARGET_OS_TV     && __TVOS_26_0  && (__TV_OS_VERSION_MIN_REQUIRED     >= __TVOS_26_0))
 
 #define _MTL_PRIVATE_DEF_STR(type, symbol)                  \
     _MTL_EXTERN type const MTL##symbol _MTL_PRIVATE_IMPORT; \

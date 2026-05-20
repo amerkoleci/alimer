@@ -705,7 +705,7 @@ bool Wayland_data_device_set_selection(SDL_WaylandDataDevice *data_device,
 
 bool Wayland_primary_selection_device_set_selection(SDL_WaylandPrimarySelectionDevice *primary_selection_device,
                                                    SDL_WaylandPrimarySelectionSource *source,
-                                                   const char **mime_types,
+                                                   const char *const *mime_types,
                                                    size_t mime_count)
 {
     bool result = true;

@@ -230,7 +230,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     lz4
     rapidjson
     #ktx
-    #miniaudio
+    miniaudio
     cgltf
     Jolt
     ShaderMakeBlob
@@ -281,4 +281,20 @@ endif (ALIMER_RHI_D3D12)
 
 if(ALIMER_RHI_METAL)
     target_link_libraries(${TARGET_NAME} PRIVATE alimer-rhi-metal-cpp)
+endif ()
+
+# Install root header files and config file
+if(ALIMER_INSTALL)
+    install (FILES 
+        ${ROOT_HEADER_FILES}
+        ${CMAKE_CURRENT_BINARY_DIR}/AlimerConfig.h 
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}
+    )
+
+    install(TARGETS ${TARGET_NAME}
+        EXPORT ${TARGET_NAME}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
 endif ()

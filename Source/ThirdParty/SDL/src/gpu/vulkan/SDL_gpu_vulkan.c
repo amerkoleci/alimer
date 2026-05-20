@@ -3130,7 +3130,9 @@ static void VULKAN_INTERNAL_DestroyCommandPool(
         SDL_free(commandBuffer->waitSemaphores);
         SDL_free(commandBuffer->signalSemaphores);
         SDL_free(commandBuffer->usedBuffers);
+        SDL_free(commandBuffer->buffersUsedInPendingTransfers);
         SDL_free(commandBuffer->usedTextures);
+        SDL_free(commandBuffer->texturesUsedInPendingTransfers);
         SDL_free(commandBuffer->usedSamplers);
         SDL_free(commandBuffer->usedGraphicsPipelines);
         SDL_free(commandBuffer->usedComputePipelines);
@@ -10165,6 +10167,13 @@ static bool VULKAN_INTERNAL_AcquireSwapchainTexture(
             break;  // we got the next image!
         }
 
+        // Surface lost — flag for surface + swapchain recreation on next call
+        if (acquireResult == VK_ERROR_SURFACE_LOST_KHR) {
+            windowData->needsSurfaceRecreate = true;
+            windowData->needsSwapchainRecreate = true;
+            return true;
+        }
+
         // If acquisition is invalid, let's try to recreate
         Uint32 recreateSwapchainResult = VULKAN_INTERNAL_RecreateSwapchain(renderer, windowData);
         if (!recreateSwapchainResult) {
@@ -10531,7 +10540,7 @@ static void VULKAN_INTERNAL_CleanCommandBuffer(
     commandBuffer->usedBufferCount = 0;
 
     for (Sint32 i = 0; i < commandBuffer->buffersUsedInPendingTransfersCount; i += 1) {
-        (void)SDL_AtomicDecRef(&commandBuffer->usedBuffers[i]->usedRegion->allocation->referenceCount);
+        (void)SDL_AtomicDecRef(&commandBuffer->buffersUsedInPendingTransfers[i]->usedRegion->allocation->referenceCount);
     }
     commandBuffer->buffersUsedInPendingTransfersCount = 0;
 
@@ -10541,7 +10550,7 @@ static void VULKAN_INTERNAL_CleanCommandBuffer(
     commandBuffer->usedTextureCount = 0;
 
     for (Sint32 i = 0; i < commandBuffer->texturesUsedInPendingTransfersCount; i += 1){
-        (void)SDL_AtomicDecRef(&commandBuffer->usedTextures[i]->usedRegion->allocation->referenceCount);
+        (void)SDL_AtomicDecRef(&commandBuffer->texturesUsedInPendingTransfers[i]->usedRegion->allocation->referenceCount);
     }
     commandBuffer->texturesUsedInPendingTransfersCount = 0;
 

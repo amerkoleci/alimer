@@ -33,12 +33,13 @@ namespace Alimer::JobSystem
     // Defines a state of execution, can be waited on
     struct Context
     {
-        volatile long counter{ 0 };
+        std::atomic<uint32_t> counter{ 0 };
         Priority priority = Priority::High;
     };
 
     void Initialize(uint32_t maxThreadCount = ~0u);
     void Shutdown();
+    bool IsShuttingDown();
 
     /// Get the job system thread count.
     uint32_t GetThreadCount(Priority priority = Priority::High);
@@ -60,4 +61,7 @@ namespace Alimer::JobSystem
 
     /// Wait until all threads become idle, current thread will become a worker thread, executing jobs
     void Wait(const Context& ctx);
+
+    // Returns the number of remaining jobs
+    uint32_t GetRemainingJobCount(const Context& ctx);
 }

@@ -176,7 +176,6 @@ namespace Alimer
         VertexBuffer = ALIMER_BIT(4),
         IndexBuffer = ALIMER_BIT(5),
         ConstantBuffer = ALIMER_BIT(6),
-        Predication = ALIMER_BIT(7),
     };
     ALIMER_ENUM_CLASS_FLAG_OPERATORS(BufferStates);
 
@@ -214,8 +213,6 @@ namespace Alimer
         Indirect = 1 << 5,
         /// Supports ray tracing acceleration structure usage.
         RayTracing = 1 << 6,
-        /// Supports predication access for conditional rendering.
-        Predication = 1 << 7,
     };
     ALIMER_ENUM_CLASS_FLAG_OPERATORS(RHIBufferUsage);
 
@@ -312,14 +309,14 @@ namespace Alimer
         UintOpaqueWhite,
     };
 
-    enum class QueryType : uint32_t
+    enum class RHIQueryType : uint32_t
     {
+        /// Create a heap to contain timestamp queries
+        Timestamp,
         /// Used for occlusion query heap or occlusion queries
         Occlusion,
         /// Can be used in the same heap as occlusion
         BinaryOcclusion,
-        /// Create a heap to contain timestamp queries
-        Timestamp,
         /// Create a heap to contain a structure of `PipelineStatistics`
         PipelineStatistics,
     };
@@ -581,12 +578,6 @@ namespace Alimer
         Invalid
     };
 
-    enum class PredicationOperation : uint8_t
-    {
-        EqualZero,
-        NotEqualZero,
-    };
-
     enum class ShaderModel : uint32_t
     {
         Model_6_0,
@@ -657,7 +648,6 @@ namespace Alimer
         StencilResolveMinMax,
         ShaderOutputViewportIndex,
         CacheCoherentUMA,
-        Predication,
     };
 
     enum class PixelFormatSupport : uint32_t
@@ -691,7 +681,7 @@ namespace Alimer
     class ComputePipeline;
     class RenderPipeline;
     class RHISurface;
-    class QueryHeap;
+    class RHIQueryHeap;
     class RHIDevice;
     class RHIAdapter;
     class RHIFactory;
@@ -703,7 +693,7 @@ namespace Alimer
     using RHIShaderModuleRef = SharedPtr<RHIShaderModule>;
     using ComputePipelineRef = SharedPtr<ComputePipeline>;
     using RenderPipelineRef = SharedPtr<RenderPipeline>;
-    using QueryHeapRef = SharedPtr<QueryHeap>;
+    using RHIQueryHeapRef = SharedPtr<RHIQueryHeap>;
     using RHISurfaceRef = SharedPtr<RHISurface>;
     using RHIDeviceRef = SharedPtr<RHIDevice>;
     using RHIFactoryRef = SharedPtr<RHIFactory>;
@@ -1000,12 +990,10 @@ namespace Alimer
         TextureSampleCount sampleCount = TextureSampleCount::Count1;
     };
 
-    struct QueryHeapDescriptor
+    struct RHIQueryHeapDesc
     {
         const char* label = nullptr;
-        /// ie: Timestamp, Occlusion, PipelineStatistics
-        QueryType type = QueryType::Timestamp;
-        /// Total size of the heap in number of queries.
+        RHIQueryType type = RHIQueryType::Timestamp;
         uint32_t count = 1u;
     };
 
@@ -1195,7 +1183,7 @@ namespace Alimer
         VK_ImageView = 0x00030007,
     };
 
-    struct NativeHandle
+    struct RHINativeHandle
     {
         NativeHandleType type = NativeHandleType::Unknown;
 
@@ -1204,8 +1192,8 @@ namespace Alimer
             void* pointer;
         };
 
-        NativeHandle(uint64_t i) : integer(i) {}  // NOLINT(cppcoreguidelines-pro-type-member-init)
-        NativeHandle(void* p) : pointer(p) {}     // NOLINT(cppcoreguidelines-pro-type-member-init)
+        RHINativeHandle(uint64_t i) : integer(i) {}  // NOLINT(cppcoreguidelines-pro-type-member-init)
+        RHINativeHandle(void* p) : pointer(p) {}     // NOLINT(cppcoreguidelines-pro-type-member-init)
 
         template<typename T> operator T* () const { return static_cast<T*>(pointer); }
         operator bool() const { return type != NativeHandleType::Unknown; }
@@ -1215,7 +1203,7 @@ namespace Alimer
     {
     public:
         virtual void SetLabel(const char* label) { ALIMER_UNUSED(label); }
-        virtual NativeHandle GetNativeHandle(NativeHandleType type) { (void)type; return nullptr; }
+        virtual RHINativeHandle GetNativeHandle(NativeHandleType type) { (void)type; return nullptr; }
 
     protected:
         RHIObject() = default;
@@ -1372,11 +1360,11 @@ namespace Alimer
     class ALIMER_API RenderPipeline : public RHIObject
     {};
 
-    class ALIMER_API QueryHeap : public RHIObject
+    class ALIMER_API RHIQueryHeap : public RHIObject
     {
     public:
         virtual uint32_t GetCount() const = 0;
-        virtual QueryType GetType() const = 0;
+        virtual RHIQueryType GetType() const = 0;
     };
 
     class ALIMER_API RHISurface : public RHIObject
@@ -1516,10 +1504,10 @@ namespace Alimer
         virtual void PopDebugGroup() = 0;
         virtual void InsertDebugMarker(std::string_view name) = 0;
 
-        virtual void BeginQuery(const QueryHeap* heap, uint32_t index) = 0;
-        virtual void EndQuery(const QueryHeap* heap, uint32_t index) = 0;
-        virtual void ResolveQuery(const QueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset) = 0;
-        virtual void ResetQuery(const QueryHeap* heap, uint32_t index, uint32_t count) = 0;
+        virtual void BeginQuery(const RHIQueryHeap* heap, uint32_t index) = 0;
+        virtual void EndQuery(const RHIQueryHeap* heap, uint32_t index) = 0;
+        virtual void ResolveQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count, const RHIBuffer* destinationBuffer, uint64_t destinationOffset) = 0;
+        virtual void ResetQuery(const RHIQueryHeap* heap, uint32_t index, uint32_t count) = 0;
 
         ComputePassEncoder* BeginComputePass(const RHIComputePassDesc& desc);
         RenderPassEncoder* BeginRenderPass(const RenderPassDesc& desc);
@@ -1527,10 +1515,7 @@ namespace Alimer
         /// Acquires the next available texture for rendering or processing operations and queue's for presentation.
         virtual RHITexture* AcquireSurfaceTexture(RHISurface* surface) = 0;
 
-        virtual void BeginPredication(const RHIBuffer* buffer, uint64_t offset, PredicationOperation operation) = 0;
-        virtual void EndPredication() = 0;
-
-        virtual NativeHandle GetNativeHandle(NativeHandleType type) { (void)type; return nullptr; }
+        virtual RHINativeHandle GetNativeHandle(NativeHandleType type) { (void)type; return nullptr; }
 
     protected:
         void Reset(uint32_t frameIndex);
@@ -1567,14 +1552,14 @@ namespace Alimer
 
         RHIBufferRef CreateBuffer(const RHIBufferDesc& desc, const void* initialData = nullptr);
         RHITextureRef CreateTexture(const TextureDescriptor& descriptor, const TextureData* initialData = nullptr);
-        RHITextureRef CreateTextureFromNativeHandle(NativeHandle handle, const TextureDescriptor& descriptor);
+        RHITextureRef CreateTextureFromNativeHandle(RHINativeHandle handle, const TextureDescriptor& descriptor);
         SamplerRef CreateSampler(const SamplerDesc& desc);
 
         RHIShaderModuleRef CreateShaderModule(const ShaderModuleDesc& descriptor);
 
         ComputePipelineRef CreateComputePipeline(const RHIComputePipelineDesc& desc);
         RenderPipelineRef CreateRenderPipeline(const RHIRenderPipelineDesc& desc);
-        QueryHeapRef CreateQueryHeap(const QueryHeapDescriptor& descriptor);
+        RHIQueryHeapRef CreateQueryHeap(const RHIQueryHeapDesc& desc);
 
         virtual void WriteShadingRateValue(ShadingRate rate, void* dest) const = 0;
 
@@ -1598,14 +1583,14 @@ namespace Alimer
     protected:
         virtual void InitResources();
         virtual bool ValidateTextureDesc(const TextureDescriptor& desc);
-        virtual RHIBufferRef CreateBufferCore(const RHIBufferDesc& desc, NativeHandle nativeHandle, const void* initialData) = 0;
+        virtual RHIBufferRef CreateBufferCore(const RHIBufferDesc& desc, RHINativeHandle nativeHandle, const void* initialData) = 0;
         virtual RHITextureRef CreateTextureCore(const TextureDescriptor& desc, const TextureData* initialData) = 0;
-        virtual RHITextureRef CreateTextureFromNativeHandleCore(NativeHandle handle, const TextureDescriptor& desc) = 0;
+        virtual RHITextureRef CreateTextureFromNativeHandleCore(RHINativeHandle handle, const TextureDescriptor& desc) = 0;
         virtual SamplerRef CreateSamplerCore(const SamplerDesc& desc) = 0;
         virtual RHIShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) = 0;
         virtual ComputePipelineRef CreateComputePipelineCore(const RHIComputePipelineDesc& desc) = 0;
         virtual RenderPipelineRef CreateRenderPipelineCore(const RHIRenderPipelineDesc& desc) = 0;
-        virtual QueryHeapRef CreateQueryHeapCore(const QueryHeapDescriptor& desc) = 0;
+        virtual RHIQueryHeapRef CreateQueryHeapCore(const RHIQueryHeapDesc& desc) = 0;
 
         RHIDeviceLimits _limits{};
         uint64_t _timestampFrequency = 0;
@@ -1625,6 +1610,7 @@ namespace Alimer
     {
     public:
         virtual RHIDeviceRef CreateDevice(const RHIDeviceDesc& desc) = 0;
+        virtual RHINativeHandle GetNativeHandle(NativeHandleType type) { (void)type; return nullptr; }
 
         /// Return the physical adapter properties.
         [[nodiscard]] const RHIAdapterProperties& GetProperties() const { return properties; }
@@ -1713,16 +1699,19 @@ namespace Alimer
     ALIMER_API const VertexAttributeFormatInfo& GetVertexAttributeFormatInfo(VertexAttributeFormat format);
 
     /* Shader loading */
-    struct ShaderMacro
+    struct RHIShaderMacro
     {
         std::string name;
         std::string definition;
 
-        ShaderMacro(const std::string& _name, const std::string& _definition)
+        RHIShaderMacro(const std::string& _name, const std::string& _definition)
             : name(_name)
             , definition(_definition)
-        {}
+        {
+        }
     };
 
-    ALIMER_API RHIShaderModuleRef RHILoadShader(RHIDevice* device, RHIShaderStages stage, const char* fileName, const Vector<ShaderMacro>* pDefines = nullptr);
+    ALIMER_API RHIShaderModuleRef RHILoadShader(RHIDevice* device, RHIShaderStages stage, const char* fileName);
+    ALIMER_API RHIShaderModuleRef RHILoadShader(RHIDevice* device, RHIShaderStages stage, const char* fileName, const Vector<RHIShaderMacro>& defines);
+    ALIMER_API RHIShaderModuleRef RHILoadShader(RHIDevice* device, RHIShaderStages stage, const char* fileName, const RHIShaderMacro* pDefines, size_t definesCount);
 }

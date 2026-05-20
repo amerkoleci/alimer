@@ -2896,6 +2896,8 @@ _MTL_PRIVATE_DEF_SEL(supportsFunctionPointers,
     "supportsFunctionPointers");
 _MTL_PRIVATE_DEF_SEL(supportsFunctionPointersFromRender,
     "supportsFunctionPointersFromRender");
+_MTL_PRIVATE_DEF_SEL(supportsPlacementSparse,
+    "supportsPlacementSparse");
 _MTL_PRIVATE_DEF_SEL(supportsPrimitiveMotionBlur,
     "supportsPrimitiveMotionBlur");
 _MTL_PRIVATE_DEF_SEL(supportsPullModelInterpolation,
