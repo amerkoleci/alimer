@@ -69,17 +69,17 @@ void DrawIndexedQuad::Initialize(RHIDevice* device, const UInt2& windowSize, Pix
     _renderPipeline = device->CreateRenderPipeline(pipelineDesc);
 }
 
-void DrawIndexedQuad::Draw(CommandBuffer* commandBuffer, RHITexture* outputTexture)
+void DrawIndexedQuad::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputTexture)
 {
-    RenderPassColorAttachment colorAttachment;
+    RHIRenderPassColorAttachment colorAttachment;
     colorAttachment.view = outputTexture->GetDefaultView();
-    colorAttachment.loadAction = LoadAction::Clear;
-    colorAttachment.storeAction = StoreAction::Store;
+    colorAttachment.loadAction = RHILoadAction::Clear;
+    colorAttachment.storeAction = RHIStoreAction::Store;
     //colorAttachment.initialState = ResourceState::RenderTarget;
     //colorAttachment.finalState = ResourceState::CopySource;
     colorAttachment.clearColor = { { 0.3f, 0.3f, 0.3f, 1.0f } };
 
-    RenderPassDepthStencilAttachment depthStencilAttachment;
+    RHIRenderPassDepthStencilAttachment depthStencilAttachment;
     if (_depthStencilTexture)
     {
         depthStencilAttachment.view = _depthStencilTexture->GetDefaultView();
@@ -87,7 +87,7 @@ void DrawIndexedQuad::Draw(CommandBuffer* commandBuffer, RHITexture* outputTextu
         //depthStencilAttachment.depthClearValue = 0.0f; // Infinite reverse Z
     }
 
-    RenderPassDesc renderPassDescriptor = {};
+    RHIRenderPassDesc renderPassDescriptor = {};
     renderPassDescriptor.colorAttachmentCount = 1u;
     renderPassDescriptor.colorAttachments = &colorAttachment;
     if (_depthStencilTexture)
@@ -95,7 +95,7 @@ void DrawIndexedQuad::Draw(CommandBuffer* commandBuffer, RHITexture* outputTextu
         renderPassDescriptor.depthStencilAttachment = &depthStencilAttachment;
     }
 
-    RenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
+    RHIRenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
     renderPass->SetPipeline(_renderPipeline.Get());
     renderPass->SetVertexBuffer(0, _vertexBuffer.Get());
     renderPass->SetIndexBuffer(_indexBuffer.Get(), 0, IndexFormat::Uint16);

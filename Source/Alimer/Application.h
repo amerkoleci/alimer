@@ -98,12 +98,13 @@ namespace Alimer
         virtual void Setup() {}
         virtual void Initialize() {}
         virtual void Update() {}
-        virtual void Draw([[maybe_unused]] CommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) {}
+        virtual void Draw([[maybe_unused]] RHICommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) {}
         virtual bool BeginDraw();
         virtual void EndDraw();
 
         //virtual void OnActivated();
         //virtual void OnDeactivated();
+        virtual void OnWindowResized(Window* window) {}
         virtual void OnGui() {}
 
         AppOptions _options{};

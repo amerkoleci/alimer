@@ -13,8 +13,12 @@ public:
 
     virtual void Initialize(RHIDevice* device, const UInt2& windowSize, PixelFormat colorFormat, PixelFormat depthStencilFormat = PixelFormat::Depth32Float);
     virtual void Update(float deltaTime) {}
-    virtual void Draw([[maybe_unused]] CommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) = 0;
+    virtual void Draw([[maybe_unused]] RHICommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) = 0;
+    virtual void Resize(const UInt2& windowSize);
 
 protected:
+    RHIDeviceRef _device;
+    PixelFormat _colorFormat = PixelFormat::Undefined;
+    PixelFormat _depthStencilFormat = PixelFormat::Undefined;
     RHITextureRef _depthStencilTexture;
 };

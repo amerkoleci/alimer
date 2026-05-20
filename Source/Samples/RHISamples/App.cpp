@@ -14,7 +14,8 @@ public:
 
     void Setup() override;
     void Initialize() override;
-    void Draw([[maybe_unused]] CommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) override;
+    void Draw([[maybe_unused]] RHICommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) override;
+    void OnWindowResized(Window* window) override;
 
 private:
     Sample* _runningSample = nullptr;
@@ -47,9 +48,10 @@ void RHISamplesApp::Initialize()
         GetMainWindow()->GetColorFormat(),
         depthStencilFormat);
 
-    AudioClipRef clip = gAssets().Load<AudioClip>("Sounds/BGM.mp3");
-    AudioSource* source = new AudioSource(clip.Get());
-    source->Play();
+    // Audio test
+    //AudioClipRef clip = gAssets().Load<AudioClip>("Sounds/BGM.mp3");
+    //AudioSource* source = new AudioSource(clip.Get());
+    //source->Play();
 
     {
         JsonSerializer serializer;
@@ -84,10 +86,14 @@ void RHISamplesApp::Initialize()
     }
 }
 
-void RHISamplesApp::Draw([[maybe_unused]] CommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture)
+void RHISamplesApp::Draw([[maybe_unused]] RHICommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture)
 {
     _runningSample->Draw(commandBuffer, outputTexture);
 }
 
+void RHISamplesApp::OnWindowResized(Window* window)
+{
+    _runningSample->Resize(window->GetSizeInPixels());
+}
 
 ALIMER_DEFINE_APPLICATION(RHISamplesApp);

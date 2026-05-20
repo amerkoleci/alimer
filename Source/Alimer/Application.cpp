@@ -130,6 +130,7 @@ void Application::InitBeforeRun()
     }
 
     // We're ready, now init.
+    _mainWindow->Resized.ConnectMember(this, &Application::OnWindowResized);
     Initialize();
     _running = true;
 
@@ -152,7 +153,7 @@ void Application::Render()
     // ImGui
     OnGui();
 
-    CommandBuffer* commandBuffer = _rhiDevice->BeginCommandBuffer(RHIQueueType::Graphics, "Frame");
+    RHICommandBuffer* commandBuffer = _rhiDevice->BeginCommandBuffer(RHIQueueType::Graphics, "Frame");
     //RHITexture* swapChainTexture = _mainWindow->GetSwapChain()->AcquireNextTexture();
     RHITexture* swapChainTexture = commandBuffer->AcquireSurfaceTexture(_mainWindow->GetSurface());
     if (swapChainTexture != nullptr)

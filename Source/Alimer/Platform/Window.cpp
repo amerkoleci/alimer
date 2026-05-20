@@ -12,14 +12,14 @@ void Window::CreateSwapChain(RHIDevice* device)
 {
     ALIMER_ASSERT(device);
 
-    UInt2 size = GetSize();
+    UInt2 size = GetSizeInPixels();
 
     const RHISurfaceConfig config{
         .label = "Window SwapChain",
         .format = _colorFormat,
         .width = size.x,
         .height = size.y,
-        .presentMode = PresentMode::Fifo,
+        .presentMode = RHIPresentMode::Fifo,
     };
     _surface->Configure(device, config);
 }
@@ -28,12 +28,11 @@ void Window::OnResized()
 {
     if (_surface != nullptr)
     {
-        //_swapChain->Resize();
-
-        //CreateSwapChain();
+        UInt2 size = GetSize();
+        _surface->Resize(size.x, size.y);
     }
 
-    Resized.Emit();
+    Resized.Emit(this);
 }
 
 void Window::DestroySwapChain()

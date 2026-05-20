@@ -51,7 +51,6 @@ static struct
     uint32_t listenerCount;
 } g_audio;
 
-#include <xaudio2.h>
 Vector<AudioListener*> Audio::Listeners;
 
 bool Audio::Initialize(const AudioConfig* config)

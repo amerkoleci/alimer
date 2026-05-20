@@ -164,8 +164,8 @@ namespace Alimer
         SetPushConstantsCore(data, size, offset);
     }
 
-    /* ComputePassEncoder */
-    GPUAllocation ComputePassEncoder::AllocateGPU(uint64_t size)
+    /* RHIComputePassEncoder */
+    GPUAllocation RHIComputePassEncoder::AllocateGPU(uint64_t size)
     {
         if (size == 0)
         {
@@ -200,7 +200,7 @@ namespace Alimer
         return allocation;
     }
 
-    void ComputePassEncoder::UploadBufferData(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size)
+    void RHIComputePassEncoder::UploadBufferData(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size)
     {
         if (buffer == nullptr || data == nullptr)
             return;
@@ -214,22 +214,22 @@ namespace Alimer
         CopyBufferToBuffer(allocation.buffer.Get(), allocation.offset, buffer, offset, size);
     }
 
-    void ComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+    void RHIComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
         DispatchCore(groupCountX, groupCountY, groupCountZ);
     }
 
-    void ComputePassEncoder::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
+    void RHIComputePassEncoder::Dispatch1D(uint32_t threadCountX, uint32_t groupSizeX)
     {
         Dispatch(DivideByMultiple(threadCountX, groupSizeX), 1u, 1u);
     }
 
-    void ComputePassEncoder::Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX, uint32_t groupSizeY)
+    void RHIComputePassEncoder::Dispatch2D(uint32_t threadCountX, uint32_t threadCountY, uint32_t groupSizeX, uint32_t groupSizeY)
     {
         Dispatch(DivideByMultiple(threadCountX, groupSizeX), DivideByMultiple(threadCountY, groupSizeX), 1u);
     }
 
-    void ComputePassEncoder::Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ)
+    void RHIComputePassEncoder::Dispatch3D(uint32_t threadCountX, uint32_t threadCountY, uint32_t threadCountZ, uint32_t groupSizeX, uint32_t groupSizeY, uint32_t groupSizeZ)
     {
         Dispatch(
             DivideByMultiple(threadCountX, groupSizeX),
@@ -238,7 +238,7 @@ namespace Alimer
         );
     }
 
-    void ComputePassEncoder::DispatchIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+    void RHIComputePassEncoder::DispatchIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
 #if defined(_DEBUG)
         if (!CheckBitsAny(indirectBuffer->GetUsage(), RHIBufferUsage::Indirect))
@@ -257,14 +257,14 @@ namespace Alimer
         DispatchIndirectCore(indirectBuffer, indirectBufferOffset);
     }
 
-    /* CommandBuffer */
-    void CommandBuffer::Reset(uint32_t frameIndex)
+    /* RHICommandBuffer */
+    void RHICommandBuffer::Reset(uint32_t frameIndex)
     {
         _frameIndex = frameIndex;
         _encoderActive = false;
     }
 
-    ComputePassEncoder* CommandBuffer::BeginComputePass(const RHIComputePassDesc& desc)
+    RHIComputePassEncoder* RHICommandBuffer::BeginComputePass(const RHIComputePassDesc& desc)
     {
         if (_encoderActive)
         {
@@ -272,12 +272,12 @@ namespace Alimer
             return nullptr;
         }
 
-        ComputePassEncoder* computePassEncoder = BeginComputePassCore(desc);
+        RHIComputePassEncoder* computePassEncoder = BeginComputePassCore(desc);
         _encoderActive = true;
         return computePassEncoder;
     }
 
-    RenderPassEncoder* CommandBuffer::BeginRenderPass(const RenderPassDesc& desc)
+    RHIRenderPassEncoder* RHICommandBuffer::BeginRenderPass(const RHIRenderPassDesc& desc)
     {
         if (_encoderActive)
         {
@@ -285,7 +285,7 @@ namespace Alimer
             return nullptr;
         }
 
-        RenderPassEncoder* renderPassEncoder = BeginRenderPassCore(desc);
+        RHIRenderPassEncoder* renderPassEncoder = BeginRenderPassCore(desc);
         _encoderActive = true;
         return renderPassEncoder;
     }
@@ -319,7 +319,7 @@ namespace Alimer
 
     void RHIDevice::InitResources()
     {
-        SamplerDesc samplerDesc{};
+        RHISamplerDesc samplerDesc{};
 
         // SamplerPointClamp
         samplerDesc.label = "SamplerPointClamp";
@@ -424,7 +424,7 @@ namespace Alimer
         samplerDesc.addressModeV = SamplerAddressMode::Clamp;
         samplerDesc.addressModeW = SamplerAddressMode::Clamp;
         samplerDesc.maxAnisotropy = 1;
-        samplerDesc.compareFunction = CompareFunction::GreaterEqual;
+        samplerDesc.compareFunction = RHICompareFunction::GreaterEqual;
         samplerDesc.lodMinClamp = 0;
         samplerDesc.lodMaxClamp = 0;
         staticSamplers.push_back(CreateSamplerCore(samplerDesc));
@@ -486,7 +486,7 @@ namespace Alimer
         return CreateTextureFromNativeHandleCore(handle, creationDesc);
     }
 
-    SamplerRef RHIDevice::CreateSampler(const SamplerDesc& desc)
+    RHISamplerRef RHIDevice::CreateSampler(const RHISamplerDesc& desc)
     {
         return CreateSamplerCore(desc);
     }
@@ -502,14 +502,14 @@ namespace Alimer
         return CreateShaderModuleCore(descriptor);
     }
 
-    ComputePipelineRef RHIDevice::CreateComputePipeline(const RHIComputePipelineDesc& desc)
+    RHIComputePipelineRef RHIDevice::CreateComputePipeline(const RHIComputePipelineDesc& desc)
     {
         ALIMER_ASSERT(desc.shader != nullptr);
 
         return CreateComputePipelineCore(desc);
     }
 
-    RenderPipelineRef RHIDevice::CreateRenderPipeline(const RHIRenderPipelineDesc& desc)
+    RHIRenderPipelineRef RHIDevice::CreateRenderPipeline(const RHIRenderPipelineDesc& desc)
     {
         // Vertex shader is necessary when not using mesh shaders
         if (desc.vertexShader == nullptr)
@@ -542,7 +542,7 @@ namespace Alimer
         ALIMER_ASSERT(desc.count > 0 && desc.count < kQuerySetMaxQueries);
 
         if (desc.type == RHIQueryType::PipelineStatistics
-            && !QueryFeatureSupport(Feature::PipelineStatisticsQuery))
+            && !QueryFeatureSupport(RHIFeature::PipelineStatisticsQuery))
         {
             LOGE("PipelineStatistics queries are not supported");
             return nullptr;
@@ -722,59 +722,59 @@ namespace Alimer
         }
     }
 
-    AdapterVendor VendorIdToAdapterVendor(uint32_t vendorId)
+    RHIAdapterVendor VendorIdToAdapterVendor(uint32_t vendorId)
     {
         switch (vendorId)
         {
             case (uint32_t)KnownGPUAdapterVendor::AMD:
-                return AdapterVendor::AMD;
+                return RHIAdapterVendor::AMD;
             case (uint32_t)KnownGPUAdapterVendor::NVIDIA:
-                return AdapterVendor::NVIDIA;
+                return RHIAdapterVendor::NVIDIA;
             case (uint32_t)KnownGPUAdapterVendor::INTEL:
-                return AdapterVendor::Intel;
+                return RHIAdapterVendor::Intel;
             case (uint32_t)KnownGPUAdapterVendor::ARM:
-                return AdapterVendor::ARM;
+                return RHIAdapterVendor::ARM;
             case (uint32_t)KnownGPUAdapterVendor::QUALCOMM:
-                return AdapterVendor::Qualcomm;
+                return RHIAdapterVendor::Qualcomm;
             case (uint32_t)KnownGPUAdapterVendor::IMGTECH:
-                return AdapterVendor::ImgTech;
+                return RHIAdapterVendor::ImgTech;
             case (uint32_t)KnownGPUAdapterVendor::MSFT:
-                return AdapterVendor::MSFT;
+                return RHIAdapterVendor::MSFT;
             case (uint32_t)KnownGPUAdapterVendor::APPLE:
-                return AdapterVendor::Apple;
+                return RHIAdapterVendor::Apple;
             case (uint32_t)KnownGPUAdapterVendor::MESA:
-                return AdapterVendor::Mesa;
+                return RHIAdapterVendor::Mesa;
             case (uint32_t)KnownGPUAdapterVendor::BROADCOM:
-                return AdapterVendor::Broadcom;
+                return RHIAdapterVendor::Broadcom;
 
             default:
-                return AdapterVendor::Unknown;
+                return RHIAdapterVendor::Unknown;
         }
     }
 
-    uint32_t AdapterVendorToVendorId(AdapterVendor vendor)
+    uint32_t AdapterVendorToVendorId(RHIAdapterVendor vendor)
     {
         switch (vendor)
         {
-            case AdapterVendor::AMD:
+            case RHIAdapterVendor::AMD:
                 return (uint32_t)KnownGPUAdapterVendor::AMD;
-            case AdapterVendor::NVIDIA:
+            case RHIAdapterVendor::NVIDIA:
                 return (uint32_t)KnownGPUAdapterVendor::NVIDIA;
-            case AdapterVendor::Intel:
+            case RHIAdapterVendor::Intel:
                 return (uint32_t)KnownGPUAdapterVendor::INTEL;
-            case AdapterVendor::ARM:
+            case RHIAdapterVendor::ARM:
                 return (uint32_t)KnownGPUAdapterVendor::ARM;
-            case AdapterVendor::Qualcomm:
+            case RHIAdapterVendor::Qualcomm:
                 return (uint32_t)KnownGPUAdapterVendor::QUALCOMM;
-            case AdapterVendor::ImgTech:
+            case RHIAdapterVendor::ImgTech:
                 return (uint32_t)KnownGPUAdapterVendor::IMGTECH;
-            case AdapterVendor::MSFT:
+            case RHIAdapterVendor::MSFT:
                 return (uint32_t)KnownGPUAdapterVendor::MSFT;
-            case AdapterVendor::Apple:
+            case RHIAdapterVendor::Apple:
                 return (uint32_t)KnownGPUAdapterVendor::APPLE;
-            case AdapterVendor::Mesa:
+            case RHIAdapterVendor::Mesa:
                 return (uint32_t)KnownGPUAdapterVendor::MESA;
-            case AdapterVendor::Broadcom:
+            case RHIAdapterVendor::Broadcom:
                 return (uint32_t)KnownGPUAdapterVendor::BROADCOM;
 
             default:
@@ -816,11 +816,11 @@ namespace Alimer
     bool StencilTestEnabled(const DepthStencilState* depthStencil)
     {
         return
-            depthStencil->backFace.compareFunc != CompareFunction::Always ||
+            depthStencil->backFace.compareFunc != RHICompareFunction::Always ||
             depthStencil->backFace.failOp != StencilOperation::Keep ||
             depthStencil->backFace.depthFailOp != StencilOperation::Keep ||
             depthStencil->backFace.passOp != StencilOperation::Keep ||
-            depthStencil->frontFace.compareFunc != CompareFunction::Always ||
+            depthStencil->frontFace.compareFunc != RHICompareFunction::Always ||
             depthStencil->frontFace.failOp != StencilOperation::Keep ||
             depthStencil->frontFace.depthFailOp != StencilOperation::Keep ||
             depthStencil->frontFace.passOp != StencilOperation::Keep;

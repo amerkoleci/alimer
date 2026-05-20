@@ -20,7 +20,7 @@ namespace Alimer
 
     public:
         /// Occurs when the window is resized.
-        Signal<> Resized;
+        Signal<Window*> Resized;
 
         /// Constructor.
         Window(const std::string& title, uint32_t width, uint32_t height, WindowFlags flags = WindowFlags::Resizable);

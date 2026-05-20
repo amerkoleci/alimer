@@ -9,12 +9,12 @@ class DrawSpinningCube final : public Sample
 {
 public:
     void Initialize(RHIDevice* device, const UInt2& windowSize, PixelFormat colorFormat, PixelFormat depthStencilFormat) override;
-    void Draw([[maybe_unused]] CommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) override;
+    void Draw([[maybe_unused]] RHICommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture) override;
 
 private:
     RHIBufferRef _vertexBuffer;
     RHIBufferRef _indexBuffer;
     RHIBufferRef _constantBuffer;
-    RenderPipelineRef _renderPipeline;
+    RHIRenderPipelineRef _renderPipeline;
 };
 

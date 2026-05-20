@@ -125,7 +125,7 @@ void DrawSpinningCube::Initialize(RHIDevice* device, const UInt2& windowSize, Pi
     _renderPipeline = device->CreateRenderPipeline(pipelineDesc);
 }
 
-void DrawSpinningCube::Draw(CommandBuffer* commandBuffer, RHITexture* outputTexture)
+void DrawSpinningCube::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputTexture)
 {
     static float rx = 0.0f;
     static float ry = 0.0f;
@@ -143,22 +143,22 @@ void DrawSpinningCube::Draw(CommandBuffer* commandBuffer, RHITexture* outputText
     Matrix4x4 projectionMatrix = Matrix4x4::CreatePerspectiveFieldOfView(M_PI / 4, aspect, 0.1f, 1000.0f);
     Matrix4x4 viewProjectionMatrix =  viewMatrix * projectionMatrix;
 
-    RenderPassColorAttachment colorAttachment;
+    RHIRenderPassColorAttachment colorAttachment;
     colorAttachment.view = outputTexture->GetDefaultView();
-    colorAttachment.loadAction = LoadAction::Clear;
-    colorAttachment.storeAction = StoreAction::Store;
+    colorAttachment.loadAction = RHILoadAction::Clear;
+    colorAttachment.storeAction = RHIStoreAction::Store;
     //colorAttachment.initialState = ResourceState::RenderTarget;
     //colorAttachment.finalState = ResourceState::CopySource;
     colorAttachment.clearColor = { { 0.3f, 0.3f, 0.3f, 1.0f } };
 
-    RenderPassDepthStencilAttachment depthStencilAttachment;
+    RHIRenderPassDepthStencilAttachment depthStencilAttachment;
     if (_depthStencilTexture)
     {
         depthStencilAttachment.view = _depthStencilTexture->GetDefaultView();
         depthStencilAttachment.depthClearValue = 1.0f;
     }
 
-    RenderPassDesc renderPassDescriptor = {};
+    RHIRenderPassDesc renderPassDescriptor = {};
     renderPassDescriptor.colorAttachmentCount = 1u;
     renderPassDescriptor.colorAttachments = &colorAttachment;
     if (_depthStencilTexture)
@@ -166,7 +166,7 @@ void DrawSpinningCube::Draw(CommandBuffer* commandBuffer, RHITexture* outputText
         renderPassDescriptor.depthStencilAttachment = &depthStencilAttachment;
     }
 
-    RenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
+    RHIRenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
     renderPass->SetPipeline(_renderPipeline.Get());
     renderPass->SetVertexBuffer(0, _vertexBuffer.Get());
     renderPass->SetIndexBuffer(_indexBuffer.Get(), 0, IndexFormat::Uint16);
