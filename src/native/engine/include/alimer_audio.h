@@ -84,8 +84,18 @@ ALIMER_API float alimerAudioEngineGetVolume(AudioEngine* engine, VolumeUnit unit
 ALIMER_API void alimerAudioEngineSetVolume(AudioEngine* engine, float value, VolumeUnit unit);
 ALIMER_API uint32_t alimerAudioEngineGetChannelCount(AudioEngine* engine);
 ALIMER_API uint32_t alimerAudioEngineGetSampleRate(AudioEngine* engine);
+ALIMER_API uint64_t alimerAudioEngineGetTimeInPCMFrames(AudioEngine* engine);
+ALIMER_API uint64_t alimerAudioEngineGetTimeInMilliseconds(AudioEngine* engine);
+ALIMER_API void alimerAudioEngineSetTimeInPCMFrames(AudioEngine* engine, uint64_t value);
+ALIMER_API void alimerAudioEngineSetTimeInMilliseconds(AudioEngine* engine, uint64_t value);
 
-ALIMER_API bool alimerAudioListenerIsEnabled(AudioEngine* engine);
+/* AudioListener */
+ALIMER_API uint32_t alimerAudioEngineGetListenerCount(AudioEngine* engine);
+ALIMER_API void alimerAudioEngineListenerSetPosition(AudioEngine* engine, uint32_t listenerIndex, const Vector3* position);
+ALIMER_API void alimerAudioEngineListenerGetPosition(const AudioEngine* engine, uint32_t listenerIndex, Vector3* result);
+ALIMER_API bool alimerAudioEngineListenerIsEnabled(AudioEngine* engine, uint32_t listenerIndex);
+ALIMER_API void alimerAudioEngineListenerSetEnabled(AudioEngine* engine, uint32_t listenerIndex, bool enabled);
+
 
 /* AudioClip */
 ALIMER_API AudioClip* alimerAudioClipCreate(const char* filepath);

@@ -83,7 +83,7 @@ public abstract class GraphicsSampleBase : SampleBase
         ShaderFormat shaderFormat = ShaderFormat.SPIRV;
         switch (GraphicsDevice.Backend)
         {
-            case GraphicsBackend.D3D12:
+            case GraphicsBackend.Direct3D12:
                 shaderFormat = ShaderFormat.DXIL;
                 break;
 

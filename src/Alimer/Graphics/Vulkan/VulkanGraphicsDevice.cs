@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using Alimer.Utilities;
-using SkiaSharp;
 using Vortice.Vulkan;
 using static Alimer.Graphics.Vulkan.Vma;
 using static Alimer.Graphics.Vulkan.VmaMemoryUsage;
@@ -54,6 +53,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly VkImageView _nullImageView3D = default;
     private readonly VkSampler _nullSampler = default;
     protected readonly ConcurrentQueue<Tuple<VkSemaphore, ulong>> _deferredDestroySemaphores = new();
+    protected readonly ConcurrentQueue<Tuple<VkSwapchainKHR, ulong>> _deferredDestroySwapchains = new();
 
     public VulkanGraphicsDevice(VulkanGraphicsAdapter adapter, in GraphicsDeviceDescription description)
         : base(GraphicsBackend.Vulkan, description)
@@ -1150,6 +1150,22 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 break;
             }
         }
+
+        while (!_deferredDestroySwapchains.IsEmpty)
+        {
+            if (_deferredDestroySwapchains.TryPeek(out Tuple<VkSwapchainKHR, ulong>? item)
+                && (force || item.Item2 + (uint)MaxFramesInFlight < _frameCount))
+            {
+                if (_deferredDestroySwapchains.TryDequeue(out item))
+                {
+                    _deviceApi.vkDestroySwapchainKHR(item.Item1);
+                }
+            }
+            else
+            {
+                break;
+            }
+        }
     }
 
     /// <inheritdoc />
@@ -1441,6 +1457,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         return _frameCount;
     }
 
+    /// <inheritdoc />
     public override void WriteShadingRateValue(ShadingRate rate, void* dest)
     {
         // How to compute shading rate value texel data:
@@ -1471,6 +1488,18 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 *(byte*)dest = 0xa;
                 break;
         }
+    }
+
+    /// <inheritdoc />
+    public override GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type)
+    {
+        return type switch
+        {
+            GraphicsNativeHandleType.VkInstance => new GraphicsNativeHandle(GraphicsNativeHandleType.VkInstance, _adapter.VkGraphicsManager.Instance),
+            GraphicsNativeHandleType.VkPhysicalDevice => new GraphicsNativeHandle(GraphicsNativeHandleType.VkPhysicalDevice, _physicalDevice),
+            GraphicsNativeHandleType.VkDevice => new GraphicsNativeHandle(GraphicsNativeHandleType.VkDevice, _handle),
+            _ => GraphicsNativeHandle.Invalid,
+        };
     }
 
     public uint GetQueueFamilyIndex(CommandQueueType queueType) => _queueFamilyIndices[(int)queueType];
@@ -1745,30 +1774,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             name).CheckResult();
     }
 
-    public GRContext CreateSkiaContext()
-    {
-        return GRContext.CreateVulkan(new GRVkBackendContext()
-        {
-            VkInstance = _adapter.VkGraphicsManager.Instance,
-            VkPhysicalDevice = _adapter.Handle,
-            VkDevice = _handle,
-            VkQueue = _queues[(int)CommandQueueType.Graphics].Handle,
-            GraphicsQueueIndex = GetQueueFamilyIndex(CommandQueueType.Graphics),
-            GetProcedureAddress = (proc, _, _) =>
-            {
-                PFN_vkVoidFunction func = InstanceApi.vkGetDeviceProcAddr(_handle, proc);
-                if (func.Value != null)
-                    return (nint)func.Value;
-
-                func = vkGetInstanceProcAddr(_adapter.VkGraphicsManager.Instance, proc);
-                if (func.Value != null)
-                    return (nint)func.Value;
-
-                return 0;
-            }
-        });
-    }
-
     public void QueueDestroySemaphore(VkSemaphore @object)
     {
         if (_shuttingDown)
@@ -1778,5 +1783,15 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
 
         _deferredDestroySemaphores.Enqueue(Tuple.Create(@object, _frameCount));
+    }
+    public void QueueDestroySwapchain(VkSwapchainKHR @object)
+    {
+        if (_shuttingDown)
+        {
+            _deviceApi.vkDestroySwapchainKHR(@object);
+            return;
+        }
+
+        _deferredDestroySwapchains.Enqueue(Tuple.Create(@object, _frameCount));
     }
 }

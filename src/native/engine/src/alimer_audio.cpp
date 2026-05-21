@@ -75,6 +75,8 @@ namespace
 
     static void FromMiniaudio(const ma_vec3f& value, Vector3* result)
     {
+        ALIMER_ASSERT(result);
+
         result->x = value.x;
         result->y = value.y;
         result->z = value.z;
@@ -382,9 +384,60 @@ uint32_t alimerAudioEngineGetSampleRate(AudioEngine* engine)
     return ma_engine_get_sample_rate(&engine->handle);
 }
 
-bool alimerAudioListenerIsEnabled(AudioEngine* engine)
+uint64_t alimerAudioEngineGetTimeInPCMFrames(AudioEngine* engine)
 {
-    return ma_engine_listener_is_enabled(&engine->handle, 0) == MA_TRUE;
+    return ma_engine_get_time_in_pcm_frames(&engine->handle);
+}
+
+uint64_t alimerAudioEngineGetTimeInMilliseconds(AudioEngine* engine)
+{
+    return ma_engine_get_time_in_milliseconds(&engine->handle);
+}
+
+void alimerAudioEngineSetTimeInPCMFrames(AudioEngine* engine, uint64_t value)
+{
+    ma_result result = ma_engine_set_time_in_pcm_frames(&engine->handle, value);
+    if (result != MA_SUCCESS)
+    {
+        alimerLogError(LogCategory_Audio, "ma_engine_set_time_in_pcm_frames failed: %s", ma_result_description(result));
+    }
+}
+
+void alimerAudioEngineSetTimeInMilliseconds(AudioEngine* engine, uint64_t value)
+{
+    ma_result result = ma_engine_set_time_in_milliseconds(&engine->handle, value);
+    if (result != MA_SUCCESS)
+    {
+        alimerLogError(LogCategory_Audio, "ma_engine_set_time_in_milliseconds failed: %s", ma_result_description(result));
+    }
+}
+
+/* AudioListener */
+uint32_t alimerAudioEngineGetListenerCount(AudioEngine* engine)
+{
+    return engine->listenerCount;
+}
+
+void alimerAudioEngineListenerSetPosition(AudioEngine* engine, uint32_t listenerIndex, const Vector3* position)
+{
+    ALIMER_ASSERT(position);
+
+    ma_engine_listener_set_position(&engine->handle, listenerIndex, position->x, position->y, position->z);
+}
+
+void alimerAudioEngineListenerGetPosition(const AudioEngine* engine, uint32_t listenerIndex, Vector3* result)
+{
+    FromMiniaudio(ma_engine_listener_get_position(&engine->handle, listenerIndex), result);
+}
+
+bool alimerAudioEngineListenerIsEnabled(AudioEngine* engine, uint32_t listenerIndex)
+{
+    return ma_engine_listener_is_enabled(&engine->handle, listenerIndex) == MA_TRUE;
+}
+
+void alimerAudioEngineListenerSetEnabled(AudioEngine* engine, uint32_t listenerIndex, bool enabled)
+{
+    ma_engine_listener_set_enabled(&engine->handle, listenerIndex, enabled ? MA_TRUE : MA_FALSE);
 }
 
 AudioClip* alimerAudioClipCreate(const char* filepath)

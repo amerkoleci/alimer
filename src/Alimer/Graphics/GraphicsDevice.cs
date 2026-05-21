@@ -170,10 +170,12 @@ public abstract unsafe class GraphicsDevice : GraphicsBaseObject
         _deferredDestroyObjects.Enqueue(Tuple.Create(@object, _frameCount));
     }
 
-    public virtual unsafe void WriteShadingRateValue(ShadingRate rate, void* dest)
+    public virtual void WriteShadingRateValue(ShadingRate rate, void* dest)
     {
 
     }
+
+    public abstract GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type);
 
     public GPUBuffer CreateBuffer(in GPUBufferDescriptor descriptor)
     {

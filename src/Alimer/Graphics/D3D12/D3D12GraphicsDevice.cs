@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Alimer.Utilities;
-using SkiaSharp;
 using static Alimer.Graphics.Constants;
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
@@ -58,7 +57,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly nint _winPixEventRuntimeDLL;
 
     public D3D12GraphicsDevice(D3D12GraphicsAdapter adapter, in GraphicsDeviceDescription description)
-        : base(GraphicsBackend.D3D12, in description)
+        : base(GraphicsBackend.Direct3D12, in description)
     {
         _adapter = adapter;
 
@@ -694,6 +693,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         return _frameIndex;
     }
 
+    /// <inheritdoc />
     public override void WriteShadingRateValue(ShadingRate rate, void* dest)
     {
         byte d3dRate = (byte)rate.ToD3D12();
@@ -702,6 +702,18 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             d3dRate = Math.Min(d3dRate, (byte)D3D12_SHADING_RATE_2X2);
         }
         *(byte*)dest = d3dRate;
+    }
+
+    /// <inheritdoc />
+    public override GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type)
+    {
+        return type switch
+        {
+            GraphicsNativeHandleType.DXGIFactory => new GraphicsNativeHandle(GraphicsNativeHandleType.DXGIFactory, (nint)_adapter.DxManager.Handle),
+            GraphicsNativeHandleType.DXGIAdapter => new GraphicsNativeHandle(GraphicsNativeHandleType.DXGIAdapter, (nint)_adapter.Handle),
+            GraphicsNativeHandleType.D3D12Device => new GraphicsNativeHandle(GraphicsNativeHandleType.D3D12Device, (nint)_device.Get()),
+            _ => GraphicsNativeHandle.Invalid,
+        };
     }
 
     /// <inheritdoc />
@@ -756,16 +768,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public override CommandBuffer AcquireCommandBuffer(CommandQueueType queue, Utf8ReadOnlyString label = default)
     {
         return _queues[(int)queue].AcquireCommandBuffer(label);
-    }
-
-    public GRContext CreateSkiaContext()
-    {
-        return GRContext.CreateDirect3D(new GRD3DBackendContext()
-        {
-            Adapter = (nint)_adapter.Handle,
-            Device = (nint)Device,
-            Queue = (nint)D3D12GraphicsQueue.Handle
-        });
     }
 
     [UnmanagedCallersOnly]

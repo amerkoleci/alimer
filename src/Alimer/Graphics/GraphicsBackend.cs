@@ -11,6 +11,6 @@ public enum GraphicsBackend
     Default = 0,
     Null,
     Vulkan,
-    D3D12,
+    Direct3D12,
     Metal,
 }

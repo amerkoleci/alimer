@@ -312,7 +312,7 @@ internal unsafe partial class VulkanSwapChain : SwapChain
 
         if (createInfo.oldSwapchain.IsNotNull)
         {
-            _device.DeviceApi.vkDestroySwapchainKHR(createInfo.oldSwapchain);
+            _device.QueueDestroySwapchain(createInfo.oldSwapchain);
         }
 
         // We need to create a new semaphore or jump through a few hoops to wait for the current one to be unsignalled

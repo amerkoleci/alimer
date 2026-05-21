@@ -12,6 +12,72 @@ namespace Alimer.Assets.Graphics;
 /// </summary>
 public static class SkiaUtils
 {
+    public static GRContext CreateGRContext(GraphicsDevice device)
+    {
+        return device.Backend switch
+        {
+            GraphicsBackend.Vulkan => CreateVulkan(device),
+            GraphicsBackend.Direct3D12 => CreateDirect3D(device),
+            _ => throw new NotSupportedException($"Graphics backend {device.Backend} is not supported."),
+        };
+    }
+
+    private static GRContext CreateDirect3D(GraphicsDevice device)
+    {
+        // Query native handles from device
+        GraphicsNativeHandle dxgiAdapter = device.GetNativeHandle(GraphicsNativeHandleType.DXGIAdapter);
+        GraphicsNativeHandle d3d12Device = device.GetNativeHandle(GraphicsNativeHandleType.D3D12Device);
+        GraphicsNativeHandle d3d12CommandQueue = device.GraphicsQueue.GetNativeHandle(GraphicsNativeHandleType.D3D12CommandQueue);
+
+        return GRContext.CreateDirect3D(new GRD3DBackendContext
+        {
+            Adapter = dxgiAdapter.Handle,
+            Device = d3d12Device.Handle,
+            Queue = d3d12CommandQueue.Handle,
+            ProtectedContext = false
+        });
+    }
+
+    private static GRContext CreateVulkan(GraphicsDevice device)
+    {
+        // Query native handles from device
+        GraphicsNativeHandle vkInstance = device.GetNativeHandle(GraphicsNativeHandleType.VkInstance);
+        GraphicsNativeHandle vkPhysicalDevice = device.GetNativeHandle(GraphicsNativeHandleType.VkPhysicalDevice);
+        GraphicsNativeHandle vkDevice = device.GetNativeHandle(GraphicsNativeHandleType.VkDevice);
+        GraphicsNativeHandle vkGraphicsQueue = device.GraphicsQueue.GetNativeHandle(GraphicsNativeHandleType.VkQueue);
+
+#if TODO_VULKAN
+        nint GetProcAddressWrapper(string name, IntPtr instance, IntPtr device)
+        {
+            if (device != IntPtr.Zero)
+            {
+                var addr = _instance.GetDeviceProcAddress(device, name);
+                if (addr != IntPtr.Zero)
+                    return addr;
+            }
+
+            if (instance != IntPtr.Zero)
+            {
+                var addr = _instance.GetInstanceProcAddress(instance, name);
+                if (addr != IntPtr.Zero)
+                    return addr;
+            }
+
+            return _instance.GetInstanceProcAddress(IntPtr.Zero, name);
+        } 
+#endif
+
+        return GRContext.CreateVulkan(new GRVkBackendContext()
+        {
+            VkInstance = vkInstance.Handle,
+            VkPhysicalDevice = vkPhysicalDevice.Handle,
+            VkDevice = vkDevice.Handle,
+            VkQueue = vkGraphicsQueue.Handle,
+            GraphicsQueueIndex = 0, //((VulkanCommandQueue)device.GraphicsQueue).QueueFamilyIndex,
+            //GetProcedureAddress = GetProcAddressWrapper,
+        });
+    }
+
     public static Span<SKColor> SKColorToColor(Span<SKColor> pixels)
     {
         // ARGB --> ABGR

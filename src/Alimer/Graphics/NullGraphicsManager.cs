@@ -66,6 +66,8 @@ internal class NullGraphicsDevice : GraphicsDevice
         return _frameCount;
     }
 
+    public override GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type) => GraphicsNativeHandle.Invalid;
+
     public override CommandQueue? GetCommandQueue(CommandQueueType type) => throw new NotImplementedException();
     public override bool QueryFeatureSupport(Feature feature) => throw new NotImplementedException();
     public override PixelFormatSupport QueryPixelFormatSupport(PixelFormat format) => throw new NotImplementedException();

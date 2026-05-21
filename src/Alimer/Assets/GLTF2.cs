@@ -306,8 +306,8 @@ public partial class Gltf2
     /// </summary>
     public record struct AnimationSampler(
         int Input,
-        Interpolation Interpolation,
         int Output,
+        Interpolation? Interpolation = Interpolation.Linear,
         JsonObject? Extensions = null,
         JsonObject? Extras = null
     );
@@ -540,7 +540,9 @@ public partial class Gltf2
     )
     {
         public SceneInfo()
-            : this([], null) { }
+            : this([], null, null, null)
+        {
+        }
     }
 
     /// <summary>
@@ -557,7 +559,9 @@ public partial class Gltf2
     )
     {
         public Skin()
-            : this(null, null, [], null) { }
+            : this(null, null, [], null)
+        {
+        }
     }
 
     /// <summary>

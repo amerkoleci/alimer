@@ -143,7 +143,8 @@ public static class GltfUtils
 
             byte[] data = binaryReader.ReadBytes((int)chunkLength);
 
-            if (chunkFormat == format) return data;
+            if (chunkFormat == format)
+                return data;
         }
     }
 

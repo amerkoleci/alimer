@@ -188,4 +188,13 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
             _lastCompletedFenceValue = fenceValue;
         }
     }
+
+    public override GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type)
+    {
+        return type switch
+        {
+            GraphicsNativeHandleType.D3D12CommandQueue => new GraphicsNativeHandle(GraphicsNativeHandleType.D3D12CommandQueue, (nint)_handle.Get()),
+            _ => GraphicsNativeHandle.Invalid,
+        };
+    }
 }

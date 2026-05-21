@@ -27,9 +27,9 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
         VkDevice = device;
         QueueType = queueType;
 
-        uint queueFamilyIndex = device.GetQueueFamilyIndex(queueType);
-        uint queueIndex = device.GetQueueIndex(queueType);
-        device.DeviceApi.vkGetDeviceQueue(queueFamilyIndex, queueIndex, out Handle);
+        QueueFamilyIndex = device.GetQueueFamilyIndex(queueType);
+        QueueIndex = device.GetQueueIndex(queueType);
+        device.DeviceApi.vkGetDeviceQueue(QueueFamilyIndex, QueueIndex, out Handle);
 
         VkSemaphoreTypeCreateInfo timelineCreateInfo = new()
         {
@@ -60,6 +60,9 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
     public override CommandQueueType QueueType { get; }
 
     public VulkanGraphicsDevice VkDevice { get; }
+    public uint QueueFamilyIndex { get; }
+    public uint QueueIndex { get; }
+
     public VkFence FrameFence => _frameFences[Device.FrameIndex];
 
     public void Dispose()
@@ -237,5 +240,15 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
 
         commandBuffer.Begin(Device.FrameIndex, label);
         return commandBuffer;
+    }
+
+    /// <inheritdoc />
+    public override GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type)
+    {
+        return type switch
+        {
+            GraphicsNativeHandleType.VkQueue => new GraphicsNativeHandle(GraphicsNativeHandleType.VkQueue, Handle),
+            _ => GraphicsNativeHandle.Invalid,
+        };
     }
 }

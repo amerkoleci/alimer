@@ -148,7 +148,7 @@ public sealed class AssetShaderCompiler : IShaderCompiler
             ShaderFormat shaderFormat = ShaderFormat.SPIRV;
             switch (_system.Backend)
             {
-                case GraphicsBackend.D3D12:
+                case GraphicsBackend.Direct3D12:
                     shaderFormat = ShaderFormat.DXIL;
                     break;
 

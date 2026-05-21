@@ -33,7 +33,7 @@ public abstract unsafe class GraphicsManager : GraphicsBaseObject
                 return Vulkan.VulkanGraphicsManager.IsSupported;
 #endif
 #if !EXCLUDE_D3D12_BACKEND
-            case GraphicsBackend.D3D12:
+            case GraphicsBackend.Direct3D12:
                 return D3D12.D3D12GraphicsManager.IsSupported;
 #endif
 #if !EXCLUDE_METAL_BACKEND
@@ -57,9 +57,9 @@ public abstract unsafe class GraphicsManager : GraphicsBaseObject
     /// Returns <see cref="GraphicsBackend.Null"/> if no supported backend is found.</returns>
     public static GraphicsBackend GetBestPlatformBackend()
     {
-        if (IsBackendSupport(GraphicsBackend.D3D12))
+        if (IsBackendSupport(GraphicsBackend.Direct3D12))
         {
-            return GraphicsBackend.D3D12;
+            return GraphicsBackend.Direct3D12;
         }
         else if (IsBackendSupport(GraphicsBackend.Metal))
         {
@@ -104,7 +104,7 @@ public abstract unsafe class GraphicsManager : GraphicsBaseObject
 #endif
 
 #if !EXCLUDE_D3D12_BACKEND
-            case GraphicsBackend.D3D12:
+            case GraphicsBackend.Direct3D12:
                 if (D3D12.D3D12GraphicsManager.IsSupported)
                 {
                     manager = new D3D12.D3D12GraphicsManager(in options);
