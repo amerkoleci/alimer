@@ -70,11 +70,13 @@ bool AudioClip::BeginLoad(Stream& source)
     if (result != MA_SUCCESS)
         return false;
 
-    result = ma_decoder_get_length_in_pcm_frames(_decoder, &_frames);
+    ma_uint64 frames = 0;
+    result = ma_decoder_get_length_in_pcm_frames(_decoder, &frames);
     if (result != MA_SUCCESS)
         return false;
 
     _format = FromMiniAudio(format);
+    _frames = static_cast<size_t>(frames);
 
 #if 0
     if (IsWAV(buffer.get(), dataSize))
