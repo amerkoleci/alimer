@@ -248,17 +248,17 @@ namespace Alimer
         virtual SharedPtr<Object> CreateObject() = 0;
 
         /// Return type info of objects created by this factory.
-        const TypeInfo* GetTypeInfo() const { return typeInfo; }
+        const TypeInfo* GetTypeInfo() const { return _typeInfo; }
 
         /// Return type hash of objects created by this factory.
-        StringId32 GetType() const { return typeInfo->GetType(); }
+        StringId32 GetType() const { return _typeInfo->GetType(); }
 
         /// Return type name of objects created by this factory.
-        const std::string& GetTypeName() const { return typeInfo->GetTypeName(); }
+        const std::string& GetTypeName() const { return _typeInfo->GetTypeName(); }
 
     protected:
         /// Type info.
-        const TypeInfo* typeInfo = nullptr;
+        const TypeInfo* _typeInfo = nullptr;
     };
 
     /// Template implementation of the object factory.
@@ -266,7 +266,7 @@ namespace Alimer
     {
     public:
         /// Construct.
-        ObjectFactoryImpl() { typeInfo = T::GetTypeInfoStatic(); }
+        ObjectFactoryImpl() { _typeInfo = T::GetTypeInfoStatic(); }
 
         /// Create an object of the specific type.
         SharedPtr<Object> CreateObject() override { return MakeShared<T>(); }

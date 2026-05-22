@@ -99,18 +99,18 @@ void DrawSpinningCube::Initialize(RHIDevice* device, const UInt2& windowSize, Pi
 
     _vertexBuffer = RHICreateBuffer(device, vertices, RHIBufferUsage::Vertex);
     _indexBuffer = RHICreateBuffer(device, indices, RHIBufferUsage::Index);
-    _constantBuffer = RHICreateBuffer(device, sizeof(PushData), RHIBufferUsage::Constant, MemoryType::Upload);
+    _constantBuffer = RHICreateBuffer(device, sizeof(PushData), RHIBufferUsage::Constant, RHIMemoryType::Upload);
 
     RHIShaderModuleRef vertexShader = RHILoadShader(device, RHIShaderStages::Vertex, "Cube");
     RHIShaderModuleRef fragmentShader = RHILoadShader(device, RHIShaderStages::Fragment, "Cube");
 
-    std::array<VertexAttribute, 3> vertexAttributes = {
-        VertexAttribute{ VertexAttributeSemantic::Position, VertexAttributeFormat::Float32x3, offsetof(VertexPositionNormalTexture, position) },
-        VertexAttribute{ VertexAttributeSemantic::Normal, VertexAttributeFormat::Float32x3, offsetof(VertexPositionNormalTexture, normal) },
-        VertexAttribute{ VertexAttributeSemantic::TexCoord, VertexAttributeFormat::Float32x2, offsetof(VertexPositionNormalTexture, texcoord) }
+    std::array<RHIVertexAttribute, 3> vertexAttributes = {
+        RHIVertexAttribute{ RHIVertexAttributeSemantic::Position, RHIVertexAttributeFormat::Float32x3, offsetof(VertexPositionNormalTexture, position) },
+        RHIVertexAttribute{ RHIVertexAttributeSemantic::Normal, RHIVertexAttributeFormat::Float32x3, offsetof(VertexPositionNormalTexture, normal) },
+        RHIVertexAttribute{ RHIVertexAttributeSemantic::TexCoord, RHIVertexAttributeFormat::Float32x2, offsetof(VertexPositionNormalTexture, texcoord) }
     };
 
-    VertexBufferLayout vertexBufferLayout = {};
+    RHIVertexBufferLayout vertexBufferLayout = {};
     vertexBufferLayout.attributeCount = static_cast<uint32_t>(vertexAttributes.size());
     vertexBufferLayout.attributes = vertexAttributes.data();
 
@@ -169,7 +169,7 @@ void DrawSpinningCube::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputT
     RHIRenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
     renderPass->SetPipeline(_renderPipeline.Get());
     renderPass->SetVertexBuffer(0, _vertexBuffer.Get());
-    renderPass->SetIndexBuffer(_indexBuffer.Get(), 0, IndexFormat::Uint16);
+    renderPass->SetIndexBuffer(_indexBuffer.Get(), 0, RHIIndexFormat::Uint16);
 
     PushData pushData;
     //pushData.worldMatrix = worldMatrix;

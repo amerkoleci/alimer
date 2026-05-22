@@ -4,6 +4,7 @@
 #include "Alimer/Core/Log.h"
 #include "Alimer/IO/MemoryStream.h"
 #include "Alimer/Audio/AudioClip.h"
+#include "Alimer/Audio/Audio.h"
 
 ALIMER_DISABLE_WARNINGS()
 //#define STB_VORBIS_HEADER_ONLY
@@ -20,9 +21,25 @@ namespace
     {
         switch (value)
         {
-            case ma_format_s16: return AudioFormat::Int16;
-            case ma_format_s32: return AudioFormat::Int32;
+            case ma_format_u8: return AudioFormat::Uint8;
+            case ma_format_s16: return AudioFormat::Sint16;
+            case ma_format_s24: return AudioFormat::Sint24;
+            case ma_format_s32: return AudioFormat::Sint32;
             case ma_format_f32: return AudioFormat::Float32;
+
+            default:
+                ALIMER_UNREACHABLE();
+        }
+    }
+    constexpr ma_format ToMiniAudio(AudioFormat value)
+    {
+        switch (value)
+        {
+            case AudioFormat::Uint8: return ma_format_u8;
+            case AudioFormat::Sint16: return ma_format_s16;
+            case AudioFormat::Sint24: return ma_format_s24;
+            case AudioFormat::Sint32: return ma_format_s32;
+            case AudioFormat::Float32: return ma_format_f32;
 
             default:
                 ALIMER_UNREACHABLE();
@@ -75,6 +92,9 @@ bool AudioClip::BeginLoad(Stream& source)
     if (result != MA_SUCCESS)
         return false;
 
+    ma_uint64 availableFrames;
+    ma_decoder_get_available_frames(_decoder, &availableFrames);
+
     _format = FromMiniAudio(format);
     _frames = static_cast<size_t>(frames);
 
@@ -95,6 +115,21 @@ bool AudioClip::BeginLoad(Stream& source)
     }
 
     return true;
+}
+
+bool AudioClip::DefineEncoded(const void* data, const void* pData, size_t sizeInBytes)
+{
+    ma_resource_manager* manager = ma_engine_get_resource_manager(Audio::GetEngine());
+    ma_result result = ma_resource_manager_register_encoded_data(manager, name.c_str(), data, static_cast<ma_uint64>(sizeInBytes));
+    return result == MA_TRUE;
+}
+
+bool AudioClip::DefineDecoded(const void* data, uint64_t frameCount, AudioFormat format, uint32_t channels, uint32_t sampleRate)
+{
+    ma_resource_manager* manager = ma_engine_get_resource_manager(Audio::GetEngine());
+    ma_format miniAudioFormat = ToMiniAudio(format);
+    ma_result result = ma_resource_manager_register_decoded_data(manager, name.c_str(), data, static_cast<ma_uint64>(frameCount), miniAudioFormat, channels, sampleRate);
+    return result == MA_TRUE;
 }
 
 bool AudioClip::IsWAV(const uint8_t* data, size_t size)

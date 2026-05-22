@@ -46,7 +46,7 @@ Application::Application()
 Application::~Application()
 {
     _rhiDevice->WaitIdle();
-    gAssets().Shutdown();
+    GetAssets().Shutdown();
 
     _rhiDevice.Reset();
     _rhiFactory.Reset();
@@ -105,7 +105,7 @@ void Application::InitBeforeRun()
     JobSystem::Context ctx;
     JobSystem::Execute(ctx, [](JobSystem::JobArgs /*args*/) { Input::Initialize(); Input::Update(); });
     JobSystem::Execute(ctx, [](JobSystem::JobArgs /*args*/) { Audio::Initialize(); });
-    JobSystem::Execute(ctx, [&](JobSystem::JobArgs /*args*/) { gAssets().Start(_options.assetsDirectory); });
+    JobSystem::Execute(ctx, [&](JobSystem::JobArgs /*args*/) { AssetManager::Start(_options.assetsDirectory); });
 
     // Create RHI factory and device.
     RHIFactoryDesc factoryDesc{};
@@ -178,4 +178,14 @@ bool Application::BeginDraw()
 void Application::EndDraw()
 {
     _rhiDevice->CommitFrame();
+}
+
+Application& Alimer::GetApplication()
+{
+    return Application::Get();
+}
+
+RHIDevice* Alimer::GetPrimaryRHIDevice()
+{
+    return Application::Get().GetPrimaryRHIDevice();
 }

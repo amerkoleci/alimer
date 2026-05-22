@@ -99,7 +99,7 @@ bool AssetManager::Store(Asset* asset)
     return true;
 }
 
-AssetManager& Alimer::gAssets()
+AssetManager& Alimer::GetAssets()
 {
     return AssetManager::Instance();
 }

@@ -44,5 +44,5 @@ namespace Alimer
 	};
 
 	/** Provides easier access to Assets module. */
-	ALIMER_API AssetManager& gAssets();
+	ALIMER_API AssetManager& GetAssets();
 }

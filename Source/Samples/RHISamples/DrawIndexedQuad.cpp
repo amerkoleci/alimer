@@ -49,12 +49,12 @@ void DrawIndexedQuad::Initialize(RHIDevice* device, const UInt2& windowSize, Pix
     RHIShaderModuleRef vertexShader = RHILoadShader(device, RHIShaderStages::Vertex, "Triangle");
     RHIShaderModuleRef fragmentShader = RHILoadShader(device, RHIShaderStages::Fragment, "Triangle", macros);
 
-    std::array<VertexAttribute, 2> vertexAttributes = {
-        VertexAttribute{ VertexAttributeSemantic::Position, VertexAttributeFormat::Float32x3, offsetof(VertexPositionColor, position) },
-        VertexAttribute{ VertexAttributeSemantic::Color, VertexAttributeFormat::Unorm8x4, offsetof(VertexPositionColor, color) }
+    std::array<RHIVertexAttribute, 2> vertexAttributes = {
+        RHIVertexAttribute{ RHIVertexAttributeSemantic::Position, RHIVertexAttributeFormat::Float32x3, offsetof(VertexPositionColor, position) },
+        RHIVertexAttribute{ RHIVertexAttributeSemantic::Color, RHIVertexAttributeFormat::Unorm8x4, offsetof(VertexPositionColor, color) }
     };
 
-    VertexBufferLayout vertexBufferLayout = {};
+    RHIVertexBufferLayout vertexBufferLayout = {};
     vertexBufferLayout.attributeCount = static_cast<uint32_t>(vertexAttributes.size());
     vertexBufferLayout.attributes = vertexAttributes.data();
 
@@ -98,7 +98,7 @@ void DrawIndexedQuad::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputTe
     RHIRenderPassEncoder* renderPass = commandBuffer->BeginRenderPass(renderPassDescriptor);
     renderPass->SetPipeline(_renderPipeline.Get());
     renderPass->SetVertexBuffer(0, _vertexBuffer.Get());
-    renderPass->SetIndexBuffer(_indexBuffer.Get(), 0, IndexFormat::Uint16);
+    renderPass->SetIndexBuffer(_indexBuffer.Get(), 0, RHIIndexFormat::Uint16);
     struct PushData
     {
         Color color = Colors::Orange;

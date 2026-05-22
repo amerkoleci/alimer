@@ -15,7 +15,7 @@ void Sample::Resize(const UInt2& windowSize)
 {
     if (_depthStencilFormat != PixelFormat::Undefined)
     {
-        TextureDescriptor depthStencilTextureDesc = TextureDescriptor::Texture2D(_depthStencilFormat, windowSize.x, windowSize.y, 1u, 1u, TextureUsage::RenderTarget);
+        RHITextureDesc depthStencilTextureDesc = RHITextureDesc::Texture2D(_depthStencilFormat, windowSize.x, windowSize.y, 1u, 1u, RHITextureUsage::RenderTarget);
         _depthStencilTexture = _device->CreateTexture(depthStencilTextureDesc);
     }
 }

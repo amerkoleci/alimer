@@ -42,12 +42,12 @@ void DrawTriangle::Initialize(RHIDevice* device, const UInt2& windowSize, PixelF
     RHIShaderModuleRef vertexShader = RHILoadShader(device, RHIShaderStages::Vertex, "Triangle");
     RHIShaderModuleRef fragmentShader = RHILoadShader(device, RHIShaderStages::Fragment, "Triangle", macros);
 
-    std::array<VertexAttribute, 2> vertexAttributes = {
-        VertexAttribute{ VertexAttributeSemantic::Position, VertexAttributeFormat::Float32x3, offsetof(VertexPositionColor, position) },
-        VertexAttribute{ VertexAttributeSemantic::Color, VertexAttributeFormat::Unorm8x4, offsetof(VertexPositionColor, color) }
+    std::array<RHIVertexAttribute, 2> vertexAttributes = {
+        RHIVertexAttribute{ RHIVertexAttributeSemantic::Position, RHIVertexAttributeFormat::Float32x3, offsetof(VertexPositionColor, position) },
+        RHIVertexAttribute{ RHIVertexAttributeSemantic::Color, RHIVertexAttributeFormat::Unorm8x4, offsetof(VertexPositionColor, color) }
     };
 
-    VertexBufferLayout vertexBufferLayout = {};
+    RHIVertexBufferLayout vertexBufferLayout = {};
     vertexBufferLayout.attributeCount = static_cast<uint32_t>(vertexAttributes.size());
     vertexBufferLayout.attributes = vertexAttributes.data();
 

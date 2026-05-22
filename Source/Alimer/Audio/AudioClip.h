@@ -24,6 +24,9 @@ namespace Alimer
         /// Destructor
         ~AudioClip() override;
 
+        bool DefineEncoded(const void* data, const void* pData, size_t sizeInBytes);
+        bool DefineDecoded(const void* data, uint64_t frameCount, AudioFormat format, uint32_t channels, uint32_t sampleRate);
+
         bool IsStreamed() const { return _streamed; }
 
         [[nodiscard]] ma_decoder* GetDecoder() const { return _decoder; }

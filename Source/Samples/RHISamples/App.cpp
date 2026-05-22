@@ -49,9 +49,9 @@ void RHISamplesApp::Initialize()
         depthStencilFormat);
 
     // Audio test
-    //AudioClipRef clip = gAssets().Load<AudioClip>("Sounds/BGM.mp3");
-    //AudioSource* source = new AudioSource(clip.Get());
-    //source->Play();
+    AudioClipRef clip = GetAssets().Load<AudioClip>("Sounds/BGM.mp3");
+    AudioSource* source = new AudioSource(clip.Get());
+    source->Play();
 
     {
         JsonSerializer serializer;

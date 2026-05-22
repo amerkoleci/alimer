@@ -85,8 +85,8 @@ namespace Alimer
         /// Gets the main window.
         [[nodiscard]] Window* GetMainWindow() const { return _mainWindow.get(); }
 
-        /// Gets the main RHIDevice.
-        [[nodiscard]] RHIDevice* GetRHIDevice() const { return _rhiDevice.Get(); }
+        /// Gets the primary RHIDevice.
+        [[nodiscard]] RHIDevice* GetPrimaryRHIDevice() const { return _rhiDevice.Get(); }
 
         /// Gets the main Scene.
         //[[nodiscard]] Scene* GetScene() const { return _scene.Get(); }
@@ -131,4 +131,10 @@ namespace Alimer
         std::unique_ptr<Window> _mainWindow;
         RHIFactoryRef _rhiFactory;
     };
+
+    /** Provides easier access to Application. */
+    ALIMER_API Application& GetApplication();
+
+    /** Provides access to the primary RHIDevice of the Application. */
+    ALIMER_API RHIDevice* GetPrimaryRHIDevice();
 }

@@ -272,7 +272,7 @@ if (ALIMER_RHI_VULKAN)
             VK_USE_PLATFORM_WAYLAND_KHR
         >
     )
-    target_link_libraries(${TARGET_NAME} PRIVATE vma spirv_reflect)
+    target_link_libraries(${TARGET_NAME} PRIVATE vma)
 endif (ALIMER_RHI_VULKAN)
 
 if (ALIMER_RHI_D3D12)

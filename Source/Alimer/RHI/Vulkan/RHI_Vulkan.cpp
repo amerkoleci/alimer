@@ -41,7 +41,6 @@ ALIMER_DISABLE_WARNINGS()
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include "vk_mem_alloc.h"
-#include "spirv_reflect.h"
 ALIMER_ENABLE_WARNINGS()
 
 #if !defined(_WIN32)
@@ -183,57 +182,57 @@ namespace Alimer
             lastStruct->pNext = newStruct;
         }
 
-        constexpr VkFormat ToVkVertexFormat(VertexAttributeFormat format)
+        constexpr VkFormat ToVkVertexFormat(RHIVertexAttributeFormat format)
         {
             switch (format)
             {
-                case VertexAttributeFormat::Uint8:              return VK_FORMAT_R8_UINT;
-                case VertexAttributeFormat::Uint8x2:            return VK_FORMAT_R8G8_UINT;
-                case VertexAttributeFormat::Uint8x4:            return VK_FORMAT_R8G8B8A8_UINT;
-                case VertexAttributeFormat::Sint8:              return VK_FORMAT_R8_SINT;
-                case VertexAttributeFormat::Sint8x2:            return VK_FORMAT_R8G8_SINT;
-                case VertexAttributeFormat::Sint8x4:            return VK_FORMAT_R8G8B8A8_SINT;
-                case VertexAttributeFormat::Unorm8:             return VK_FORMAT_R8_UNORM;
-                case VertexAttributeFormat::Unorm8x2:           return VK_FORMAT_R8G8_UNORM;
-                case VertexAttributeFormat::Unorm8x4:           return VK_FORMAT_R8G8B8A8_UNORM;
-                case VertexAttributeFormat::Snorm8:             return VK_FORMAT_R8_SNORM;
-                case VertexAttributeFormat::Snorm8x2:           return VK_FORMAT_R8G8_SNORM;
-                case VertexAttributeFormat::Snorm8x4:           return VK_FORMAT_R8G8B8A8_SNORM;
+                case RHIVertexAttributeFormat::Uint8:              return VK_FORMAT_R8_UINT;
+                case RHIVertexAttributeFormat::Uint8x2:            return VK_FORMAT_R8G8_UINT;
+                case RHIVertexAttributeFormat::Uint8x4:            return VK_FORMAT_R8G8B8A8_UINT;
+                case RHIVertexAttributeFormat::Sint8:              return VK_FORMAT_R8_SINT;
+                case RHIVertexAttributeFormat::Sint8x2:            return VK_FORMAT_R8G8_SINT;
+                case RHIVertexAttributeFormat::Sint8x4:            return VK_FORMAT_R8G8B8A8_SINT;
+                case RHIVertexAttributeFormat::Unorm8:             return VK_FORMAT_R8_UNORM;
+                case RHIVertexAttributeFormat::Unorm8x2:           return VK_FORMAT_R8G8_UNORM;
+                case RHIVertexAttributeFormat::Unorm8x4:           return VK_FORMAT_R8G8B8A8_UNORM;
+                case RHIVertexAttributeFormat::Snorm8:             return VK_FORMAT_R8_SNORM;
+                case RHIVertexAttributeFormat::Snorm8x2:           return VK_FORMAT_R8G8_SNORM;
+                case RHIVertexAttributeFormat::Snorm8x4:           return VK_FORMAT_R8G8B8A8_SNORM;
 
-                case VertexAttributeFormat::Uint16:             return VK_FORMAT_R16_UINT;
-                case VertexAttributeFormat::Uint16x2:           return VK_FORMAT_R16G16_UINT;
-                case VertexAttributeFormat::Uint16x4:           return VK_FORMAT_R16G16B16A16_UINT;
-                case VertexAttributeFormat::Sint16:             return VK_FORMAT_R16_SINT;
-                case VertexAttributeFormat::Sint16x2:           return VK_FORMAT_R16G16_SINT;
-                case VertexAttributeFormat::Sint16x4:           return VK_FORMAT_R16G16B16A16_SINT;
-                case VertexAttributeFormat::Unorm16:            return VK_FORMAT_R16_UNORM;
-                case VertexAttributeFormat::Unorm16x2:          return VK_FORMAT_R16G16_UNORM;
-                case VertexAttributeFormat::Unorm16x4:          return VK_FORMAT_R16G16B16A16_UNORM;
-                case VertexAttributeFormat::Snorm16:            return VK_FORMAT_R16_SNORM;
-                case VertexAttributeFormat::Snorm16x2:          return VK_FORMAT_R16G16_SNORM;
-                case VertexAttributeFormat::Snorm16x4:          return VK_FORMAT_R16G16B16A16_SNORM;
-                case VertexAttributeFormat::Float16:            return VK_FORMAT_R16_SFLOAT;
-                case VertexAttributeFormat::Float16x2:          return VK_FORMAT_R16G16_SFLOAT;
-                case VertexAttributeFormat::Float16x4:          return VK_FORMAT_R16G16B16A16_SFLOAT;
+                case RHIVertexAttributeFormat::Uint16:             return VK_FORMAT_R16_UINT;
+                case RHIVertexAttributeFormat::Uint16x2:           return VK_FORMAT_R16G16_UINT;
+                case RHIVertexAttributeFormat::Uint16x4:           return VK_FORMAT_R16G16B16A16_UINT;
+                case RHIVertexAttributeFormat::Sint16:             return VK_FORMAT_R16_SINT;
+                case RHIVertexAttributeFormat::Sint16x2:           return VK_FORMAT_R16G16_SINT;
+                case RHIVertexAttributeFormat::Sint16x4:           return VK_FORMAT_R16G16B16A16_SINT;
+                case RHIVertexAttributeFormat::Unorm16:            return VK_FORMAT_R16_UNORM;
+                case RHIVertexAttributeFormat::Unorm16x2:          return VK_FORMAT_R16G16_UNORM;
+                case RHIVertexAttributeFormat::Unorm16x4:          return VK_FORMAT_R16G16B16A16_UNORM;
+                case RHIVertexAttributeFormat::Snorm16:            return VK_FORMAT_R16_SNORM;
+                case RHIVertexAttributeFormat::Snorm16x2:          return VK_FORMAT_R16G16_SNORM;
+                case RHIVertexAttributeFormat::Snorm16x4:          return VK_FORMAT_R16G16B16A16_SNORM;
+                case RHIVertexAttributeFormat::Float16:            return VK_FORMAT_R16_SFLOAT;
+                case RHIVertexAttributeFormat::Float16x2:          return VK_FORMAT_R16G16_SFLOAT;
+                case RHIVertexAttributeFormat::Float16x4:          return VK_FORMAT_R16G16B16A16_SFLOAT;
 
-                case VertexAttributeFormat::Float32:            return VK_FORMAT_R32_SFLOAT;
-                case VertexAttributeFormat::Float32x2:          return VK_FORMAT_R32G32_SFLOAT;
-                case VertexAttributeFormat::Float32x3:          return VK_FORMAT_R32G32B32_SFLOAT;
-                case VertexAttributeFormat::Float32x4:          return VK_FORMAT_R32G32B32A32_SFLOAT;
+                case RHIVertexAttributeFormat::Float32:            return VK_FORMAT_R32_SFLOAT;
+                case RHIVertexAttributeFormat::Float32x2:          return VK_FORMAT_R32G32_SFLOAT;
+                case RHIVertexAttributeFormat::Float32x3:          return VK_FORMAT_R32G32B32_SFLOAT;
+                case RHIVertexAttributeFormat::Float32x4:          return VK_FORMAT_R32G32B32A32_SFLOAT;
 
-                case VertexAttributeFormat::Uint32:             return VK_FORMAT_R32_UINT;
-                case VertexAttributeFormat::Uint32x2:           return VK_FORMAT_R32G32_UINT;
-                case VertexAttributeFormat::Uint32x3:           return VK_FORMAT_R32G32B32_UINT;
-                case VertexAttributeFormat::Uint32x4:           return VK_FORMAT_R32G32B32A32_UINT;
+                case RHIVertexAttributeFormat::Uint32:             return VK_FORMAT_R32_UINT;
+                case RHIVertexAttributeFormat::Uint32x2:           return VK_FORMAT_R32G32_UINT;
+                case RHIVertexAttributeFormat::Uint32x3:           return VK_FORMAT_R32G32B32_UINT;
+                case RHIVertexAttributeFormat::Uint32x4:           return VK_FORMAT_R32G32B32A32_UINT;
 
-                case VertexAttributeFormat::Sint32:             return VK_FORMAT_R32_SINT;
-                case VertexAttributeFormat::Sint32x2:           return VK_FORMAT_R32G32_SINT;
-                case VertexAttributeFormat::Sint32x3:           return VK_FORMAT_R32G32B32_SINT;
-                case VertexAttributeFormat::Sint32x4:           return VK_FORMAT_R32G32B32A32_SINT;
+                case RHIVertexAttributeFormat::Sint32:             return VK_FORMAT_R32_SINT;
+                case RHIVertexAttributeFormat::Sint32x2:           return VK_FORMAT_R32G32_SINT;
+                case RHIVertexAttributeFormat::Sint32x3:           return VK_FORMAT_R32G32B32_SINT;
+                case RHIVertexAttributeFormat::Sint32x4:           return VK_FORMAT_R32G32B32A32_SINT;
 
                     //case VertexFormat.Int1010102Normalized: return VkFormat.A2B10G10R10SnormPack32;
-                case VertexAttributeFormat::Unorm10_10_10_2:   return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
-                case VertexAttributeFormat::Unorm8x4BGRA:   return VK_FORMAT_B8G8R8A8_UNORM;
+                case RHIVertexAttributeFormat::Unorm10_10_10_2:   return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+                case RHIVertexAttributeFormat::Unorm8x4BGRA:   return VK_FORMAT_B8G8R8A8_UNORM;
                     //case VertexFormat::RG11B10Float:            return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
                     //case VertexFormat::RGB9E5Float:             return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
 
@@ -242,11 +241,11 @@ namespace Alimer
             }
         }
 
-        constexpr VkImageAspectFlags GetImageAspectFlags(VkFormat format, TextureAspect aspect)
+        constexpr VkImageAspectFlags GetImageAspectFlags(VkFormat format, RHITextureAspect aspect)
         {
             switch (aspect)
             {
-                case TextureAspect::All:
+                case RHITextureAspect::All:
                     switch (format)
                     {
                         case VK_FORMAT_D16_UNORM_S8_UINT:
@@ -262,9 +261,9 @@ namespace Alimer
                         default:
                             return VK_IMAGE_ASPECT_COLOR_BIT;
                     }
-                case TextureAspect::DepthOnly:
+                case RHITextureAspect::DepthOnly:
                     return VK_IMAGE_ASPECT_DEPTH_BIT;
-                case TextureAspect::StencilOnly:
+                case RHITextureAspect::StencilOnly:
                     return VK_IMAGE_ASPECT_STENCIL_BIT;
                 default:
                     return VK_IMAGE_ASPECT_COLOR_BIT;
@@ -290,13 +289,13 @@ namespace Alimer
             return flags;
         }
 
-        constexpr VkVertexInputRate ToVk(VertexStepMode mode)
+        constexpr VkVertexInputRate ToVk(RHIVertexStepMode mode)
         {
             switch (mode)
             {
-                case VertexStepMode::Vertex:
+                case RHIVertexStepMode::Vertex:
                     return VK_VERTEX_INPUT_RATE_VERTEX;
-                case VertexStepMode::Instance:
+                case RHIVertexStepMode::Instance:
                     return VK_VERTEX_INPUT_RATE_INSTANCE;
 
                 default:
@@ -321,18 +320,18 @@ namespace Alimer
             }
         }
 
-        constexpr VkStencilOp ToVk(StencilOperation op)
+        constexpr VkStencilOp ToVk(RHIStencilOperation op)
         {
             switch (op)
             {
-                case StencilOperation::Keep:            return VK_STENCIL_OP_KEEP;
-                case StencilOperation::Zero:            return VK_STENCIL_OP_ZERO;
-                case StencilOperation::Replace:         return VK_STENCIL_OP_REPLACE;
-                case StencilOperation::Invert:          return VK_STENCIL_OP_INVERT;
-                case StencilOperation::IncrementClamp:  return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
-                case StencilOperation::DecrementClamp:  return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
-                case StencilOperation::IncrementWrap:   return VK_STENCIL_OP_INCREMENT_AND_WRAP;
-                case StencilOperation::DecrementWrap:   return VK_STENCIL_OP_DECREMENT_AND_WRAP;
+                case RHIStencilOperation::Keep:            return VK_STENCIL_OP_KEEP;
+                case RHIStencilOperation::Zero:            return VK_STENCIL_OP_ZERO;
+                case RHIStencilOperation::Replace:         return VK_STENCIL_OP_REPLACE;
+                case RHIStencilOperation::Invert:          return VK_STENCIL_OP_INVERT;
+                case RHIStencilOperation::IncrementClamp:  return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+                case RHIStencilOperation::DecrementClamp:  return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+                case RHIStencilOperation::IncrementWrap:   return VK_STENCIL_OP_INCREMENT_AND_WRAP;
+                case RHIStencilOperation::DecrementWrap:   return VK_STENCIL_OP_DECREMENT_AND_WRAP;
                 default:
                     ALIMER_UNREACHABLE();
             }
@@ -357,39 +356,39 @@ namespace Alimer
             }
         }
 
-        constexpr VkCullModeFlags ToVk(CullMode value)
+        constexpr VkCullModeFlags ToVk(RHICullMode value)
         {
             switch (value)
             {
                 default:
-                case CullMode::Back:
+                case RHICullMode::Back:
                     return VK_CULL_MODE_BACK_BIT;
-                case CullMode::None:
+                case RHICullMode::None:
                     return VK_CULL_MODE_NONE;
-                case CullMode::Front:
+                case RHICullMode::Front:
                     return VK_CULL_MODE_FRONT_BIT;
             }
         }
 
-        constexpr VkFrontFace ToVk(FrontFace value)
+        constexpr VkFrontFace ToVk(RHIFrontFace value)
         {
             switch (value)
             {
                 default:
-                case FrontFace::CounterClockwise:
+                case RHIFrontFace::CounterClockwise:
                     return VK_FRONT_FACE_COUNTER_CLOCKWISE;
-                case FrontFace::Clockwise:
+                case RHIFrontFace::Clockwise:
                     return VK_FRONT_FACE_CLOCKWISE;
             }
         }
 
-        constexpr VkFilter ToVk(SamplerMinMagFilter filter)
+        constexpr VkFilter ToVk(RHISamplerMinMagFilter filter)
         {
             switch (filter)
             {
-                case SamplerMinMagFilter::Point:
+                case RHISamplerMinMagFilter::Point:
                     return VK_FILTER_NEAREST;
-                case SamplerMinMagFilter::Linear:
+                case RHISamplerMinMagFilter::Linear:
                     return VK_FILTER_LINEAR;
                 default:
                     ALIMER_UNREACHABLE();
@@ -397,13 +396,13 @@ namespace Alimer
             }
         }
 
-        constexpr VkSamplerMipmapMode ToVk(SamplerMipFilter filter)
+        constexpr VkSamplerMipmapMode ToVk(RHISamplerMipFilter filter)
         {
             switch (filter)
             {
-                case SamplerMipFilter::Point:
+                case RHISamplerMipFilter::Point:
                     return VK_SAMPLER_MIPMAP_MODE_NEAREST;
-                case SamplerMipFilter::Linear:
+                case RHISamplerMipFilter::Linear:
                     return VK_SAMPLER_MIPMAP_MODE_LINEAR;
                 default:
                     ALIMER_UNREACHABLE();
@@ -411,24 +410,24 @@ namespace Alimer
             }
         }
 
-        constexpr VkSamplerAddressMode ToVk(SamplerAddressMode mode, bool samplerMirrorClampToEdge)
+        constexpr VkSamplerAddressMode ToVk(RHISamplerAddressMode mode, bool samplerMirrorClampToEdge)
         {
             switch (mode)
             {
-                case SamplerAddressMode::Clamp:
+                case RHISamplerAddressMode::Clamp:
                     return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-                case SamplerAddressMode::Wrap:
+                case RHISamplerAddressMode::Wrap:
                     return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-                case SamplerAddressMode::Mirror:
+                case RHISamplerAddressMode::Mirror:
                     return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-                case SamplerAddressMode::MirrorOnce:
+                case RHISamplerAddressMode::MirrorOnce:
                     if (samplerMirrorClampToEdge)
                     {
                         return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
                     }
                     return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
 
-                case SamplerAddressMode::Border:
+                case RHISamplerAddressMode::Border:
                     return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
                 default:
                     ALIMER_UNREACHABLE();
@@ -436,21 +435,21 @@ namespace Alimer
             }
         }
 
-        constexpr VkBorderColor ToVk(SamplerBorderColor color)
+        constexpr VkBorderColor ToVk(RHISamplerBorderColor color)
         {
             switch (color)
             {
-                case SamplerBorderColor::FloatTransparentBlack:
+                case RHISamplerBorderColor::FloatTransparentBlack:
                     return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-                case SamplerBorderColor::FloatOpaqueBlack:
+                case RHISamplerBorderColor::FloatOpaqueBlack:
                     return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
-                case SamplerBorderColor::FloatOpaqueWhite:
+                case RHISamplerBorderColor::FloatOpaqueWhite:
                     return VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-                case SamplerBorderColor::UintTransparentBlack:
+                case RHISamplerBorderColor::UintTransparentBlack:
                     return VK_BORDER_COLOR_INT_TRANSPARENT_BLACK;
-                case SamplerBorderColor::UintOpaqueBlack:
+                case RHISamplerBorderColor::UintOpaqueBlack:
                     return VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-                case SamplerBorderColor::UintOpaqueWhite:
+                case RHISamplerBorderColor::UintOpaqueWhite:
                     return VK_BORDER_COLOR_INT_OPAQUE_WHITE;
                 default:
                     ALIMER_UNREACHABLE();
@@ -458,77 +457,77 @@ namespace Alimer
             }
         }
 
-        constexpr VkSamplerReductionMode ToVk(SamplerReductionType value)
+        constexpr VkSamplerReductionMode ToVk(RHISamplerReductionType value)
         {
             switch (value)
             {
-                case SamplerReductionType::Minimum:
+                case RHISamplerReductionType::Minimum:
                     return VK_SAMPLER_REDUCTION_MODE_MIN;
-                case SamplerReductionType::Maximum:
+                case RHISamplerReductionType::Maximum:
                     return VK_SAMPLER_REDUCTION_MODE_MAX;
                 default:
                     return VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE;
             }
         }
 
-        constexpr VkBlendFactor ToVk(BlendFactor value)
+        constexpr VkBlendFactor ToVk(RHIBlendFactor value)
         {
             switch (value)
             {
-                case BlendFactor::Zero:                         return VK_BLEND_FACTOR_ZERO;
-                case BlendFactor::One:                          return VK_BLEND_FACTOR_ONE;
-                case BlendFactor::SourceColor:                  return VK_BLEND_FACTOR_SRC_COLOR;
-                case BlendFactor::OneMinusSourceColor:          return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
-                case BlendFactor::SourceAlpha:                  return VK_BLEND_FACTOR_SRC_ALPHA;
-                case BlendFactor::OneMinusSourceAlpha:          return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-                case BlendFactor::DestinationColor:             return VK_BLEND_FACTOR_DST_COLOR;
-                case BlendFactor::OneMinusDestinationColor:     return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
-                case BlendFactor::DestinationAlpha:             return VK_BLEND_FACTOR_DST_ALPHA;
-                case BlendFactor::OneMinusDestinationAlpha:     return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
-                case BlendFactor::SourceAlphaSaturate:          return VK_BLEND_FACTOR_SRC_ALPHA_SATURATE;
-                case BlendFactor::BlendColor:                   return VK_BLEND_FACTOR_CONSTANT_COLOR;
-                case BlendFactor::OneMinusBlendColor:           return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR;
-                case BlendFactor::Source1Color:                 return VK_BLEND_FACTOR_SRC1_COLOR;
-                case BlendFactor::OneMinusSource1Color:         return VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR;
-                case BlendFactor::Source1Alpha:                 return VK_BLEND_FACTOR_SRC1_ALPHA;
-                case BlendFactor::OneMinusSource1Alpha:         return VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA;
+                case RHIBlendFactor::Zero:                         return VK_BLEND_FACTOR_ZERO;
+                case RHIBlendFactor::One:                          return VK_BLEND_FACTOR_ONE;
+                case RHIBlendFactor::SourceColor:                  return VK_BLEND_FACTOR_SRC_COLOR;
+                case RHIBlendFactor::OneMinusSourceColor:          return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+                case RHIBlendFactor::SourceAlpha:                  return VK_BLEND_FACTOR_SRC_ALPHA;
+                case RHIBlendFactor::OneMinusSourceAlpha:          return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+                case RHIBlendFactor::DestinationColor:             return VK_BLEND_FACTOR_DST_COLOR;
+                case RHIBlendFactor::OneMinusDestinationColor:     return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+                case RHIBlendFactor::DestinationAlpha:             return VK_BLEND_FACTOR_DST_ALPHA;
+                case RHIBlendFactor::OneMinusDestinationAlpha:     return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+                case RHIBlendFactor::SourceAlphaSaturate:          return VK_BLEND_FACTOR_SRC_ALPHA_SATURATE;
+                case RHIBlendFactor::BlendColor:                   return VK_BLEND_FACTOR_CONSTANT_COLOR;
+                case RHIBlendFactor::OneMinusBlendColor:           return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR;
+                case RHIBlendFactor::Source1Color:                 return VK_BLEND_FACTOR_SRC1_COLOR;
+                case RHIBlendFactor::OneMinusSource1Color:         return VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR;
+                case RHIBlendFactor::Source1Alpha:                 return VK_BLEND_FACTOR_SRC1_ALPHA;
+                case RHIBlendFactor::OneMinusSource1Alpha:         return VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA;
                 default:
                     ALIMER_UNREACHABLE();
             }
         }
 
-        constexpr VkBlendOp ToVk(BlendOperation value)
+        constexpr VkBlendOp ToVk(RHIBlendOperation value)
         {
             switch (value)
             {
-                case BlendOperation::Add:              return VK_BLEND_OP_ADD;
-                case BlendOperation::Subtract:         return VK_BLEND_OP_SUBTRACT;
-                case BlendOperation::ReverseSubtract:  return VK_BLEND_OP_REVERSE_SUBTRACT;
-                case BlendOperation::Min:              return VK_BLEND_OP_MIN;
-                case BlendOperation::Max:              return VK_BLEND_OP_MAX;
+                case RHIBlendOperation::Add:              return VK_BLEND_OP_ADD;
+                case RHIBlendOperation::Subtract:         return VK_BLEND_OP_SUBTRACT;
+                case RHIBlendOperation::ReverseSubtract:  return VK_BLEND_OP_REVERSE_SUBTRACT;
+                case RHIBlendOperation::Min:              return VK_BLEND_OP_MIN;
+                case RHIBlendOperation::Max:              return VK_BLEND_OP_MAX;
                 default:
                     ALIMER_UNREACHABLE();
             }
         }
 
-        constexpr VkColorComponentFlags ToVk(ColorWriteMask value)
+        constexpr VkColorComponentFlags ToVk(RHIColorWriteMask value)
         {
-            static_assert(static_cast<VkColorComponentFlagBits>(ColorWriteMask::Red) == VK_COLOR_COMPONENT_R_BIT, "ColorWriteMask mismatch");
-            static_assert(static_cast<VkColorComponentFlagBits>(ColorWriteMask::Green) == VK_COLOR_COMPONENT_G_BIT, "ColorWriteMask mismatch");
-            static_assert(static_cast<VkColorComponentFlagBits>(ColorWriteMask::Blue) == VK_COLOR_COMPONENT_B_BIT, "ColorWriteMask mismatch");
-            static_assert(static_cast<VkColorComponentFlagBits>(ColorWriteMask::Alpha) == VK_COLOR_COMPONENT_A_BIT, "ColorWriteMask mismatch");
+            static_assert(static_cast<VkColorComponentFlagBits>(RHIColorWriteMask::Red) == VK_COLOR_COMPONENT_R_BIT, "ColorWriteMask mismatch");
+            static_assert(static_cast<VkColorComponentFlagBits>(RHIColorWriteMask::Green) == VK_COLOR_COMPONENT_G_BIT, "ColorWriteMask mismatch");
+            static_assert(static_cast<VkColorComponentFlagBits>(RHIColorWriteMask::Blue) == VK_COLOR_COMPONENT_B_BIT, "ColorWriteMask mismatch");
+            static_assert(static_cast<VkColorComponentFlagBits>(RHIColorWriteMask::Alpha) == VK_COLOR_COMPONENT_A_BIT, "ColorWriteMask mismatch");
             return static_cast<VkColorComponentFlags>(value);
         }
 
-        constexpr VkSampleCountFlagBits ToVk(TextureSampleCount count)
+        constexpr VkSampleCountFlagBits ToVk(RHITextureSampleCount count)
         {
-            static_assert(static_cast<VkSampleCountFlagBits>(TextureSampleCount::Count1) == VK_SAMPLE_COUNT_1_BIT, "TextureSampleCount missmatch");
-            static_assert(static_cast<VkSampleCountFlagBits>(TextureSampleCount::Count2) == VK_SAMPLE_COUNT_2_BIT, "TextureSampleCount missmatch");
-            static_assert(static_cast<VkSampleCountFlagBits>(TextureSampleCount::Count4) == VK_SAMPLE_COUNT_4_BIT, "TextureSampleCount missmatch");
-            static_assert(static_cast<VkSampleCountFlagBits>(TextureSampleCount::Count8) == VK_SAMPLE_COUNT_8_BIT, "TextureSampleCount missmatch");
-            static_assert(static_cast<VkSampleCountFlagBits>(TextureSampleCount::Count16) == VK_SAMPLE_COUNT_16_BIT, "TextureSampleCount missmatch");
-            static_assert(static_cast<VkSampleCountFlagBits>(TextureSampleCount::Count32) == VK_SAMPLE_COUNT_32_BIT, "TextureSampleCount missmatch");
-            //static_assert(static_cast<VkSampleCountFlagBits>(TextureSampleCount::Count64) == VK_SAMPLE_COUNT_64_BIT, "TextureSampleCount missmatch");
+            static_assert(static_cast<VkSampleCountFlagBits>(RHITextureSampleCount::Count1) == VK_SAMPLE_COUNT_1_BIT, "TextureSampleCount missmatch");
+            static_assert(static_cast<VkSampleCountFlagBits>(RHITextureSampleCount::Count2) == VK_SAMPLE_COUNT_2_BIT, "TextureSampleCount missmatch");
+            static_assert(static_cast<VkSampleCountFlagBits>(RHITextureSampleCount::Count4) == VK_SAMPLE_COUNT_4_BIT, "TextureSampleCount missmatch");
+            static_assert(static_cast<VkSampleCountFlagBits>(RHITextureSampleCount::Count8) == VK_SAMPLE_COUNT_8_BIT, "TextureSampleCount missmatch");
+            static_assert(static_cast<VkSampleCountFlagBits>(RHITextureSampleCount::Count16) == VK_SAMPLE_COUNT_16_BIT, "TextureSampleCount missmatch");
+            static_assert(static_cast<VkSampleCountFlagBits>(RHITextureSampleCount::Count32) == VK_SAMPLE_COUNT_32_BIT, "TextureSampleCount missmatch");
+            //static_assert(static_cast<VkSampleCountFlagBits>(RHITextureSampleCount::Count64) == VK_SAMPLE_COUNT_64_BIT, "TextureSampleCount missmatch");
 
             return static_cast<VkSampleCountFlagBits>(count);
         }
@@ -565,15 +564,15 @@ namespace Alimer
             }
         }
 
-        constexpr VkPrimitiveTopology ToVk(PrimitiveTopology type)
+        constexpr VkPrimitiveTopology ToVk(RHIPrimitiveTopology type)
         {
             switch (type)
             {
-                case PrimitiveTopology::PointList:      return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-                case PrimitiveTopology::LineList:       return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-                case PrimitiveTopology::LineStrip:      return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-                case PrimitiveTopology::TriangleList:   return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-                case PrimitiveTopology::TriangleStrip:  return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+                case RHIPrimitiveTopology::PointList:      return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+                case RHIPrimitiveTopology::LineList:       return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+                case RHIPrimitiveTopology::LineStrip:      return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+                case RHIPrimitiveTopology::TriangleList:   return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+                case RHIPrimitiveTopology::TriangleStrip:  return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
                 default:
                     ALIMER_UNREACHABLE();
                     return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
@@ -633,23 +632,23 @@ namespace Alimer
             }
         }
 
-        constexpr VkComponentSwizzle ToVkTextureSwizzle(TextureSwizzle value)
+        constexpr VkComponentSwizzle ToVkTextureSwizzle(RHITextureSwizzle value)
         {
             switch (value)
             {
                 default:
                     return VK_COMPONENT_SWIZZLE_IDENTITY;
-                case TextureSwizzle::Red:
+                case RHITextureSwizzle::Red:
                     return VK_COMPONENT_SWIZZLE_R;
-                case TextureSwizzle::Green:
+                case RHITextureSwizzle::Green:
                     return VK_COMPONENT_SWIZZLE_G;
-                case TextureSwizzle::Blue:
+                case RHITextureSwizzle::Blue:
                     return VK_COMPONENT_SWIZZLE_B;
-                case TextureSwizzle::Alpha:
+                case RHITextureSwizzle::Alpha:
                     return VK_COMPONENT_SWIZZLE_A;
-                case TextureSwizzle::Zero:
+                case RHITextureSwizzle::Zero:
                     return VK_COMPONENT_SWIZZLE_ZERO;
-                case TextureSwizzle::One:
+                case RHITextureSwizzle::One:
                     return VK_COMPONENT_SWIZZLE_ONE;
             }
         }
@@ -772,13 +771,13 @@ namespace Alimer
 
         struct VkBufferStateMapping final
         {
-            BufferStates state = BufferStates::Undefined;
+            RHIBufferStates state = RHIBufferStates::Undefined;
             VkPipelineStageFlags2 stageFlags = 0;
             VkAccessFlags2 accessMask = 0;
 
             VkBufferStateMapping() = default;
 
-            VkBufferStateMapping(BufferStates state_, VkPipelineStageFlags2 stageFlags_, VkAccessFlags2 accessMask_)
+            VkBufferStateMapping(RHIBufferStates state_, VkPipelineStageFlags2 stageFlags_, VkAccessFlags2 accessMask_)
                 : state(state_)
                 , stageFlags(stageFlags_)
                 , accessMask(accessMask_)
@@ -800,13 +799,13 @@ namespace Alimer
 
         static const VkBufferStateMapping g_BufferStateMap[] =
         {
-            { BufferStates::CopyDest, VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT },
-            { BufferStates::CopySource, VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT },
-            { BufferStates::ShaderResource, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT },
-            { BufferStates::UnorderedAccess, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT },
-            { BufferStates::VertexBuffer, VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT, VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT },
-            { BufferStates::IndexBuffer, VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT },
-            { BufferStates::ConstantBuffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_UNIFORM_READ_BIT },
+            { RHIBufferStates::CopyDest, VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_WRITE_BIT },
+            { RHIBufferStates::CopySource, VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_ACCESS_2_TRANSFER_READ_BIT },
+            { RHIBufferStates::ShaderResource, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT },
+            { RHIBufferStates::UnorderedAccess, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT },
+            { RHIBufferStates::VertexBuffer, VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT, VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT },
+            { RHIBufferStates::IndexBuffer, VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT, VK_ACCESS_2_INDEX_READ_BIT },
+            { RHIBufferStates::ConstantBuffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_UNIFORM_READ_BIT },
             #if TODO
             { ResourceStates::IndirectArgument, VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT },
             { ResourceStates::StreamOut, VK_PIPELINE_STAGE_2_TRANSFORM_FEEDBACK_BIT_EXT, VK_ACCESS_2_TRANSFORM_FEEDBACK_WRITE_BIT_EXT },
@@ -818,7 +817,7 @@ namespace Alimer
              #endif // TODO
         };
 
-        VkBufferStateMapping ConvertBufferState(BufferStates state)
+        VkBufferStateMapping ConvertBufferState(RHIBufferStates state)
         {
             VkBufferStateMapping result = {};
 
@@ -852,46 +851,46 @@ namespace Alimer
             return result;
         }
 
-        VkImageLayoutMapping ConvertImageLayout(TextureLayout layout, bool depthOnlyFormat)
+        VkImageLayoutMapping ConvertImageLayout(RHITextureLayout layout, bool depthOnlyFormat)
         {
             switch (layout)
             {
-                case TextureLayout::Undefined:
+                case RHITextureLayout::Undefined:
                     return {
                         VK_IMAGE_LAYOUT_UNDEFINED,
                         VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
                         VK_PIPELINE_STAGE_2_NONE
                     };
 
-                case TextureLayout::CopySource:
+                case RHITextureLayout::CopySource:
                     return {
                         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                         VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                         VK_ACCESS_2_TRANSFER_READ_BIT
                     };
 
-                case TextureLayout::CopyDest:
+                case RHITextureLayout::CopyDest:
                     return {
                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                         VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                         VK_ACCESS_2_TRANSFER_WRITE_BIT
                     };
 
-                case TextureLayout::ResolveSource:
+                case RHITextureLayout::ResolveSource:
                     return {
                         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                         VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                         VK_ACCESS_2_TRANSFER_READ_BIT
                     };
 
-                case TextureLayout::ResolveDest:
+                case RHITextureLayout::ResolveDest:
                     return {
                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                         VK_PIPELINE_STAGE_2_TRANSFER_BIT,
                         VK_ACCESS_2_TRANSFER_WRITE_BIT
                     };
 
-                case TextureLayout::ShaderResource:
+                case RHITextureLayout::ShaderResource:
                     //return { VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT };
                     return {
                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -899,42 +898,42 @@ namespace Alimer
                         VK_ACCESS_2_SHADER_READ_BIT
                     };
 
-                case TextureLayout::UnorderedAccess:
+                case RHITextureLayout::UnorderedAccess:
                     return {
                         VK_IMAGE_LAYOUT_GENERAL,
                         VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
                         VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT
                     };
 
-                case TextureLayout::RenderTarget:
+                case RHITextureLayout::RenderTarget:
                     return {
                         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                         VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
                     };
 
-                case TextureLayout::DepthWrite:
+                case RHITextureLayout::DepthWrite:
                     return {
                         depthOnlyFormat ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                         VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
                         VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                     };
 
-                case TextureLayout::DepthRead:
+                case RHITextureLayout::DepthRead:
                     return {
                         depthOnlyFormat ? VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
                         VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
                         VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT
                     };
 
-                case TextureLayout::Present:
+                case RHITextureLayout::Present:
                     return {
                         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                         VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
                         VK_ACCESS_2_MEMORY_READ_BIT
                     };
 
-                case TextureLayout::ShadingRateSurface:
+                case RHITextureLayout::ShadingRateSurface:
                     return {
                         VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR,
                         VK_PIPELINE_STAGE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR,
@@ -984,7 +983,7 @@ namespace Alimer
         void* GetMappedData() const override { return pMappedData; }
         GPUAddress GetGPUAddress() const override { return deviceAddress; }
         RHINativeHandle GetNativeHandle(RHINativeHandleType objectType) override;
-        void SetCurrentState(BufferStates state) const
+        void SetCurrentState(RHIBufferStates state) const
         {
             currentState = state;
         }
@@ -1002,14 +1001,14 @@ namespace Alimer
         uint64_t allocatedSize{};
         //void* pMappedData{ nullptr };
         uint32_t numSubResources = 0;
-        mutable std::vector<TextureLayout> imageLayouts;
+        mutable std::vector<RHITextureLayout> imageLayouts;
 #if defined(_WIN32)
         void* sharedHandle = nullptr;
 #else
         int sharedHandle = 0;
 #endif
 
-        explicit VulkanTexture(VulkanDevice* device_, const TextureDescriptor& desc)
+        explicit VulkanTexture(VulkanDevice* device_, const RHITextureDesc& desc)
             : RHITexture(desc)
             , device(device_)
         {
@@ -1111,7 +1110,7 @@ namespace Alimer
         uint32_t queuePresentSupport = 0;
         RHISurfaceConfig config{};
         PixelFormat colorFormat = PixelFormat::Undefined;
-        TextureUsage usage = TextureUsage::None;
+        RHITextureUsage usage = RHITextureUsage::None;
         RHIColorSpace colorSpace = RHIColorSpace::SRGB;
         RHICompositeAlphaMode alphaMode = RHICompositeAlphaMode::Auto;
         RHIPresentMode presentMode = RHIPresentMode::Fifo;
@@ -1238,7 +1237,7 @@ namespace Alimer
 
         void SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset) override;
         void SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets) override;
-        void SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexFormat format) override;
+        void SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, RHIIndexFormat format) override;
 
         void PrepareDraw();
         void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) override;
@@ -1282,12 +1281,12 @@ namespace Alimer
         void PopDebugGroup() override;
         void InsertDebugMarker(std::string_view name) override;
 
-        void BufferBarrier(const VulkanBuffer* buffer, BufferStates newState);
-        void TextureBarrier(const VulkanTexture* texture, TextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, TextureAspect aspect = TextureAspect::All);
-        void TextureBarrier(const VulkanTextureView* view, TextureLayout newLayout);
+        void BufferBarrier(const VulkanBuffer* buffer, RHIBufferStates newState);
+        void TextureBarrier(const VulkanTexture* texture, RHITextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, RHITextureAspect aspect = RHITextureAspect::All);
+        void TextureBarrier(const VulkanTextureView* view, RHITextureLayout newLayout);
         void CommitBarriers();
 
-        void FlushBindGroups(const DescriptorBindingTable& table, bool graphics);
+        void FlushBindGroups(const RHIDescriptorBindingTable& table, bool graphics);
 
         void BeginQuery(const RHIQueryHeap* heap, uint32_t index) override;
         void EndQuery(const RHIQueryHeap* heap, uint32_t index) override;
@@ -1493,14 +1492,14 @@ namespace Alimer
         uint64_t CommitFrame() override;
 
         RHIBufferRef CreateBufferCore(const RHIBufferDesc& desc, RHINativeHandle nativeHandle, const void* initialData) override;
-        RHITextureRef CreateTextureCore(const TextureDescriptor& desc, const TextureData* initialData) override;
-        RHITextureRef CreateTextureFromNativeHandleCore(RHINativeHandle handle, const TextureDescriptor& desc) override;
+        RHITextureRef CreateTextureCore(const RHITextureDesc& desc, const RHITextureData* initialData) override;
+        RHITextureRef CreateTextureFromNativeHandleCore(RHINativeHandle handle, const RHITextureDesc& desc) override;
         RHISamplerRef CreateSamplerCore(const RHISamplerDesc& desc) override;
 
         VkSampler GetOrCreateVulkanSampler(const RHISamplerDesc* desc);
-        VkDescriptorPool CreateDescriptorSetPool();
+        VkDescriptorPool CreateDescriptorSetPool() const;
 
-        RHIShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) override;
+        RHIShaderModuleRef CreateShaderModuleCore(const RHIShaderModuleDesc& desc) override;
         RHIComputePipelineRef CreateComputePipelineCore(const RHIComputePipelineDesc& desc) override;
         RHIRenderPipelineRef CreateRenderPipelineCore(const RHIRenderPipelineDesc& desc) override;
         RHIQueryHeapRef CreateQueryHeapCore(const RHIQueryHeapDesc& desc) override;
@@ -1519,7 +1518,7 @@ namespace Alimer
 
         bool QueryFeatureSupport(RHIFeature feature) override;
         RHIPixelFormatSupport QueryPixelFormatSupport(PixelFormat format) override;
-        bool QueryVertexFormatSupport(VertexAttributeFormat format);
+        bool QueryVertexFormatSupport(RHIVertexAttributeFormat format);
         RHINativeHandle GetNativeHandle(RHINativeHandleType objectType) override;
         VkFormat ToVkFormat(PixelFormat format);
         bool IsDepthStencilFormatSupported(VkFormat format) const;
@@ -1810,16 +1809,16 @@ namespace Alimer
         // Should we expose TextureViewType enum?
         switch (dimension)
         {
-            case TextureDimension::Texture1D:
+            case RHITextureDimension::Texture1D:
                 createInfo.viewType = isArray ? VK_IMAGE_VIEW_TYPE_1D_ARRAY : VK_IMAGE_VIEW_TYPE_1D;
                 break;
-            case TextureDimension::Texture2D:
+            case RHITextureDimension::Texture2D:
                 createInfo.viewType = isArray ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
                 break;
-            case TextureDimension::Texture3D:
+            case RHITextureDimension::Texture3D:
                 createInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
                 break;
-            case TextureDimension::TextureCube:
+            case RHITextureDimension::TextureCube:
                 createInfo.viewType = isArray ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_CUBE;
                 break;
         }
@@ -2219,11 +2218,11 @@ namespace Alimer
         colorFormat = FromVkFormat(createInfo.imageFormat);
         extent = createInfo.imageExtent;
 
-        TextureDescriptor textureDesc{};
+        RHITextureDesc textureDesc{};
         textureDesc.format = colorFormat;
         textureDesc.width = createInfo.imageExtent.width;
         textureDesc.height = createInfo.imageExtent.height;
-        textureDesc.usage = TextureUsage::RenderTarget;
+        textureDesc.usage = RHITextureUsage::RenderTarget;
 
         for (uint32_t i = 0; i < imageCount; ++i)
         {
@@ -2233,7 +2232,7 @@ namespace Alimer
             texture->allocatedSize = 0;
             texture->numSubResources = 1;
             texture->imageLayouts.resize(1);
-            texture->imageLayouts[0] = TextureLayout::Undefined;
+            texture->imageLayouts[0] = RHITextureLayout::Undefined;
 
             backbufferTextures[i] = texture;
         }
@@ -2345,8 +2344,8 @@ namespace Alimer
         auto backendSrcBuffer = static_cast<const VulkanBuffer*>(sourceBuffer);
         auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
 
-        _commandBuffer->BufferBarrier(backendSrcBuffer, BufferStates::CopySource);
-        _commandBuffer->BufferBarrier(backendDestBuffer, BufferStates::CopyDest);
+        _commandBuffer->BufferBarrier(backendSrcBuffer, RHIBufferStates::CopySource);
+        _commandBuffer->BufferBarrier(backendDestBuffer, RHIBufferStates::CopyDest);
         _commandBuffer->CommitBarriers();
 
         VkBufferCopy copy = {};
@@ -2366,8 +2365,8 @@ namespace Alimer
         auto backendSrcBuffer = static_cast<const VulkanBuffer*>(sourceBuffer);
         auto backendDestBuffer = static_cast<const VulkanBuffer*>(destinationBuffer);
 
-        _commandBuffer->BufferBarrier(backendSrcBuffer, BufferStates::CopySource);
-        _commandBuffer->BufferBarrier(backendDestBuffer, BufferStates::CopyDest);
+        _commandBuffer->BufferBarrier(backendSrcBuffer, RHIBufferStates::CopySource);
+        _commandBuffer->BufferBarrier(backendDestBuffer, RHIBufferStates::CopyDest);
         _commandBuffer->CommitBarriers();
 
         VkBufferCopy copy = {};
@@ -2523,7 +2522,7 @@ namespace Alimer
             attachmentInfo.clearValue.color.float32[3] = attachment.clearColor.float32[3];
 
             // Barrier
-            _commandBuffer->TextureBarrier(view, TextureLayout::RenderTarget);
+            _commandBuffer->TextureBarrier(view, RHITextureLayout::RenderTarget);
         }
 
         if (hasDepthOrStencil)
@@ -2545,7 +2544,7 @@ namespace Alimer
             depthAttachment.clearValue.depthStencil.depth = attachment.depthClearValue;
 
             // Barrier
-            _commandBuffer->TextureBarrier(view, attachment.depthReadOnly ? TextureLayout::DepthRead : TextureLayout::DepthWrite);
+            _commandBuffer->TextureBarrier(view, attachment.depthReadOnly ? RHITextureLayout::DepthRead : RHITextureLayout::DepthWrite);
         }
         _commandBuffer->CommitBarriers();
 
@@ -2792,16 +2791,16 @@ namespace Alimer
         _device->vkCmdBindVertexBuffers(_vkCommandBuffer, slot, count, vkBuffers, offsets);
     }
 
-    void VulkanRenderPassEncoder::SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexFormat format)
+    void VulkanRenderPassEncoder::SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, RHIIndexFormat format)
     {
-        if (format == IndexFormat::Undefined)
+        if (format == RHIIndexFormat::Undefined)
         {
-            LOGE("Invalid index format, cannot be IndexFormat.Undefined.");
+            LOGE("Invalid index format, cannot be Undefined.");
             return;
         }
 
         auto backendBuffer = static_cast<const VulkanBuffer*>(buffer);
-        const VkIndexType vkIndexType = (format == IndexFormat::Uint16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+        const VkIndexType vkIndexType = (format == RHIIndexFormat::Uint16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
 
         _device->vkCmdBindIndexBuffer(_vkCommandBuffer, backendBuffer->handle, offset, vkIndexType);
     }
@@ -3017,7 +3016,7 @@ namespace Alimer
         for (auto& swapChain : presentSwapChains)
         {
             VulkanTexture* swapChainTexture = swapChain->backbufferTextures[swapChain->imageIndex].Get();
-            TextureBarrier(swapChainTexture, TextureLayout::Present, 0, 1, 0, 1);
+            TextureBarrier(swapChainTexture, RHITextureLayout::Present, 0, 1, 0, 1);
         }
         CommitBarriers();
 
@@ -3078,9 +3077,9 @@ namespace Alimer
         device->_adapter->factory->vkCmdInsertDebugUtilsLabelEXT(commandBuffer, &label);
     }
 
-    void VulkanCommandBuffer::BufferBarrier(const VulkanBuffer* buffer, BufferStates newState)
+    void VulkanCommandBuffer::BufferBarrier(const VulkanBuffer* buffer, RHIBufferStates newState)
     {
-        BufferStates currentState = buffer->GetCurrentState();
+        RHIBufferStates currentState = buffer->GetCurrentState();
         if (currentState == newState)
             return;
 
@@ -3108,11 +3107,11 @@ namespace Alimer
             CommitBarriers();
     }
 
-    void VulkanCommandBuffer::TextureBarrier(const VulkanTexture* texture, TextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, TextureAspect aspect)
+    void VulkanCommandBuffer::TextureBarrier(const VulkanTexture* texture, RHITextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, RHITextureAspect aspect)
     {
         const uint32_t mipLevelCount = texture->GetMipLevelCount();
         const uint32_t subresource = CalculateSubresource(baseMiplevel, baseArrayLayer, mipLevelCount);
-        TextureLayout currentLayout = texture->imageLayouts[subresource];
+        RHITextureLayout currentLayout = texture->imageLayouts[subresource];
         if (currentLayout == newLayout)
             return;
 
@@ -3139,7 +3138,6 @@ namespace Alimer
 
         imageBarriers.push_back(barrier);
 
-
         if (numBarriersToCommit == kMaxBarrierCount)
             CommitBarriers();
 
@@ -3153,7 +3151,7 @@ namespace Alimer
         }
     }
 
-    void VulkanCommandBuffer::TextureBarrier(const VulkanTextureView* view, TextureLayout newLayout)
+    void VulkanCommandBuffer::TextureBarrier(const VulkanTextureView* view, RHITextureLayout newLayout)
     {
         const VulkanTexture* backendTexture = static_cast<const VulkanTexture*>(view->GetTexture());
         TextureBarrier(backendTexture, newLayout,
@@ -3185,7 +3183,7 @@ namespace Alimer
         numBarriersToCommit = 0;
     }
 
-    void VulkanCommandBuffer::FlushBindGroups(const DescriptorBindingTable& table, bool graphics)
+    void VulkanCommandBuffer::FlushBindGroups(const RHIDescriptorBindingTable& table, bool graphics)
     {
         struct DescriptorTableInfo
         {
@@ -3535,12 +3533,31 @@ namespace Alimer
     VulkanBindlessManager::VulkanBindlessManager(VulkanDevice* device_)
         : device(device_)
     {
-        // TODO: Handle MutableDescriptorType
-        mutableDescriptorType = false;
+        // Do we support mutable descriptor types?
+        mutableDescriptorType = device->_adapter->mutableDescriptorTypeFeaturesEXT.mutableDescriptorType == VK_TRUE && false;
 
         std::vector<VkDescriptorSetLayout> setLayouts;
         if (mutableDescriptorType)
         {
+            std::vector<VkDescriptorType> descriptorTypes = {
+               VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+               VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+               VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+               VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+               VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+               VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
+            };
+
+            VkMutableDescriptorTypeListEXT mutableDescriptorTypeList = {
+                .descriptorTypeCount = (uint32_t)descriptorTypes.size(),
+                .pDescriptorTypes = descriptorTypes.data()
+            };
+
+            VkMutableDescriptorTypeCreateInfoEXT mutableCreateInfo = {
+                .sType = VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT,
+                .mutableDescriptorTypeListCount = 1,
+                .pMutableDescriptorTypeLists = &mutableDescriptorTypeList
+            };
         }
         else
         {
@@ -4638,12 +4655,6 @@ namespace Alimer
 
         if (nativeHandle)
         {
-            if (nativeHandle.type == RHINativeHandleType::VK_Buffer)
-            {
-                LOGE("Cannot create buffer from invalid vulkan buffer handle");
-                return nullptr;
-            }
-
             buffer->handle = static_cast<VkBuffer>(nativeHandle.pointer);
 
             if (desc.label)
@@ -4715,11 +4726,11 @@ namespace Alimer
 
         VmaAllocationCreateInfo memoryInfo = {};
         memoryInfo.usage = VMA_MEMORY_USAGE_AUTO;
-        if (desc.memoryType == MemoryType::Readback)
+        if (desc.memoryType == RHIMemoryType::Readback)
         {
             memoryInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
         }
-        else if (desc.memoryType == MemoryType::Upload)
+        else if (desc.memoryType == RHIMemoryType::Upload)
         {
             createInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
             memoryInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -4772,7 +4783,7 @@ namespace Alimer
         {
             VulkanUploadContext context;
             void* pMappedData = nullptr;
-            if (desc.memoryType == MemoryType::Upload)
+            if (desc.memoryType == RHIMemoryType::Upload)
             {
                 pMappedData = buffer->pMappedData;
             }
@@ -4866,7 +4877,7 @@ namespace Alimer
         return buffer;
     }
 
-    RHITextureRef VulkanDevice::CreateTextureCore(const TextureDescriptor& desc, const TextureData* initialData)
+    RHITextureRef VulkanDevice::CreateTextureCore(const RHITextureDesc& desc, const RHITextureData* initialData)
     {
         const bool isDepthStencil = IsDepthStencilFormat(desc.format);
 
@@ -4883,21 +4894,21 @@ namespace Alimer
 
         switch (desc.dimension)
         {
-            case TextureDimension::Texture1D:
+            case RHITextureDimension::Texture1D:
                 createInfo.imageType = VK_IMAGE_TYPE_1D;
                 createInfo.arrayLayers = desc.depthOrArrayLayers;
                 break;
 
-            case TextureDimension::Texture2D:
+            case RHITextureDimension::Texture2D:
                 createInfo.imageType = VK_IMAGE_TYPE_2D;
                 createInfo.extent.height = desc.height;
                 createInfo.arrayLayers = desc.depthOrArrayLayers;
                 break;
 
-            case TextureDimension::Texture3D:
+            case RHITextureDimension::Texture3D:
                 // When using 3D textures as render targets, we need to be able to create 2d array views.
                 if (!isDepthStencil &&
-                    CheckBitsAny(desc.usage, TextureUsage::RenderTarget))
+                    CheckBitsAny(desc.usage, RHITextureUsage::RenderTarget))
                 {
                     createInfo.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
                 }
@@ -4908,7 +4919,7 @@ namespace Alimer
                 createInfo.arrayLayers = 1u;
                 break;
 
-            case TextureDimension::TextureCube:
+            case RHITextureDimension::TextureCube:
                 createInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
                 createInfo.imageType = VK_IMAGE_TYPE_2D;
                 createInfo.extent.height = desc.height;
@@ -4930,7 +4941,7 @@ namespace Alimer
         createInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
         createInfo.usage = 0u;
 
-        if (CheckBitsAny(desc.usage, TextureUsage::Transient))
+        if (CheckBitsAny(desc.usage, RHITextureUsage::Transient))
         {
             createInfo.usage |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
         }
@@ -4940,42 +4951,42 @@ namespace Alimer
             createInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         }
 
-        TextureLayout initialLayout = TextureLayout::Undefined;
+        RHITextureLayout initialLayout = RHITextureLayout::Undefined;
 
-        if (CheckBitsAny(desc.usage, TextureUsage::ShaderRead))
+        if (CheckBitsAny(desc.usage, RHITextureUsage::ShaderRead))
         {
             createInfo.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
-            initialLayout = TextureLayout::ShaderResource;
+            initialLayout = RHITextureLayout::ShaderResource;
         }
 
-        if (CheckBitsAny(desc.usage, TextureUsage::ShaderWrite))
+        if (CheckBitsAny(desc.usage, RHITextureUsage::ShaderWrite))
         {
             createInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-            initialLayout = TextureLayout::UnorderedAccess;
+            initialLayout = RHITextureLayout::UnorderedAccess;
         }
 
-        if (CheckBitsAny(desc.usage, TextureUsage::RenderTarget))
+        if (CheckBitsAny(desc.usage, RHITextureUsage::RenderTarget))
         {
             if (isDepthStencil)
             {
                 createInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-                initialLayout = TextureLayout::DepthWrite;
+                initialLayout = RHITextureLayout::DepthWrite;
             }
             else
             {
                 createInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-                initialLayout = TextureLayout::RenderTarget;
+                initialLayout = RHITextureLayout::RenderTarget;
             }
         }
 
-        if (CheckBitsAny(desc.usage, TextureUsage::ShadingRate))
+        if (CheckBitsAny(desc.usage, RHITextureUsage::ShadingRate))
         {
             createInfo.usage |= VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
         }
 
         // If ShaderRead and RenderTarget add input attachment
-        if (!IsDepthStencilFormat(desc.format) &&
-            CheckBitsAll(desc.usage, TextureUsage::RenderTarget | TextureUsage::ShaderRead))
+        if (!IsDepthStencilFormat(desc.format)
+            && CheckBitsAll(desc.usage, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderRead))
         {
             createInfo.usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
         }
@@ -5046,8 +5057,8 @@ namespace Alimer
         }
         else
 #endif // TEXTURE_STAGING
-
-            if (CheckBitsAny(desc.usage, TextureUsage::Shared))
+        {
+            if (CheckBitsAny(desc.usage, RHITextureUsage::Shared))
             {
                 // Ensure that the handle type is supported.
                 VkImageFormatProperties2 props2 = {};
@@ -5089,6 +5100,7 @@ namespace Alimer
                 memoryInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
                 isShared = true;
             }
+        }
 
         result = vmaCreateImage(allocator, &createInfo, &memoryInfo,
             &texture->handle,
@@ -5136,7 +5148,7 @@ namespace Alimer
 
         // Issue data copy on request
         VkImageSubresourceRange range{};
-        range.aspectMask = GetImageAspectFlags(createInfo.format, TextureAspect::All);
+        range.aspectMask = GetImageAspectFlags(createInfo.format, RHITextureAspect::All);
         range.baseMipLevel = 0;
         range.levelCount = createInfo.mipLevels;
         range.baseArrayLayer = 0;
@@ -5174,7 +5186,7 @@ namespace Alimer
 
                 for (uint32_t mipIndex = 0; mipIndex < createInfo.mipLevels; ++mipIndex)
                 {
-                    const TextureData& subresourceData = initialData[initDataIndex++];
+                    const RHITextureData& subresourceData = initialData[initDataIndex++];
                     const uint32_t numBlocksX = Max(1u, levelWidth / blockSize);
                     const uint32_t numBlocksY = Max(1u, levelHeight / blockSize);
                     const uint32_t dstRowPitch = numBlocksX * formatInfo.bytesPerBlock;
@@ -5228,7 +5240,7 @@ namespace Alimer
 
             if (uploadContext.IsValid())
             {
-                const VkImageLayoutMapping mappingBefore = ConvertImageLayout(TextureLayout::CopyDest, depthOnlyFormat);
+                const VkImageLayoutMapping mappingBefore = ConvertImageLayout(RHITextureLayout::CopyDest, depthOnlyFormat);
 
                 VkImageMemoryBarrier2 barrier = {};
                 barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -5271,7 +5283,7 @@ namespace Alimer
                 copyAllocator.Submit(uploadContext);
             }
         }
-        else if (initialLayout != TextureLayout::Undefined)
+        else if (initialLayout != RHITextureLayout::Undefined)
         {
             const VkImageLayoutMapping mappingAfter = ConvertImageLayout(initialLayout, depthOnlyFormat);
 
@@ -5302,11 +5314,8 @@ namespace Alimer
         return texture;
     }
 
-    RHITextureRef VulkanDevice::CreateTextureFromNativeHandleCore(RHINativeHandle handle, const TextureDescriptor& desc)
+    RHITextureRef VulkanDevice::CreateTextureFromNativeHandleCore(RHINativeHandle handle, const RHITextureDesc& desc)
     {
-        if (handle.type != RHINativeHandleType::VK_Image)
-            return nullptr;
-
         SharedPtr<VulkanTexture> texture(new VulkanTexture(this, desc));
         texture->vkFormat = ToVkFormat(desc.format);
 
@@ -5378,7 +5387,7 @@ namespace Alimer
                 createInfo.maxAnisotropy = 1;
             }
 
-            if (desc->reductionType == SamplerReductionType::Comparison)
+            if (desc->reductionType == RHISamplerReductionType::Comparison)
             {
                 createInfo.compareOp = ToVk(desc->compareFunction);
                 createInfo.compareEnable = VK_TRUE;
@@ -5396,7 +5405,7 @@ namespace Alimer
 
             VkSamplerReductionModeCreateInfo samplerReductionModeInfo = {};
             if (_adapter->features12.samplerFilterMinmax == VK_TRUE &&
-                (desc->reductionType == SamplerReductionType::Minimum || desc->reductionType == SamplerReductionType::Maximum))
+                (desc->reductionType == RHISamplerReductionType::Minimum || desc->reductionType == RHISamplerReductionType::Maximum))
             {
                 samplerReductionModeInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO;
                 samplerReductionModeInfo.reductionMode = ToVk(desc->reductionType);
@@ -5418,7 +5427,7 @@ namespace Alimer
         return it->second;
     }
 
-    VkDescriptorPool VulkanDevice::CreateDescriptorSetPool()
+    VkDescriptorPool VulkanDevice::CreateDescriptorSetPool() const
     {
         const std::vector<VkDescriptorPoolSize> poolSizes{
             { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 512 },
@@ -5448,30 +5457,16 @@ namespace Alimer
         return pool;
     }
 
-    RHIShaderModuleRef VulkanDevice::CreateShaderModuleCore(const ShaderModuleDesc& desc)
+    RHIShaderModuleRef VulkanDevice::CreateShaderModuleCore(const RHIShaderModuleDesc& desc)
     {
         SharedPtr<VulkanShaderModule> module(new VulkanShaderModule());
         module->device = this;
         module->stageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 
-        SpvReflectShaderModule reflectModule;
-        SpvReflectResult reflectResult = spvReflectCreateShaderModule(desc.byteCodeSize, desc.byteCode, &reflectModule);
-        if (reflectResult != SPV_REFLECT_RESULT_SUCCESS)
-        {
-            return nullptr;
-        }
-
-        if (reflectModule.entry_point_count > 1)
-        {
-            LOGE("Too many entry points in SPIR-V module: Expected 1, but got {}", reflectModule.entry_point_count);
-            return nullptr;
-        }
-
-        module->entryPoint = reflectModule.entry_point_name;
-        module->stageInfo.stage = static_cast<VkShaderStageFlagBits>(reflectModule.shader_stage);
+        module->entryPoint = desc.entryPoint;
+        module->stageInfo.stage = static_cast<VkShaderStageFlagBits>(ToVkShaderStageFlags(desc.stage));
         module->stageInfo.pName = module->entryPoint.c_str();
 
-        // TODO: Shift sets here instead in shader compiler
         const VkShaderModuleCreateInfo moduleInfo = {
             .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
             .codeSize = desc.byteCodeSize,
@@ -5485,7 +5480,6 @@ namespace Alimer
             return nullptr;
         }
 
-        spvReflectDestroyShaderModule(&reflectModule);
         return module;
     }
 
@@ -5557,7 +5551,7 @@ namespace Alimer
         {
             for (uint32_t bufferIndex = 0; bufferIndex < desc.vertexBufferLayoutCount; ++bufferIndex)
             {
-                const VertexBufferLayout& vertexBufferLayout = desc.vertexBufferLayouts[bufferIndex];
+                const RHIVertexBufferLayout& vertexBufferLayout = desc.vertexBufferLayouts[bufferIndex];
 
                 VkVertexInputBindingDescription& vertexBinding = vertexBindings.emplace_back();
                 vertexBinding.binding = bufferIndex;
@@ -5568,7 +5562,7 @@ namespace Alimer
                 const bool computeStride = vertexBinding.stride == 0;
                 for (uint32_t attributeIndex = 0; attributeIndex < vertexBufferLayout.attributeCount; ++attributeIndex)
                 {
-                    const VertexAttribute& attribute = vertexBufferLayout.attributes[attributeIndex];
+                    const RHIVertexAttribute& attribute = vertexBufferLayout.attributes[attributeIndex];
 
                     VkVertexInputAttributeDescription& vertexAttribute = vertexAttributes.emplace_back();
                     vertexAttribute.location = attributeLocation;
@@ -5576,7 +5570,7 @@ namespace Alimer
                     vertexAttribute.format = ToVkVertexFormat(attribute.format);
                     vertexAttribute.offset = attribute.offset != 0 ? attribute.offset : currentOffset;
 
-                    const VertexAttributeFormatInfo& formatInfo = GetVertexAttributeFormatInfo(attribute.format);
+                    const RHIVertexAttributeFormatInfo& formatInfo = GetVertexAttributeFormatInfo(attribute.format);
                     currentOffset += formatInfo.byteSize;
                     attributeLocation++;
 
@@ -5600,8 +5594,8 @@ namespace Alimer
         inputAssemblyState.topology = ToVk(desc.primitiveTopology);
         switch (desc.primitiveTopology)
         {
-            case PrimitiveTopology::LineStrip:
-            case PrimitiveTopology::TriangleStrip:
+            case RHIPrimitiveTopology::LineStrip:
+            case RHIPrimitiveTopology::TriangleStrip:
                 inputAssemblyState.primitiveRestartEnable = VK_TRUE;
                 break;
             default:
@@ -5618,7 +5612,7 @@ namespace Alimer
         // RasterizationState
         VkPipelineRasterizationStateCreateInfo rasterizationState{};
         rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rasterizationState.depthClampEnable = (desc.rasterizerState.depthClipMode == DepthClipMode::Clamp) ? VK_TRUE : VK_FALSE;
+        rasterizationState.depthClampEnable = (desc.rasterizerState.depthClipMode == RHIDepthClipMode::Clamp) ? VK_TRUE : VK_FALSE;
 
         VkPipelineRasterizationDepthClipStateCreateInfoEXT depthClipStateInfo = {};
         depthClipStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT;
@@ -5626,7 +5620,7 @@ namespace Alimer
         const void** tail = &rasterizationState.pNext;
         if (_adapter->depthClipEnableFeatures.depthClipEnable == VK_TRUE)
         {
-            depthClipStateInfo.depthClipEnable = (desc.rasterizerState.depthClipMode == DepthClipMode::Clip) ? VK_TRUE : VK_FALSE;
+            depthClipStateInfo.depthClipEnable = (desc.rasterizerState.depthClipMode == RHIDepthClipMode::Clip) ? VK_TRUE : VK_FALSE;
 
             rasterizationState.depthClampEnable = VK_TRUE;
             rasterizationState.pNext = &depthClipStateInfo;
@@ -5722,7 +5716,7 @@ namespace Alimer
             if (desc.blendState.independentBlendEnable)
                 attachmentIndex = i;
 
-            const RenderTargetBlendState& attachment = desc.blendState.renderTargets[attachmentIndex];
+            const RHIRenderTargetBlendState& attachment = desc.blendState.renderTargets[attachmentIndex];
 
             blendAttachmentStates[colorAttachmentCount].blendEnable = BlendEnabled(&attachment) ? VK_TRUE : VK_FALSE;
             blendAttachmentStates[colorAttachmentCount].srcColorBlendFactor = ToVk(attachment.srcColorBlendFactor);
@@ -6177,26 +6171,26 @@ namespace Alimer
 
         props2 = {};
         props2.sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2;
-        TextureSampleCount supportedSampleCount = TextureSampleCount::Count1;
+        RHITextureSampleCount supportedSampleCount = RHITextureSampleCount::Count1;
         if (IsDepthStencilFormat(format))
         {
             if (GetImageFormatProperties(vkFormat, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 0, nullptr, &props2))
             {
-                supportedSampleCount = static_cast<TextureSampleCount>(props2.imageFormatProperties.sampleCounts);
+                supportedSampleCount = static_cast<RHITextureSampleCount>(props2.imageFormatProperties.sampleCounts);
             }
         }
         else
         {
             if (GetImageFormatProperties(vkFormat, VK_IMAGE_TYPE_2D, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT, 0, nullptr, &props2))
             {
-                supportedSampleCount = static_cast<TextureSampleCount>(props2.imageFormatProperties.sampleCounts);
+                supportedSampleCount = static_cast<RHITextureSampleCount>(props2.imageFormatProperties.sampleCounts);
             }
         }
 
         return result;
     }
 
-    bool VulkanDevice::QueryVertexFormatSupport(VertexAttributeFormat format)
+    bool VulkanDevice::QueryVertexFormatSupport(RHIVertexAttributeFormat format)
     {
         const VkFormat vkFormat = ToVkVertexFormat(format);
         if (vkFormat == VK_FORMAT_UNDEFINED)
@@ -6405,7 +6399,7 @@ namespace Alimer
             RHIBufferDesc uploadBufferDesc;
             uploadBufferDesc.label = "CopyAllocator::UploadBuffer";
             uploadBufferDesc.size = context.uploadBufferSize;
-            uploadBufferDesc.memoryType = MemoryType::Upload;
+            uploadBufferDesc.memoryType = RHIMemoryType::Upload;
 
             context.uploadBuffer = StaticCast<VulkanBuffer>(device->CreateBuffer(uploadBufferDesc, nullptr));
             ALIMER_ASSERT(context.uploadBuffer != nullptr);

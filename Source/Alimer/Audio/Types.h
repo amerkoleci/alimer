@@ -3,17 +3,36 @@
 
 #pragma once
 
-#include "Alimer/Core/Base.h"
+#include <stdint.h>
 
 namespace Alimer
 {
-    enum class AudioFormat : uint32_t
+    enum class AudioFormat
     {
-        /// Signed 16-bit integer samples, range [-32768, 32767].
-        Int16,
-        /// Signed 32-bit integer samples, range [-2147483648, 2147483647].
-        Int32,
-        /// 32-bit floating point samples, range [-1, 1].
+        /// 8-bit unsigned integer, range [0, 255]
+        Uint8,
+        /// 16-bit signed integer, range [-32768, 32767].
+        Sint16,
+        /// 24-bit signed integer (tightly packed), range [-8388608, 8388607].
+        Sint24,
+        /// 32-bit signed integer, range [-2147483648, 2147483647].
+        Sint32,
+        /// 32-bit floating point, range [-1, 1].
         Float32,
+
+        Count
     };
+
+    constexpr uint32_t GetSampleSize(AudioFormat format)
+    {
+        switch (format)
+        {
+            case AudioFormat::Uint8: return 1;
+            case AudioFormat::Sint16: return 2;
+            case AudioFormat::Sint24: return 3;
+            case AudioFormat::Sint32: return 4;
+            case AudioFormat::Float32: return 4;
+            default: return 0;
+        }
+    }
 }

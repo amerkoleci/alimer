@@ -79,7 +79,7 @@ namespace Alimer
 
     RHITextureView* RHITexture::GetView(const RHITextureViewDesc* desc) const
     {
-        if (!CheckBitsAny(usage, TextureUsage::ShaderRead | TextureUsage::ShaderWrite | TextureUsage::RenderTarget))
+        if (!CheckBitsAny(usage, RHITextureUsage::ShaderRead | RHITextureUsage::ShaderWrite | RHITextureUsage::RenderTarget))
         {
             LOGE("Cannot create TextureView for texture without ShaderRead, ShaderWrite or RenderTarget usage");
         }
@@ -106,7 +106,7 @@ namespace Alimer
             creationDesc.mipLevelCount = Min(creationDesc.mipLevelCount, mipLevelCount - creationDesc.baseMipLevel);
         }
 
-        const uint32_t textureArrayLayerCount = GetArrayLayers() * (dimension == TextureDimension::TextureCube ? 6 : 1);
+        const uint32_t textureArrayLayerCount = GetArrayLayers() * (dimension == RHITextureDimension::TextureCube ? 6 : 1);
         creationDesc.baseArrayLayer = Min(creationDesc.baseArrayLayer, textureArrayLayerCount);
         creationDesc.arrayLayerCount = Min(creationDesc.arrayLayerCount, textureArrayLayerCount - creationDesc.baseArrayLayer);
 
@@ -183,7 +183,7 @@ namespace Alimer
             RHIBufferDesc bufferDesc;
             bufferDesc.size = AlignUp((bufferSize + size) * 2, alignment);
             bufferDesc.usage = RHIBufferUsage::Vertex | RHIBufferUsage::Index | RHIBufferUsage::Constant | RHIBufferUsage::ShaderRead;
-            bufferDesc.memoryType = MemoryType::Upload;
+            bufferDesc.memoryType = RHIMemoryType::Upload;
 
             allocator.buffer = device->CreateBuffer(bufferDesc);
             allocator.offset = 0;
@@ -323,106 +323,106 @@ namespace Alimer
 
         // SamplerPointClamp
         samplerDesc.label = "SamplerPointClamp";
-        samplerDesc.minFilter = SamplerMinMagFilter::Point;
-        samplerDesc.magFilter = SamplerMinMagFilter::Point;
-        samplerDesc.mipFilter = SamplerMipFilter::Point;
-        samplerDesc.addressModeU = SamplerAddressMode::Clamp;
-        samplerDesc.addressModeV = SamplerAddressMode::Clamp;
-        samplerDesc.addressModeW = SamplerAddressMode::Clamp;
+        samplerDesc.minFilter = RHISamplerMinMagFilter::Point;
+        samplerDesc.magFilter = RHISamplerMinMagFilter::Point;
+        samplerDesc.mipFilter = RHISamplerMipFilter::Point;
+        samplerDesc.addressModeU = RHISamplerAddressMode::Clamp;
+        samplerDesc.addressModeV = RHISamplerAddressMode::Clamp;
+        samplerDesc.addressModeW = RHISamplerAddressMode::Clamp;
         staticSamplers.push_back(CreateSamplerCore(samplerDesc));
 
         // SamplerPointWrap
         samplerDesc.label = "SamplerPointWrap";
-        samplerDesc.minFilter = SamplerMinMagFilter::Point;
-        samplerDesc.magFilter = SamplerMinMagFilter::Point;
-        samplerDesc.mipFilter = SamplerMipFilter::Point;
-        samplerDesc.addressModeU = SamplerAddressMode::Wrap;
-        samplerDesc.addressModeV = SamplerAddressMode::Wrap;
-        samplerDesc.addressModeW = SamplerAddressMode::Wrap;
+        samplerDesc.minFilter = RHISamplerMinMagFilter::Point;
+        samplerDesc.magFilter = RHISamplerMinMagFilter::Point;
+        samplerDesc.mipFilter = RHISamplerMipFilter::Point;
+        samplerDesc.addressModeU = RHISamplerAddressMode::Wrap;
+        samplerDesc.addressModeV = RHISamplerAddressMode::Wrap;
+        samplerDesc.addressModeW = RHISamplerAddressMode::Wrap;
         staticSamplers.push_back(CreateSamplerCore(samplerDesc));
 
         // SamplerPointMirror
         samplerDesc.label = "SamplerPointMirror";
-        samplerDesc.minFilter = SamplerMinMagFilter::Point;
-        samplerDesc.magFilter = SamplerMinMagFilter::Point;
-        samplerDesc.mipFilter = SamplerMipFilter::Point;
-        samplerDesc.addressModeU = SamplerAddressMode::Mirror;
-        samplerDesc.addressModeV = SamplerAddressMode::Mirror;
-        samplerDesc.addressModeW = SamplerAddressMode::Mirror;
+        samplerDesc.minFilter = RHISamplerMinMagFilter::Point;
+        samplerDesc.magFilter = RHISamplerMinMagFilter::Point;
+        samplerDesc.mipFilter = RHISamplerMipFilter::Point;
+        samplerDesc.addressModeU = RHISamplerAddressMode::Mirror;
+        samplerDesc.addressModeV = RHISamplerAddressMode::Mirror;
+        samplerDesc.addressModeW = RHISamplerAddressMode::Mirror;
         staticSamplers.push_back(CreateSamplerCore(samplerDesc));
 
         // SamplerLinearClamp
         samplerDesc.label = "SamplerLinearClamp";
-        samplerDesc.minFilter = SamplerMinMagFilter::Linear;
-        samplerDesc.magFilter = SamplerMinMagFilter::Linear;
-        samplerDesc.mipFilter = SamplerMipFilter::Linear;
-        samplerDesc.addressModeU = SamplerAddressMode::Clamp;
-        samplerDesc.addressModeV = SamplerAddressMode::Clamp;
-        samplerDesc.addressModeW = SamplerAddressMode::Clamp;
+        samplerDesc.minFilter = RHISamplerMinMagFilter::Linear;
+        samplerDesc.magFilter = RHISamplerMinMagFilter::Linear;
+        samplerDesc.mipFilter = RHISamplerMipFilter::Linear;
+        samplerDesc.addressModeU = RHISamplerAddressMode::Clamp;
+        samplerDesc.addressModeV = RHISamplerAddressMode::Clamp;
+        samplerDesc.addressModeW = RHISamplerAddressMode::Clamp;
         staticSamplers.push_back(CreateSamplerCore(samplerDesc));
 
         // SamplerLinearWrap
         samplerDesc.label = "SamplerLinearWrap";
-        samplerDesc.minFilter = SamplerMinMagFilter::Linear;
-        samplerDesc.magFilter = SamplerMinMagFilter::Linear;
-        samplerDesc.mipFilter = SamplerMipFilter::Linear;
-        samplerDesc.addressModeU = SamplerAddressMode::Wrap;
-        samplerDesc.addressModeV = SamplerAddressMode::Wrap;
-        samplerDesc.addressModeW = SamplerAddressMode::Wrap;
+        samplerDesc.minFilter = RHISamplerMinMagFilter::Linear;
+        samplerDesc.magFilter = RHISamplerMinMagFilter::Linear;
+        samplerDesc.mipFilter = RHISamplerMipFilter::Linear;
+        samplerDesc.addressModeU = RHISamplerAddressMode::Wrap;
+        samplerDesc.addressModeV = RHISamplerAddressMode::Wrap;
+        samplerDesc.addressModeW = RHISamplerAddressMode::Wrap;
         staticSamplers.push_back(CreateSamplerCore(samplerDesc));
 
         // SamplerLinearMirror
         samplerDesc.label = "SamplerLinearMirror";
-        samplerDesc.minFilter = SamplerMinMagFilter::Linear;
-        samplerDesc.magFilter = SamplerMinMagFilter::Linear;
-        samplerDesc.mipFilter = SamplerMipFilter::Linear;
-        samplerDesc.addressModeU = SamplerAddressMode::Mirror;
-        samplerDesc.addressModeV = SamplerAddressMode::Mirror;
-        samplerDesc.addressModeW = SamplerAddressMode::Mirror;
+        samplerDesc.minFilter = RHISamplerMinMagFilter::Linear;
+        samplerDesc.magFilter = RHISamplerMinMagFilter::Linear;
+        samplerDesc.mipFilter = RHISamplerMipFilter::Linear;
+        samplerDesc.addressModeU = RHISamplerAddressMode::Mirror;
+        samplerDesc.addressModeV = RHISamplerAddressMode::Mirror;
+        samplerDesc.addressModeW = RHISamplerAddressMode::Mirror;
         staticSamplers.push_back(CreateSamplerCore(samplerDesc));
 
         // SamplerAnisotropicClamp
         samplerDesc.label = "SamplerAnisotropicClamp";
-        samplerDesc.minFilter = SamplerMinMagFilter::Linear;
-        samplerDesc.magFilter = SamplerMinMagFilter::Linear;
-        samplerDesc.mipFilter = SamplerMipFilter::Linear;
-        samplerDesc.addressModeU = SamplerAddressMode::Clamp;
-        samplerDesc.addressModeV = SamplerAddressMode::Clamp;
-        samplerDesc.addressModeW = SamplerAddressMode::Clamp;
+        samplerDesc.minFilter = RHISamplerMinMagFilter::Linear;
+        samplerDesc.magFilter = RHISamplerMinMagFilter::Linear;
+        samplerDesc.mipFilter = RHISamplerMipFilter::Linear;
+        samplerDesc.addressModeU = RHISamplerAddressMode::Clamp;
+        samplerDesc.addressModeV = RHISamplerAddressMode::Clamp;
+        samplerDesc.addressModeW = RHISamplerAddressMode::Clamp;
         samplerDesc.maxAnisotropy = 16;
         staticSamplers.push_back(CreateSamplerCore(samplerDesc));
 
         // SamplerAnisotropicWrap
         samplerDesc.label = "SamplerAnisotropicWrap";
-        samplerDesc.minFilter = SamplerMinMagFilter::Linear;
-        samplerDesc.magFilter = SamplerMinMagFilter::Linear;
-        samplerDesc.mipFilter = SamplerMipFilter::Linear;
-        samplerDesc.addressModeU = SamplerAddressMode::Wrap;
-        samplerDesc.addressModeV = SamplerAddressMode::Wrap;
-        samplerDesc.addressModeW = SamplerAddressMode::Wrap;
+        samplerDesc.minFilter = RHISamplerMinMagFilter::Linear;
+        samplerDesc.magFilter = RHISamplerMinMagFilter::Linear;
+        samplerDesc.mipFilter = RHISamplerMipFilter::Linear;
+        samplerDesc.addressModeU = RHISamplerAddressMode::Wrap;
+        samplerDesc.addressModeV = RHISamplerAddressMode::Wrap;
+        samplerDesc.addressModeW = RHISamplerAddressMode::Wrap;
         samplerDesc.maxAnisotropy = 16;
         staticSamplers.push_back(CreateSamplerCore(samplerDesc));
 
         // SamplerAnisotropicMirror
         samplerDesc.label = "SamplerAnisotropicMirror";
-        samplerDesc.minFilter = SamplerMinMagFilter::Linear;
-        samplerDesc.magFilter = SamplerMinMagFilter::Linear;
-        samplerDesc.mipFilter = SamplerMipFilter::Linear;
-        samplerDesc.addressModeU = SamplerAddressMode::Mirror;
-        samplerDesc.addressModeV = SamplerAddressMode::Mirror;
-        samplerDesc.addressModeW = SamplerAddressMode::Mirror;
+        samplerDesc.minFilter = RHISamplerMinMagFilter::Linear;
+        samplerDesc.magFilter = RHISamplerMinMagFilter::Linear;
+        samplerDesc.mipFilter = RHISamplerMipFilter::Linear;
+        samplerDesc.addressModeU = RHISamplerAddressMode::Mirror;
+        samplerDesc.addressModeV = RHISamplerAddressMode::Mirror;
+        samplerDesc.addressModeW = RHISamplerAddressMode::Mirror;
         samplerDesc.maxAnisotropy = 16;
         staticSamplers.push_back(CreateSamplerCore(samplerDesc));
 
         // SamplerComparisonDepth
         samplerDesc.label = "SamplerComparisonDepth";
-        samplerDesc.reductionType = SamplerReductionType::Comparison;
-        samplerDesc.minFilter = SamplerMinMagFilter::Linear;
-        samplerDesc.magFilter = SamplerMinMagFilter::Linear;
-        samplerDesc.mipFilter = SamplerMipFilter::Point;
-        samplerDesc.addressModeU = SamplerAddressMode::Clamp;
-        samplerDesc.addressModeV = SamplerAddressMode::Clamp;
-        samplerDesc.addressModeW = SamplerAddressMode::Clamp;
+        samplerDesc.reductionType = RHISamplerReductionType::Comparison;
+        samplerDesc.minFilter = RHISamplerMinMagFilter::Linear;
+        samplerDesc.magFilter = RHISamplerMinMagFilter::Linear;
+        samplerDesc.mipFilter = RHISamplerMipFilter::Point;
+        samplerDesc.addressModeU = RHISamplerAddressMode::Clamp;
+        samplerDesc.addressModeV = RHISamplerAddressMode::Clamp;
+        samplerDesc.addressModeW = RHISamplerAddressMode::Clamp;
         samplerDesc.maxAnisotropy = 1;
         samplerDesc.compareFunction = RHICompareFunction::GreaterEqual;
         samplerDesc.lodMinClamp = 0;
@@ -430,7 +430,7 @@ namespace Alimer
         staticSamplers.push_back(CreateSamplerCore(samplerDesc));
     }
 
-    bool RHIDevice::ValidateTextureDesc(const TextureDescriptor& desc)
+    bool RHIDevice::ValidateTextureDesc(const RHITextureDesc& desc)
     {
         if (desc.width == 0 || desc.height == 0 || desc.depthOrArrayLayers == 0)
         {
@@ -444,8 +444,8 @@ namespace Alimer
             return false;
         }
 
-        if ((desc.dimension == TextureDimension::Texture1D || desc.dimension == TextureDimension::Texture3D)
-            && desc.sampleCount != TextureSampleCount::Count1)
+        if ((desc.dimension == RHITextureDimension::Texture1D || desc.dimension == RHITextureDimension::Texture3D)
+            && desc.sampleCount != RHITextureSampleCount::Count1)
         {
             LOGE("1D and 3D Textures must use TextureSampleCount.Count1.");
             return false;
@@ -454,33 +454,33 @@ namespace Alimer
         return true;
     }
 
-    RHITextureRef RHIDevice::CreateTexture(const TextureDescriptor& descriptor, const TextureData* initialData)
+    RHITextureRef RHIDevice::CreateTexture(const RHITextureDesc& desc, const RHITextureData* initialData)
     {
-        if (!ValidateTextureDesc(descriptor))
+        if (!ValidateTextureDesc(desc))
         {
             return nullptr;
         }
 
-        TextureDescriptor creationDesc = descriptor;
+        RHITextureDesc creationDesc = desc;
         if (creationDesc.mipLevelCount == 0)
         {
-            creationDesc.mipLevelCount = GetMipLevelCount(descriptor.width, descriptor.height, descriptor.depthOrArrayLayers);
+            creationDesc.mipLevelCount = GetMipLevelCount(desc.width, desc.height, desc.depthOrArrayLayers);
         }
 
         return CreateTextureCore(creationDesc, initialData);
     }
 
-    RHITextureRef RHIDevice::CreateTextureFromNativeHandle(RHINativeHandle handle, const TextureDescriptor& descriptor)
+    RHITextureRef RHIDevice::CreateTextureFromNativeHandle(RHINativeHandle handle, const RHITextureDesc& desc)
     {
-        if (!ValidateTextureDesc(descriptor))
+        if (!ValidateTextureDesc(desc))
         {
             return nullptr;
         }
 
-        TextureDescriptor creationDesc = descriptor;
+        RHITextureDesc creationDesc = desc;
         if (creationDesc.mipLevelCount == 0)
         {
-            creationDesc.mipLevelCount = GetMipLevelCount(descriptor.width, descriptor.height, descriptor.depthOrArrayLayers);
+            creationDesc.mipLevelCount = GetMipLevelCount(desc.width, desc.height, desc.depthOrArrayLayers);
         }
 
         return CreateTextureFromNativeHandleCore(handle, creationDesc);
@@ -491,15 +491,27 @@ namespace Alimer
         return CreateSamplerCore(desc);
     }
 
-    RHIShaderModuleRef RHIDevice::CreateShaderModule(const ShaderModuleDesc& descriptor)
+    RHIShaderModuleRef RHIDevice::CreateShaderModule(const RHIShaderModuleDesc& desc)
     {
-        if (descriptor.byteCodeSize == 0 || descriptor.byteCode == nullptr)
+        if (desc.stage == RHIShaderStages::None)
+        {
+            LOGE("Invalid shader module stage");
+            return nullptr;
+        }
+
+        if (desc.byteCodeSize == 0 || desc.byteCode == nullptr)
         {
             LOGE("Invalid shader module byteCode");
             return nullptr;
         }
 
-        return CreateShaderModuleCore(descriptor);
+        if (!desc.entryPoint || strlen(desc.entryPoint) == 0)
+        {
+            LOGE("Invalid shader module entryPoint");
+            return nullptr;
+        }
+
+        return CreateShaderModuleCore(desc);
     }
 
     RHIComputePipelineRef RHIDevice::CreateComputePipeline(const RHIComputePipelineDesc& desc)
@@ -525,11 +537,11 @@ namespace Alimer
         {
             for (uint32_t bufferIndex = 0; bufferIndex < desc.vertexBufferLayoutCount; ++bufferIndex)
             {
-                const VertexBufferLayout& vertexBufferLayout = desc.vertexBufferLayouts[bufferIndex];
+                const RHIVertexBufferLayout& vertexBufferLayout = desc.vertexBufferLayouts[bufferIndex];
                 for (uint32_t attributeIndex = 0; attributeIndex < vertexBufferLayout.attributeCount; ++attributeIndex)
                 {
-                    const VertexAttribute& vertexAttribute = vertexBufferLayout.attributes[attributeIndex];
-                    ALIMER_ASSERT(vertexAttribute.format != VertexAttributeFormat::Undefined);
+                    const RHIVertexAttribute& vertexAttribute = vertexBufferLayout.attributes[attributeIndex];
+                    ALIMER_ASSERT(vertexAttribute.format != RHIVertexAttributeFormat::Undefined);
                 }
             }
         }
@@ -678,7 +690,7 @@ namespace Alimer
         return factory;
     }
 
-    RHIBufferRef RHICreateBuffer(RHIDevice* device, uint64_t size, RHIBufferUsage usage, MemoryType memoryType, const void* initialData, const char* label)
+    RHIBufferRef RHICreateBuffer(RHIDevice* device, uint64_t size, RHIBufferUsage usage, RHIMemoryType memoryType, const void* initialData, const char* label)
     {
         ALIMER_ASSERT(device);
 
@@ -801,93 +813,93 @@ namespace Alimer
         return mips;
     }
 
-    bool BlendEnabled(const RenderTargetBlendState* state)
+    bool BlendEnabled(const RHIRenderTargetBlendState* state)
     {
         return
-            state->colorBlendOp != BlendOperation::Add ||
-            state->destColorBlendFactor != BlendFactor::Zero ||
-            state->srcColorBlendFactor != BlendFactor::One ||
-            state->alphaBlendOp != BlendOperation::Add ||
-            state->destAlphaBlendFactor != BlendFactor::Zero ||
-            state->srcAlphaBlendFactor != BlendFactor::One
+            state->colorBlendOp != RHIBlendOperation::Add ||
+            state->destColorBlendFactor != RHIBlendFactor::Zero ||
+            state->srcColorBlendFactor != RHIBlendFactor::One ||
+            state->alphaBlendOp != RHIBlendOperation::Add ||
+            state->destAlphaBlendFactor != RHIBlendFactor::Zero ||
+            state->srcAlphaBlendFactor != RHIBlendFactor::One
             ;
     }
 
-    bool StencilTestEnabled(const DepthStencilState* depthStencil)
+    bool StencilTestEnabled(const RHIDepthStencilState* depthStencil)
     {
         return
             depthStencil->backFace.compareFunc != RHICompareFunction::Always ||
-            depthStencil->backFace.failOp != StencilOperation::Keep ||
-            depthStencil->backFace.depthFailOp != StencilOperation::Keep ||
-            depthStencil->backFace.passOp != StencilOperation::Keep ||
+            depthStencil->backFace.failOp != RHIStencilOperation::Keep ||
+            depthStencil->backFace.depthFailOp != RHIStencilOperation::Keep ||
+            depthStencil->backFace.passOp != RHIStencilOperation::Keep ||
             depthStencil->frontFace.compareFunc != RHICompareFunction::Always ||
-            depthStencil->frontFace.failOp != StencilOperation::Keep ||
-            depthStencil->frontFace.depthFailOp != StencilOperation::Keep ||
-            depthStencil->frontFace.passOp != StencilOperation::Keep;
+            depthStencil->frontFace.failOp != RHIStencilOperation::Keep ||
+            depthStencil->frontFace.depthFailOp != RHIStencilOperation::Keep ||
+            depthStencil->frontFace.passOp != RHIStencilOperation::Keep;
     }
 
-    static const VertexAttributeFormatInfo s_VertexFormatTable[] = {
-        {VertexAttributeFormat::Undefined,          0, 0,   VertexFormatKind::Float},
-        {VertexAttributeFormat::Uint8,              1, 1,   VertexFormatKind::Uint},
-        {VertexAttributeFormat::Uint8x2,            2, 2,   VertexFormatKind::Uint},
-        {VertexAttributeFormat::Uint8x4,            4, 4,   VertexFormatKind::Uint},
-        {VertexAttributeFormat::Sint8,              1, 1,   VertexFormatKind::Sint},
-        {VertexAttributeFormat::Sint8x2,            2, 2,   VertexFormatKind::Sint},
-        {VertexAttributeFormat::Sint8x4,            4, 4,   VertexFormatKind::Sint},
-        {VertexAttributeFormat::Unorm8,             1, 1,   VertexFormatKind::Unorm},
-        {VertexAttributeFormat::Unorm8x2,           2, 2,   VertexFormatKind::Unorm},
-        {VertexAttributeFormat::Unorm8x4,           4, 4,   VertexFormatKind::Unorm},
-        {VertexAttributeFormat::Snorm8,             1, 1,   VertexFormatKind::Snorm},
-        {VertexAttributeFormat::Snorm8x2,           2, 2,   VertexFormatKind::Snorm},
-        {VertexAttributeFormat::Snorm8x4,           4, 4,   VertexFormatKind::Snorm},
+    static const RHIVertexAttributeFormatInfo s_VertexFormatTable[] = {
+        { RHIVertexAttributeFormat::Undefined,          0, 0,   RHIVertexFormatKind::Float },
+        { RHIVertexAttributeFormat::Uint8,              1, 1,   RHIVertexFormatKind::Uint },
+        { RHIVertexAttributeFormat::Uint8x2,            2, 2,   RHIVertexFormatKind::Uint },
+        { RHIVertexAttributeFormat::Uint8x4,            4, 4,   RHIVertexFormatKind::Uint },
+        { RHIVertexAttributeFormat::Sint8,              1, 1,   RHIVertexFormatKind::Sint },
+        { RHIVertexAttributeFormat::Sint8x2,            2, 2,   RHIVertexFormatKind::Sint },
+        { RHIVertexAttributeFormat::Sint8x4,            4, 4,   RHIVertexFormatKind::Sint },
+        { RHIVertexAttributeFormat::Unorm8,             1, 1,   RHIVertexFormatKind::Unorm },
+        { RHIVertexAttributeFormat::Unorm8x2,           2, 2,   RHIVertexFormatKind::Unorm },
+        { RHIVertexAttributeFormat::Unorm8x4,           4, 4,   RHIVertexFormatKind::Unorm },
+        { RHIVertexAttributeFormat::Snorm8,             1, 1,   RHIVertexFormatKind::Snorm },
+        { RHIVertexAttributeFormat::Snorm8x2,           2, 2,   RHIVertexFormatKind::Snorm },
+        { RHIVertexAttributeFormat::Snorm8x4,           4, 4,   RHIVertexFormatKind::Snorm },
 
-        {VertexAttributeFormat::Uint16,             2, 1,   VertexFormatKind::Uint},
-        {VertexAttributeFormat::Uint16x2,           4, 2,   VertexFormatKind::Uint},
-        {VertexAttributeFormat::Uint16x4,           8, 4,   VertexFormatKind::Uint},
-        {VertexAttributeFormat::Sint8,              4, 1,   VertexFormatKind::Sint},
-        {VertexAttributeFormat::Sint8x2,            4, 2,   VertexFormatKind::Sint},
-        {VertexAttributeFormat::Sint8x4,            8, 4,   VertexFormatKind::Sint},
-        {VertexAttributeFormat::Unorm16,            2, 1,   VertexFormatKind::Unorm},
-        {VertexAttributeFormat::Unorm16x2,          4, 2,   VertexFormatKind::Unorm},
-        {VertexAttributeFormat::Unorm16x4,          8, 4,   VertexFormatKind::Unorm},
-        {VertexAttributeFormat::Snorm16,            2, 1,   VertexFormatKind::Snorm},
-        {VertexAttributeFormat::Snorm16x2,          4, 2,   VertexFormatKind::Snorm},
-        {VertexAttributeFormat::Snorm16x4,          8, 4,   VertexFormatKind::Snorm},
+        { RHIVertexAttributeFormat::Uint16,             2, 1,   RHIVertexFormatKind::Uint},
+        { RHIVertexAttributeFormat::Uint16x2,           4, 2,   RHIVertexFormatKind::Uint},
+        { RHIVertexAttributeFormat::Uint16x4,           8, 4,   RHIVertexFormatKind::Uint},
+        { RHIVertexAttributeFormat::Sint8,              4, 1,   RHIVertexFormatKind::Sint},
+        { RHIVertexAttributeFormat::Sint8x2,            4, 2,   RHIVertexFormatKind::Sint},
+        { RHIVertexAttributeFormat::Sint8x4,            8, 4,   RHIVertexFormatKind::Sint},
+        { RHIVertexAttributeFormat::Unorm16,            2, 1,   RHIVertexFormatKind::Unorm},
+        { RHIVertexAttributeFormat::Unorm16x2,          4, 2,   RHIVertexFormatKind::Unorm},
+        { RHIVertexAttributeFormat::Unorm16x4,          8, 4,   RHIVertexFormatKind::Unorm},
+        { RHIVertexAttributeFormat::Snorm16,            2, 1,   RHIVertexFormatKind::Snorm},
+        { RHIVertexAttributeFormat::Snorm16x2,          4, 2,   RHIVertexFormatKind::Snorm},
+        { RHIVertexAttributeFormat::Snorm16x4,          8, 4,   RHIVertexFormatKind::Snorm},
 
-        {VertexAttributeFormat::Float16,            2, 1,   VertexFormatKind::Float},
-        {VertexAttributeFormat::Float16x2,          4, 2,   VertexFormatKind::Float},
-        {VertexAttributeFormat::Float16x4,          8, 4,   VertexFormatKind::Float},
-        {VertexAttributeFormat::Float32,            4, 1,   VertexFormatKind::Float},
-        {VertexAttributeFormat::Float32x2,          8, 2,   VertexFormatKind::Float},
-        {VertexAttributeFormat::Float32x3,          12, 3,  VertexFormatKind::Float},
-        {VertexAttributeFormat::Float32x4,          16, 4,  VertexFormatKind::Float},
+        { RHIVertexAttributeFormat::Float16,            2, 1,   RHIVertexFormatKind::Float},
+        { RHIVertexAttributeFormat::Float16x2,          4, 2,   RHIVertexFormatKind::Float},
+        { RHIVertexAttributeFormat::Float16x4,          8, 4,   RHIVertexFormatKind::Float},
+        { RHIVertexAttributeFormat::Float32,            4, 1,   RHIVertexFormatKind::Float},
+        { RHIVertexAttributeFormat::Float32x2,          8, 2,   RHIVertexFormatKind::Float},
+        { RHIVertexAttributeFormat::Float32x3,          12, 3,  RHIVertexFormatKind::Float},
+        { RHIVertexAttributeFormat::Float32x4,          16, 4,  RHIVertexFormatKind::Float},
 
-        {VertexAttributeFormat::Uint32,             4, 1,   VertexFormatKind::Uint},
-        {VertexAttributeFormat::Uint32x2,           8, 2,   VertexFormatKind::Uint},
-        {VertexAttributeFormat::Uint32x3,           12, 3,  VertexFormatKind::Uint},
-        {VertexAttributeFormat::Uint32x4,           16, 4,  VertexFormatKind::Uint},
+        { RHIVertexAttributeFormat::Uint32,             4, 1,   RHIVertexFormatKind::Uint},
+        { RHIVertexAttributeFormat::Uint32x2,           8, 2,   RHIVertexFormatKind::Uint},
+        { RHIVertexAttributeFormat::Uint32x3,           12, 3,  RHIVertexFormatKind::Uint},
+        { RHIVertexAttributeFormat::Uint32x4,           16, 4,  RHIVertexFormatKind::Uint},
 
-        {VertexAttributeFormat::Sint32,             4, 1,   VertexFormatKind::Sint},
-        {VertexAttributeFormat::Sint32x2,           8, 2,   VertexFormatKind::Sint},
-        {VertexAttributeFormat::Sint32x3,           12, 3,  VertexFormatKind::Sint},
-        {VertexAttributeFormat::Sint32x4,           16, 4,  VertexFormatKind::Sint},
+        { RHIVertexAttributeFormat::Sint32,             4, 1,   RHIVertexFormatKind::Sint},
+        { RHIVertexAttributeFormat::Sint32x2,           8, 2,   RHIVertexFormatKind::Sint},
+        { RHIVertexAttributeFormat::Sint32x3,           12, 3,  RHIVertexFormatKind::Sint},
+        { RHIVertexAttributeFormat::Sint32x4,           16, 4,  RHIVertexFormatKind::Sint},
 
-        //new(VertexFormat.Int1010102Normalized,    32, 4, FormatKind.Unorm),
-        {VertexAttributeFormat::Unorm10_10_10_2, 4, 4, VertexFormatKind::Unorm},
-        {VertexAttributeFormat::Unorm8x4BGRA, 4, 4, VertexFormatKind::Unorm},
-        //{VertexFormat::RG11B10Float,   32, 4,  VertexFormatKind::Float},
-        //{VertexFormat::RGB9E5Float,   32, 4, VertexFormatKind::Float},
+        //new(VertexFormat.Int1010102Normalized,        32, 4, FormatKind.Unorm),
+        { RHIVertexAttributeFormat::Unorm10_10_10_2,    4, 4, RHIVertexFormatKind::Unorm},
+        { RHIVertexAttributeFormat::Unorm8x4BGRA,       4, 4, RHIVertexFormatKind::Unorm},
+        //{VertexFormat::RG11B10Float,                  32, 4,  VertexFormatKind::Float},
+        //{VertexFormat::RGB9E5Float,                   32, 4, VertexFormatKind::Float},
     };
 
     static_assert(
-        sizeof(s_VertexFormatTable) / sizeof(VertexAttributeFormatInfo) == size_t(VertexAttributeFormat::Count),
+        sizeof(s_VertexFormatTable) / sizeof(RHIVertexAttributeFormatInfo) == size_t(RHIVertexAttributeFormat::Count),
         "The format info table doesn't have the right number of elements"
         );
 
-    const VertexAttributeFormatInfo& GetVertexAttributeFormatInfo(VertexAttributeFormat format)
+    const RHIVertexAttributeFormatInfo& GetVertexAttributeFormatInfo(RHIVertexAttributeFormat format)
     {
-        ALIMER_ASSERT(format != VertexAttributeFormat::Undefined);
-        ALIMER_ASSERT(ecast(format) < ecast(VertexAttributeFormat::Count));
+        ALIMER_ASSERT(format != RHIVertexAttributeFormat::Undefined);
+        ALIMER_ASSERT(ecast(format) < ecast(RHIVertexAttributeFormat::Count));
         ALIMER_ASSERT(s_VertexFormatTable[ecast(format)].format == format);
 
         return s_VertexFormatTable[ecast(format)];
@@ -938,10 +950,13 @@ namespace Alimer
             return {};
         }
 
-        ShaderModuleDesc desc{};
-        desc.label = shaderFileName.c_str();
-        desc.byteCodeSize = permutationSize;
-        desc.byteCode = permutationBytecode;
+        const RHIShaderModuleDesc desc{
+            .label = shaderFileName.c_str(),
+            .stage = stage,
+            .byteCodeSize = permutationSize,
+            .byteCode = permutationBytecode,
+            .entryPoint = stageName,
+        };
 
         RHIShaderModuleRef shaderModule = device->CreateShaderModule(desc);
         return shaderModule;

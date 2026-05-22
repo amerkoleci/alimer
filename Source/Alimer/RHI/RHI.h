@@ -156,7 +156,7 @@ namespace Alimer
         Count
     };
 
-    enum class MemoryType : uint8_t
+    enum class RHIMemoryType : uint8_t
     {
         /// CPU no access, GPU read/write
         Private,
@@ -166,7 +166,7 @@ namespace Alimer
         Readback
     };
 
-    enum class BufferStates : uint32_t
+    enum class RHIBufferStates : uint32_t
     {
         Undefined = 0,
         CopyDest = ALIMER_BIT(0),
@@ -177,9 +177,9 @@ namespace Alimer
         IndexBuffer = ALIMER_BIT(5),
         ConstantBuffer = ALIMER_BIT(6),
     };
-    ALIMER_ENUM_CLASS_FLAG_OPERATORS(BufferStates);
+    ALIMER_ENUM_CLASS_FLAG_OPERATORS(RHIBufferStates);
 
-    enum class TextureLayout : uint32_t
+    enum class RHITextureLayout : uint32_t
     {
         Undefined,
         CopySource,
@@ -217,7 +217,7 @@ namespace Alimer
     ALIMER_ENUM_CLASS_FLAG_OPERATORS(RHIBufferUsage);
 
     /// Defines dimension of Texture
-    enum class TextureDimension : uint32_t
+    enum class RHITextureDimension : uint32_t
     {
         /// One-dimensional Texture.
         Texture1D,
@@ -229,7 +229,7 @@ namespace Alimer
         TextureCube,
     };
 
-    enum class TextureUsage : uint32_t
+    enum class RHITextureUsage : uint32_t
     {
         None,
         ShaderRead = (1 << 0),
@@ -240,9 +240,9 @@ namespace Alimer
         ShadingRate = (1 << 4),
         Shared = (1 << 5),
     };
-    ALIMER_ENUM_CLASS_FLAG_OPERATORS(TextureUsage);
+    ALIMER_ENUM_CLASS_FLAG_OPERATORS(RHITextureUsage);
 
-    enum class TextureSampleCount : uint32_t
+    enum class RHITextureSampleCount : uint32_t
     {
         Count1 = (1 << 0),
         Count2 = (1 << 1),
@@ -251,16 +251,16 @@ namespace Alimer
         Count16 = (1 << 4),
         Count32 = (1 << 5),
     };
-    ALIMER_ENUM_CLASS_FLAG_OPERATORS(TextureSampleCount);
+    ALIMER_ENUM_CLASS_FLAG_OPERATORS(RHITextureSampleCount);
 
-    enum class TextureAspect : uint32_t
+    enum class RHITextureAspect : uint32_t
     {
         All = 0,
         DepthOnly = 1,
         StencilOnly = 2,
     };
 
-    enum class TextureSwizzle : uint8_t
+    enum class RHITextureSwizzle : uint8_t
     {
         Zero = 0,
         One = 1,
@@ -270,19 +270,19 @@ namespace Alimer
         Alpha = 5,
     };
 
-    enum class SamplerMinMagFilter : uint32_t
+    enum class RHISamplerMinMagFilter : uint32_t
     {
         Point,
         Linear,
     };
 
-    enum class SamplerMipFilter : uint32_t
+    enum class RHISamplerMipFilter : uint32_t
     {
         Point,
         Linear,
     };
 
-    enum class SamplerAddressMode : uint32_t
+    enum class RHISamplerAddressMode : uint32_t
     {
         Clamp,
         Wrap,
@@ -291,7 +291,7 @@ namespace Alimer
         Border,
     };
 
-    enum class SamplerReductionType : uint8_t
+    enum class RHISamplerReductionType : uint8_t
     {
         Standard,
         Comparison,
@@ -299,7 +299,7 @@ namespace Alimer
         Maximum
     };
 
-    enum class SamplerBorderColor : uint32_t
+    enum class RHISamplerBorderColor : uint32_t
     {
         FloatTransparentBlack,
         FloatOpaqueBlack,
@@ -334,7 +334,7 @@ namespace Alimer
     };
 
     /// Operation to perform on the stencil value.
-    enum class StencilOperation : uint32_t
+    enum class RHIStencilOperation : uint32_t
     {
         /// Keep stencil value unchanged.
         Keep = 0,
@@ -354,7 +354,7 @@ namespace Alimer
         DecrementWrap = 7,
     };
 
-    enum class BlendFactor : uint32_t
+    enum class RHIBlendFactor : uint32_t
     {
         Zero = 0,
         One = 1,
@@ -377,7 +377,7 @@ namespace Alimer
         OneMinusSource1Alpha = 18,
     };
 
-    enum class BlendOperation : uint32_t
+    enum class RHIBlendOperation : uint32_t
     {
         Add = 0,
         Subtract = 1,
@@ -386,7 +386,7 @@ namespace Alimer
         Max = 4,
     };
 
-    enum class ColorWriteMask : uint32_t
+    enum class RHIColorWriteMask : uint32_t
     {
         None = 0,
         Red = 1,
@@ -395,7 +395,7 @@ namespace Alimer
         Alpha = 8,
         All = 15
     };
-    ALIMER_ENUM_CLASS_FLAG_OPERATORS(ColorWriteMask);
+    ALIMER_ENUM_CLASS_FLAG_OPERATORS(RHIColorWriteMask);
 
     enum class RHIFillMode : uint32_t
     {
@@ -403,26 +403,26 @@ namespace Alimer
         Wireframe,
     };
 
-    enum class CullMode : uint32_t
+    enum class RHICullMode : uint32_t
     {
         None = 0,
         Front = 1,
         Back = 2,
     };
 
-    enum class FrontFace : uint32_t
+    enum class RHIFrontFace : uint32_t
     {
         CounterClockwise = 0,
         Clockwise = 1,
     };
 
-    enum class DepthClipMode : uint32_t
+    enum class RHIDepthClipMode : uint32_t
     {
         Clip,
         Clamp
     };
 
-    enum class VertexAttributeSemantic : uint32_t
+    enum class RHIVertexAttributeSemantic : uint32_t
     {
         Undefined,
         Position,
@@ -436,7 +436,7 @@ namespace Alimer
         Custom
     };
 
-    enum class VertexAttributeFormat : uint32_t
+    enum class RHIVertexAttributeFormat : uint32_t
     {
         Undefined = 0,
         Uint8,
@@ -490,7 +490,7 @@ namespace Alimer
         Count
     };
 
-    enum class VertexStepMode : uint32_t
+    enum class RHIVertexStepMode : uint32_t
     {
         /// Vertex data is advanced every vertex.
         Vertex = 0,
@@ -499,7 +499,7 @@ namespace Alimer
     };
 
     /// Index buffer element format.
-    enum class IndexFormat : uint32_t
+    enum class RHIIndexFormat : uint32_t
     {
         /// Undefined index format, used to disable index buffer stripping <see cref="RenderPipelineDescriptor.StripIndexFormat"/>.
         Undefined,
@@ -509,7 +509,7 @@ namespace Alimer
         Uint32,
     };
 
-    enum class PrimitiveTopology : uint32_t
+    enum class RHIPrimitiveTopology : uint32_t
     {
         PointList,
         LineList,
@@ -741,64 +741,64 @@ namespace Alimer
         const char* label = nullptr;
         uint64_t size = 0u;
         RHIBufferUsage usage = RHIBufferUsage::None;
-        MemoryType memoryType = MemoryType::Private;
+        RHIMemoryType memoryType = RHIMemoryType::Private;
         //uint32_t stride = 0; // Needed for StructuredBuffer
     };
 
     struct TextureSwizzleChannels
     {
-        TextureSwizzle red = TextureSwizzle::Red;
-        TextureSwizzle green = TextureSwizzle::Green;
-        TextureSwizzle blue = TextureSwizzle::Blue;
-        TextureSwizzle alpha = TextureSwizzle::Alpha;
+        RHITextureSwizzle red = RHITextureSwizzle::Red;
+        RHITextureSwizzle green = RHITextureSwizzle::Green;
+        RHITextureSwizzle blue = RHITextureSwizzle::Blue;
+        RHITextureSwizzle alpha = RHITextureSwizzle::Alpha;
     };
 
-    struct TextureDescriptor
+    struct RHITextureDesc
     {
-        TextureDimension dimension = TextureDimension::Texture2D;
+        RHITextureDimension dimension = RHITextureDimension::Texture2D;
         PixelFormat format = PixelFormat::RGBA8Unorm;
         uint32_t width = 1;
         uint32_t height = 1;
         uint32_t depthOrArrayLayers = 1;
         uint32_t mipLevelCount = 1;
-        TextureSampleCount sampleCount = TextureSampleCount::Count1;
-        TextureUsage usage = TextureUsage::ShaderRead;
+        RHITextureSampleCount sampleCount = RHITextureSampleCount::Count1;
+        RHITextureUsage usage = RHITextureUsage::ShaderRead;
         const char* label = nullptr;
         //MemoryType memoryType = MemoryType::Private;
 
-        static constexpr TextureDescriptor Texture1D(
+        static constexpr RHITextureDesc Texture1D(
             PixelFormat format,
             uint32_t width,
             uint32_t mipLevelCount = 1,
             uint32_t arrayLayers = 1,
-            TextureUsage usage = TextureUsage::ShaderRead,
+            RHITextureUsage usage = RHITextureUsage::ShaderRead,
             const char* label = nullptr)
         {
-            TextureDescriptor desc;
-            desc.dimension = TextureDimension::Texture1D;
+            RHITextureDesc desc;
+            desc.dimension = RHITextureDimension::Texture1D;
             desc.format = format;
             desc.width = width;
             desc.height = 1u;
             desc.depthOrArrayLayers = arrayLayers;
             desc.mipLevelCount = mipLevelCount;
-            desc.sampleCount = TextureSampleCount::Count1;
+            desc.sampleCount = RHITextureSampleCount::Count1;
             desc.usage = usage;
             desc.label = label;
             return desc;
         }
 
-        static constexpr TextureDescriptor Texture2D(
+        static constexpr RHITextureDesc Texture2D(
             PixelFormat format,
             uint32_t width,
             uint32_t height,
             uint32_t mipLevelCount = 1,
             uint32_t arrayLayers = 1,
-            TextureUsage usage = TextureUsage::ShaderRead,
-            TextureSampleCount sampleCount = TextureSampleCount::Count1,
+            RHITextureUsage usage = RHITextureUsage::ShaderRead,
+            RHITextureSampleCount sampleCount = RHITextureSampleCount::Count1,
             const char* label = nullptr)
         {
-            TextureDescriptor desc;
-            desc.dimension = TextureDimension::Texture2D;
+            RHITextureDesc desc;
+            desc.dimension = RHITextureDimension::Texture2D;
             desc.format = format;
             desc.width = width;
             desc.height = height;
@@ -810,51 +810,51 @@ namespace Alimer
             return desc;
         }
 
-        static constexpr TextureDescriptor Texture3D(
+        static constexpr RHITextureDesc Texture3D(
             PixelFormat format,
             uint32_t width,
             uint32_t height,
             uint32_t depth,
             uint32_t mipLevelCount = 1,
-            TextureUsage usage = TextureUsage::ShaderRead,
+            RHITextureUsage usage = RHITextureUsage::ShaderRead,
             const char* label = nullptr)
         {
-            TextureDescriptor desc;
-            desc.dimension = TextureDimension::Texture3D;
+            RHITextureDesc desc;
+            desc.dimension = RHITextureDimension::Texture3D;
             desc.format = format;
             desc.width = width;
             desc.height = height;
             desc.depthOrArrayLayers = depth;
             desc.mipLevelCount = mipLevelCount;
-            desc.sampleCount = TextureSampleCount::Count1;
+            desc.sampleCount = RHITextureSampleCount::Count1;
             desc.usage = usage;
             desc.label = label;
             return desc;
         }
 
-        static constexpr TextureDescriptor TextureCube(
+        static constexpr RHITextureDesc TextureCube(
             PixelFormat format,
             uint32_t size,
             uint32_t mipLevelCount = 1,
             uint32_t arrayLayers = 1,
-            TextureUsage usage = TextureUsage::ShaderRead,
+            RHITextureUsage usage = RHITextureUsage::ShaderRead,
             const char* label = nullptr)
         {
-            TextureDescriptor desc;
-            desc.dimension = TextureDimension::TextureCube;
+            RHITextureDesc desc;
+            desc.dimension = RHITextureDimension::TextureCube;
             desc.format = format;
             desc.width = size;
             desc.height = size;
             desc.depthOrArrayLayers = arrayLayers;
             desc.mipLevelCount = mipLevelCount;
-            desc.sampleCount = TextureSampleCount::Count1;
+            desc.sampleCount = RHITextureSampleCount::Count1;
             desc.usage = usage;
             desc.label = label;
             return desc;
         }
     };
 
-    struct TextureData
+    struct RHITextureData
     {
         const void* pData = nullptr;
         uint32_t rowPitch = 0;
@@ -864,7 +864,7 @@ namespace Alimer
     struct RHITextureViewDesc
     {
         PixelFormat format = PixelFormat::Undefined;
-        TextureAspect aspect = TextureAspect::All;
+        RHITextureAspect aspect = RHITextureAspect::All;
         uint32_t baseMipLevel = 0;
         uint32_t mipLevelCount = kMipLevelCountUndefined;
         uint32_t baseArrayLayer = 0;                            // For Texture3D, this is WSlice.
@@ -878,25 +878,27 @@ namespace Alimer
     struct RHISamplerDesc
     {
         const char* label = nullptr;
-        SamplerReductionType reductionType = SamplerReductionType::Standard;
-        SamplerMinMagFilter minFilter = SamplerMinMagFilter::Point;
-        SamplerMinMagFilter magFilter = SamplerMinMagFilter::Point;
-        SamplerMipFilter mipFilter = SamplerMipFilter::Point;
-        SamplerAddressMode addressModeU = SamplerAddressMode::Clamp;
-        SamplerAddressMode addressModeV = SamplerAddressMode::Clamp;
-        SamplerAddressMode addressModeW = SamplerAddressMode::Clamp;
-        SamplerBorderColor borderColor = SamplerBorderColor::FloatTransparentBlack;
+        RHISamplerReductionType reductionType = RHISamplerReductionType::Standard;
+        RHISamplerMinMagFilter minFilter = RHISamplerMinMagFilter::Point;
+        RHISamplerMinMagFilter magFilter = RHISamplerMinMagFilter::Point;
+        RHISamplerMipFilter mipFilter = RHISamplerMipFilter::Point;
+        RHISamplerAddressMode addressModeU = RHISamplerAddressMode::Clamp;
+        RHISamplerAddressMode addressModeV = RHISamplerAddressMode::Clamp;
+        RHISamplerAddressMode addressModeW = RHISamplerAddressMode::Clamp;
+        RHISamplerBorderColor borderColor = RHISamplerBorderColor::FloatTransparentBlack;
         float lodMinClamp = 0.0f;
         float lodMaxClamp = FLT_MAX;
         RHICompareFunction compareFunction = RHICompareFunction::Never;
         uint16_t maxAnisotropy = 1u;
     };
 
-    struct ShaderModuleDesc
+    struct RHIShaderModuleDesc
     {
         const char* label = nullptr;
+        RHIShaderStages stage = RHIShaderStages::None;
         size_t byteCodeSize;
         const void* byteCode;
+        const char* entryPoint = "main";
     };
 
     struct RHIComputePipelineDesc
@@ -905,69 +907,69 @@ namespace Alimer
         RHIShaderModuleRef shader;
     };
 
-    struct VertexAttribute
+    struct RHIVertexAttribute
     {
-        VertexAttributeSemantic semantic = VertexAttributeSemantic::Undefined;
-        VertexAttributeFormat format = VertexAttributeFormat::Undefined;
+        RHIVertexAttributeSemantic semantic = RHIVertexAttributeSemantic::Undefined;
+        RHIVertexAttributeFormat format = RHIVertexAttributeFormat::Undefined;
         uint32_t offset = 0;
         uint32_t semanticIndex = 0;
     };
 
-    struct VertexBufferLayout
+    struct RHIVertexBufferLayout
     {
         uint32_t stride = 0;
-        VertexStepMode stepMode = VertexStepMode::Vertex;
+        RHIVertexStepMode stepMode = RHIVertexStepMode::Vertex;
         uint32_t attributeCount = 0;
-        const VertexAttribute* attributes = nullptr;
+        const RHIVertexAttribute* attributes = nullptr;
     };
 
-    struct RenderTargetBlendState
+    struct RHIRenderTargetBlendState
     {
-        BlendFactor srcColorBlendFactor = BlendFactor::One;
-        BlendFactor destColorBlendFactor = BlendFactor::Zero;
-        BlendOperation colorBlendOp = BlendOperation::Add;
-        BlendFactor srcAlphaBlendFactor = BlendFactor::One;
-        BlendFactor destAlphaBlendFactor = BlendFactor::Zero;
-        BlendOperation alphaBlendOp = BlendOperation::Add;
-        ColorWriteMask colorWriteMask = ColorWriteMask::All;
+        RHIBlendFactor srcColorBlendFactor = RHIBlendFactor::One;
+        RHIBlendFactor destColorBlendFactor = RHIBlendFactor::Zero;
+        RHIBlendOperation colorBlendOp = RHIBlendOperation::Add;
+        RHIBlendFactor srcAlphaBlendFactor = RHIBlendFactor::One;
+        RHIBlendFactor destAlphaBlendFactor = RHIBlendFactor::Zero;
+        RHIBlendOperation alphaBlendOp = RHIBlendOperation::Add;
+        RHIColorWriteMask colorWriteMask = RHIColorWriteMask::All;
     };
 
-    struct BlendState
+    struct RHIBlendState
     {
         bool alphaToCoverageEnable = false;
         bool independentBlendEnable = false;
 
-        RenderTargetBlendState renderTargets[kMaxColorAttachments] = {};
+        RHIRenderTargetBlendState renderTargets[kMaxColorAttachments] = {};
     };
 
-    struct RasterizerState
+    struct RHIRasterizerState
     {
         RHIFillMode fillMode = RHIFillMode::Solid;
-        CullMode cullMode = CullMode::Back;
-        FrontFace frontFace = FrontFace::CounterClockwise;
+        RHICullMode cullMode = RHICullMode::Back;
+        RHIFrontFace frontFace = RHIFrontFace::CounterClockwise;
         float depthBias = 0.0f;
         float depthBiasClamp = 0.0f;
         float depthBiasSlopeScale = 0.0f;
-        DepthClipMode depthClipMode = DepthClipMode::Clip;
+        RHIDepthClipMode depthClipMode = RHIDepthClipMode::Clip;
         bool conservativeRasterEnable = false;
     };
 
-    struct StencilFaceState
+    struct RHIStencilFaceState
     {
-        StencilOperation failOp = StencilOperation::Keep;
-        StencilOperation depthFailOp = StencilOperation::Keep;
-        StencilOperation passOp = StencilOperation::Keep;
+        RHIStencilOperation failOp = RHIStencilOperation::Keep;
+        RHIStencilOperation depthFailOp = RHIStencilOperation::Keep;
+        RHIStencilOperation passOp = RHIStencilOperation::Keep;
         RHICompareFunction compareFunc = RHICompareFunction::Always;
     };
 
-    struct DepthStencilState
+    struct RHIDepthStencilState
     {
         bool depthWriteEnabled = true;
         RHICompareFunction depthCompare = RHICompareFunction::Less;
         uint8_t stencilReadMask = 0xFF;
         uint8_t stencilWriteMask = 0xFF;
-        StencilFaceState frontFace{};
-        StencilFaceState backFace{};
+        RHIStencilFaceState frontFace{};
+        RHIStencilFaceState backFace{};
         bool depthBoundsTestEnable = false;
     };
 
@@ -981,19 +983,19 @@ namespace Alimer
         RHIShaderModuleRef amplificationShader = nullptr;
 
         uint32_t vertexBufferLayoutCount = 0;
-        const VertexBufferLayout* vertexBufferLayouts = nullptr;
+        const RHIVertexBufferLayout* vertexBufferLayouts = nullptr;
 
-        BlendState blendState{};
-        RasterizerState rasterizerState{};
-        DepthStencilState depthStencilState{};
+        RHIBlendState blendState{};
+        RHIRasterizerState rasterizerState{};
+        RHIDepthStencilState depthStencilState{};
 
-        PrimitiveTopology primitiveTopology = PrimitiveTopology::TriangleList;
+        RHIPrimitiveTopology primitiveTopology = RHIPrimitiveTopology::TriangleList;
 
-        IndexFormat stripIndexFormat = IndexFormat::Undefined;
+        RHIIndexFormat stripIndexFormat = RHIIndexFormat::Undefined;
 
         PixelFormat colorAttachmentFormats[kMaxColorAttachments] = {};
         PixelFormat depthStencilFormat = PixelFormat::Undefined;
-        TextureSampleCount sampleCount = TextureSampleCount::Count1;
+        RHITextureSampleCount sampleCount = RHITextureSampleCount::Count1;
     };
 
     struct RHIQueryHeapDesc
@@ -1043,7 +1045,7 @@ namespace Alimer
 
     struct RHISurfaceCapabilities
     {
-        TextureUsage usages;
+        RHITextureUsage usages;
         uint32_t formatCount;
         const PixelFormat* formats;
         uint32_t presentModeCount;
@@ -1191,8 +1193,6 @@ namespace Alimer
 
     struct RHINativeHandle
     {
-        RHINativeHandleType type = RHINativeHandleType::Unknown;
-
         union {
             uint64_t integer;
             void* pointer;
@@ -1202,7 +1202,7 @@ namespace Alimer
         RHINativeHandle(void* p) : pointer(p) {}     // NOLINT(cppcoreguidelines-pro-type-member-init)
 
         template<typename T> operator T* () const { return static_cast<T*>(pointer); }
-        operator bool() const { return type != RHINativeHandleType::Unknown; }
+        operator bool() const { return pointer != nullptr; }
     };
 
     class ALIMER_API RHIObject : public RefCounted
@@ -1222,21 +1222,22 @@ namespace Alimer
         [[nodiscard]] RHIBufferUsage GetUsage() const { return desc.usage; }
         [[nodiscard]] virtual void* GetMappedData() const = 0;
         [[nodiscard]] virtual GPUAddress GetGPUAddress() const = 0;
-        [[nodiscard]] virtual BufferStates GetCurrentState() const { return currentState; }
+        [[nodiscard]] virtual RHIBufferStates GetCurrentState() const { return currentState; }
 
     protected:
         RHIBuffer(const RHIBufferDesc& desc_)
-            : desc(desc)
-        {}
+            : desc(desc_)
+        {
+        }
 
         RHIBufferDesc desc;
-        mutable BufferStates currentState = BufferStates::Undefined;
+        mutable RHIBufferStates currentState = RHIBufferStates::Undefined;
     };
 
     class ALIMER_API RHITexture : public RHIObject
     {
     protected:
-        RHITexture(const TextureDescriptor& desc)
+        RHITexture(const RHITextureDesc& desc)
             : dimension(desc.dimension)
             , format(desc.format)
             , width(desc.width)
@@ -1248,7 +1249,7 @@ namespace Alimer
         {}
 
     public:
-        [[nodiscard]] constexpr TextureDimension GetDimension() const { return dimension; }
+        [[nodiscard]] constexpr RHITextureDimension GetDimension() const { return dimension; }
         [[nodiscard]] constexpr PixelFormat GetFormat() const { return format; }
         [[nodiscard]] constexpr uint32_t GetWidth(uint32_t mipLevel = 0) const
         {
@@ -1262,7 +1263,7 @@ namespace Alimer
 
         [[nodiscard]] constexpr uint32_t GetDepth(uint32_t mipLevel = 0) const
         {
-            if (dimension != TextureDimension::Texture3D)
+            if (dimension != RHITextureDimension::Texture3D)
             {
                 return 1;
             }
@@ -1272,7 +1273,7 @@ namespace Alimer
 
         [[nodiscard]] constexpr uint32_t GetArrayLayers() const
         {
-            if (dimension == TextureDimension::Texture3D)
+            if (dimension == RHITextureDimension::Texture3D)
             {
                 return 1;
             }
@@ -1280,9 +1281,9 @@ namespace Alimer
             return depthOrArrayLayers;
         }
 
-        [[nodiscard]] constexpr TextureUsage GetUsage() const { return usage; }
+        [[nodiscard]] constexpr RHITextureUsage GetUsage() const { return usage; }
         [[nodiscard]] constexpr uint32_t GetMipLevelCount() const { return mipLevelCount; }
-        [[nodiscard]] constexpr TextureSampleCount GetSampleCount() const { return sampleCount; }
+        [[nodiscard]] constexpr RHITextureSampleCount GetSampleCount() const { return sampleCount; }
 
         [[nodiscard]] RHITextureView* GetDefaultView() const;
         [[nodiscard]] RHITextureView* GetView(const RHITextureViewDesc* desc = nullptr) const;
@@ -1291,14 +1292,14 @@ namespace Alimer
         virtual RHITextureViewRef CreateView(const RHITextureViewDesc& desc)  const = 0;
 
     protected:
-        TextureDimension dimension;
+        RHITextureDimension dimension;
         PixelFormat format;
         uint32_t width;
         uint32_t height;
         uint32_t depthOrArrayLayers;
         uint32_t mipLevelCount;
-        TextureSampleCount sampleCount;
-        TextureUsage usage;
+        RHITextureSampleCount sampleCount;
+        RHITextureUsage usage;
 
     private:
         mutable RHITextureViewRef defaultView;
@@ -1322,7 +1323,7 @@ namespace Alimer
     public:
         [[nodiscard]] const RHITexture* GetTexture() const { return texture; }
         [[nodiscard]] constexpr PixelFormat GetFormat() const { return format; }
-        [[nodiscard]] constexpr TextureAspect GetAspect() const { return aspect; }
+        [[nodiscard]] constexpr RHITextureAspect GetAspect() const { return aspect; }
         [[nodiscard]] constexpr uint32_t GetBaseMipLevel() const { return baseMipLevel; }
         [[nodiscard]] constexpr uint32_t GetMipLevelCount() const { return mipLevelCount; }
         [[nodiscard]] constexpr uint32_t GetBaseArrayLayer() const { return baseArrayLayer; }
@@ -1335,7 +1336,7 @@ namespace Alimer
     protected:
         const RHITexture* texture;
         PixelFormat format;
-        TextureAspect aspect;
+        RHITextureAspect aspect;
         uint32_t baseMipLevel;
         uint32_t mipLevelCount;
         uint32_t baseArrayLayer;    // For Texture3D, this is WSlice.
@@ -1397,7 +1398,7 @@ namespace Alimer
         inline bool IsValid() const { return data != nullptr && buffer != nullptr; }
     };
 
-    struct DescriptorBindingTable
+    struct RHIDescriptorBindingTable
     {
         RHIBufferRef CBV[kContantBufferCount];
         uint64_t CBV_offset[kContantBufferCount] = {};
@@ -1430,7 +1431,7 @@ namespace Alimer
     protected:
         virtual void SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset) = 0;
 
-        DescriptorBindingTable table{};
+        RHIDescriptorBindingTable table{};
     };
 
     class ALIMER_API RHIComputePassEncoder : public RHICommandEncoder
@@ -1479,7 +1480,7 @@ namespace Alimer
         virtual void SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets) = 0;
 
         /// Bind an index buffer.
-        virtual void SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, IndexFormat format) = 0;
+        virtual void SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, RHIIndexFormat format) = 0;
 
         /// Draw non-indexed geometry.
         virtual void Draw(uint32_t vertexCount, uint32_t instanceCount = 1, uint32_t firstVertex = 0, uint32_t firstInstance = 0) = 0;
@@ -1557,11 +1558,11 @@ namespace Alimer
         virtual uint64_t CommitFrame() = 0;
 
         RHIBufferRef CreateBuffer(const RHIBufferDesc& desc, const void* initialData = nullptr);
-        RHITextureRef CreateTexture(const TextureDescriptor& descriptor, const TextureData* initialData = nullptr);
-        RHITextureRef CreateTextureFromNativeHandle(RHINativeHandle handle, const TextureDescriptor& descriptor);
+        RHITextureRef CreateTexture(const RHITextureDesc& desc, const RHITextureData* initialData = nullptr);
+        RHITextureRef CreateTextureFromNativeHandle(RHINativeHandle handle, const RHITextureDesc& desc);
         RHISamplerRef CreateSampler(const RHISamplerDesc& desc);
 
-        RHIShaderModuleRef CreateShaderModule(const ShaderModuleDesc& descriptor);
+        RHIShaderModuleRef CreateShaderModule(const RHIShaderModuleDesc& descriptor);
 
         RHIComputePipelineRef CreateComputePipeline(const RHIComputePipelineDesc& desc);
         RHIRenderPipelineRef CreateRenderPipeline(const RHIRenderPipelineDesc& desc);
@@ -1588,12 +1589,12 @@ namespace Alimer
 
     protected:
         virtual void InitResources();
-        virtual bool ValidateTextureDesc(const TextureDescriptor& desc);
+        virtual bool ValidateTextureDesc(const RHITextureDesc& desc);
         virtual RHIBufferRef CreateBufferCore(const RHIBufferDesc& desc, RHINativeHandle nativeHandle, const void* initialData) = 0;
-        virtual RHITextureRef CreateTextureCore(const TextureDescriptor& desc, const TextureData* initialData) = 0;
-        virtual RHITextureRef CreateTextureFromNativeHandleCore(RHINativeHandle handle, const TextureDescriptor& desc) = 0;
+        virtual RHITextureRef CreateTextureCore(const RHITextureDesc& desc, const RHITextureData* initialData) = 0;
+        virtual RHITextureRef CreateTextureFromNativeHandleCore(RHINativeHandle handle, const RHITextureDesc& desc) = 0;
         virtual RHISamplerRef CreateSamplerCore(const RHISamplerDesc& desc) = 0;
-        virtual RHIShaderModuleRef CreateShaderModuleCore(const ShaderModuleDesc& desc) = 0;
+        virtual RHIShaderModuleRef CreateShaderModuleCore(const RHIShaderModuleDesc& desc) = 0;
         virtual RHIComputePipelineRef CreateComputePipelineCore(const RHIComputePipelineDesc& desc) = 0;
         virtual RHIRenderPipelineRef CreateRenderPipelineCore(const RHIRenderPipelineDesc& desc) = 0;
         virtual RHIQueryHeapRef CreateQueryHeapCore(const RHIQueryHeapDesc& desc) = 0;
@@ -1645,19 +1646,19 @@ namespace Alimer
     ALIMER_API RHIBackend GetPlatformPreferredBackend();
     ALIMER_API RHIFactoryRef RHICreateFactory(const RHIFactoryDesc& desc);
 
-    ALIMER_API RHIBufferRef RHICreateBuffer(RHIDevice* device, uint64_t size, RHIBufferUsage usage = RHIBufferUsage::ShaderRead, MemoryType memoryType = MemoryType::Private, const void* initialData = nullptr, const char* label = nullptr);
+    ALIMER_API RHIBufferRef RHICreateBuffer(RHIDevice* device, uint64_t size, RHIBufferUsage usage = RHIBufferUsage::ShaderRead, RHIMemoryType memoryType = RHIMemoryType::Private, const void* initialData = nullptr, const char* label = nullptr);
     ALIMER_API RHIBufferRef RHICreateBuffer(RHIDevice* device, const RHIBufferDesc& desc, const void* initialData = nullptr);
 
     template<typename T>
     RHIBufferRef RHICreateBuffer(RHIDevice* device, _In_reads_(count) const T* data, uint32_t count, RHIBufferUsage usage = RHIBufferUsage::ShaderRead) noexcept
     {
-        return RHICreateBuffer(device, sizeof(T) * count, usage, MemoryType::Private, data);
+        return RHICreateBuffer(device, sizeof(T) * count, usage, RHIMemoryType::Private, data);
     }
 
     template<typename T>
     RHIBufferRef RHICreateBuffer(RHIDevice* device, const T& data, RHIBufferUsage usage = RHIBufferUsage::ShaderRead) noexcept
     {
-        return RHICreateBuffer(device, data.size() * sizeof(typename T::value_type), usage, MemoryType::Private, data.data());
+        return RHICreateBuffer(device, data.size() * sizeof(typename T::value_type), usage, RHIMemoryType::Private, data.data());
     }
 
     ALIMER_API const std::string ToString(RHIBackend type);
@@ -1678,10 +1679,10 @@ namespace Alimer
         return mipLevel + arrayLayer * mipLevelCount + planeSlice * mipLevelCount * arrayLayers;
     }
 
-    ALIMER_API bool BlendEnabled(const RenderTargetBlendState* state);
-    ALIMER_API bool StencilTestEnabled(const DepthStencilState* depthStencil);
+    ALIMER_API bool BlendEnabled(const RHIRenderTargetBlendState* state);
+    ALIMER_API bool StencilTestEnabled(const RHIDepthStencilState* depthStencil);
 
-    enum class VertexFormatKind : uint8_t
+    enum class RHIVertexFormatKind : uint8_t
     {
         /// Unsigned normalized formats.
         Unorm,
@@ -1695,14 +1696,14 @@ namespace Alimer
         Float,
     };
 
-    struct VertexAttributeFormatInfo
+    struct RHIVertexAttributeFormatInfo final
     {
-        VertexAttributeFormat format;
+        RHIVertexAttributeFormat format;
         uint32_t byteSize;
         uint32_t componentCount;
-        VertexFormatKind kind;
+        RHIVertexFormatKind kind;
     };
-    ALIMER_API const VertexAttributeFormatInfo& GetVertexAttributeFormatInfo(VertexAttributeFormat format);
+    ALIMER_API const RHIVertexAttributeFormatInfo& GetVertexAttributeFormatInfo(RHIVertexAttributeFormat format);
 
     /* Shader loading */
     struct RHIShaderMacro
