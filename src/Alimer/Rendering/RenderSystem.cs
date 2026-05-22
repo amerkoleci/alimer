@@ -24,8 +24,8 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
     private readonly UnlitMaterial _defaultMaterial = new();
 
     private uint _lightCapacity;
-    private GPUBuffer? _lightBuffer;
-    private GPUBufferView? _lightBufferView;
+    private GraphicsBuffer? _lightBuffer;
+    private GraphicsBufferView? _lightBufferView;
 
     public unsafe RenderSystem(IServiceRegistry services)
         : base(typeof(TransformComponent))
@@ -70,7 +70,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         CheckerTexture = ToDispose(Device.CreateTexture2D(pixels, PixelFormat.RGBA8Unorm, 4, 4));
         DefaultSampler = ToDispose(Device.CreateSampler(SamplerDescriptor.PointWrap));
 
-        ColorFormat = MainWindow.SwapChain!.ColorFormat;
+        ColorFormat = MainWindow.Surface!.Format;
         DepthStencilFormat = PixelFormat.Depth24UnormStencil8;
         SampleCount = TextureSampleCount.Count1; // 4u
         ResolutionMultiplier = 1;
@@ -366,8 +366,8 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
             _lightBuffer?.Dispose();
 
             _lightCapacity = Math.Max(MinLightCapacity, lightCount);
-            GPUBufferDescriptor descriptor = new(GpuLightStructureSizeInBytes * _lightCapacity, GPUBufferUsage.ShaderRead, MemoryType.Upload, label: "Lights Structured Buffer");
-            GPUBufferViewDescriptor viewDescriptor = GPUBufferViewDescriptor.CreateStructured(0, _lightCapacity, GpuLightStructureSizeInBytes);
+            GraphicsBufferDescriptor descriptor = new(GpuLightStructureSizeInBytes * _lightCapacity, GraphicsBufferUsage.ShaderRead, MemoryType.Upload, label: "Lights Structured Buffer");
+            GraphicsBufferViewDescriptor viewDescriptor = GraphicsBufferViewDescriptor.CreateStructured(0, _lightCapacity, GpuLightStructureSizeInBytes);
 
             _lightBuffer = Device.CreateBuffer(in descriptor);
             _lightBufferView = _lightBuffer.CreateView(viewDescriptor);

@@ -4,10 +4,10 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// A bitmask indicating how a <see cref="GPUBuffer"/> is permitted to be used.
+/// A bitmask indicating how a <see cref="GraphicsBuffer"/> is permitted to be used.
 /// </summary>
 [Flags]
-public enum GPUBufferUsage
+public enum GraphicsBufferUsage
 {
     None = 0,
     /// <summary>

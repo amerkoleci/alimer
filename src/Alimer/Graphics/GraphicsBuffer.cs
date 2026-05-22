@@ -8,11 +8,11 @@ using static Alimer.Utilities.UnsafeUtilities;
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Defines a GPU buffer.
+/// Defines a graphics buffer.
 /// </summary>
-public abstract unsafe class GPUBuffer : GraphicsObject, IGraphicsBindableResource
+public abstract unsafe class GraphicsBuffer : GraphicsObject
 {
-    protected GPUBuffer(in GPUBufferDescriptor descriptor)
+    protected GraphicsBuffer(in GraphicsBufferDescriptor descriptor)
         : base(descriptor.Label)
     {
         Size = descriptor.Size;
@@ -28,7 +28,7 @@ public abstract unsafe class GPUBuffer : GraphicsObject, IGraphicsBindableResour
     /// <summary>
     /// A bitmask indicating this buffer usage.
     /// </summary>
-    public GPUBufferUsage Usage { get; }
+    public GraphicsBufferUsage Usage { get; }
 
     /// <summary>
     /// Gets the memory type of this buffer.
@@ -48,18 +48,18 @@ public abstract unsafe class GPUBuffer : GraphicsObject, IGraphicsBindableResour
     /// <returns></returns>
     public abstract void* GetMappedData();
 
-    public GPUBufferView CreateView(in GPUBufferViewDescriptor descriptor)
+    public GraphicsBufferView CreateView(in GraphicsBufferViewDescriptor descriptor)
     {
         return CreateViewCore(in descriptor);
     }
 
-    public GPUBufferView CreateStructuredView(uint elementOffset, uint elementCount, uint elementSize)
+    public GraphicsBufferView CreateStructuredView(uint elementOffset, uint elementCount, uint elementSize)
     {
-        GPUBufferViewDescriptor descriptor = GPUBufferViewDescriptor.CreateStructured(elementOffset, elementCount, elementSize);
+        GraphicsBufferViewDescriptor descriptor = GraphicsBufferViewDescriptor.CreateStructured(elementOffset, elementCount, elementSize);
         return CreateViewCore(in descriptor);
     }
 
-    public GPUBufferView CreateStructuredView<T>(uint elementOffset = 0, uint elementCount = 0)
+    public GraphicsBufferView CreateStructuredView<T>(uint elementOffset = 0, uint elementCount = 0)
         where T : unmanaged
     {
         if (elementCount == 0)
@@ -67,7 +67,7 @@ public abstract unsafe class GPUBuffer : GraphicsObject, IGraphicsBindableResour
             elementCount = (uint)(Size / SizeOf<T>());
         }
 
-        GPUBufferViewDescriptor descriptor = GPUBufferViewDescriptor.CreateStructured(elementOffset, elementCount, SizeOf<T>());
+        GraphicsBufferViewDescriptor descriptor = GraphicsBufferViewDescriptor.CreateStructured(elementOffset, elementCount, SizeOf<T>());
         return CreateViewCore(in descriptor);
     }
 
@@ -113,7 +113,7 @@ public abstract unsafe class GPUBuffer : GraphicsObject, IGraphicsBindableResour
         }
     }
 
-    protected abstract GPUBufferView CreateViewCore(in GPUBufferViewDescriptor descriptor);
+    protected abstract GraphicsBufferView CreateViewCore(in GraphicsBufferViewDescriptor descriptor);
 
     protected void SetDataUnsafe(void* sourcePtr, uint offsetInBytes, uint sizeInBytes)
     {

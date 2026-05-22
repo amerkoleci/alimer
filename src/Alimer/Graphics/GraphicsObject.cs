@@ -37,4 +37,13 @@ public abstract class GraphicsObject : GraphicsBaseObject
     /// The safe moment to actually destroy object.
     /// </summary>
     protected internal abstract void Destroy();
+
+    /// <summary>
+    /// Get a native handle for this object.
+    /// The type of the handle is determined by the <see cref="GraphicsNativeHandleType"/> parameter.
+    /// The returned handle is platform and API specific, and may not be valid across different platforms or graphics APIs.
+    /// </summary>
+    /// <param name="type"></param>
+    /// <returns></returns>
+    public virtual GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type) => GraphicsNativeHandle.InvalidHandle;
 }

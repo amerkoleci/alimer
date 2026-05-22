@@ -54,7 +54,7 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
         DispatchCore(groupCountX, groupCountY, groupCountZ);
     }
 
-    public void DispatchIndirect(GPUBuffer indirectBuffer, ulong indirectBufferOffset = 0)
+    public void DispatchIndirect(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset = 0)
     {
         ValidateIndirectBuffer(indirectBuffer);
         ValidateIndirectOffset(indirectBufferOffset);
@@ -62,17 +62,17 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
         DispatchIndirectCore(indirectBuffer, indirectBufferOffset);
     }
 
-    public void CopyBufferToBuffer(GPUBuffer sourceBuffer, GPUBuffer destinationBuffer)
+    public void CopyBufferToBuffer(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer)
     {
         CopyBufferToBufferCore(sourceBuffer, destinationBuffer);
     }
 
-    public void CopyBufferToBuffer(GPUBuffer sourceBuffer, ulong sourceOffset, GPUBuffer destinationBuffer, ulong destinationOffset, ulong size)
+    public void CopyBufferToBuffer(GraphicsBuffer sourceBuffer, ulong sourceOffset, GraphicsBuffer destinationBuffer, ulong destinationOffset, ulong size)
     {
         CopyBufferToBufferCore(sourceBuffer, sourceOffset, destinationBuffer, destinationOffset, size);
     }
 
-    public void UploadBufferData<T>(GPUBuffer buffer, ulong offset, ReadOnlySpan<T> data)
+    public void UploadBufferData<T>(GraphicsBuffer buffer, ulong offset, ReadOnlySpan<T> data)
         where T : unmanaged
     {
         if (data.Length is 0)
@@ -81,13 +81,13 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
         }
 
         uint sizeInBytes = (uint)(SizeOf<T>() * data.Length);
-        GPUAllocation allocation = Allocate(sizeInBytes);
+        GraphicsAllocation allocation = Allocate(sizeInBytes);
         data.CopyTo(new(allocation.Data, data.Length));
 
         CopyBufferToBuffer(allocation.Buffer!, allocation.Offset, buffer, offset, sizeInBytes);
     }
 
-    public void UploadBufferData(GPUBuffer buffer, ulong offset, void* sourceData, ulong size = 0)
+    public void UploadBufferData(GraphicsBuffer buffer, ulong offset, void* sourceData, ulong size = 0)
     {
         if (buffer == null || sourceData == null)
             return;
@@ -96,15 +96,15 @@ public abstract unsafe class ComputePassEncoder : CommandEncoder
         if (size == 0)
             return;
 
-        GPUAllocation allocation = Allocate(size);
+        GraphicsAllocation allocation = Allocate(size);
         NativeMemory.Copy(sourceData, allocation.Data, (nuint)size);
         CopyBufferToBuffer(allocation.Buffer!, allocation.Offset, buffer, offset, size);
     }
 
-    protected abstract void CopyBufferToBufferCore(GPUBuffer sourceBuffer, GPUBuffer destinationBuffer);
-    protected abstract void CopyBufferToBufferCore(GPUBuffer sourceBuffer, ulong sourceOffset, GPUBuffer destinationBuffer, ulong destinationOffset, ulong size);
+    protected abstract void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer);
+    protected abstract void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, ulong sourceOffset, GraphicsBuffer destinationBuffer, ulong destinationOffset, ulong size);
 
     protected abstract void SetPipelineCore(ComputePipeline pipeline);
     protected abstract void DispatchCore(uint groupCountX, uint groupCountY, uint groupCountZ);
-    protected abstract void DispatchIndirectCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset);
+    protected abstract void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset);
 }

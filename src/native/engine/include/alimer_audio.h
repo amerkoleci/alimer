@@ -96,7 +96,6 @@ ALIMER_API void alimerAudioEngineListenerGetPosition(const AudioEngine* engine, 
 ALIMER_API bool alimerAudioEngineListenerIsEnabled(AudioEngine* engine, uint32_t listenerIndex);
 ALIMER_API void alimerAudioEngineListenerSetEnabled(AudioEngine* engine, uint32_t listenerIndex, bool enabled);
 
-
 /* AudioClip */
 ALIMER_API AudioClip* alimerAudioClipCreate(const char* filepath);
 ALIMER_API AudioClip* alimerAudioClipCreateFromMemory(const void* pData, size_t dataSize);

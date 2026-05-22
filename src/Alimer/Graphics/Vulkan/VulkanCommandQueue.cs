@@ -19,7 +19,7 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
     private readonly List<VulkanCommandBuffer> _commandBuffers = [];
     private readonly List<VkCommandBuffer> _submitCommandBuffers = [];
 
-    private readonly List<VulkanSwapChain> _presentSwapChains = [];
+    private readonly List<VulkanSurface> _presentSwapChains = [];
     private readonly List<VkSemaphore> _submitSignalSemaphores = [];
 
     public VulkanCommandQueue(VulkanGraphicsDevice device, CommandQueueType queueType)
@@ -108,7 +108,7 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
         }
     }
 
-    public void QueuePresent(VulkanSwapChain swapChain)
+    public void QueuePresent(VulkanSurface swapChain)
     {
         _presentSwapChains.Add(swapChain);
         _submitSignalSemaphores.Add(swapChain.ReleaseSemaphore);
@@ -247,8 +247,8 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
     {
         return type switch
         {
-            GraphicsNativeHandleType.VkQueue => new GraphicsNativeHandle(GraphicsNativeHandleType.VkQueue, Handle),
-            _ => GraphicsNativeHandle.Invalid,
+            GraphicsNativeHandleType.VkQueue => new GraphicsNativeHandle(Handle),
+            _ => GraphicsNativeHandle.InvalidHandle,
         };
     }
 }

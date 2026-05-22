@@ -23,7 +23,6 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
 {
     private readonly D3D12GraphicsDevice _device;
     private readonly ComPtr<ID3D12PipelineState> _handle;
-    private readonly uint _numVertexBindings = 0;
     private readonly uint[] _strides = new uint[MaxVertexBufferBindings];
 
     public D3D12RenderPipeline(D3D12GraphicsDevice device, in RenderPipelineDescriptor descriptor)
@@ -83,7 +82,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
                 element.InputSlot = binding;
                 element.AlignedByteOffset = attribute.Offset != 0 ? (uint)attribute.Offset : currentOffset;
 
-                _numVertexBindings = Math.Max(binding + 1, _numVertexBindings);
+                NumVertexBindings = Math.Max(binding + 1, NumVertexBindings);
                 _strides[binding] = (uint)layout.Stride;
                 currentOffset += (uint)attribute.Format.GetSizeInBytes();
 
@@ -265,7 +264,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
     public ID3D12PipelineState* Handle => _handle;
 
     public D3D_PRIMITIVE_TOPOLOGY D3DPrimitiveTopology { get; }
-    public uint NumVertexBindings => _numVertexBindings;
+    public uint NumVertexBindings { get; } 
     public uint GetStride(uint slot) => _strides[slot];
 
     /// <inheitdoc />

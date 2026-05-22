@@ -8,7 +8,7 @@ using static Alimer.Graphics.Constants;
 namespace Alimer.Graphics;
 
 [AssetReader(typeof(TextureAssetReader))]
-public abstract partial class Texture : GraphicsObject, IGraphicsBindableResource
+public abstract partial class Texture : GraphicsObject
 {
     private readonly TextureLayout[] _subresourceLayouts;
     protected readonly Dictionary<TextureViewDescriptor, TextureView> _views = [];

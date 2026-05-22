@@ -32,7 +32,7 @@ public abstract unsafe class CommandEncoder
         return new ScopedDebugGroup(this);
     }
 
-    public void SetConstantBuffer(uint slot, GPUBuffer buffer, ulong offset = 0)
+    public void SetConstantBuffer(uint slot, GraphicsBuffer buffer, ulong offset = 0)
     {
         ValidateConstantBuffer(buffer);
 #if VALIDATE_USAGE
@@ -45,7 +45,7 @@ public abstract unsafe class CommandEncoder
         where T : unmanaged
     {
         uint sizeInBytes = SizeOf<T>();
-        GPUAllocation allocation = Allocate(sizeInBytes, Device.Limits.MinConstantBufferOffsetAlignment);
+        GraphicsAllocation allocation = Allocate(sizeInBytes, Device.Limits.MinConstantBufferOffsetAlignment);
         fixed (T* pointer = &data)
         {
             new Span<T>(pointer, 1).CopyTo(new(allocation.Data, 1));
@@ -62,7 +62,7 @@ public abstract unsafe class CommandEncoder
         }
 
         uint sizeInBytes = (uint)(SizeOf<T>() * data.Length);
-        GPUAllocation allocation = Allocate(sizeInBytes, Device.Limits.MinConstantBufferOffsetAlignment);
+        GraphicsAllocation allocation = Allocate(sizeInBytes, Device.Limits.MinConstantBufferOffsetAlignment);
         data.CopyTo(new(allocation.Data, data.Length));
         SetConstantBufferCore(slot, allocation.Buffer!, allocation.Offset);
     }
@@ -87,13 +87,13 @@ public abstract unsafe class CommandEncoder
         SetPushConstantsCore(data, size, offset);
     }
 
-    public GPUAllocation Allocate<T>(ulong alignment = 0)
+    public GraphicsAllocation Allocate<T>(ulong alignment = 0)
         where T : unmanaged
     {
         return Allocate(SizeOf<T>(), alignment);
     }
 
-    public GPUAllocation Allocate(ulong sizeInBytes, ulong alignment = 0)
+    public GraphicsAllocation Allocate(ulong sizeInBytes, ulong alignment = 0)
     {
         GPULinearAllocator allocator = Device.FrameAllocator;
         if (alignment == 0)
@@ -108,23 +108,23 @@ public abstract unsafe class CommandEncoder
             // Dispose old buffer
             allocator.Buffer?.Dispose();
 
-            GPUBufferDescriptor bufferDescriptor = new()
+            GraphicsBufferDescriptor bufferDescriptor = new()
             {
                 Size = AlignUp((bufferSize + sizeInBytes) * 2, allocator.Alignment),
-                Usage = GPUBufferUsage.Vertex | GPUBufferUsage.Index | GPUBufferUsage.Constant | GPUBufferUsage.ShaderRead,
+                Usage = GraphicsBufferUsage.Vertex | GraphicsBufferUsage.Index | GraphicsBufferUsage.Constant | GraphicsBufferUsage.ShaderRead,
                 MemoryType = MemoryType.Upload,
                 Label = "Frame Allocator Buffer"
             };
             if (Device.Limits.RayTracingTier != RayTracingTier.NotSupported)
             {
-                bufferDescriptor.Usage |= GPUBufferUsage.RayTracing;
+                bufferDescriptor.Usage |= GraphicsBufferUsage.RayTracing;
             }
 
             allocator.Buffer = Device.CreateBuffer(in bufferDescriptor);
             allocator.Offset = 0;
         }
 
-        GPUAllocation allocation = new(allocator.Buffer!, allocator.Offset);
+        GraphicsAllocation allocation = new(allocator.Buffer!, allocator.Offset);
 
         // Offset allocator
         allocator.Offset += AlignUp(sizeInBytes, allocator.Alignment);
@@ -133,25 +133,25 @@ public abstract unsafe class CommandEncoder
         return allocation;
     }
 
-    protected abstract void SetConstantBufferCore(uint slot, GPUBuffer buffer, ulong offset/*, ulong size = WholeSize*/);
+    protected abstract void SetConstantBufferCore(uint slot, GraphicsBuffer buffer, ulong offset/*, ulong size = WholeSize*/);
     protected abstract void SetPushConstantsCore(void* data, uint size, uint offset);
 
     #region Validation
     [Conditional("VALIDATE_USAGE")]
-    protected static void ValidateConstantBuffer(GPUBuffer buffer)
+    protected static void ValidateConstantBuffer(GraphicsBuffer buffer)
     {
-        if ((buffer.Usage & GPUBufferUsage.Constant) == 0)
+        if ((buffer.Usage & GraphicsBufferUsage.Constant) == 0)
         {
-            throw new GraphicsException($"{nameof(buffer)} parameter must have been created with {GPUBufferUsage.Constant} usage.");
+            throw new GraphicsException($"{nameof(buffer)} parameter must have been created with {GraphicsBufferUsage.Constant} usage.");
         }
     }
 
     [Conditional("VALIDATE_USAGE")]
-    protected static void ValidateIndirectBuffer(GPUBuffer buffer)
+    protected static void ValidateIndirectBuffer(GraphicsBuffer buffer)
     {
-        if ((buffer.Usage & GPUBufferUsage.Indirect) == 0)
+        if ((buffer.Usage & GraphicsBufferUsage.Indirect) == 0)
         {
-            throw new GraphicsException($"{nameof(buffer)} parameter must have been created with {GPUBufferUsage.Indirect} usage.");
+            throw new GraphicsException($"{nameof(buffer)} parameter must have been created with {GraphicsBufferUsage.Indirect} usage.");
         }
     }
 
@@ -175,7 +175,7 @@ public abstract unsafe class CommandEncoder
 
 public readonly struct DescriptorBindingTable
 {
-    public GPUBuffer?[] ConstantBuffer { get; } = new GPUBuffer?[DynamicContantBufferCount];
+    public GraphicsBuffer?[] ConstantBuffer { get; } = new GraphicsBuffer?[DynamicContantBufferCount];
     public ulong[] ConstantBufferOffset { get; } = new ulong[DynamicContantBufferCount];
 
     public DescriptorBindingTable()

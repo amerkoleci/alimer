@@ -40,9 +40,9 @@ public struct SpriteDrawData
 public class SpriteBatch : DisposableObject
 {
     private const uint MaxBatchSize = 1024;
-    private readonly GPUBuffer _spriteBuffer;
-    private readonly GPUBufferView _spriteBufferView;
-    private readonly GPUBuffer _spriteIndexBuffer;
+    private readonly GraphicsBuffer _spriteBuffer;
+    private readonly GraphicsBufferView _spriteBufferView;
+    private readonly GraphicsBuffer _spriteIndexBuffer;
     private readonly RenderPipeline _renderPipeline;
     private RenderPassEncoder? _encoder;
     private Vector2 _viewportSize;
@@ -54,7 +54,7 @@ public class SpriteBatch : DisposableObject
         GraphicsDevice = services.GetService<GraphicsDevice>();
         ShaderSystem = services.GetService<ShaderSystem>();
 
-        GPUBufferDescriptor spriteBufferDesc = new((ulong)(sizeof(SpriteDrawData) * MaxBatchSize), GPUBufferUsage.ShaderRead, MemoryType.Upload)
+        GraphicsBufferDescriptor spriteBufferDesc = new((ulong)(sizeof(SpriteDrawData) * MaxBatchSize), GraphicsBufferUsage.ShaderRead, MemoryType.Upload)
         {
             //spriteBufferDesc.stride = sizeof(SpriteDrawData);
             Label = "SpriteBatch Buffer"
@@ -64,7 +64,7 @@ public class SpriteBatch : DisposableObject
 
         // Create the index buffer
         ReadOnlySpan<ushort> indices = [0, 1, 2, 3, 0, 2];
-        _spriteIndexBuffer = GraphicsDevice.CreateBuffer(indices, GPUBufferUsage.Index, label: "SpriteBatch Index Buffer");
+        _spriteIndexBuffer = GraphicsDevice.CreateBuffer(indices, GraphicsBufferUsage.Index, label: "SpriteBatch Index Buffer");
 
         ShaderModule vertexShader = ShaderSystem.GetShaderModule("Sprite", ShaderStages.Vertex);
         ShaderModule fragmentShader = ShaderSystem.GetShaderModule("Sprite", ShaderStages.Fragment);

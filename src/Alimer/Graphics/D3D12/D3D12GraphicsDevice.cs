@@ -709,15 +709,15 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     {
         return type switch
         {
-            GraphicsNativeHandleType.DXGIFactory => new GraphicsNativeHandle(GraphicsNativeHandleType.DXGIFactory, (nint)_adapter.DxManager.Handle),
-            GraphicsNativeHandleType.DXGIAdapter => new GraphicsNativeHandle(GraphicsNativeHandleType.DXGIAdapter, (nint)_adapter.Handle),
-            GraphicsNativeHandleType.D3D12Device => new GraphicsNativeHandle(GraphicsNativeHandleType.D3D12Device, (nint)_device.Get()),
-            _ => GraphicsNativeHandle.Invalid,
+            GraphicsNativeHandleType.DXGIFactory => new GraphicsNativeHandle((nint)_adapter.DxManager.Handle),
+            GraphicsNativeHandleType.DXGIAdapter => new GraphicsNativeHandle((nint)_adapter.Handle),
+            GraphicsNativeHandleType.D3D12Device => new GraphicsNativeHandle((nint)_device.Get()),
+            _ => GraphicsNativeHandle.InvalidHandle,
         };
     }
 
     /// <inheritdoc />
-    protected override GPUBuffer CreateBufferCore(in GPUBufferDescriptor descriptor, void* initialData)
+    protected override GraphicsBuffer CreateBufferCore(in GraphicsBufferDescriptor descriptor, void* initialData)
     {
         return new D3D12Buffer(this, descriptor, initialData);
     }
@@ -756,12 +756,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor descriptor)
     {
         return new D3D12QueryHeap(this, descriptor);
-    }
-
-    /// <inheritdoc />
-    protected override SwapChain CreateSwapChainCore(in SwapChainDescriptor descriptor)
-    {
-        return new D3D12SwapChain(this, descriptor);
     }
 
     /// <inheritdoc />

@@ -4,6 +4,7 @@
 #include "alimer_internal.h"
 #include "alimer_font.h"
 
+// TODO: Use freetype and HarfBuzz
 ALIMER_DISABLE_WARNINGS()
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION

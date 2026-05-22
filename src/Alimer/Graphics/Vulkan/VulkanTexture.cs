@@ -433,4 +433,14 @@ internal unsafe class VulkanTexture : Texture
     {
         return new VulkanTextureView(this, in descriptor);
     }
+
+    /// <inheritdoc />
+    public override GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type)
+    {
+        return type switch
+        {
+            GraphicsNativeHandleType.VkImage => new GraphicsNativeHandle(Handle),
+            _ => GraphicsNativeHandle.InvalidHandle,
+        };
+    }
 }

@@ -1,14 +1,30 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Runtime.InteropServices;
+
 namespace Alimer.Graphics;
 
-public readonly struct GraphicsNativeHandle(GraphicsNativeHandleType type, nint handle)
+[StructLayout(LayoutKind.Explicit)]
+public readonly struct GraphicsNativeHandle
 {
-    public readonly GraphicsNativeHandleType Type = type;
-    public readonly nint Handle = handle;
+    [FieldOffset(0)]
+    public readonly nint Handle;
 
-    public readonly bool IsValid => Type != GraphicsNativeHandleType.Unknown && Handle != 0;
+    [FieldOffset(0)]
+    public readonly ulong UlongHandle;
 
-    public static GraphicsNativeHandle Invalid => new(GraphicsNativeHandleType.Unknown, 0);
+    public readonly bool IsValid => Handle != 0;
+
+    public static GraphicsNativeHandle InvalidHandle => new(0);
+
+    public GraphicsNativeHandle(nint handle)
+    {
+        Handle = handle;
+    }
+
+    public GraphicsNativeHandle(ulong handle)
+    {
+        UlongHandle = handle;
+    }
 }

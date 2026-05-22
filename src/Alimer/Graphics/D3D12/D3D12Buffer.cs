@@ -15,30 +15,30 @@ using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics.D3D12;
 
-internal unsafe class D3D12Buffer : GPUBuffer
+internal unsafe class D3D12Buffer : GraphicsBuffer
 {
     private readonly ComPtr<ID3D12Resource> _handle;
     private readonly ComPtr<D3D12MA_Allocation> _allocation;
     private readonly void* _pMappedData;
 
-    public D3D12Buffer(D3D12GraphicsDevice device, in GPUBufferDescriptor descriptor, void* initialData)
+    public D3D12Buffer(D3D12GraphicsDevice device, in GraphicsBufferDescriptor descriptor, void* initialData)
         : base(descriptor)
     {
         DXDevice = device;
 
         ulong alignedSize = descriptor.Size;
-        if ((descriptor.Usage & GPUBufferUsage.Constant) != 0)
+        if ((descriptor.Usage & GraphicsBufferUsage.Constant) != 0)
         {
             alignedSize = MathUtilities.AlignUp(alignedSize, D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
         }
 
         D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
-        if ((descriptor.Usage & GPUBufferUsage.ShaderWrite) == GPUBufferUsage.ShaderWrite)
+        if ((descriptor.Usage & GraphicsBufferUsage.ShaderWrite) == GraphicsBufferUsage.ShaderWrite)
         {
             resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         }
 
-        if ((descriptor.Usage & (GPUBufferUsage.ShaderRead | GPUBufferUsage.RayTracing)) != 0)
+        if ((descriptor.Usage & (GraphicsBufferUsage.ShaderRead | GraphicsBufferUsage.RayTracing)) != 0)
         {
             resourceFlags &= ~D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
         }
@@ -168,7 +168,7 @@ internal unsafe class D3D12Buffer : GPUBuffer
         }
     }
 
-    public D3D12Buffer(D3D12GraphicsDevice device, ID3D12Resource* existingHandle, in GPUBufferDescriptor descriptor)
+    public D3D12Buffer(D3D12GraphicsDevice device, ID3D12Resource* existingHandle, in GraphicsBufferDescriptor descriptor)
         : base(descriptor)
     {
         DXDevice = device;
@@ -201,8 +201,18 @@ internal unsafe class D3D12Buffer : GPUBuffer
         _handle.Get()->SetName(newLabel);
     }
 
-    protected override GPUBufferView CreateViewCore(in GPUBufferViewDescriptor descriptor) => new D3D12BufferView(this, descriptor);
+    protected override GraphicsBufferView CreateViewCore(in GraphicsBufferViewDescriptor descriptor) => new D3D12BufferView(this, descriptor);
 
     /// <inheritdoc />
     public override void* GetMappedData() => _pMappedData;
+
+    /// <inheritdoc />
+    public override GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type)
+    {
+        return type switch
+        {
+            GraphicsNativeHandleType.D3D12Resource => new GraphicsNativeHandle((nint)_handle.Get()),
+            _ => GraphicsNativeHandle.InvalidHandle,
+        };
+    }
 }

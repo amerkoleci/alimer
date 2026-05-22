@@ -219,9 +219,9 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         return _renderPassEncoder;
     }
 
-    public override void Present(SwapChain swapChain)
+    public override void Present(Surface swapChain)
     {
-        VulkanSwapChain backendSwapChain = (VulkanSwapChain)swapChain;
+        VulkanSurface backendSwapChain = (VulkanSurface)swapChain;
 
         TextureBarrier(backendSwapChain.CurrentTexture, TextureLayout.Present, 0, 1, 0, 1);
         _queue.QueuePresent(backendSwapChain);
@@ -345,7 +345,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         }
     }
 
-    public void SetConstantBuffer(uint slot, GPUBuffer buffer, ulong offset)
+    public void SetConstantBuffer(uint slot, GraphicsBuffer buffer, ulong offset)
     {
         if (_bindingTable.ConstantBuffer[slot] != buffer)
         {
@@ -400,7 +400,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
 
             for (uint i = 0; i < _bindingTable.ConstantBuffer.Length; ++i)
             {
-                GPUBuffer? buffer = _bindingTable.ConstantBuffer[i];
+                GraphicsBuffer? buffer = _bindingTable.ConstantBuffer[i];
                 ref VkWriteDescriptorSet write = ref bufferInfoWrite[i];
                 write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -468,7 +468,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         }
     }
 
-    protected override void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GPUBuffer destinationBuffer, ulong destinationOffset)
+    protected override void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GraphicsBuffer destinationBuffer, ulong destinationOffset)
     {
         VulkanQueryHeap backendQueryHeap = queryHeap.ToVk();
         VulkanBuffer backendDestBuffer = destinationBuffer.ToVk();
@@ -502,6 +502,16 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
         VulkanQueryHeap backendQueryHeap = queryHeap.ToVk();
         // Need to be called outside Render Pass Scope and Video Coding Scope
         _deviceApi.vkCmdResetQueryPool(_commandBuffer, backendQueryHeap.Handle, index, count);
+    }
+
+    /// <inheritdoc />
+    public override GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type)
+    {
+        return type switch
+        {
+            GraphicsNativeHandleType.VkCommandBuffer => new GraphicsNativeHandle(Handle),
+            _ => GraphicsNativeHandle.InvalidHandle,
+        };
     }
 
     [Flags]

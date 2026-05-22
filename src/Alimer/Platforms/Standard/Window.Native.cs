@@ -15,10 +15,9 @@ namespace Alimer;
 unsafe partial class Window
 {
     private readonly SDLPlatform _platform;
-    private readonly SwapChainSurface _surface;
+    private readonly SurfaceSource _surfaceSource;
     private bool _isFullscreen;
     private SDL_Window* _handle;
-    internal readonly SDL_WindowID Id;
 
     internal Window(SDLPlatform platform, WindowFlags flags)
     {
@@ -90,35 +89,35 @@ unsafe partial class Window
         if (OperatingSystem.IsWindows())
         {
             nint hwnd = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER);
-            _surface = SwapChainSurface.CreateWin32(hwnd);
+            _surfaceSource = SurfaceSource.CreateWin32(hwnd);
         }
         else if (OperatingSystem.IsAndroid())
         {
             nint androidWindow = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER);
-            _surface = SwapChainSurface.CreateAndroid(androidWindow);
+            _surfaceSource = SurfaceSource.CreateAndroid(androidWindow);
         }
         else if (OperatingSystem.IsIOS())
         {
-            UIWindow ui_window = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER);
-            UIView ui_view = ui_window.RootViewController.View;
+            UIWindow uiWindow = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER);
+            UIView uiView = uiWindow.RootViewController.View;
 
-            if (!CAMetalLayer.TryCast(ui_view.layer, out CAMetalLayer metalLayer))
+            if (!CAMetalLayer.TryCast(uiView.layer, out CAMetalLayer metalLayer))
             {
                 metalLayer = CAMetalLayer.New();
                 metalLayer.opaque = true;
-                metalLayer.frame = ui_view.frame;
-                metalLayer.drawableSize = ui_view.frame.size;
+                metalLayer.frame = uiView.frame;
+                metalLayer.drawableSize = uiView.frame.size;
 
-                ui_view.layer.addSublayer(metalLayer.Handle);
+                uiView.layer.addSublayer(metalLayer.Handle);
             }
 
-            _surface = SwapChainSurface.CreateMetalLayer(metalLayer.Handle);
+            _surfaceSource = SurfaceSource.CreateMetalLayer(metalLayer.Handle);
         }
         else if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
         {
-            NSWindow nswindow = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER);
+            NSWindow nsWindow = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER);
 
-            NSView contentView = nswindow.contentView;
+            NSView contentView = nsWindow.contentView;
 
             if (!CAMetalLayer.TryCast(contentView.layer, out CAMetalLayer metalLayer))
             {
@@ -127,25 +126,25 @@ unsafe partial class Window
                 contentView.layer = metalLayer;
             }
 
-            _surface = SwapChainSurface.CreateMetalLayer(metalLayer.Handle);
+            _surfaceSource = SurfaceSource.CreateMetalLayer(metalLayer.Handle);
         }
         else if (OperatingSystem.IsLinux())
         {
             if (SDL_GetCurrentVideoDriver().Equals("x11", StringComparison.OrdinalIgnoreCase))
             {
                 // X11
-                nint x11_display = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_X11_DISPLAY_POINTER);
-                ulong x11_window = (ulong)SDL_GetNumberProperty(props, SDL_PROP_WINDOW_X11_WINDOW_NUMBER);
-                Debug.Assert(x11_display != 0 && x11_window != 0, "Failed to get X11 window information.");
+                nint x11Display = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_X11_DISPLAY_POINTER);
+                ulong x11Window = (ulong)SDL_GetNumberProperty(props, SDL_PROP_WINDOW_X11_WINDOW_NUMBER);
+                Debug.Assert(x11Display != 0 && x11Window != 0, "Failed to get X11 window information.");
 
-                _surface = SwapChainSurface.CreateXlib(x11_display, x11_window);
+                _surfaceSource = SurfaceSource.CreateXlib(x11Display, x11Window);
             }
             else if (SDL_GetCurrentVideoDriver().Equals("wayland", StringComparison.OrdinalIgnoreCase))
             {
-                nint wayland_display = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER);
-                nint wayland_surface = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER);
+                nint waylandDisplay = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER);
+                nint waylandSurface = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER);
 
-                _surface = SwapChainSurface.CreateWayland(wayland_display, wayland_surface);
+                _surfaceSource = SurfaceSource.CreateWayland(waylandDisplay, waylandSurface);
             }
             else
             {
@@ -158,8 +157,10 @@ unsafe partial class Window
         }
     }
 
+    internal SDL_WindowID Id { get; }
+
     /// <inheritdoc />
-    public partial SwapChainSurface Surface => _surface;
+    public partial SurfaceSource SurfaceSource => _surfaceSource;
 
     /// <inheritdoc />
     public partial bool IsMinimized
@@ -228,7 +229,7 @@ unsafe partial class Window
 
     internal void Destroy()
     {
-        SwapChain?.Dispose();
+        Surface?.Dispose();
 
         if (_handle != null)
         {

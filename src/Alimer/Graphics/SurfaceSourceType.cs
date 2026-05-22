@@ -4,9 +4,9 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Defines a <see cref="SwapChainSurface"/> type.
+/// Defines a <see cref="SurfaceSource"/> type.
 /// </summary>
-public enum SwapChainSurfaceType
+public enum SurfaceSourceType
 {
     /// <summary>Defines an unknown graphics surface kind that may require specialized handling.</summary>
     Unknown,

@@ -433,7 +433,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _commandList6.Get()->SetMarker(PixHelpers.WinPIXEventPIX3BlobVersion, buffer, (uint)bufferSize);
     }
 
-    public void SetConstantBuffer(bool graphics, uint slot, GPUBuffer buffer, ulong offset)
+    public void SetConstantBuffer(bool graphics, uint slot, GraphicsBuffer buffer, ulong offset)
     {
         if (_bindingTable.ConstantBuffer[slot] != buffer || _bindingTable.ConstantBufferOffset[slot] != offset)
         {
@@ -507,7 +507,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _commandList6.Get()->EndQuery(backendQueryHeap.Handle, backendQueryHeap.BackendQueryType, index);
     }
 
-    protected override void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GPUBuffer destinationBuffer, ulong destinationOffset)
+    protected override void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GraphicsBuffer destinationBuffer, ulong destinationOffset)
     {
         D3D12QueryHeap backendQueryHeap = queryHeap.ToD3D12();
         D3D12Buffer backendDestBuffer = destinationBuffer.ToD3D12();
@@ -525,11 +525,21 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         // Nothing on D3D12
     }
 
-    public override void Present(SwapChain swapChain)
+    public override void Present(Surface swapChain)
     {
-        D3D12SwapChain backendSwapChain = (D3D12SwapChain)swapChain;
+        D3D12Surface backendSwapChain = (D3D12Surface)swapChain;
         //TextureBarrier(backendSwapChain.CurrentTexture, TextureLayout.Present, 0, 1, 0, 1);
         TextureBarrier(backendSwapChain.CurrentTexture, TextureLayout.Present);
         _queue.QueuePresent(backendSwapChain);
+    }
+
+    /// <inheritdoc />
+    public override GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type)
+    {
+        return type switch
+        {
+            GraphicsNativeHandleType.D3D12GraphicsCommandList => new GraphicsNativeHandle((nint)_commandList6.Get()),
+            _ => GraphicsNativeHandle.InvalidHandle,
+        };
     }
 }

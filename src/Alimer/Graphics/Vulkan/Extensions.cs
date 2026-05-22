@@ -5,7 +5,7 @@ namespace Alimer.Graphics.Vulkan;
 
 internal static class Extensions
 {
-    extension(GPUBuffer buffer)
+    extension(GraphicsBuffer buffer)
     {
         internal VulkanBuffer ToVk()
         {

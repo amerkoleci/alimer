@@ -14,6 +14,7 @@ internal class NullGraphicsManager : GraphicsManager
     }
 
     public override ReadOnlySpan<GraphicsAdapter> Adapters => _adapters;
+    protected override Surface CreateSurfaceCore(in SurfaceDescriptor descriptor) => throw new NotImplementedException();
 }
 
 internal class NullGraphicsAdapter : GraphicsAdapter
@@ -66,19 +67,18 @@ internal class NullGraphicsDevice : GraphicsDevice
         return _frameCount;
     }
 
-    public override GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type) => GraphicsNativeHandle.Invalid;
+    public override GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type) => GraphicsNativeHandle.InvalidHandle;
 
     public override CommandQueue? GetCommandQueue(CommandQueueType type) => throw new NotImplementedException();
     public override bool QueryFeatureSupport(Feature feature) => throw new NotImplementedException();
     public override PixelFormatSupport QueryPixelFormatSupport(PixelFormat format) => throw new NotImplementedException();
     public override bool QueryVertexFormatSupport(VertexAttributeFormat format) => throw new NotImplementedException();
     public override void WaitIdle() => throw new NotImplementedException();
-    protected override unsafe GPUBuffer CreateBufferCore(in GPUBufferDescriptor descriptor, void* initialData) => throw new NotImplementedException();
+    protected override unsafe GraphicsBuffer CreateBufferCore(in GraphicsBufferDescriptor descriptor, void* initialData) => throw new NotImplementedException();
     protected override ComputePipeline CreateComputePipelineCore(in ComputePipelineDescriptor descriptor) => throw new NotImplementedException();
     protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor descriptor) => throw new NotImplementedException();
     protected override RenderPipeline CreateRenderPipelineCore(in RenderPipelineDescriptor descriptor) => throw new NotImplementedException();
     protected override Sampler CreateSamplerCore(in SamplerDescriptor descriptor) => throw new NotImplementedException();
     protected override ShaderModule CreateShaderModuleCore(in ShaderModuleDescriptor descriptor) => throw new NotImplementedException();
-    protected override SwapChain CreateSwapChainCore(in SwapChainDescriptor descriptor) => throw new NotImplementedException();
     protected override unsafe Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData) => throw new NotImplementedException();
 }

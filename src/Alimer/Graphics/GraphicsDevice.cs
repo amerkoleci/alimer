@@ -177,60 +177,60 @@ public abstract unsafe class GraphicsDevice : GraphicsBaseObject
 
     public abstract GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type);
 
-    public GPUBuffer CreateBuffer(in GPUBufferDescriptor descriptor)
+    public GraphicsBuffer CreateBuffer(in GraphicsBufferDescriptor descriptor)
     {
         return CreateBuffer(descriptor, null);
     }
 
-    public GPUBuffer CreateBuffer(ulong size,
-        GPUBufferUsage usage = GPUBufferUsage.ShaderReadWrite,
+    public GraphicsBuffer CreateBuffer(ulong size,
+        GraphicsBufferUsage usage = GraphicsBufferUsage.ShaderReadWrite,
         MemoryType memoryType = MemoryType.Private,
         string? label = default)
     {
-        return CreateBuffer(new GPUBufferDescriptor(size, usage, memoryType, label), (void*)null);
+        return CreateBuffer(new GraphicsBufferDescriptor(size, usage, memoryType, label), (void*)null);
     }
 
-    public GPUBuffer CreateBuffer(in GPUBufferDescriptor descriptor, IntPtr initialData)
+    public GraphicsBuffer CreateBuffer(in GraphicsBufferDescriptor descriptor, IntPtr initialData)
     {
         return CreateBuffer(descriptor, initialData.ToPointer());
     }
 
-    public GPUBuffer CreateBuffer(in GPUBufferDescriptor descriptor, void* initialData)
+    public GraphicsBuffer CreateBuffer(in GraphicsBufferDescriptor descriptor, void* initialData)
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(descriptor.Size, 4u, nameof(GPUBufferDescriptor.Size));
+        ArgumentOutOfRangeException.ThrowIfLessThan(descriptor.Size, 4u, nameof(GraphicsBufferDescriptor.Size));
 
 #if VALIDATE_USAGE
-        if ((descriptor.Usage & GPUBufferUsage.Predication) != 0 &&
+        if ((descriptor.Usage & GraphicsBufferUsage.Predication) != 0 &&
             !QueryFeatureSupport(Feature.Predication))
         {
-            throw new GraphicsException($"Buffer cannot be created with {GPUBufferUsage.Predication} usage as adapter doesn't support it");
+            throw new GraphicsException($"Buffer cannot be created with {GraphicsBufferUsage.Predication} usage as adapter doesn't support it");
         }
 
-        if ((descriptor.Usage & GPUBufferUsage.RayTracing) != 0 &&
+        if ((descriptor.Usage & GraphicsBufferUsage.RayTracing) != 0 &&
             Limits.RayTracingTier == RayTracingTier.NotSupported)
         {
-            throw new GraphicsException($"Buffer cannot be created with {GPUBufferUsage.RayTracing} usage as adapter doesn't support it");
+            throw new GraphicsException($"Buffer cannot be created with {GraphicsBufferUsage.RayTracing} usage as adapter doesn't support it");
         }
 #endif
         // ID3D12Device::CreateCommittedResource3: A buffer cannot be created on a D3D12_HEAP_TYPE_UPLOAD or D3D12_HEAP_TYPE_READBACK heap when either D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET or D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS is used.
-        if ((descriptor.Usage & GPUBufferUsage.ShaderWrite) == GPUBufferUsage.ShaderWrite)
+        if ((descriptor.Usage & GraphicsBufferUsage.ShaderWrite) == GraphicsBufferUsage.ShaderWrite)
         {
             if (descriptor.MemoryType == MemoryType.Readback)
             {
-                throw new GraphicsException($"Buffer cannot be created with {GPUBufferUsage.ShaderWrite} usage and {MemoryType.Readback} memory type");
+                throw new GraphicsException($"Buffer cannot be created with {GraphicsBufferUsage.ShaderWrite} usage and {MemoryType.Readback} memory type");
             }
             else if (descriptor.MemoryType == MemoryType.Upload)
             {
-                throw new GraphicsException($"Buffer cannot be created with {GPUBufferUsage.ShaderWrite} usage and {MemoryType.Upload} memory type");
+                throw new GraphicsException($"Buffer cannot be created with {GraphicsBufferUsage.ShaderWrite} usage and {MemoryType.Upload} memory type");
             }
         }
 
         return CreateBufferCore(descriptor, initialData);
     }
 
-    public GPUBuffer CreateBuffer<T>(in GPUBufferDescriptor description, ref T initialData) where T : unmanaged
+    public GraphicsBuffer CreateBuffer<T>(in GraphicsBufferDescriptor description, ref T initialData) where T : unmanaged
     {
-        ArgumentOutOfRangeException.ThrowIfLessThan(description.Size, 4u, nameof(GPUBufferDescriptor.Size));
+        ArgumentOutOfRangeException.ThrowIfLessThan(description.Size, 4u, nameof(GraphicsBufferDescriptor.Size));
 
         fixed (void* initialDataPtr = &initialData)
         {
@@ -238,8 +238,8 @@ public abstract unsafe class GraphicsDevice : GraphicsBaseObject
         }
     }
 
-    public GPUBuffer CreateBuffer<T>(Span<T> initialData,
-        GPUBufferUsage usage = GPUBufferUsage.ShaderReadWrite,
+    public GraphicsBuffer CreateBuffer<T>(Span<T> initialData,
+        GraphicsBufferUsage usage = GraphicsBufferUsage.ShaderReadWrite,
         MemoryType memoryType = MemoryType.Private,
         string? label = default)
         where T : unmanaged
@@ -247,12 +247,12 @@ public abstract unsafe class GraphicsDevice : GraphicsBaseObject
         int typeSize = sizeof(T);
         ArgumentException.ThrowIfFalse(initialData.Length > 0, nameof(initialData));
 
-        GPUBufferDescriptor description = new((uint)(initialData.Length * typeSize), usage, memoryType, label);
+        GraphicsBufferDescriptor description = new((uint)(initialData.Length * typeSize), usage, memoryType, label);
         return CreateBuffer(description, ref MemoryMarshal.GetReference(initialData));
     }
 
-    public GPUBuffer CreateBuffer<T>(ReadOnlySpan<T> initialData,
-        GPUBufferUsage usage = GPUBufferUsage.ShaderReadWrite,
+    public GraphicsBuffer CreateBuffer<T>(ReadOnlySpan<T> initialData,
+        GraphicsBufferUsage usage = GraphicsBufferUsage.ShaderReadWrite,
         MemoryType memoryType = MemoryType.Private,
         string? label = default)
         where T : unmanaged
@@ -260,7 +260,7 @@ public abstract unsafe class GraphicsDevice : GraphicsBaseObject
         int typeSize = sizeof(T);
         ArgumentException.ThrowIfFalse(initialData.Length > 0, nameof(initialData));
 
-        GPUBufferDescriptor description = new((uint)(initialData.Length * typeSize), usage, memoryType, label);
+        GraphicsBufferDescriptor description = new((uint)(initialData.Length * typeSize), usage, memoryType, label);
         return CreateBuffer(description, ref MemoryMarshal.GetReference(initialData));
     }
 
@@ -384,16 +384,6 @@ public abstract unsafe class GraphicsDevice : GraphicsBaseObject
         return CreateQueryHeapCore(descriptor);
     }
 
-    public SwapChain CreateSwapChain(in SwapChainDescriptor descriptor)
-    {
-        ArgumentNullException.ThrowIfNull(descriptor.Surface, nameof(SwapChainDescriptor.Surface));
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(descriptor.Width, nameof(SwapChainDescriptor.Width));
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(descriptor.Height, nameof(SwapChainDescriptor.Height));
-        ArgumentException.ThrowIfFalse(descriptor.Format != PixelFormat.Undefined, nameof(SwapChainDescriptor.Format));
-
-        return CreateSwapChainCore(descriptor);
-    }
-
     /// <summary>
     /// Acquire command buffer ready for recording.
     /// </summary>
@@ -402,12 +392,11 @@ public abstract unsafe class GraphicsDevice : GraphicsBaseObject
     /// <returns></returns>
     public abstract CommandBuffer AcquireCommandBuffer(CommandQueueType queue, Utf8ReadOnlyString label = default);
 
-    protected abstract GPUBuffer CreateBufferCore(in GPUBufferDescriptor descriptor, void* initialData);
+    protected abstract GraphicsBuffer CreateBufferCore(in GraphicsBufferDescriptor descriptor, void* initialData);
     protected abstract Texture CreateTextureCore(in TextureDescriptor descriptor, TextureData* initialData);
     protected abstract Sampler CreateSamplerCore(in SamplerDescriptor descriptor);
     protected abstract ShaderModule CreateShaderModuleCore(in ShaderModuleDescriptor descriptor);
     protected abstract RenderPipeline CreateRenderPipelineCore(in RenderPipelineDescriptor descriptor);
     protected abstract ComputePipeline CreateComputePipelineCore(in ComputePipelineDescriptor descriptor);
     protected abstract QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor descriptor);
-    protected abstract SwapChain CreateSwapChainCore(in SwapChainDescriptor descriptor);
 }

@@ -72,7 +72,7 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void SetConstantBufferCore(uint slot, GPUBuffer buffer, ulong offset) => throw new NotImplementedException();
+    protected override void SetConstantBufferCore(uint slot, GraphicsBuffer buffer, ulong offset) => throw new NotImplementedException();
 
     /// <inheritdoc/>
     protected override void SetPushConstantsCore(void* data, uint size, uint offset)
@@ -89,7 +89,7 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void DispatchIndirectCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset)
+    protected override void DispatchIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDispatch();
 
@@ -98,7 +98,7 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void CopyBufferToBufferCore(GPUBuffer sourceBuffer, GPUBuffer destinationBuffer)
+    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, GraphicsBuffer destinationBuffer)
     {
         D3D12Buffer backendSrcBuffer = sourceBuffer.ToD3D12();
         D3D12Buffer backendDestBuffer = destinationBuffer.ToD3D12();
@@ -112,7 +112,7 @@ internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void CopyBufferToBufferCore(GPUBuffer sourceBuffer, ulong sourceOffset, GPUBuffer destinationBuffer, ulong destinationOffset, ulong size)
+    protected override void CopyBufferToBufferCore(GraphicsBuffer sourceBuffer, ulong sourceOffset, GraphicsBuffer destinationBuffer, ulong destinationOffset, ulong size)
     {
         D3D12Buffer backendSrcBuffer = sourceBuffer.ToD3D12();
         D3D12Buffer backendDestBuffer = destinationBuffer.ToD3D12();

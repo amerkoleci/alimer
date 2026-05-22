@@ -13,7 +13,7 @@ namespace Alimer.Samples;
 public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 {
     private readonly Mesh _cubeMesh;
-    private readonly GPUBuffer _constantBuffer0;
+    private readonly GraphicsBuffer _constantBuffer0;
 
     private readonly RenderPipeline _renderPipeline;
 
@@ -24,7 +24,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
     {
         _cubeMesh = ToDispose(Mesh.CreateCube(GraphicsDevice, 5.0f));
 
-        _constantBuffer0 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), GPUBufferUsage.Constant, MemoryType.Upload));
+        _constantBuffer0 = ToDispose(GraphicsDevice.CreateBuffer((ulong)sizeof(Matrix4x4), GraphicsBufferUsage.Constant, MemoryType.Upload));
 
         using ShaderModule vertexShader = CompileShaderModule("Cube", ShaderStages.Vertex, "vertexMain");
         using ShaderModule fragmentShader = CompileShaderModule("Cube", ShaderStages.Fragment, "fragmentMain");

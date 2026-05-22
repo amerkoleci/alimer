@@ -288,13 +288,13 @@ public abstract class Game : DisposableObject, IGame
                 if (!MainWindow.IsMinimized)
                 {
                     CommandBuffer commandBuffer = GraphicsDevice.AcquireCommandBuffer(CommandQueueType.Graphics, "Frame"u8);
-                    Texture? swapChainTexture = MainWindow.SwapChain!.AcquireNextTexture();
+                    Texture? swapChainTexture = MainWindow.Surface!.AcquireNextTexture();
                     if (swapChainTexture is not null)
                     {
                         Draw(commandBuffer, swapChainTexture, _gameTime);
                     }
 
-                    commandBuffer.Present(MainWindow.SwapChain!);
+                    commandBuffer.Present(MainWindow.Surface!);
 
                     // Execute 
                     GraphicsDevice.GraphicsQueue.Execute(commandBuffer);
@@ -311,6 +311,7 @@ public abstract class Game : DisposableObject, IGame
 
     private void InitializeBeforeRun()
     {
+        MainWindow.CreateSurface(GraphicsManager);
         MainWindow.CreateSwapChain(GraphicsDevice);
         IsRunning = true;
 

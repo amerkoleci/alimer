@@ -22,7 +22,7 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
 
     private uint _commandBufferCount = 0;
     private readonly List<D3D12CommandBuffer> _commandBuffers = [];
-    private readonly List<D3D12SwapChain> _presentSwapChains = [];
+    private readonly List<D3D12Surface> _presentSwapChains = [];
 
     public D3D12CommandQueue(D3D12GraphicsDevice device, CommandQueueType queueType)
     {
@@ -127,7 +127,7 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
     {
         if (_presentSwapChains.Count > 0)
         {
-            foreach (D3D12SwapChain swapChain in _presentSwapChains)
+            foreach (D3D12Surface swapChain in _presentSwapChains)
             {
                 // If the device was reset we must completely reinitialize the renderer.
                 if (!swapChain.Present())
@@ -146,7 +146,7 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
         }
     }
 
-    public void QueuePresent(D3D12SwapChain swapChain)
+    public void QueuePresent(D3D12Surface swapChain)
     {
         _presentSwapChains.Add(swapChain);
     }
@@ -193,8 +193,8 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
     {
         return type switch
         {
-            GraphicsNativeHandleType.D3D12CommandQueue => new GraphicsNativeHandle(GraphicsNativeHandleType.D3D12CommandQueue, (nint)_handle.Get()),
-            _ => GraphicsNativeHandle.Invalid,
+            GraphicsNativeHandleType.D3D12CommandQueue => new GraphicsNativeHandle((nint)_handle.Get()),
+            _ => GraphicsNativeHandle.InvalidHandle,
         };
     }
 }

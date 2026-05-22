@@ -24,8 +24,8 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable<Mesh>
     private bool _boundsDirty = true;
 
     //private GraphicsBuffer? _gpuPositionsBuffer;
-    private GPUBuffer? _gpuVertexBuffer;
-    private GPUBuffer? _gpuIndexBuffer;
+    private GraphicsBuffer? _gpuVertexBuffer;
+    private GraphicsBuffer? _gpuIndexBuffer;
 
     public Mesh(GraphicsDevice device,
         int vertexCount,
@@ -99,8 +99,8 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable<Mesh>
     /// </summary>
     public BoundingBox Bounds => _bounds;
 
-    public GPUBuffer? GpuVertexBuffer => _gpuVertexBuffer;
-    public GPUBuffer? GpuIndexBuffer => _gpuIndexBuffer;
+    public GraphicsBuffer? GpuVertexBuffer => _gpuVertexBuffer;
+    public GraphicsBuffer? GpuIndexBuffer => _gpuIndexBuffer;
 
     /// <inheritdoc/>
     protected override void Destroy()
@@ -122,8 +122,8 @@ public sealed unsafe partial class Mesh : Asset, IBinarySerializable<Mesh>
         // TODO: Separate positions
         ulong vertexBufferSize = (ulong)(_vertexBuffer.ElementCount * VertexStride);
         ulong indexBufferSize = (ulong)(_indexBuffer.ElementCount * _indexBuffer.ElementSize);
-        GPUBufferDescriptor vertexBufferDesc = new(vertexBufferSize, GPUBufferUsage.Vertex | GPUBufferUsage.ShaderReadWrite);
-        GPUBufferDescriptor indexBufferDesc = new(indexBufferSize, GPUBufferUsage.Index | GPUBufferUsage.ShaderReadWrite);
+        GraphicsBufferDescriptor vertexBufferDesc = new(vertexBufferSize, GraphicsBufferUsage.Vertex | GraphicsBufferUsage.ShaderReadWrite);
+        GraphicsBufferDescriptor indexBufferDesc = new(indexBufferSize, GraphicsBufferUsage.Index | GraphicsBufferUsage.ShaderReadWrite);
 
         _gpuVertexBuffer = Device.CreateBuffer(vertexBufferDesc, _vertexBuffer.GetRawData());
         _gpuIndexBuffer = Device.CreateBuffer(indexBufferDesc, _indexBuffer.GetRawData());

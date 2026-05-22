@@ -79,7 +79,7 @@ public abstract class CommandBuffer
         EndQueryCore(queryHeap, index);
     }
 
-    public void ResolveQuery(QueryHeap queryHeap, uint index, uint count, GPUBuffer destinationBuffer, ulong destinationOffset)
+    public void ResolveQuery(QueryHeap queryHeap, uint index, uint count, GraphicsBuffer destinationBuffer, ulong destinationOffset)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(queryHeap.Count, index);
 
@@ -97,11 +97,20 @@ public abstract class CommandBuffer
     protected abstract void BeginQueryCore(QueryHeap queryHeap, uint index);
     protected abstract void EndQueryCore(QueryHeap queryHeap, uint index);
 
-    protected abstract void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GPUBuffer destinationBuffer, ulong destinationOffset);
+    protected abstract void ResolveQueryCore(QueryHeap queryHeap, uint index, uint count, GraphicsBuffer destinationBuffer, ulong destinationOffset);
     protected abstract void ResetQueryCore(QueryHeap queryHeap, uint index, uint count);
     #endregion
 
-    public abstract void Present(SwapChain swapChain);
+    public abstract void Present(Surface swapChain);
+
+    /// <summary>
+    /// Get a native handle for this object.
+    /// The type of the handle is determined by the <see cref="GraphicsNativeHandleType"/> parameter.
+    /// The returned handle is platform and API specific, and may not be valid across different platforms or graphics APIs.
+    /// </summary>
+    /// <param name="type"></param>
+    /// <returns></returns>
+    public abstract GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type);
 
     #region Nested
     readonly struct ScopedDebugGroup(CommandBuffer commandBuffer) : IDisposable

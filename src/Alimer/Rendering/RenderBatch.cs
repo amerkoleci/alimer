@@ -17,8 +17,8 @@ public sealed unsafe class RenderBatch : DisposableObject
     private static uint InstanceSizeInBytes = SizeOf<GPUInstance>();
     private const uint InitialInstanceCount = 128;
 
-    private GPUBuffer[] _instanceBuffer;
-    private GPUBufferView[] _instanceBufferView;
+    private GraphicsBuffer[] _instanceBuffer;
+    private GraphicsBufferView[] _instanceBufferView;
     private uint _instanceCapacity = 0;
     private uint _totalInstanceCount = 0;
 
@@ -31,8 +31,8 @@ public sealed unsafe class RenderBatch : DisposableObject
         ArgumentNullException.ThrowIfNull(device, nameof(device));
 
         Device = device;
-        _instanceBuffer = new GPUBuffer[device.MaxFramesInFlight];
-        _instanceBufferView = new GPUBufferView[device.MaxFramesInFlight];
+        _instanceBuffer = new GraphicsBuffer[device.MaxFramesInFlight];
+        _instanceBufferView = new GraphicsBufferView[device.MaxFramesInFlight];
         ResizeInstanceBuffer(InitialInstanceCount);
     }
 
@@ -42,7 +42,7 @@ public sealed unsafe class RenderBatch : DisposableObject
     {
         _instanceCapacity = capacity;
 
-        GPUBufferViewDescriptor viewDescriptor = GPUBufferViewDescriptor.CreateStructured(0, capacity, InstanceSizeInBytes);
+        GraphicsBufferViewDescriptor viewDescriptor = GraphicsBufferViewDescriptor.CreateStructured(0, capacity, InstanceSizeInBytes);
 
         for (int i = 0; i < _instanceBuffer.Length; i++)
         {
@@ -50,7 +50,7 @@ public sealed unsafe class RenderBatch : DisposableObject
 
             _instanceBuffer[i] = ToDispose(Device.CreateBuffer(
                 InstanceSizeInBytes * capacity,
-                GPUBufferUsage.ShaderRead,
+                GraphicsBufferUsage.ShaderRead,
                 MemoryType.Upload,
                 label: $"Upload Instance Buffer Frame {i}"
                 ));

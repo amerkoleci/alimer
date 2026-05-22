@@ -5,9 +5,9 @@ namespace Alimer.Graphics;
 
 // TODO: Understand how to handle AppendStructuredBuffer, ConsumeStructuredBuffer
 
-public abstract class GPUBufferView : GraphicsObject
+public abstract class GraphicsBufferView : GraphicsObject
 {
-    protected GPUBufferView(GPUBuffer buffer, in GPUBufferViewDescriptor descriptor)
+    protected GraphicsBufferView(GraphicsBuffer buffer, in GraphicsBufferViewDescriptor descriptor)
     {
         ArgumentNullException.ThrowIfNull(buffer, nameof(buffer));
 
@@ -19,9 +19,9 @@ public abstract class GPUBufferView : GraphicsObject
     }
 
     /// <summary>
-    /// Gets the owner <see cref="GPUBuffer"/>
+    /// Gets the owner <see cref="GraphicsBuffer"/>
     /// </summary>
-    public GPUBuffer Buffer { get; }
+    public GraphicsBuffer Buffer { get; }
 
     /// <inheritdoc />
     public override GraphicsDevice Device => Buffer.Device;

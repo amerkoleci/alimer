@@ -38,6 +38,17 @@ static void OnAudioDeviceCallback(AudioDevice* device, void* userdata)
 
 int main(void)
 {
+    int n = 5;
+    while (n <= 20)
+    {
+        if (n % 2 == 0)
+        {
+            printf("%d\n", n);
+        }
+
+        n++;
+    }
+
 #if defined(ALIMER_AUDIO)
     if (!alimerAudioInit())
     {

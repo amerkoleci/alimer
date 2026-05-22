@@ -93,4 +93,14 @@ internal unsafe class VulkanTextureView : TextureView
     {
         VkTexture.VkDevice.SetObjectName(VK_OBJECT_TYPE_IMAGE_VIEW, Handle.Handle, newLabel);
     }
+
+    /// <inheritdoc />
+    public override GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type)
+    {
+        return type switch
+        {
+            GraphicsNativeHandleType.VkImageView => new GraphicsNativeHandle(Handle),
+            _ => GraphicsNativeHandle.InvalidHandle,
+        };
+    }
 }

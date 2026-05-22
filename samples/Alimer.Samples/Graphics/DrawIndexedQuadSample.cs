@@ -10,8 +10,8 @@ namespace Alimer.Samples;
 [Description("Graphics - DrawIndexed Quad")]
 public sealed class DrawIndexedQuadSample : GraphicsSampleBase
 {
-    private GPUBuffer _vertexBuffer;
-    private GPUBuffer _indexBuffer;
+    private GraphicsBuffer _vertexBuffer;
+    private GraphicsBuffer _indexBuffer;
     private RenderPipeline _renderPipeline;
 
     public DrawIndexedQuadSample(IServiceRegistry services, Window mainWindow)
@@ -23,10 +23,10 @@ public sealed class DrawIndexedQuadSample : GraphicsSampleBase
             new(new Vector3(0.5f, -0.5f, 0.5f), Colors.Blue),
             new(new Vector3(-0.5f, -0.5f, 0.5f), Colors.Yellow),
         ];
-        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, GPUBufferUsage.Vertex));
+        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, GraphicsBufferUsage.Vertex));
 
         ReadOnlySpan<ushort> indexData = [0, 2, 1, 0, 3, 2];
-        _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(indexData, GPUBufferUsage.Index));
+        _indexBuffer = ToDispose(GraphicsDevice.CreateBuffer(indexData, GraphicsBufferUsage.Index));
 
         using ShaderModule vertexShader = CompileShaderModule("Triangle", ShaderStages.Vertex, "vertexMain");
         using ShaderModule fragmentShader = CompileShaderModule("Triangle", ShaderStages.Fragment, "fragmentMain");

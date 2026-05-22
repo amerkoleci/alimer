@@ -1495,10 +1495,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     {
         return type switch
         {
-            GraphicsNativeHandleType.VkInstance => new GraphicsNativeHandle(GraphicsNativeHandleType.VkInstance, _adapter.VkGraphicsManager.Instance),
-            GraphicsNativeHandleType.VkPhysicalDevice => new GraphicsNativeHandle(GraphicsNativeHandleType.VkPhysicalDevice, _physicalDevice),
-            GraphicsNativeHandleType.VkDevice => new GraphicsNativeHandle(GraphicsNativeHandleType.VkDevice, _handle),
-            _ => GraphicsNativeHandle.Invalid,
+            GraphicsNativeHandleType.VkInstance => new GraphicsNativeHandle(_adapter.VkGraphicsManager.Instance),
+            GraphicsNativeHandleType.VkPhysicalDevice => new GraphicsNativeHandle(_physicalDevice),
+            GraphicsNativeHandleType.VkDevice => new GraphicsNativeHandle(_handle),
+            _ => GraphicsNativeHandle.InvalidHandle,
         };
     }
 
@@ -1569,7 +1569,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     }
 
     /// <inheritdoc />
-    protected override GPUBuffer CreateBufferCore(in GPUBufferDescriptor descriptor, void* initialData)
+    protected override GraphicsBuffer CreateBufferCore(in GraphicsBufferDescriptor descriptor, void* initialData)
     {
         return new VulkanBuffer(this, descriptor, initialData);
     }
@@ -1746,12 +1746,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     protected override QueryHeap CreateQueryHeapCore(in QueryHeapDescriptor descriptor)
     {
         return new VulkanQueryHeap(this, in descriptor);
-    }
-
-    /// <inheritdoc />
-    protected override SwapChain CreateSwapChainCore(in SwapChainDescriptor descriptor)
-    {
-        return new VulkanSwapChain(this, descriptor);
     }
 
     /// <inheritdoc />

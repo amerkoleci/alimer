@@ -281,7 +281,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
     }
 
     /// <inheritdoc/>
-    protected override void SetConstantBufferCore(uint slot, GPUBuffer buffer, ulong offset)
+    protected override void SetConstantBufferCore(uint slot, GraphicsBuffer buffer, ulong offset)
     {
         _commandBuffer.SetConstantBuffer(true, slot, buffer, offset);
     }
@@ -379,7 +379,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _commandBuffer.CommandList->OMSetDepthBounds(minBounds, maxBounds);
     }
 
-    protected override void SetVertexBufferCore(uint slot, GPUBuffer buffer, ulong offset = 0)
+    protected override void SetVertexBufferCore(uint slot, GraphicsBuffer buffer, ulong offset = 0)
     {
         D3D12Buffer d3d12Buffer = (D3D12Buffer)buffer;
 
@@ -388,7 +388,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _vboViews[slot].StrideInBytes = 0;
     }
 
-    protected override void SetIndexBufferCore(GPUBuffer buffer, IndexFormat format, ulong offset = 0)
+    protected override void SetIndexBufferCore(GraphicsBuffer buffer, IndexFormat format, ulong offset = 0)
     {
         D3D12Buffer d3d12Buffer = (D3D12Buffer)buffer;
 
@@ -413,7 +413,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _commandBuffer.CommandList->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
     }
 
-    protected override void DrawIndirectCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset)
+    protected override void DrawIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDraw();
 
@@ -421,7 +421,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _commandBuffer.CommandList->ExecuteIndirect(_commandBuffer.D3DDevice.DrawIndirectCommandSignature, 1, d3d12Buffer.Handle, indirectBufferOffset, null, 0);
     }
 
-    protected override void DrawIndirectCountCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset, GPUBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    protected override void DrawIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
     {
         PrepareDraw();
 
@@ -434,7 +434,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
     }
 
 
-    protected override void DrawIndexedIndirectCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset)
+    protected override void DrawIndexedIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDraw();
 
@@ -443,7 +443,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
             d3d12Buffer.Handle, indirectBufferOffset, null, 0);
     }
 
-    protected override void DrawIndexedIndirectCountCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset, GPUBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    protected override void DrawIndexedIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
     {
         PrepareDraw();
 
@@ -462,7 +462,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _commandBuffer.CommandList->DispatchMesh(groupCountX, groupCountY, groupCountZ);
     }
 
-    protected override void DispatchMeshIndirectCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset)
+    protected override void DispatchMeshIndirectCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset)
     {
         PrepareDraw();
 
@@ -470,7 +470,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
         _commandBuffer.CommandList->ExecuteIndirect(_commandBuffer.D3DDevice.DispatchMeshIndirectCommandSignature, 1, backendBuffer.Handle, indirectBufferOffset, null, 0);
     }
 
-    protected override void DispatchMeshIndirectCountCore(GPUBuffer indirectBuffer, ulong indirectBufferOffset, GPUBuffer countBuffer, ulong countBufferOffset, uint maxCount)
+    protected override void DispatchMeshIndirectCountCore(GraphicsBuffer indirectBuffer, ulong indirectBufferOffset, GraphicsBuffer countBuffer, ulong countBufferOffset, uint maxCount)
     {
         PrepareDraw();
 

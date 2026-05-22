@@ -65,11 +65,11 @@ internal unsafe class D3D12Texture : Texture
             resourceFlags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
         }
 
-        D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
+        D3D12_HEAP_FLAGS extraHeapFlags = D3D12_HEAP_FLAG_NONE;
         bool isShared = false;
         if ((descriptor.Usage & TextureUsage.Shared) != 0)
         {
-            heapFlags |= D3D12_HEAP_FLAG_SHARED;
+            extraHeapFlags |= D3D12_HEAP_FLAG_SHARED;
             isShared = true;
 
             // TODO: What about D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER and D3D12_HEAP_FLAG_SHARED_CROSS_ADAPTER?
@@ -172,7 +172,8 @@ internal unsafe class D3D12Texture : Texture
 
         D3D12MA_ALLOCATION_DESC allocationDesc = new()
         {
-            HeapType = D3D12_HEAP_TYPE_DEFAULT
+            HeapType = D3D12_HEAP_TYPE_DEFAULT,
+            ExtraHeapFlags = extraHeapFlags
         };
 
         HRESULT hr = E_FAIL;
@@ -358,5 +359,16 @@ internal unsafe class D3D12Texture : Texture
     protected override TextureView CreateView(in TextureViewDescriptor descriptor)
     {
         return new D3D12TextureView(this, descriptor);
+    }
+
+    /// <inheritdoc />
+    public override GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type)
+    {
+        return type switch
+        {
+            GraphicsNativeHandleType.SharedHandle => new GraphicsNativeHandle(_sharedHandle),
+            GraphicsNativeHandleType.D3D12Resource => new GraphicsNativeHandle((nint)_handle.Get()),
+            _ => GraphicsNativeHandle.InvalidHandle,
+        };
     }
 }

@@ -296,6 +296,8 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         _instanceApi.vkDestroyInstance();
     }
 
+    protected override Surface CreateSurfaceCore(in SurfaceDescriptor descriptor) => new VulkanSurface(this, descriptor);
+
     private static bool CheckIsSupported()
     {
         try

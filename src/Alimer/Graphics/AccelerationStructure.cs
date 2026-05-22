@@ -3,7 +3,7 @@
 
 namespace Alimer.Graphics;
 
-public abstract class AccelerationStructure : GraphicsObject, IGraphicsBindableResource
+public abstract class AccelerationStructure : GraphicsObject
 {
     protected AccelerationStructure(in AccelerationStructureDescriptor descriptor)
         : base(descriptor.Label)

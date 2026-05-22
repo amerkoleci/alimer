@@ -1,12 +1,9 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Diagnostics;
-using Alimer.Assets;
-
 namespace Alimer.Graphics;
 
-public abstract class TextureView : IGraphicsBindableResource
+public abstract class TextureView 
 {
     private string? _label;
 
@@ -70,4 +67,13 @@ public abstract class TextureView : IGraphicsBindableResource
     }
 
     internal abstract void Destroy();
+
+    /// <summary>
+    /// Get a native handle for this object.
+    /// The type of the handle is determined by the <see cref="GraphicsNativeHandleType"/> parameter.
+    /// The returned handle is platform and API specific, and may not be valid across different platforms or graphics APIs.
+    /// </summary>
+    /// <param name="type"></param>
+    /// <returns></returns>
+    public virtual GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type) => GraphicsNativeHandle.InvalidHandle;
 }

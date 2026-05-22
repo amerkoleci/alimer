@@ -4,7 +4,7 @@
 
 namespace Alimer.Graphics;
 
-public abstract class Sampler(in SamplerDescriptor descriptor) : GraphicsObject(descriptor.Label), IGraphicsBindableResource
+public abstract class Sampler(in SamplerDescriptor descriptor) : GraphicsObject(descriptor.Label)
 {
     /// <summary>
     /// Gets the min filter of this <see cref="Sampler"/>

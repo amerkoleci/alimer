@@ -176,6 +176,8 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
 #endif
     }
 
+    protected override Surface CreateSurfaceCore(in SurfaceDescriptor descriptor) => new D3D12Surface(this, descriptor);
+
     private static bool CheckIsSupported()
     {
         try

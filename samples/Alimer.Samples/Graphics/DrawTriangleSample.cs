@@ -10,7 +10,7 @@ namespace Alimer.Samples;
 [Description("Graphics - Draw Triangle")]
 public sealed class DrawTriangleSample : GraphicsSampleBase
 {
-    private GPUBuffer _vertexBuffer;
+    private GraphicsBuffer _vertexBuffer;
     private RenderPipeline _renderPipeline;
 
     public DrawTriangleSample(IServiceRegistry services, Window mainWindow)
@@ -21,7 +21,7 @@ public sealed class DrawTriangleSample : GraphicsSampleBase
             new(new Vector3(-0.5f, -0.5f, 0.0f), Colors.Lime),
             new(new Vector3(0.5f, -0.5f, 0.0f), Colors.Blue),
         ];
-        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, GPUBufferUsage.Vertex));
+        _vertexBuffer = ToDispose(GraphicsDevice.CreateBuffer(vertexData, GraphicsBufferUsage.Vertex));
 
         using ShaderModule vertexShader = CompileShaderModule("Triangle", ShaderStages.Vertex, "vertexMain");
         using ShaderModule fragmentShader = CompileShaderModule("Triangle", ShaderStages.Fragment, "fragmentMain");

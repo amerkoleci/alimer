@@ -11,7 +11,7 @@ using static Vortice.Vulkan.Vulkan;
 
 namespace Alimer.Graphics.Vulkan;
 
-internal unsafe class VulkanBuffer : GPUBuffer
+internal unsafe class VulkanBuffer : GraphicsBuffer
 {
     private VkBuffer _handle = VkBuffer.Null;
     private VmaAllocation _allocation = default;
@@ -19,7 +19,7 @@ internal unsafe class VulkanBuffer : GPUBuffer
     private readonly void* _pMappedData;
     private readonly ulong _mappedSize;
 
-    public VulkanBuffer(VulkanGraphicsDevice device, in GPUBufferDescriptor descriptor, void* initialData)
+    public VulkanBuffer(VulkanGraphicsDevice device, in GraphicsBufferDescriptor descriptor, void* initialData)
         : base(descriptor)
     {
         VkDevice = device;
@@ -33,47 +33,47 @@ internal unsafe class VulkanBuffer : GPUBuffer
             usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT
         };
 
-        if ((descriptor.Usage & GPUBufferUsage.Vertex) != 0)
+        if ((descriptor.Usage & GraphicsBufferUsage.Vertex) != 0)
         {
             needBufferDeviceAddress = true;
             createInfo.usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
         }
 
-        if ((descriptor.Usage & GPUBufferUsage.Index) != 0)
+        if ((descriptor.Usage & GraphicsBufferUsage.Index) != 0)
         {
             needBufferDeviceAddress = true;
             createInfo.usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
         }
 
-        if ((descriptor.Usage & GPUBufferUsage.Constant) != 0)
+        if ((descriptor.Usage & GraphicsBufferUsage.Constant) != 0)
         {
             createInfo.size = MathUtilities.AlignUp(descriptor.Size, device.VkAdapter.Properties2.properties.limits.minUniformBufferOffsetAlignment);
             createInfo.usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
         }
 
-        if ((descriptor.Usage & GPUBufferUsage.ShaderRead) != 0)
+        if ((descriptor.Usage & GraphicsBufferUsage.ShaderRead) != 0)
         {
             // Read only ByteAddressBuffer is also storage buffer
             createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
         }
 
-        if ((descriptor.Usage & GPUBufferUsage.ShaderWrite) != 0)
+        if ((descriptor.Usage & GraphicsBufferUsage.ShaderWrite) != 0)
         {
             createInfo.usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
         }
 
-        if ((descriptor.Usage & GPUBufferUsage.Indirect) != 0)
+        if ((descriptor.Usage & GraphicsBufferUsage.Indirect) != 0)
         {
             needBufferDeviceAddress = true;
             createInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
         }
 
-        if ((descriptor.Usage & GPUBufferUsage.Predication) != 0)
+        if ((descriptor.Usage & GraphicsBufferUsage.Predication) != 0)
         {
             createInfo.usage |= VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT;
         }
 
-        if ((descriptor.Usage & GPUBufferUsage.RayTracing) != 0)
+        if ((descriptor.Usage & GraphicsBufferUsage.RayTracing) != 0)
         {
             needBufferDeviceAddress = true;
             createInfo.usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
@@ -186,39 +186,39 @@ internal unsafe class VulkanBuffer : GPUBuffer
                     dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED
                 };
 
-                if ((descriptor.Usage & GPUBufferUsage.Vertex) != 0)
+                if ((descriptor.Usage & GraphicsBufferUsage.Vertex) != 0)
                 {
                     barrier.dstStageMask |= VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT;
                     barrier.dstAccessMask |= VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
                 }
 
-                if ((descriptor.Usage & GPUBufferUsage.Index) != 0)
+                if ((descriptor.Usage & GraphicsBufferUsage.Index) != 0)
                 {
                     barrier.dstStageMask |= VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT;
                     barrier.dstAccessMask |= VK_ACCESS_2_INDEX_READ_BIT;
                 }
 
-                if ((descriptor.Usage & GPUBufferUsage.Constant) != 0)
+                if ((descriptor.Usage & GraphicsBufferUsage.Constant) != 0)
                 {
                     barrier.dstAccessMask |= VK_ACCESS_2_UNIFORM_READ_BIT;
                 }
 
-                if ((descriptor.Usage & GPUBufferUsage.ShaderRead) != 0)
+                if ((descriptor.Usage & GraphicsBufferUsage.ShaderRead) != 0)
                 {
                     barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
                 }
 
-                if ((descriptor.Usage & GPUBufferUsage.ShaderReadWrite) != 0)
+                if ((descriptor.Usage & GraphicsBufferUsage.ShaderReadWrite) != 0)
                 {
                     barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
                     barrier.dstAccessMask |= VK_ACCESS_2_SHADER_WRITE_BIT;
                 }
 
-                if ((descriptor.Usage & GPUBufferUsage.Indirect) != 0)
+                if ((descriptor.Usage & GraphicsBufferUsage.Indirect) != 0)
                 {
                     barrier.dstAccessMask |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
                 }
-                if ((descriptor.Usage & GPUBufferUsage.RayTracing) != 0)
+                if ((descriptor.Usage & GraphicsBufferUsage.RayTracing) != 0)
                 {
                     barrier.dstAccessMask |= VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR;
                 }
@@ -240,7 +240,7 @@ internal unsafe class VulkanBuffer : GPUBuffer
         }
     }
 
-    public VulkanBuffer(VulkanGraphicsDevice device, VkBuffer existingHandle, in GPUBufferDescriptor descriptor)
+    public VulkanBuffer(VulkanGraphicsDevice device, VkBuffer existingHandle, in GraphicsBufferDescriptor descriptor)
         : base(descriptor)
     {
         VkDevice = device;
@@ -284,8 +284,18 @@ internal unsafe class VulkanBuffer : GPUBuffer
         _handle = VkBuffer.Null;
     }
 
-    protected override GPUBufferView CreateViewCore(in GPUBufferViewDescriptor descriptor) => new VulkanBufferView(this, descriptor);
+    protected override GraphicsBufferView CreateViewCore(in GraphicsBufferViewDescriptor descriptor) => new VulkanBufferView(this, descriptor);
 
     /// <inheritdoc />
     public override void* GetMappedData() => _pMappedData;
+
+    /// <inheritdoc />
+    public override GraphicsNativeHandle GetNativeHandle(GraphicsNativeHandleType type)
+    {
+        return type switch
+        {
+            GraphicsNativeHandleType.VkBuffer => new GraphicsNativeHandle(Handle),
+            _ => GraphicsNativeHandle.InvalidHandle,
+        };
+    }
 }

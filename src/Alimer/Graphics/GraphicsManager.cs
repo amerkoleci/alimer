@@ -165,8 +165,6 @@ public abstract unsafe class GraphicsManager : GraphicsBaseObject
         return adapter != null;
     }
 
-
-
     /// <summary>
     /// Gets the best adapter (first from discrete GPU, then integrated GPU, then virtual GPU, CPU, other).
     /// </summary>
@@ -181,4 +179,16 @@ public abstract unsafe class GraphicsManager : GraphicsBaseObject
 
         throw new GraphicsException("No adapter found");
     }
+
+    public Surface CreateSurface(in SurfaceDescriptor descriptor)
+    {
+        if (descriptor.Source.Kind == SurfaceSourceType.Unknown)
+        {
+            throw new ArgumentException("Surface source cannot be unknown", nameof(descriptor));
+        }
+
+        return CreateSurfaceCore(descriptor);
+    }
+
+    protected abstract Surface CreateSurfaceCore(in SurfaceDescriptor descriptor);
 }

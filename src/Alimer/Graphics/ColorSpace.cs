@@ -4,20 +4,20 @@
 namespace Alimer.Graphics;
 
 /// <summary>
-/// Describes the CPU access for <see cref="GraphicsBuffer"/> and <see cref="Texture"/>.
+/// Defines surface color space
 /// </summary>
-public enum MemoryType
+public enum ColorSpace
 {
     /// <summary>
-    /// CPU no access, GPU read/write
+    /// SDR color space (8 or 10 bits per channel) 
     /// </summary>
-    Private = 0,
+    SRGB,
     /// <summary>
-    /// CPU write, GPU read
+    /// HDR10 color space (10 bits per channel)
     /// </summary>
-    Upload,
+    HDR10_ST2084,
     /// <summary>
-    /// CPU read, GPU write
+    /// HDR color space (16 bits per channel)
     /// </summary>
-    Readback
+    HDR_LINEAR,
 }

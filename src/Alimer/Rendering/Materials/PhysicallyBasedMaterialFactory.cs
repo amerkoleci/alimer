@@ -13,8 +13,8 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
     private static uint GpuStructureSizeInBytes = SizeOf<GPUMaterialPBR>();
 
     private uint _materialCapacity = 0;
-    private readonly GPUBuffer[] _materialBuffer;
-    private readonly GPUBufferView[] _materialBufferView;
+    private readonly GraphicsBuffer[] _materialBuffer;
+    private readonly GraphicsBufferView[] _materialBufferView;
     private unsafe GPUMaterialPBR* _mappedMaterialData;
     private int _bindlessShaderReadIndex = InvalidBindlessIndex;
     private int _materialCount = 0;
@@ -22,21 +22,21 @@ public sealed class PhysicallyBasedMaterialFactory : GPUMaterialFactory<Physical
     public PhysicallyBasedMaterialFactory(RenderSystem system)
         : base(system)
     {
-        _materialBuffer = new GPUBuffer[system.Device.MaxFramesInFlight];
-        _materialBufferView = new GPUBufferView[system.Device.MaxFramesInFlight];
+        _materialBuffer = new GraphicsBuffer[system.Device.MaxFramesInFlight];
+        _materialBufferView = new GraphicsBufferView[system.Device.MaxFramesInFlight];
         ResizeBuffer(InitialCount);
     }
 
     private void ResizeBuffer(uint capacity)
     {
         _materialCapacity = capacity;
-        GPUBufferViewDescriptor viewDescriptor = GPUBufferViewDescriptor.CreateStructured(0, _materialCapacity, GpuStructureSizeInBytes);
+        GraphicsBufferViewDescriptor viewDescriptor = GraphicsBufferViewDescriptor.CreateStructured(0, _materialCapacity, GpuStructureSizeInBytes);
 
         for (int i = 0; i < _materialBuffer.Length; i++)
         {
             _materialBuffer[i]?.Dispose();
 
-            GPUBufferDescriptor descriptor = new(GpuStructureSizeInBytes * _materialCapacity, GPUBufferUsage.ShaderRead, MemoryType.Upload, label: $"PBR Material Buffer {i}");
+            GraphicsBufferDescriptor descriptor = new(GpuStructureSizeInBytes * _materialCapacity, GraphicsBufferUsage.ShaderRead, MemoryType.Upload, label: $"PBR Material Buffer {i}");
             _materialBuffer[i] = ToDispose(System.Device.CreateBuffer(in descriptor));
             _materialBufferView[i] = ToDispose(_materialBuffer[i].CreateView(viewDescriptor));
         }

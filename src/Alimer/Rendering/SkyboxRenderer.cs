@@ -7,8 +7,8 @@ namespace Alimer.Rendering;
 
 public sealed class SkyboxRenderer : IDisposable
 {
-    private readonly GPUBuffer _vertexBuffer;
-    private readonly GPUBuffer _indexBuffer;
+    private readonly GraphicsBuffer _vertexBuffer;
+    private readonly GraphicsBuffer _indexBuffer;
     private readonly RenderPipeline _renderPipeline;
 
     public SkyboxRenderer(RenderSystem renderSystem)
@@ -38,8 +38,8 @@ public sealed class SkyboxRenderer : IDisposable
             3, 2, 7, 7, 6, 3    // Bottom
         ];
 
-        _vertexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_VERTS, GPUBufferUsage.Vertex);
-        _indexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_INDICES, GPUBufferUsage.Index);
+        _vertexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_VERTS, GraphicsBufferUsage.Vertex);
+        _indexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_INDICES, GraphicsBufferUsage.Index);
 
         VertexBufferLayout gpuLayout = new(12, [new VertexAttribute(VertexAttributeSemantic.Position, VertexAttributeFormat.Float32x3)]);
         Span<VertexBufferLayout> geometryLayout = [gpuLayout];

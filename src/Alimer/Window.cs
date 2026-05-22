@@ -16,7 +16,7 @@ public sealed partial class Window
     /// <summary>
     /// Gets the swap chain surface associated with this instance.
     /// </summary>
-    public partial SwapChainSurface Surface { get; }
+    public partial SurfaceSource SurfaceSource { get; }
 
     /// <summary>
     /// Gets a value indicating whether the window is currently minimized.
@@ -36,7 +36,7 @@ public sealed partial class Window
         get => _title;
         set
         {
-            ArgumentNullException.ThrowIfNullOrEmpty(value, nameof(value));
+            ArgumentException.ThrowIfNullOrEmpty(value, nameof(value));
 
             if (_title != value)
             {
@@ -53,7 +53,7 @@ public sealed partial class Window
     public partial SizeI Size { get; set; }
     public partial SizeI SizeInPixels { get; }
 
-    public SwapChain? SwapChain { get; private set; }
+    public Surface? Surface { get; private set; }
     public PixelFormat ColorFormat { get; set; } = PixelFormat.BGRA8UnormSrgb;
 
     /// <summary>
@@ -89,20 +89,24 @@ public sealed partial class Window
             return 0.0f;
         }
     }
+    public void CreateSurface(GraphicsManager manager)
+    {
+        SurfaceDescriptor descriptor = new(SurfaceSource);
+        Surface = manager.CreateSurface(descriptor);
+    }
 
     public void CreateSwapChain(GraphicsDevice device)
     {
         SizeI swapChainSize = SizeInPixels;
-        SwapChainDescriptor description = new(Surface, swapChainSize.Width, swapChainSize.Height, ColorFormat);
-        SwapChain = device.CreateSwapChain(description);
-        ColorFormat = SwapChain.ColorFormat;
-
+        SurfaceConfiguration description = new(device, swapChainSize.Width, swapChainSize.Height, ColorFormat);
+        Surface!.Configure(description);
+        ColorFormat = Surface.Format;
     }
 
     private void OnSizeChanged()
     {
         SizeI swapChainSize = SizeInPixels;
-        SwapChain?.Resize(swapChainSize.Width, swapChainSize.Height);
+        Surface?.Resize(swapChainSize.Width, swapChainSize.Height);
 
         SizeChanged?.Invoke(this, EventArgs.Empty);
     }
