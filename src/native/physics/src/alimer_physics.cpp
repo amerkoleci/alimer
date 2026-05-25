@@ -24,6 +24,10 @@ JPH_SUPPRESS_WARNINGS
 #include "Jolt/Physics/Collision/Shape/MutableCompoundShape.h"
 #include "Jolt/Physics/Collision/Shape/ConvexHullShape.h"
 #include "Jolt/Physics/Collision/Shape/MeshShape.h"
+#include "Jolt/Physics/Collision/Shape/HeightFieldShape.h"
+#include "Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h"
+#include "Jolt/Physics/Collision/Shape/OffsetCenterOfMassShape.h"
+#include "Jolt/Physics/Collision/Shape/ScaledShape.h"
 #include "Jolt/Physics/Collision/PhysicsMaterialSimple.h"
 
 // STL includes
@@ -81,14 +85,14 @@ namespace
         }
     }
 
-    static void FromJolt(const JPH::Vec3& value, Vector3* result)
+    static void FromJolt(const JPH::Vec3& value, Vec3* result)
     {
         result->x = value.GetX();
         result->y = value.GetY();
         result->z = value.GetZ();
     }
 
-    static void FromJolt(const JPH::Quat& quat, Quaternion* result)
+    static void FromJolt(const JPH::Quat& quat, Quat* result)
     {
         result->x = quat.GetX();
         result->y = quat.GetY();
@@ -116,17 +120,17 @@ namespace
         }
     }
 
-    static JPH::Float3 ToJoltFloat3(const Vector3& value)
+    static JPH::Float3 ToJoltFloat3(const Vec3& value)
     {
         return JPH::Float3(value.x, value.y, value.z);
     }
 
-    static JPH::Vec3 ToJolt(const Vector3* value)
+    static JPH::Vec3 ToJolt(const Vec3* value)
     {
         return JPH::Vec3(value->x, value->y, value->z);
     }
 
-    static JPH::Quat ToJolt(const Quaternion* value)
+    static JPH::Quat ToJolt(const Quat* value)
     {
         return JPH::Quat(value->x, value->y, value->z, value->w);
     }
@@ -303,8 +307,8 @@ private:
         GetFrictionAndRestitution(inBody2, inManifold.mSubShapeID2, friction2, restitution2);
 
         // Use the default formulas for combining friction and restitution
-        ioSettings.mCombinedFriction = JPH::sqrt(friction1 * friction2);
-        ioSettings.mCombinedRestitution = JPH::max(restitution1, restitution2);
+        ioSettings.mCombinedFriction = JPH::Sqrt(friction1 * friction2);
+        ioSettings.mCombinedRestitution = std::max(restitution1, restitution2);
     }
 
 public:
@@ -425,16 +429,31 @@ void alimerPhysicsShutdown(void)
     memset(&physics_state, 0, sizeof(physics_state));
 }
 
-PhysicsWorld* alimerPhysicsWorldCreate(const PhysicsWorldConfig* config)
+static PhysicsWorldConfig PhysicsWorldConfig_Defaults(const PhysicsWorldConfig* pConfig)
 {
-    JPH_ASSERT(config);
+    PhysicsWorldConfig config;
+    if (pConfig != NULL)
+    {
+        config = *pConfig;
+    }
+    else
+    {
+        memset(&config, 0, sizeof(config));
+    }
+
+    return config;
+}
+
+PhysicsWorld* alimerPhysicsWorldCreate(const PhysicsWorldConfig* pConfig)
+{
+    PhysicsWorldConfig config = PhysicsWorldConfig_Defaults(pConfig);
 
     PhysicsWorld* world = new PhysicsWorld();
     world->refCount.store(1);
 
     // Init the physics system
-    const uint32_t maxBodies = config->maxBodies ? config->maxBodies : 65536;
-    const uint32_t maxBodyPairs = config->maxBodyPairs ? config->maxBodyPairs : 65536;
+    const uint32_t maxBodies = config.maxBodies ? config.maxBodies : 65536;
+    const uint32_t maxBodyPairs = config.maxBodyPairs ? config.maxBodyPairs : 65536;
     const uint32_t maxContactConstraints = maxBodies;
 
     world->system.Init(maxBodies, 0, maxBodyPairs, maxContactConstraints,
@@ -446,7 +465,6 @@ PhysicsWorld* alimerPhysicsWorldCreate(const PhysicsWorldConfig* config)
     world->system.SetContactListener(&world->contactListener);
 
     JPH::EmptyShapeSettings settings(JPH::Vec3::sZero());
-    settings.SetEmbedded();
     JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
     if (!shapeResult.IsValid())
     {
@@ -460,7 +478,11 @@ PhysicsWorld* alimerPhysicsWorldCreate(const PhysicsWorldConfig* config)
 
 void alimerPhysicsWorldDestroy(PhysicsWorld* world)
 {
-    delete world;
+    uint32_t newCount = --world->refCount;
+    if (newCount == 0)
+    {
+        delete world;
+    }
 }
 
 uint32_t alimerPhysicsWorldGetBodyCount(PhysicsWorld* world)
@@ -473,12 +495,12 @@ uint32_t alimerPhysicsWorldGetActiveBodyCount(PhysicsWorld* world)
     return world->system.GetNumActiveBodies(JPH::EBodyType::RigidBody);
 }
 
-void alimerPhysicsWorldGetGravity(PhysicsWorld* world, Vector3* gravity)
+void alimerPhysicsWorldGetGravity(PhysicsWorld* world, Vec3* gravity)
 {
     FromJolt(world->system.GetGravity(), gravity);
 }
 
-void alimerPhysicsWorldSetGravity(PhysicsWorld* world, const Vector3* gravity)
+void alimerPhysicsWorldSetGravity(PhysicsWorld* world, const Vec3* gravity)
 {
     world->system.SetGravity(ToJolt(gravity));
 }
@@ -590,7 +612,7 @@ float alimerPhysicsShapeGetMass(PhysicsShape* shape)
     return properties.mMass;
 }
 
-PhysicsShape* alimerPhysicsCreateBoxShape(const Vector3* size, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsCreateBoxShape(const Vec3* size, PhysicsMaterial* material)
 {
     JPH_ASSERT(size);
     JPH_ASSERT(size->x > 0.f && size->y > 0.f && size->z > 0.f);
@@ -599,7 +621,6 @@ PhysicsShape* alimerPhysicsCreateBoxShape(const Vector3* size, PhysicsMaterial* 
     float shortestSide = std::min(size->x, std::min(size->y, size->z));
     float convexRadius = std::min(shortestSide * .1f, .05f);
     JPH::BoxShapeSettings settings(halfExtent, convexRadius, material != nullptr ? material->handle : nullptr);
-    settings.SetEmbedded();
     JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
     if (!shapeResult.IsValid())
     {
@@ -620,7 +641,6 @@ PhysicsShape* alimerPhysicsCreateSphereShape(float radius, PhysicsMaterial* mate
     JPH_ASSERT(radius > 0.f);
 
     JPH::SphereShapeSettings settings(radius, material != nullptr ? material->handle : nullptr);
-    settings.SetEmbedded();
     JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
     if (!shapeResult.IsValid())
     {
@@ -641,7 +661,6 @@ PhysicsShape* alimerPhysicsCreateCapsuleShape(float height, float radius, Physic
         std::max(0.01f, height) * 0.5f,
         std::max(0.01f, radius), material != nullptr ? material->handle : nullptr
     );
-    settings.SetEmbedded();
     JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
     if (!shapeResult.IsValid())
     {
@@ -664,7 +683,6 @@ PhysicsShape* alimerPhysicsCreateCylinderShape(float height, float radius, Physi
         JPH::cDefaultConvexRadius,
         material != nullptr ? material->handle : nullptr
     );
-    settings.SetEmbedded();
     JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
     if (!shapeResult.IsValid())
     {
@@ -679,7 +697,7 @@ PhysicsShape* alimerPhysicsCreateCylinderShape(float height, float radius, Physi
     return shape;
 }
 
-PhysicsShape* alimerPhysicsCreateConvexHullShape(const Vector3* points, uint32_t pointsCount, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsCreateConvexHullShape(const Vec3* points, uint32_t pointsCount, PhysicsMaterial* material)
 {
     JPH::Array<JPH::Vec3> joltPoints;
     joltPoints.reserve(pointsCount);
@@ -694,8 +712,6 @@ PhysicsShape* alimerPhysicsCreateConvexHullShape(const Vector3* points, uint32_t
         JPH::cDefaultConvexRadius,
         material != nullptr ? material->handle : nullptr
     );
-
-    settings.SetEmbedded();
     JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
     if (!shapeResult.IsValid())
     {
@@ -710,33 +726,28 @@ PhysicsShape* alimerPhysicsCreateConvexHullShape(const Vector3* points, uint32_t
     return shape;
 }
 
-PhysicsShape* alimerPhysicsCreateMeshShape(const Vector3* vertices, uint32_t verticesCount, const uint32_t* indices, uint32_t indicesCount)
+PhysicsShape* alimerPhysicsCreateMeshShape(const Vec3* vertices, uint32_t verticesCount, const uint32_t* indices, uint32_t indicesCount)
 {
     JPH::VertexList joltVertices;
-    JPH::IndexedTriangleList joltTriangles;
-
-    const size_t triangleCount = indicesCount / 3;
-
     joltVertices.reserve(verticesCount);
-    joltTriangles.resize(triangleCount);
-
     for (uint32_t i = 0; i < verticesCount; ++i)
     {
         joltVertices.push_back(ToJoltFloat3(vertices[i]));
     }
 
-    for (size_t i = 0; i < triangleCount; i++)
+    const uint32_t triangleCount = indicesCount / 3;
+    JPH::IndexedTriangleList joltTriangles;
+    joltTriangles.resize(triangleCount);
+    for (uint32_t i = 0; i < triangleCount; i++)
     {
-        joltTriangles[i].mIdx[0] = indices[(i * 3)];
-        joltTriangles[i].mIdx[1] = indices[(i * 3 + 1)];
-        joltTriangles[i].mIdx[2] = indices[(i * 3 + 2)];
+        joltTriangles[i].mIdx[0] = indices[i * 3];
+        joltTriangles[i].mIdx[1] = indices[i * 3 + 1];
+        joltTriangles[i].mIdx[2] = indices[i * 3 + 2];
         joltTriangles[i].mMaterialIndex = 0;
         joltTriangles[i].mUserData = 0;
     }
 
     JPH::MeshShapeSettings settings(joltVertices, joltTriangles);
-
-    settings.SetEmbedded();
     JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
     if (!shapeResult.IsValid())
     {
@@ -747,6 +758,26 @@ PhysicsShape* alimerPhysicsCreateMeshShape(const Vector3* vertices, uint32_t ver
     PhysicsShape* shape = new PhysicsShape();
     shape->refCount.store(1);
     shape->type = PhysicsShapeType_Mesh;
+    shape->handle = shapeResult.Get();
+    return shape;
+}
+
+PhysicsShape* alimerPhysicsCreateTerrainShape(const float* samples, const Vec3* offset, const Vec3* scale, uint32_t sampleCount)
+{
+    JPH::Vec3 joltOffset = ToJolt(offset);
+    JPH::Vec3 joltScale = ToJolt(scale);
+
+    JPH::HeightFieldShapeSettings settings(samples, joltOffset, joltScale, sampleCount);
+    JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
+    if (!shapeResult.IsValid())
+    {
+        //alimerLogError(LogCategory_Physics, "Jolt: CreateCylinder failed with %s", shapeResult.GetError().c_str());
+        return nullptr;
+    }
+
+    PhysicsShape* shape = new PhysicsShape();
+    shape->refCount.store(1);
+    shape->type = PhysicsShapeType_Terrain;
     shape->handle = shapeResult.Get();
     return shape;
 }
@@ -899,18 +930,24 @@ uint32_t alimerPhysicsBodyGetID(PhysicsBody* body)
 
 PhysicsBodyType alimerPhysicsBodyGetType(PhysicsBody* body)
 {
+    JPH_ASSERT(!body->id.IsInvalid());
+
     JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterfaceNoLock();
     return FromJolt(bodyInterface.GetMotionType(body->id));
 }
 
 void alimerPhysicsBodySetType(PhysicsBody* body, PhysicsBodyType value)
 {
+    JPH_ASSERT(!body->id.IsInvalid());
+
     JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
     bodyInterface.SetMotionType(body->id, ToJolt(value), JPH::EActivation::Activate);
 }
 
 void alimerPhysicsBodyGetTransform(PhysicsBody* body, PhysicsBodyTransform* transform)
 {
+    JPH_ASSERT(!body->id.IsInvalid());
+
     JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
     JPH::RVec3 position{};
     JPH::Quat rotation{};
@@ -922,6 +959,8 @@ void alimerPhysicsBodyGetTransform(PhysicsBody* body, PhysicsBodyTransform* tran
 
 void alimerPhysicsBodySetTransform(PhysicsBody* body, const PhysicsBodyTransform* transform)
 {
+    JPH_ASSERT(!body->id.IsInvalid());
+
     // Update the transform iff it has changed significantly
     JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
     JPH::RVec3 position = ToJolt(&transform->position);
@@ -932,6 +971,8 @@ void alimerPhysicsBodySetTransform(PhysicsBody* body, const PhysicsBodyTransform
 
 void alimerPhysicsBodyGetWorldTransform(PhysicsBody* body, Matrix4x4* transform)
 {
+    JPH_ASSERT(!body->id.IsInvalid());
+
     JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
 
     JPH::RMat44 joltTransform = bodyInterface.GetWorldTransform(body->id);
@@ -962,7 +1003,7 @@ void alimerPhysicsBodyDeactivateBody(PhysicsBody* body)
     bodyInterface.DeactivateBody(body->id);
 }
 
-void alimerPhysicsBodyGetLinearVelocity(PhysicsBody* body, Vector3* velocity)
+void alimerPhysicsBodyGetLinearVelocity(PhysicsBody* body, Vec3* velocity)
 {
     JPH_ASSERT(!body->id.IsInvalid());
 
@@ -970,7 +1011,7 @@ void alimerPhysicsBodyGetLinearVelocity(PhysicsBody* body, Vector3* velocity)
     FromJolt(bodyInterface.GetLinearVelocity(body->id), velocity);
 }
 
-void alimerPhysicsBodySetLinearVelocity(PhysicsBody* body, const Vector3* velocity)
+void alimerPhysicsBodySetLinearVelocity(PhysicsBody* body, const Vec3* velocity)
 {
     JPH_ASSERT(!body->id.IsInvalid());
 
@@ -978,7 +1019,7 @@ void alimerPhysicsBodySetLinearVelocity(PhysicsBody* body, const Vector3* veloci
     bodyInterface.SetLinearVelocity(body->id, ToJolt(velocity));
 }
 
-void alimerPhysicsBodyGetAngularVelocity(PhysicsBody* body, Vector3* velocity)
+void alimerPhysicsBodyGetAngularVelocity(PhysicsBody* body, Vec3* velocity)
 {
     JPH_ASSERT(!body->id.IsInvalid());
 
@@ -986,7 +1027,7 @@ void alimerPhysicsBodyGetAngularVelocity(PhysicsBody* body, Vector3* velocity)
     FromJolt(bodyInterface.GetAngularVelocity(body->id), velocity);
 }
 
-void alimerPhysicsBodySetAngularVelocity(PhysicsBody* body, const Vector3* velocity)
+void alimerPhysicsBodySetAngularVelocity(PhysicsBody* body, const Vec3* velocity)
 {
     JPH_ASSERT(!body->id.IsInvalid());
 
@@ -994,7 +1035,7 @@ void alimerPhysicsBodySetAngularVelocity(PhysicsBody* body, const Vector3* veloc
     bodyInterface.SetAngularVelocity(body->id, ToJolt(velocity));
 }
 
-void alimerPhysicsBodyAddForce(PhysicsBody* body, const Vector3* force)
+void alimerPhysicsBodyAddForce(PhysicsBody* body, const Vec3* force)
 {
     JPH_ASSERT(!body->id.IsInvalid());
 
@@ -1002,14 +1043,14 @@ void alimerPhysicsBodyAddForce(PhysicsBody* body, const Vector3* force)
     bodyInterface.AddForce(body->id, ToJolt(force), JPH::EActivation::Activate);
 }
 
-void alimerPhysicsBodyAddForceAtPosition(PhysicsBody* body, const Vector3* force, const Vector3* position)
+void alimerPhysicsBodyAddForceAtPosition(PhysicsBody* body, const Vec3* force, const Vec3* position)
 {
     JPH_ASSERT(!body->id.IsInvalid());
     JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
     bodyInterface.AddForce(body->id, ToJolt(force), ToJolt(position), JPH::EActivation::Activate);
 }
 
-void alimerPhysicsBodyAddTorque(PhysicsBody* body, const Vector3* torque)
+void alimerPhysicsBodyAddTorque(PhysicsBody* body, const Vec3* torque)
 {
     JPH_ASSERT(!body->id.IsInvalid());
 
@@ -1017,10 +1058,52 @@ void alimerPhysicsBodyAddTorque(PhysicsBody* body, const Vector3* torque)
     bodyInterface.AddTorque(body->id, ToJolt(torque), JPH::EActivation::Activate);
 }
 
-void alimerPhysicsBodyAddForceAndTorque(PhysicsBody* body, const Vector3* force, const Vector3* torque)
+void alimerPhysicsBodyAddForceAndTorque(PhysicsBody* body, const Vec3* force, const Vec3* torque)
 {
     JPH_ASSERT(!body->id.IsInvalid());
 
     JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
     bodyInterface.AddForceAndTorque(body->id, ToJolt(force), ToJolt(torque), JPH::EActivation::Activate);
+}
+
+void alimerPhysicsBodyAddImpulse(PhysicsBody* body, const Vec3* impulse)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    bodyInterface.AddImpulse(body->id, ToJolt(impulse));
+}
+
+void alimerPhysicsBodyAddImpulseAtPosition(PhysicsBody* body, const Vec3* impulse, const Vec3* position)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    bodyInterface.AddImpulse(body->id, ToJolt(impulse), ToJolt(position));
+}
+
+void alimerPhysicsBodyAddAngularImpulse(PhysicsBody* body, const Vec3* angularImpulse)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    bodyInterface.AddAngularImpulse(body->id, ToJolt(angularImpulse));
+}
+
+bool alimerPhysicsBodyApplyBuoyancyImpulse(PhysicsBody* body, const Vec3* surfacePosition, const Vec3* surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vec3* fluidVelocity, const Vec3* gravity, float deltaTime)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
+    return bodyInterface.ApplyBuoyancyImpulse(
+        body->id,
+        ToJolt(surfacePosition),
+        ToJolt(surfaceNormal),
+        buoyancy,
+        linearDrag,
+        angularDrag,
+        ToJolt(fluidVelocity),
+        ToJolt(gravity),
+        deltaTime
+    );
 }

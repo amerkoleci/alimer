@@ -49,7 +49,7 @@ int main(void)
         n++;
     }
 
-#if defined(ALIMER_AUDIO)
+#if defined(ALIMER_AUDIO) && TODO
     if (!alimerAudioInit())
     {
         return EXIT_FAILURE;
@@ -89,7 +89,7 @@ int main(void)
     PhysicsWorld* physicsWorld = alimerPhysicsWorldCreate(&physicsWorldConfig);
 #endif
 
-#if defined(ALIMER_AUDIO)
+#if defined(ALIMER_AUDIO) && TODO
     while (true)
     {
 

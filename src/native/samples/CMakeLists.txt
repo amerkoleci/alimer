@@ -14,10 +14,7 @@ function(add_sample SAMPLE_NAME)
     else ()
     	add_executable(${SAMPLE_NAME} ${SOURCE_FILES})
     endif ()
-    target_link_libraries(${SAMPLE_NAME}
-        alimer_native
-        alimer_physics
-    )
+    target_link_libraries(${SAMPLE_NAME} PRIVATE alimer_native)
 
     set_target_properties(${SAMPLE_NAME} PROPERTIES
         COMPILE_WARNING_AS_ERROR ON
@@ -37,6 +34,13 @@ function(add_sample SAMPLE_NAME)
         target_compile_definitions(${SAMPLE_NAME} PRIVATE _UNICODE UNICODE _CRT_SECURE_NO_WARNINGS)
     #    set_target_properties(${SAMPLE_NAME} PROPERTIES WIN32_EXECUTABLE TRUE)
     endif ()
+
+    if (ALIMER_PHYSICS)
+        target_compile_definitions(${SAMPLE_NAME} PRIVATE ALIMER_PHYSICS)
+
+        target_link_libraries(${SAMPLE_NAME} PRIVATE alimer_physics)
+    endif ()
+        
 
     set_target_properties(${SAMPLE_NAME} PROPERTIES
         VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
