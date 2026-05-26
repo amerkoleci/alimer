@@ -17,7 +17,6 @@
 
 namespace Alimer
 {
-    // XMCOLOR
     /// ARGB Color; 8-8-8-8 bit unsigned normalized integer components packed into a 32 bit integer.
     struct ALIMER_API ColorBgra final
     {
@@ -58,7 +57,6 @@ namespace Alimer
         static ColorBgra FromFloat4(_In_reads_(4) const float* data) noexcept;
     };
 
-    // XMUBYTEN4
     // 4D Vector; 8 bit unsigned normalized integer components
     struct ALIMER_API ColorRgba final
     {

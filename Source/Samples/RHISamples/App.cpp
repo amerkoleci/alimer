@@ -6,6 +6,8 @@
 #include "DrawIndexedQuad.h"
 #include "DrawSpinningCube.h"
 #include <Alimer/EntryPoint.h>
+#include <typeindex>
+#include <type_traits>
 
 class RHISamplesApp final : public Application
 {
@@ -49,6 +51,10 @@ void RHISamplesApp::Initialize()
         depthStencilFormat);
 
     // Audio test
+    std::type_index idx(typeid(AudioClip));
+    LOGI("AudioClip type index: {}, name: {}", idx.hash_code(), idx.name());
+    auto typeInfo = TypeInfo::GetTypeInfo<AudioClip>();
+    AudioClipRef clipFactory = CreateObject<AudioClip>();
     AudioClipRef clip = GetAssets().Load<AudioClip>("Sounds/BGM.mp3");
     AudioSource* source = new AudioSource(clip.Get());
     source->Play();

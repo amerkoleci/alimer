@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "Alimer/Core/SystemManager.h"
 #include "Alimer/Platform/Window.h"
 #include "Alimer/Core/Timer.h"
 #include "Alimer/RHI/RHI.h"
@@ -129,6 +130,7 @@ namespace Alimer
 
         static Application* s_Instance;
         std::unique_ptr<Window> _mainWindow;
+        SystemManager _systemManager;
         RHIFactoryRef _rhiFactory;
     };
 

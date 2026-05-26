@@ -9,7 +9,7 @@
 
 namespace Alimer
 {
-    //class ISerializer;
+    //class Serializer;
     //class IDeserializer;
     class PropertyInfo;
     class Object;
@@ -52,7 +52,7 @@ namespace Alimer
         virtual VariantType GetPropertyType() const = 0;
 
         /// Serialize.
-        //virtual void Serialize(Object* instance, ISerializer& serializer) = 0;
+        //virtual void Serialize(Object* instance, Serializer& serializer) = 0;
 
         /// Deserialize.
         //virtual void Deserialize(Object* instance, IDeserializer& deserializer) = 0;
@@ -66,7 +66,7 @@ namespace Alimer
         static void Skip(VariantType type, Stream& source);
 
         /// Serialize property value.
-        //static void Serialize(ISerializer& serializer, const std::string& propertyName, VariantType type, const void* source);
+        //static void Serialize(Serializer& serializer, const std::string& propertyName, VariantType type, const void* source);
 
         /// Deserialize property value.
         //static bool Deserialize(IDeserializer& deserializer, const std::string& propertyName, VariantType type, void* dest);
@@ -91,42 +91,35 @@ namespace Alimer
         {
         }
 
-#if TODO_SERIALIAZION
         /// Copy current attribute value.
-        void GetValue(const Serializable* instance, T& dest) const { accessor->Get(instance, &dest); }
+        void GetValue(const Object* instance, T& dest) const { accessor->Get(instance, &dest); }
 
         /// Set new attribute value.
-        void SetValue(Serializable* instance, const T& source) { accessor->Set(instance, &source); }
+        void SetValue(Object* instance, const T& source) { accessor->Set(instance, &source); }
 
         /// Return current attribute value.
-        T GetValue(const Serializable* instance) const
+        T GetValue(const Object* instance) const
         {
             T result;
             accessor->Get(instance, &result);
             return result;
         }
-#endif // TODO_SERIALIAZION
 
         /// Return default value.
         const T& GetDefaultValue() const { return _defaultValue; }
 
-#if TODO_SERIALIAZION
         /// Return whether is default value.
-        bool IsDefault(const Serializable* instance) const override { return GetValue(instance) == _defaultValue; }
-#endif
+        bool IsDefault(const Object* instance) const override { return GetValue(instance) == _defaultValue; }
 
         VariantType GetPropertyType() const override
         {
-            //if (std::is_enum_v<T>::type)
-            //{
-            //    return GetVariantType<typename std::underlying_type<T>>();
-            //}
+            static_assert((std::is_enum_v<T>), "Specified type is not an enum");
 
             return GetVariantType<T>();
         }
 
 #if TODO_SERIALIAZION
-        void Serialize(Serializable* instance, ISerializer& serializer) override
+        void Serialize(Object* instance, Serializer& serializer) override
         {
             T value;
             accessor->Get(instance, &value);

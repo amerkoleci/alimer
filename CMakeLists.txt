@@ -146,6 +146,14 @@ option(ALIMER_PROFILING "Enable performance profiling" ON)
 # See: https://caniuse.com/?search=WebAssembly%20SIMD (Safari got support in March 2023 and was the last major browser to get support).
 option(ALIMER_USE_WASM_SIMD "Enable SIMD for WASM" OFF)
 
+# When turning this on, the library will be compiled with C++ exceptions enabled.
+# This adds some overhead and Alimer doesn't use exceptions so by default it is off.
+option(ALIMER_EXCEPTIONS_ENABLED "Enable C++ exceptions" OFF)
+
+# When turning this on, the library will be compiled with C++ RTTI enabled.
+# This adds some overhead and Alimer doesn't use RTTI so by default it is off.
+option(ALIMER_RTTI_ENABLED "Enable C++ RTTI" OFF)
+
 option(ALIMER_ENABLE_ASAN_UBSAN "Enable Address and Undefined Behavior Sanitizers" OFF)
 option(ALIMER_ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 
@@ -232,6 +240,26 @@ if (MSVC)
     if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.28)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:lambda")
     endif()
+    
+	if (NOT ALIMER_RTTI_ENABLED)
+		# Set compiler flag for disabling RTTI
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
+	else()
+		# Set compiler flag for enabling RTTI
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR")
+	endif()
+
+	if (NOT ALIMER_EXCEPTIONS_ENABLED)
+		# Remove any existing compiler flag that enables exceptions
+		string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+
+        # C++ exception handler used, but unwind semantics not enabled
+		# Disable warning about STL and compiler-generated types using noexcept when exceptions are disabled
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4530 /wd4577")
+	else()
+		# Enable exceptions
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+	endif()
 
     # /Gm (Enable Minimal Rebuild)
     # /nologo (Suppress Startup Banner) (C/C++)
@@ -270,6 +298,22 @@ if (MSVC)
     endif ()
 else()
     set(CMAKE_CXX_FLAGS_DISTRIBUTION "${CMAKE_CXX_FLAGS_RELEASE}")
+
+	if (NOT ALIMER_RTTI_ENABLED)
+		# Set compiler flag for disabling RTTI
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
+	else()
+		# Set compiler flag for enabling RTTI
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -frtti")
+	endif()
+
+	if (NOT ALIMER_EXCEPTIONS_ENABLED)
+		# Set compiler flag for disabling exception-handling
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
+	else()
+		# Set compiler flag for enabling exception-handling
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
+	endif()
 
     if (ALIMER_ENABLE_ASAN_UBSAN)
        set(EXTRA_SANITIZE_OPTIONS "-fsanitize=address -fsanitize=undefined,implicit-conversion,float-divide-by-zero,local-bounds -fno-sanitize-recover=all")

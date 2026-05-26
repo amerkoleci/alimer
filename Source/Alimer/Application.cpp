@@ -9,6 +9,7 @@
 #include "Alimer/Audio/Audio.h"
 #include "Alimer/Application.h"
 #include "Alimer/Assets/AssetManager.h"
+#include "Alimer/Scene/SceneSystem.h"
 #include <thread>
 
 using namespace Alimer;
@@ -40,6 +41,7 @@ Application::Application()
         return;
     }
 
+    _systemManager.AddSystem<SceneSystem>();
     s_Instance = this;
 }
 
@@ -69,6 +71,9 @@ void Application::Run()
 
     // Allow config override.
     Setup();
+
+    // Setup systems
+    _systemManager.Setup();
 
     // Run platform main loop.
     PlatformRunMainLoop();
