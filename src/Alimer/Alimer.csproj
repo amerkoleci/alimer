@@ -70,9 +70,5 @@
     <ProjectReference Include="..\Alimer.Native\Alimer.Native.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Rendering\Materials\" />
-  </ItemGroup>
-
 
 </Project>

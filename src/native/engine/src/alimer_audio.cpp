@@ -73,6 +73,37 @@ namespace
         }
     }
 
+    constexpr uint32_t FormatSize(AudioFormat value)
+    {
+        switch (value)
+        {
+            case AudioFormat_Unknown: return 0;
+            case AudioFormat_Unsigned8: return 1;
+            case AudioFormat_Signed16: return 2;
+            case AudioFormat_Signed24: return 3;
+            case AudioFormat_Signed32: return 4;
+            case AudioFormat_Float32: return 4;
+
+            default:
+                ALIMER_UNREACHABLE();
+                return 0;
+        }
+    }
+
+    constexpr AudioPanMode FromMiniaudio(ma_pan_mode value)
+    {
+        switch (value)
+        {
+            case ma_pan_mode_balance: return AudioPanMode_Balance;
+            case ma_pan_mode_pan:     return AudioPanMode_Pan;
+
+            default:
+                ALIMER_UNREACHABLE();
+                return AudioPanMode_Balance;
+        }
+    }
+
+
     static void FromMiniaudio(const ma_vec3f& value, Vector3* result)
     {
         ALIMER_ASSERT(result);
@@ -85,6 +116,19 @@ namespace
     constexpr ma_vec3f ToMiniaudio(const Vector3& value)
     {
         return ma_vec3f{ value.x, value.y, value.z };
+    }
+
+    constexpr ma_pan_mode ToMiniaudio(AudioPanMode value)
+    {
+        switch (value)
+        {
+            case AudioPanMode_Balance: return ma_pan_mode_balance;
+            case AudioPanMode_Pan:     return ma_pan_mode_pan;
+
+            default:
+                ALIMER_UNREACHABLE();
+                return ma_pan_mode_balance;
+        }
     }
 
     static void log_callback(void* pUserData, ma_uint32 level, const char* message)
@@ -132,15 +176,18 @@ struct AudioEngine final
 struct AudioClip final
 {
     std::atomic_uint32_t refCount;
-    ma_decoder decoder;
-    //ma_data_source_base dataSource;
+    ma_decoder* decoder = nullptr;
+    AudioFormat format = AudioFormat_Unknown;
+    uint32_t channels = 0;
+    uint32_t sampleRate = 0;
+    uint64_t frameCount = 0;
 };
 
 struct AudioSource final
 {
     std::atomic_uint32_t refCount;
     AudioClip* clip = nullptr;
-    ma_sound handle;
+    ma_sound* handle = nullptr;
 };
 
 static struct
@@ -440,14 +487,41 @@ void alimerAudioEngineListenerSetEnabled(AudioEngine* engine, uint32_t listenerI
     ma_engine_listener_set_enabled(&engine->handle, listenerIndex, enabled ? MA_TRUE : MA_FALSE);
 }
 
+static bool alimerAudioClipInitFromDecoder(AudioClip* clip)
+{
+    ma_format format;
+    ma_decoder_get_data_format(clip->decoder, &format, &clip->channels, &clip->sampleRate, nullptr, 0);
+    clip->format = FromMiniaudio(format);
+
+    ma_uint64 frames = 0;
+    ma_result result = ma_decoder_get_length_in_pcm_frames(clip->decoder, &frames);
+    if (result != MA_SUCCESS)
+        return false;
+
+    clip->frameCount = static_cast<uint64_t>(frames);
+
+    //ma_uint64 availableFrames;
+    //ma_decoder_get_available_frames(clip->decoder, &availableFrames);
+    return true;
+}
+
 AudioClip* alimerAudioClipCreate(const char* filepath)
 {
     AudioClip* clip = new AudioClip();
     clip->refCount.store(1);
+    clip->decoder = (ma_decoder*)ma_malloc(sizeof(ma_decoder), nullptr);
 
-    ma_result result = ma_decoder_init_file(filepath, nullptr, &clip->decoder);
+    ma_result result = ma_decoder_init_file(filepath, nullptr, clip->decoder);
     if (result != MA_SUCCESS)
     {
+        ma_free(clip->decoder, nullptr);
+        delete clip;
+        return nullptr;
+    }
+
+    if (!alimerAudioClipInitFromDecoder(clip))
+    {
+        ma_free(clip->decoder, nullptr);
         delete clip;
         return nullptr;
     }
@@ -459,14 +533,25 @@ AudioClip* alimerAudioClipCreateFromMemory(const void* pData, size_t dataSize)
 {
     AudioClip* clip = new AudioClip();
     clip->refCount.store(1);
+    clip->decoder = (ma_decoder*)ma_malloc(sizeof(ma_decoder), nullptr);
 
-    ma_result result = ma_decoder_init_memory(pData, dataSize, nullptr, &clip->decoder);
+    ma_result result = ma_decoder_init_memory(pData, dataSize, nullptr, clip->decoder);
     if (result != MA_SUCCESS)
     {
+        ma_free(clip->decoder, nullptr);
         delete clip;
         return nullptr;
     }
+
+    if (!alimerAudioClipInitFromDecoder(clip))
+    {
+        ma_free(clip->decoder, nullptr);
+        delete clip;
+        return nullptr;
+    }
+
     return clip;
+
 }
 
 uint32_t alimerAudioClipAddRef(AudioClip* clip)
@@ -479,10 +564,40 @@ uint32_t alimerAudioClipRelease(AudioClip* clip)
     uint32_t newCount = --clip->refCount;
     if (newCount == 0)
     {
-        ma_decoder_uninit(&clip->decoder);
+        if (clip->decoder)
+        {
+            ma_decoder_uninit(clip->decoder);
+            ma_free(clip->decoder, nullptr);
+        }
+
         delete clip;
     }
     return newCount;
+}
+
+AudioFormat alimerAudioClipGetFormat(AudioClip* clip)
+{
+    return clip->format;
+}
+
+uint32_t alimerAudioClipGetChannelCount(AudioClip* clip)
+{
+    return clip->channels;
+}
+
+uint32_t alimerAudioClipGetSampleRate(AudioClip* clip)
+{
+    return clip->sampleRate;
+}
+
+uint64_t alimerAudioClipGetFrameCount(AudioClip* clip)
+{
+    return clip->frameCount;
+}
+
+uint32_t alimerAudioClipGetStride(AudioClip* clip)
+{
+    return clip->channels * FormatSize(clip->format);
 }
 
 /* AudioSource */
@@ -492,11 +607,14 @@ AudioSource* alimerAudioSourceCreate(AudioEngine* engine, AudioClip* clip)
     source->refCount.store(1);
     source->clip = clip;
     alimerAudioClipAddRef(clip);
+    source->handle = (ma_sound*)ma_malloc(sizeof(ma_sound), nullptr);
 
-    ma_result result = ma_sound_init_from_data_source(&engine->handle, &clip->decoder, MA_SOUND_FLAG_STREAM, nullptr, &source->handle);
+    ma_uint32 soundFlags = 0; // MA_SOUND_FLAG_STREAM
+    ma_result result = ma_sound_init_from_data_source(&engine->handle, &clip->decoder, soundFlags, nullptr, source->handle);
     if (result != MA_SUCCESS)
     {
         alimerLogError(LogCategory_Audio, "Failed to initialize audio source!");
+        ma_free(source->handle, nullptr);
         delete source;
         return nullptr;
     }
@@ -514,7 +632,13 @@ uint32_t alimerAudioSourceRelease(AudioSource* source)
     uint32_t newCount = --source->refCount;
     if (newCount == 0)
     {
-        ma_sound_uninit(&source->handle);
+        if (source->handle)
+        {
+            ma_sound_uninit(source->handle);
+            ma_free(source->handle, nullptr);
+            source->handle = nullptr;
+        }
+
         alimerAudioClipRelease(source->clip);
         delete source;
     }
@@ -523,7 +647,7 @@ uint32_t alimerAudioSourceRelease(AudioSource* source)
 
 void alimerAudioSourcePlay(AudioSource* source)
 {
-    ma_result result = ma_sound_start(&source->handle);
+    ma_result result = ma_sound_start(source->handle);
     if (result != MA_SUCCESS)
     {
         alimerLogError(LogCategory_Audio, "ma_sound_start failed: %s", ma_result_description(result));
@@ -532,16 +656,93 @@ void alimerAudioSourcePlay(AudioSource* source)
 
 void alimerAudioSourceStop(AudioSource* source)
 {
-    ma_result result = ma_sound_stop(&source->handle);
+    ma_result result = ma_sound_stop(source->handle);
     if (result != MA_SUCCESS)
     {
         alimerLogError(LogCategory_Audio, "ma_sound_stop failed: %s", ma_result_description(result));
     }
 }
 
+float alimerAudioSourceGetVolume(AudioSource* source, VolumeUnit unit)
+{
+    const float volume = ma_sound_get_volume(source->handle);
+    return (unit == VolumeUnit_Linear) ? volume : ma_volume_linear_to_db(volume);
+}
+
+void alimerAudioSourceSetVolume(AudioSource* source, float value, VolumeUnit unit)
+{
+    const float volume = (unit == VolumeUnit_Linear) ? value : ma_volume_db_to_linear(value);
+    ma_sound_set_volume(source->handle, volume);
+}
+
+void alimerAudioSourceSetPan(AudioSource* source, float value)
+{
+    ma_sound_set_pan(source->handle, value);
+}
+
+float alimerAudioSourceGetPan(const AudioSource* source)
+{
+    return ma_sound_get_pan(source->handle);
+}
+
+void alimerAudioSourceSetPanMode(AudioSource* source, AudioPanMode value)
+{
+    ma_sound_set_pan_mode(source->handle, ToMiniaudio(value));
+}
+
+AudioPanMode alimerAudioSourceGetPanMode(const AudioSource* source)
+{
+    return FromMiniaudio(ma_sound_get_pan_mode(source->handle));
+}
+
+void alimerAudioSourceSetPitch(AudioSource* source, float value)
+{
+    ma_sound_set_pitch(source->handle, value);
+}
+
+float alimerAudioSourceGetPitch(const AudioSource* source)
+{
+    return ma_sound_get_pitch(source->handle);
+}
+
+void alimerAudioSourceSetSpatializationEnabled(AudioSource* source, bool enabled)
+{
+    ma_sound_set_spatialization_enabled(source->handle, enabled ? MA_TRUE : MA_FALSE);
+}
+
+bool alimerAudioSourceIsSpatializationEnabled(const AudioSource* source)
+{
+    return ma_sound_is_spatialization_enabled(source->handle) == MA_TRUE;
+}
+
 bool alimerAudioSourceIsPlaying(AudioSource* source)
 {
-    return ma_sound_is_playing(&source->handle) == MA_TRUE;
+    return ma_sound_is_playing(source->handle) == MA_TRUE;
+}
+
+uint64_t alimerAudioSourceGetTimeInPCMFrames(AudioSource* source)
+{
+    return (uint64_t)ma_sound_get_time_in_pcm_frames(source->handle);
+}
+
+uint64_t alimerAudioSourceGetTimeInMilliseconds(AudioSource* source)
+{
+    return (uint64_t)ma_sound_get_time_in_milliseconds(source->handle);
+}
+
+void alimerAudioSourceSetLooping(AudioSource* source, bool looping)
+{
+    ma_sound_set_looping(source->handle, looping ? MA_TRUE : MA_FALSE);
+}
+
+bool alimerAudioSourceIsLooping(const AudioSource* source)
+{
+    return ma_sound_is_looping(source->handle) == MA_TRUE;
+}
+
+bool alimerAudioSourceIsAtEnd(const AudioSource* source)
+{
+    return ma_sound_at_end(source->handle) == MA_TRUE;
 }
 
 #endif /* defined(ALIMER_AUDIO) */

@@ -65,7 +65,7 @@ public sealed class TextureImporter : AssetImporter<TextureAsset, TextureMetadat
                 for (int i = 0; i < texture.MipLevels; i++)
                 {
                     int mipSize = mipWidth * mipHeight * 4;
-                    byte[] mipData = texture.Data.Skip(i * mipSize).Take(mipSize).ToArray();
+                    byte[] mipData = texture.Data!.Skip(i * mipSize).Take(mipSize).ToArray();
                     byte[] compressedMip = encoder.EncodeToRawBytes(mipData,
                         mipWidth,
                         mipHeight,

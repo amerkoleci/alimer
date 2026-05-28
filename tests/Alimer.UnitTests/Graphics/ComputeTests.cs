@@ -28,7 +28,7 @@ public abstract class ComputeTests : GraphicsDeviceTestBase
 public class D3D12ComputeTests : ComputeTests
 {
     public D3D12ComputeTests()
-        : base(GraphicsBackend.D3D12)
+        : base(GraphicsBackend.Direct3D12)
     {
 
     }

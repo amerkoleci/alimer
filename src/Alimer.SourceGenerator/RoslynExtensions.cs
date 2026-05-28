@@ -82,7 +82,8 @@ public static class RoslynExtensions
         if (symbol == null) return false;
         if (symbol.MetadataName == search.MetadataName)
             return true;
-        return symbol.BaseType.DerivesFrom(search);
+
+        return symbol.BaseType?.DerivesFrom(search) ?? false;
     }
 
     public static bool IsAutoProperty(this IPropertySymbol propertySymbol)
