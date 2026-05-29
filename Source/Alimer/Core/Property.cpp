@@ -8,15 +8,9 @@
 
 using namespace Alimer;
 
-PropertyInfo::PropertyInfo(const char* name_, PropertyAccessor* accessor_, const char** enumNames_)
+PropertyInfo::PropertyInfo(const char* name_, PropertyAccessor* accessor)
     : name(name_)
-    , accessor(accessor_)
-    , enumNames(enumNames_)
-{
-
-}
-
-PropertyInfo::~PropertyInfo()
+    , _accessor(accessor)
 {
 
 }
@@ -328,11 +322,11 @@ bool PropertyInfo::Deserialize(IDeserializer& deserializer, const std::string& p
 
 void PropertyInfo::GetValue(const Object* instance, void* dest) const
 {
-    accessor->Get(instance, dest);
+    _accessor->Get(instance, dest);
 }
 
-void PropertyInfo::SetValue(Object* instance, const void* source)
+void PropertyInfo::SetValue(Object* instance, const void* value)
 {
-    accessor->Set(instance, source);
+    _accessor->Set(instance, value);
 }
 

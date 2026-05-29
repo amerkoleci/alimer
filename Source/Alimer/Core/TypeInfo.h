@@ -111,9 +111,78 @@ namespace Alimer
     /// Get type info reflection by type info. Return pointer to it or null if does not exist.
     ALIMER_API TypeInfoReflection* GetTypeInfoReflection(const TypeInfo* typeInfo);
 
+    /// Register an object factory.
+    ALIMER_API void RegisterFactory(const TypeInfo* typeInfo, ObjectFactory* factory);
+    /// Create an object by type hash. Return pointer to it or null if no factory found.
+    ALIMER_API SharedPtr<Object> CreateObject(const TypeInfo* typeInfo);
+    /// Create an object by type hash. Return pointer to it or null if no factory found.
+    ALIMER_API SharedPtr<Object> CreateObject(StringId32 type);
+
+    /// Register a per-class property. If a property with the same name already exists, it will be replaced.
+    ALIMER_API void RegisterProperty(const StringId32& type, PropertyInfo* property);
+    /// Copy all base class properties.
+    ALIMER_API void CopyBaseProperties(const StringId32& type, const StringId32& baseType);
+    /// Copy one base class property.
+    ALIMER_API void CopyBaseProperty(const StringId32& type, const StringId32& baseType, const std::string& name);
+
+    /// Register an object factory, template version.
+    template <class T> static inline void RegisterFactory()
+    {
+        RegisterFactory(T::GetTypeInfoStatic(), new ObjectFactoryImpl<T>());
+    }
+
+    /// Create and return an object through a factory, template version.
+    template <class T> static inline SharedPtr<T> CreateObject()
+    {
+        return StaticCast<T>(CreateObject(T::GetTypeStatic()));
+    }
+
+    /// Create and return an object through a factory, template version with given type.
+    template <class T> static inline SharedPtr<T> CreateObject(StringId32 type)
+    {
+        return StaticCast<T>(CreateObject(type));
+    }
+
     /// Get type info reflection by type hash using generic type. Return pointer to it or null if does not exist.
     template <typename T> static TypeInfoReflection* GetTypeInfoReflection()
     {
         return GetTypeInfoReflection(T::GetTypeStatic());
+    }
+
+    /// Register a per-class property, template version. Should not be used for base class properties unless the type is explicitly specified, as by default the property will be re-registered to the base class redundantly.
+    template <typename T, typename U>
+    static void RegisterProperty(const char* name, U(T::* getFunction)() const, void (T::* setFunction)(U), const U& defaultValue = U())
+    {
+        RegisterProperty(T::GetTypeStatic(), new PropertyInfoImpl<U>(name, new PropertyAccessorImpl<T, U>(getFunction, setFunction), defaultValue));
+    }
+
+    //template<typename T, typename TEnum, typename = typename std::enable_if<std::is_enum<TEnum>::value>::type>
+    //static void RegisterEnumProperty(const char* name, TEnum(T::* getFunction)() const, void (T::* setFunction)(TEnum), const TEnum& defaultValue = TEnum())
+    //{
+    //    RegisterProperty(T::GetTypeStatic(), new PropertyInfoImpl<std::underlying_type<T>::type>(name, new PropertyAccessorImpl<T, TEnum>(getFunction, setFunction), defaultValue));
+    //}
+
+    /// Register a per-class property with reference access, template version. Should not be used for base class properties unless the type is explicitly specified, as by default the property will be re-registered to the base class redundantly.
+    template <typename T, typename U> static void RegisterRefProperty(const char* name, const U& (T::* getFunction)() const, void (T::* setFunction)(const U&), const U& defaultValue = U())
+    {
+        RegisterProperty(T::GetTypeStatic(), new PropertyInfoImpl<U>(name, new RefPropertyAccessorImpl<T, U>(getFunction, setFunction), defaultValue));
+    }
+
+    /// Register a per-class attribute with mixed reference access, template version. Should not be used for base class attributes unless the type is explicitly specified, as by default the attribute will be re-registered to the base class redundantly.
+    template <class T, class U> static void RegisterMixedRefProperty(const char* name, U(T::* getFunction)() const, void (T::* setFunction)(const U&), const U& defaultValue = U())
+    {
+        RegisterProperty(T::GetTypeStatic(), new PropertyInfoImpl<U>(name, new MixedRefPropertyAccessorImpl<T, U>(getFunction, setFunction), defaultValue));
+    }
+
+    /// Copy all base class properties, template version.
+    template <class Type, class TBaseType> static void CopyBaseProperties()
+    {
+        CopyBaseProperties(Type::GetTypeStatic(), TBaseType::GetTypeStatic());
+    }
+
+    /// Copy one base class property, template version.
+    template <class Type, class TBaseType> static void CopyBaseProperty(const std::string& name)
+    {
+        CopyBaseProperty(Type::GetTypeStatic(), TBaseType::GetTypeStatic(), name);
     }
 }

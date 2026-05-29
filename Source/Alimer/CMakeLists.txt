@@ -177,16 +177,17 @@ if (MSVC)
       endif()
     endif()
 
-elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
+else()
     target_compile_options(${TARGET_NAME} PRIVATE -Wall)
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16.0)
+
+    if(ALIMER_COMPILER_CLANG AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16.0)
         target_compile_options(${PROJECT_NAME} PRIVATE "-Wno-unsafe-buffer-usage")
     endif()
-
-    # Use fast floating point model
-    #target_compile_options(${TARGET_NAME} PRIVATE -ffast-math -fno-finite-math-only -ffp-contract=fast)
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    target_compile_options(${TARGET_NAME} PRIVATE -Wall)
+    
+	# Set compiler flag for disabling exception-handling
+	if (NOT ALIMER_EXCEPTIONS_ENABLED)
+		target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
+	endif()
 
     # Use fast floating point model
     #target_compile_options(${TARGET_NAME} PRIVATE -ffast-math -fno-finite-math-only -ffp-contract=fast)

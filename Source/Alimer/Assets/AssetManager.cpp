@@ -47,7 +47,7 @@ SharedPtr<Asset> AssetManager::Load(const StringId32& type, std::string_view nam
         return nullptr;
     }
 
-    SharedPtr<Asset> asset = Object::CreateObject<Asset>(type);
+    SharedPtr<Asset> asset = CreateObject<Asset>(type);
     if (asset == nullptr)
     {
         if (errorOnFailure)

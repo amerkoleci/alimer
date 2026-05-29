@@ -42,76 +42,27 @@ namespace Alimer
             return IsInstanceOf<T>() ? static_cast<const T*>(this) : nullptr;
         }
 
-        /// Register an object factory.
-        static void RegisterFactory(const TypeInfo* typeInfo, ObjectFactory* factory);
-        /// Create an object by type hash. Return pointer to it or null if no factory found.
-        static SharedPtr<Object> CreateObject(const TypeInfo* typeInfo);
-        /// Create an object by type hash. Return pointer to it or null if no factory found.
-        static SharedPtr<Object> CreateObject(StringId32 type);
-
-        /// Register an object factory, template version.
-        template <class T> static inline void RegisterFactory()
-        {
-            RegisterFactory(T::GetTypeInfoStatic(), new ObjectFactoryImpl<T>());
-        }
-
-        /// Create and return an object through a factory, template version.
-        template <class T> static inline SharedPtr<T> CreateObject()
-        {
-            return StaticCast<T>(CreateObject(T::GetTypeStatic()));
-        }
-
-        /// Create and return an object through a factory, template version with given type.
-        template <class T> static inline SharedPtr<T> CreateObject(StringId32 type)
-        {
-            return StaticCast<T>(CreateObject(type));
-        }
-
         /// Return properties descriptions, or null if none defined.
         const PropertyVector& GetProperties() const;
 
         /// Return an property info by name, or null if does not exist.
-        PropertyInfo* GetProperty(const std::string& name) const;
-
-        /// Set property value from memory.
-        void SetPropertyValue(PropertyInfo* property, const void* source);
-
-        /// Set property value from memory.
-        bool SetPropertyValue(const std::string& name, const void* source);
+        PropertyInfo* GetProperty(StringView name) const;
 
         /// Get property value to memory.
         void GetPropertyValue(PropertyInfo* property, void* dest);
 
         /// Get property value to memory.
-        bool GetPropertyValue(const std::string& name, void* dest);
+        bool GetPropertyValue(StringView name, void* dest);
 
-        /// Set property value, template version. Return true if value was right type.
-        template <class T> bool SetPropertyValue(PropertyInfo* property, const T& source)
-        {
-            PropertyInfoImpl<T>* typedProperty = static_cast<PropertyInfoImpl<T>*>(property);
-            if (typedProperty != nullptr)
-            {
-                typedProperty->SetValue(this, source);
-                return true;
-            }
+        /// Set property value from memory.
+        void SetPropertyValue(PropertyInfo* property, const void* source);
 
-            return false;
-        }
-
-        /// Set property value, template version. Return true if properties .
-        template <class T> bool SetPropertyValue(const std::string& name, const T& source)
-        {
-            auto property = GetProperty(name);
-            if (property != nullptr)
-            {
-                return SetPropertyValue(property, source);
-            }
-
-            return false;
-        }
+        /// Set property value from memory.
+        bool SetPropertyValue(StringView name, const void* source);
 
         /// Copy property value, template version. Return true if value was right type.
-        template <class T> bool GetPropertyValue(PropertyInfo* property, T& dest)
+        template <typename T>
+        bool GetPropertyValue(PropertyInfo* property, T& dest)
         {
             PropertyInfoImpl<T>* typedProperty = dynamic_cast<PropertyInfoImpl<T>*>(property);
             if (typedProperty != nullptr)
@@ -124,14 +75,16 @@ namespace Alimer
         }
 
         /// Return property value, template version.
-        template <class T> T GetPropertyValue(PropertyInfo* property)
+        template <typename T>
+        [[nodiscard]] T GetPropertyValue(PropertyInfo* property)
         {
             PropertyInfoImpl<T>* typedProperty = dynamic_cast<PropertyInfoImpl<T>*>(property);
             return typedProperty != nullptr ? typedProperty->GetValue(this) : T();
         }
 
         /// Copy property value, template version. Return true if value was right type.
-        template <class T> bool GetPropertyValue(const std::string& name, T& dest)
+        template <typename T>
+        bool GetPropertyValue(StringView name, T& dest)
         {
             auto property = GetProperty(name);
             if (property != nullptr)
@@ -143,7 +96,8 @@ namespace Alimer
         }
 
         /// Return property value, template version.
-        template <class T> T GetPropertyValue(const std::string& name, const T& defaultValue = T())
+        template <typename T>
+        [[nodiscard]] T GetPropertyValue(StringView name, const T& defaultValue = T())
         {
             auto property = GetProperty(name);
             if (property != nullptr)
@@ -156,49 +110,38 @@ namespace Alimer
             return defaultValue;
         }
 
-        /// Register a per-class property. If a property with the same name already exists, it will be replaced.
-        static void RegisterProperty(const StringId32& type, PropertyInfo* property);
-        /// Copy all base class properties.
-        static void CopyBaseProperties(const StringId32& type, const StringId32& baseType);
-        /// Copy one base class property.
-        static void CopyBaseProperty(const StringId32& type, const StringId32& baseType, const std::string& name);
-
-        /// Register a per-class property, template version. Should not be used for base class properties unless the type is explicitly specified, as by default the property will be re-registered to the base class redundantly.
-        template <typename T, typename U>
-        static void RegisterProperty(const char* name, U(T::* getFunction)() const, void (T::* setFunction)(U), const U& defaultValue = U(), const char** enumNames = 0)
+        /// Set property value, template version. Return true if value was right type.
+        template <typename T>
+        bool SetPropertyValue(PropertyInfo* property, const T& value)
         {
-            RegisterProperty(T::GetTypeStatic(), new PropertyInfoImpl<U>(name, new PropertyAccessorImpl<T, U>(getFunction, setFunction), defaultValue, enumNames));
+            PropertyInfoImpl<T>* typedProperty = dynamic_cast<PropertyInfoImpl<T>*>(property);
+            if (typedProperty != nullptr)
+            {
+                typedProperty->SetValue(this, value);
+                return true;
+            }
+
+            return false;
         }
 
-        //template<typename T, typename TEnum, typename = typename std::enable_if<std::is_enum<TEnum>::value>::type>
-        //static void RegisterEnumProperty(const char* name, TEnum(T::* getFunction)() const, void (T::* setFunction)(TEnum), const TEnum& defaultValue = TEnum(), const char** enumNames = 0)
-        //{
-        //    RegisterProperty(T::GetTypeStatic(), new PropertyInfoImpl<std::underlying_type<T>::type>(name, new PropertyAccessorImpl<T, TEnum>(getFunction, setFunction), defaultValue, enumNames));
-        //}
-
-        /// Register a per-class property with reference access, template version. Should not be used for base class properties unless the type is explicitly specified, as by default the property will be re-registered to the base class redundantly.
-        template <typename T, typename U> static void RegisterRefProperty(const char* name, const U& (T::* getFunction)() const, void (T::* setFunction)(const U&), const U& defaultValue = U(), const char** enumNames = 0)
+        /// Set property value, template version. Return true if properties .
+        template <typename T>
+        bool SetPropertyValue(StringView name, const T& source)
         {
-            RegisterProperty(T::GetTypeStatic(), new PropertyInfoImpl<U>(name, new RefPropertyAccessorImpl<T, U>(getFunction, setFunction), defaultValue, enumNames));
+            auto property = GetProperty(name);
+            if (property != nullptr)
+            {
+                return SetPropertyValue(property, source);
+            }
+
+            return false;
         }
 
-        /// Register a per-class attribute with mixed reference access, template version. Should not be used for base class attributes unless the type is explicitly specified, as by default the attribute will be re-registered to the base class redundantly.
-        template <class T, class U> static void RegisterMixedRefProperty(const char* name, U(T::* getFunction)() const, void (T::* setFunction)(const U&), const U& defaultValue = U(), const char** enumNames = 0)
-        {
-            RegisterProperty(T::GetTypeStatic(), new PropertyInfoImpl<U>(name, new MixedRefPropertyAccessorImpl<T, U>(getFunction, setFunction), defaultValue, enumNames));
-        }
+        /// Set property value from StringView value.
+        bool SetPropertyValue(StringView name, StringView value);
 
-        /// Copy all base class properties, template version.
-        template <class Type, class TBaseType> static void CopyBaseProperties()
-        {
-            CopyBaseProperties(Type::GetTypeStatic(), TBaseType::GetTypeStatic());
-        }
-
-        /// Copy one base class property, template version.
-        template <class Type, class TBaseType> static void CopyBaseProperty(const std::string& name)
-        {
-            CopyBaseProperty(Type::GetTypeStatic(), TBaseType::GetTypeStatic(), name);
-        }
+        /// Set property value from const char* value.
+        bool SetPropertyValue(StringView name, const char* value);
     };
 }
 

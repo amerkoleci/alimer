@@ -4,9 +4,10 @@
 #pragma once
 
 #include "Alimer/Core/System.h"
+#include "Alimer/Core/StringId.h"
 #include "Alimer/Core/Vector.h"
 #include "Alimer/Core/UnorderedMap.h"
-#include <typeindex>
+#include <mutex>
 
 namespace Alimer
 {
@@ -26,8 +27,9 @@ namespace Alimer
         template<typename T, typename... Args>
         T* AddSystem(Args&&... args)
         {
+            std::lock_guard lockGuard(_subsystemsMutex);
             T* system = new T(std::forward<Args>(args)...);
-            _subsystems[typeid(T)] = system;
+            _subsystems[T::GetTypeStatic()] = system;
             system->Register();
             return system;
         }
@@ -35,11 +37,12 @@ namespace Alimer
         template<typename T>
         T* GetSystem()
         {
-            return static_cast<T*>(_subsystems[typeid(T)]);
+            return static_cast<T*>(_subsystems[T::GetTypeStatic()]);
         }
 
     private:
-        UnorderedMap<std::type_index, System*> _subsystems;
+        std::mutex _subsystemsMutex;
+        UnorderedMap<StringId32, System*> _subsystems;
         Vector<System*> _updateList;
     };
 }

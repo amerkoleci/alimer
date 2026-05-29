@@ -5,6 +5,7 @@
 #include "Alimer/Core/Object.h"
 #include "Alimer/Core/Log.h"
 #include <memory>
+#include <mutex>
 
 using namespace Alimer;
 
@@ -145,4 +146,61 @@ TypeInfoReflection* Alimer::GetTypeInfoReflection(const TypeInfo* typeInfo)
     ALIMER_ASSERT(typeInfo);
 
     return typeInfoCache().GetReflection(typeInfo->GetType());
+}
+
+
+void Alimer::RegisterFactory(const TypeInfo* typeInfo, ObjectFactory* factory)
+{
+    if (!factory)
+        return;
+
+    GetTypeInfoReflection(typeInfo)->SetFactory(factory);
+}
+
+SharedPtr<Object> Alimer::CreateObject(const TypeInfo* typeInfo)
+{
+    auto factory = GetTypeInfoReflection(typeInfo)->GetFactory();
+
+    return factory != nullptr ? factory->CreateObject() : nullptr;
+}
+
+SharedPtr<Object> Alimer::CreateObject(StringId32 type)
+{
+    auto factory = GetTypeInfoReflection(type)->GetFactory();
+    return factory != nullptr ? factory->CreateObject() : nullptr;
+}
+
+void Alimer::RegisterProperty(const StringId32& type, PropertyInfo* property)
+{
+    GetTypeInfoReflection(type)->RegisterProperty(property);
+}
+
+void Alimer::CopyBaseProperties(const StringId32& type, const StringId32& baseType)
+{
+    // Make sure the types are different, which may not be true if the OBJECT macro has been omitted
+    if (type != baseType)
+    {
+        PropertyVector& properties = GetTypeInfoReflection(baseType)->GetProperties();
+        for (size_t i = 0, count = properties.size(); i < count; ++i)
+        {
+            RegisterProperty(type, properties[i].Get());
+        }
+    }
+}
+
+void Alimer::CopyBaseProperty(const StringId32& type, const StringId32& baseType, const std::string& name)
+{
+    // Make sure the types are different, which may not be true if the OBJECT macro has been omitted
+    if (type != baseType)
+    {
+        PropertyVector& properties = GetTypeInfoReflection(baseType)->GetProperties();
+        for (size_t i = 0, count = properties.size(); i < count; ++i)
+        {
+            if (properties[i]->GetName() == name)
+            {
+                RegisterProperty(type, properties[i].Get());
+                break;
+            }
+        }
+    }
 }

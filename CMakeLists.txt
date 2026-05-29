@@ -150,10 +150,6 @@ option(ALIMER_USE_WASM_SIMD "Enable SIMD for WASM" OFF)
 # This adds some overhead and Alimer doesn't use exceptions so by default it is off.
 option(ALIMER_EXCEPTIONS_ENABLED "Enable C++ exceptions" OFF)
 
-# When turning this on, the library will be compiled with C++ RTTI enabled.
-# This adds some overhead and Alimer doesn't use RTTI so by default it is off.
-option(ALIMER_RTTI_ENABLED "Enable C++ RTTI" OFF)
-
 option(ALIMER_ENABLE_ASAN_UBSAN "Enable Address and Undefined Behavior Sanitizers" OFF)
 option(ALIMER_ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 
@@ -240,14 +236,6 @@ if (MSVC)
     if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.28)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:lambda")
     endif()
-    
-	if (NOT ALIMER_RTTI_ENABLED)
-		# Set compiler flag for disabling RTTI
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR-")
-	else()
-		# Set compiler flag for enabling RTTI
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GR")
-	endif()
 
 	if (NOT ALIMER_EXCEPTIONS_ENABLED)
 		# Remove any existing compiler flag that enables exceptions
@@ -299,22 +287,6 @@ if (MSVC)
 else()
     set(CMAKE_CXX_FLAGS_DISTRIBUTION "${CMAKE_CXX_FLAGS_RELEASE}")
 
-	if (NOT ALIMER_RTTI_ENABLED)
-		# Set compiler flag for disabling RTTI
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
-	else()
-		# Set compiler flag for enabling RTTI
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -frtti")
-	endif()
-
-	if (NOT ALIMER_EXCEPTIONS_ENABLED)
-		# Set compiler flag for disabling exception-handling
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
-	else()
-		# Set compiler flag for enabling exception-handling
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
-	endif()
-
     if (ALIMER_ENABLE_ASAN_UBSAN)
        set(EXTRA_SANITIZE_OPTIONS "-fsanitize=address -fsanitize=undefined,implicit-conversion,float-divide-by-zero,local-bounds -fno-sanitize-recover=all")
     endif()
@@ -359,6 +331,7 @@ message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "Detected platform: ${ALIMER_PLATFORM_NAME}")
 message(STATUS "Detected architecture: ${ALIMER_ARCH}")
 message(STATUS "Detected host architecture: ${ALIMER_HOST_ARCH}")
+message(STATUS "Detected compiler: ${ALIMER_COMPILER_NAME}")
     
 if (ALIMER_BUILD_SHARED)
   message(STATUS "  Library         SHARED")

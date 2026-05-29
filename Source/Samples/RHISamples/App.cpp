@@ -6,8 +6,6 @@
 #include "DrawIndexedQuad.h"
 #include "DrawSpinningCube.h"
 #include <Alimer/EntryPoint.h>
-#include <typeindex>
-#include <type_traits>
 
 class RHISamplesApp final : public Application
 {
@@ -51,10 +49,6 @@ void RHISamplesApp::Initialize()
         depthStencilFormat);
 
     // Audio test
-    EntityRef entity = CreateObject<Entity>();
-    auto prop = entity->GetProperty("name");
-    auto type = prop->GetPropertyType();
-    prop->SetValue(entity, "Hello");
     //AudioClipRef clipFactory = CreateObject<AudioClip>();
     //AudioClipRef clip = GetAssets().Load<AudioClip>("Sounds/BGM.mp3");
     //AudioSource* source = new AudioSource(clip.Get());

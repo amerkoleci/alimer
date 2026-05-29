@@ -3,13 +3,15 @@
 
 #pragma once
 
-#include "Alimer/Core/Base.h"
+#include "Alimer/Core/Object.h"
 
 namespace Alimer
 {
     /// Base class for an engine system.
-    class ALIMER_API System
+    class ALIMER_API System : public Object
     {
+        ALIMER_OBJECT(System, Object);
+
     public:
         virtual ~System() = default;
 

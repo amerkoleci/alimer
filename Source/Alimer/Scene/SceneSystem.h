@@ -11,6 +11,8 @@ namespace Alimer
     /// Manages the current scene, including loading, saving, and transitioning between scenes.
     class SceneSystem : public System
     {
+        ALIMER_OBJECT(SceneSystem, System);
+
     public:
         SceneSystem();
         ~SceneSystem() override;
