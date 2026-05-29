@@ -13,6 +13,10 @@ set_property(TARGET fmt PROPERTY FOLDER "ThirdParty")
 # spdlog
 set(SPDLOG_FMT_EXTERNAL ON CACHE BOOL "Use external fmt library instead of bundled" FORCE)
 set(SPDLOG_USE_STD_FORMAT OFF CACHE BOOL "Use external fmt library instead of bundled" FORCE)
+if (NOT ALIMER_EXCEPTIONS_ENABLED)
+    set(SPDLOG_NO_EXCEPTIONS ON CACHE BOOL "Compile with -fno-exceptions. Call abort() on any spdlog exceptions" FORCE)
+endif()
+
 add_subdirectory(spdlog EXCLUDE_FROM_ALL)
 set_property(TARGET spdlog PROPERTY FOLDER "ThirdParty")
 install (DIRECTORY spdlog/include/spdlog DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME}/ThirdParty)
