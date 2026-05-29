@@ -41,7 +41,7 @@ namespace Alimer
 		virtual bool CanWrite() const = 0;
 
 		/// Change the stream name.
-		void SetName(const std::string& newName);
+		void SetName(std::string_view newName);
 		/// Read a boolean.
 		bool ReadBool();
         /// Read an 8-bit unsigned integer.
@@ -160,7 +160,7 @@ namespace Alimer
         void Write(const JsonValue& value);
 
 		/// Return the stream name.
-		const std::string& GetName() const { return name; }
+		const std::string& GetName() const { return _name; }
 		/// Returns the position of the stream
         virtual size_t GetPosition() const = 0;
 		/// Return the size of the stream.
@@ -170,6 +170,6 @@ namespace Alimer
 
 	protected:
 		/// Stream name.
-        std::string name;
+        std::string _name;
 	};
 }

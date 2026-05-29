@@ -51,13 +51,14 @@ void RHISamplesApp::Initialize()
         depthStencilFormat);
 
     // Audio test
-    std::type_index idx(typeid(AudioClip));
-    LOGI("AudioClip type index: {}, name: {}", idx.hash_code(), idx.name());
-    auto typeInfo = TypeInfo::GetTypeInfo<AudioClip>();
-    AudioClipRef clipFactory = CreateObject<AudioClip>();
-    AudioClipRef clip = GetAssets().Load<AudioClip>("Sounds/BGM.mp3");
-    AudioSource* source = new AudioSource(clip.Get());
-    source->Play();
+    EntityRef entity = CreateObject<Entity>();
+    auto prop = entity->GetProperty("name");
+    auto type = prop->GetPropertyType();
+    prop->SetValue(entity, "Hello");
+    //AudioClipRef clipFactory = CreateObject<AudioClip>();
+    //AudioClipRef clip = GetAssets().Load<AudioClip>("Sounds/BGM.mp3");
+    //AudioSource* source = new AudioSource(clip.Get());
+    //source->Play();
 
     {
         JsonSerializer serializer;

@@ -35,6 +35,14 @@
 
 // Renderer
 #include <Alimer/Shaders/ShaderDefinitions.h>
+
+// Scene
+#include <Alimer/Scene/Entity.h>
+#include <Alimer/Scene/Scene.h>
+//#include <Alimer/Scene/Camera.h>
+//#include <Alimer/Scene/MeshComponent.h>
+//#include <Alimer/Scene/Light.h>
+
 #if TODO
 #include <Alimer/Renderer/Texture.h>
 #include <Alimer/Renderer/Mesh.h>
@@ -47,17 +55,9 @@
 #include "Alimer/Animations/AnimationTarget.h"
 #include "Alimer/Animations/AnimationClip.h"
 
-// Scene
-#include <Alimer/Scene/Entity.h>
-#include <Alimer/Scene/Scene.h>
-#include <Alimer/Scene/Camera.h>
-#include <Alimer/Scene/MeshComponent.h>
-#include <Alimer/Scene/Light.h>
-
 // Physics
 #include <Alimer/Physics/CollisionShapeComponent.h>
 #include <Alimer/Physics/RigidBody.h>
-
 #endif
 
 // Serialization

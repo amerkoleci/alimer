@@ -9,9 +9,11 @@ using namespace Alimer;
 void Entity::Register()
 {
     RegisterFactory<Entity>();
+    CopyBaseProperties<Entity, Serializable>();
+    RegisterRefProperty("name", &Entity::GetName, &Entity::SetName, kEmptyString);
 }
 
-Entity::Entity(std::string_view name)
+Entity::Entity(StringView name)
     : _name(name)
 {
 
@@ -27,7 +29,12 @@ Entity::~Entity()
     //    _scene->OnEntityRemoved(this);
 }
 
-void Entity::SetName(std::string_view name)
+void Entity::SetName(const String& name)
+{
+    _name = name;
+}
+
+void Entity::SetName(StringView name)
 {
     _name = name;
 }

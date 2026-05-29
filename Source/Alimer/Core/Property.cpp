@@ -16,6 +16,11 @@ PropertyInfo::PropertyInfo(const char* name_, PropertyAccessor* accessor_, const
 
 }
 
+PropertyInfo::~PropertyInfo()
+{
+
+}
+
 void PropertyInfo::Skip(VariantType type, Stream& source)
 {
     const uint32_t size = GetVariantTypeSize(type);

@@ -35,6 +35,7 @@ namespace Alimer
     public:
         /// Construct.
         PropertyInfo(const char* name, PropertyAccessor* accessor, const char** enumNames = nullptr);
+        ~PropertyInfo() override;
 
         /// Copy to a value in memory.
         void GetValue(const Object* instance, void* dest) const;
@@ -113,8 +114,6 @@ namespace Alimer
 
         VariantType GetPropertyType() const override
         {
-            static_assert((std::is_enum_v<T>), "Specified type is not an enum");
-
             return GetVariantType<T>();
         }
 

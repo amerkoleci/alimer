@@ -12,9 +12,8 @@ namespace
 {
     struct TypeInfoCache
     {
-        /// Object factories mutex.
-        std::mutex s_objectFactoryMutex;
-        UnorderedMap<StringId32, SharedPtr<TypeInfoReflection>> typeInfoReflections;
+        std::mutex cacheMutex;
+        UnorderedMap<StringId32, SharedPtr<TypeInfoReflection>> cache;
 
         TypeInfoReflection* Register(const TypeInfo* typeInfo)
         {
@@ -24,13 +23,13 @@ namespace
                 return nullptr;
             }
 
-            std::lock_guard lockGuard(s_objectFactoryMutex);
-            const StringId32 typeNameId = typeInfo->GetType();
-            const auto iter = typeInfoReflections.find(typeNameId);
-            if (iter == typeInfoReflections.end())
+            std::lock_guard lockGuard(cacheMutex);
+            const StringId32 typeInfoId = typeInfo->GetType();
+            const auto iter = cache.find(typeInfoId);
+            if (iter == cache.end())
             {
                 const auto reflection = MakeShared<TypeInfoReflection>(typeInfo);
-                typeInfoReflections.emplace(typeNameId, reflection);
+                cache.emplace(typeInfoId, reflection);
                 return reflection;
             }
 
@@ -39,9 +38,16 @@ namespace
 
         TypeInfoReflection* GetReflection(StringId32 typeInfoId)
         {
-            std::lock_guard lockGuard(s_objectFactoryMutex);
-            const auto iter = typeInfoReflections.find(typeInfoId);
-            return iter != typeInfoReflections.end() ? iter->second.Get() : nullptr;
+            std::lock_guard lockGuard(cacheMutex);
+            const auto iter = cache.find(typeInfoId);
+            return iter != cache.end() ? iter->second.Get() : nullptr;
+        }
+
+        const TypeInfo* GetTypeInfo(StringId32 typeInfoId)
+        {
+            std::lock_guard lockGuard(cacheMutex);
+            const auto iter = cache.find(typeInfoId);
+            return iter != cache.end() ? iter->second->GetTypeInfo() : nullptr;
         }
     };
 
@@ -57,19 +63,7 @@ TypeInfo::TypeInfo(const char* typeName, const TypeInfo* baseTypeInfo)
     , _typeName(typeName)
     , _baseTypeInfo(baseTypeInfo)
 {
-    if (baseTypeInfo)
-    {
-        //typeInfoCache().Register(baseTypeInfo);
-    }
-
     _reflection = typeInfoCache().Register(this);
-}
-
-const TypeInfo* TypeInfo::GetTypeInfo(StringId32 typeId)
-{
-    TypeInfoReflection* reflection = typeInfoCache().GetReflection(typeId);
-
-    return reflection ? reflection->GetTypeInfo() : nullptr;
 }
 
 bool TypeInfo::IsTypeOf(StringId32 type) const
@@ -114,35 +108,39 @@ TypeInfoReflection::TypeInfoReflection(const TypeInfo* typeInfo)
 {
 
 }
-
 void TypeInfoReflection::SetFactory(ObjectFactory* factory)
 {
     _factory.reset(factory);
 }
 
-void TypeInfoReflection::RegisterProperty(PropertyInfo* property)
+bool TypeInfoReflection::RegisterProperty(PropertyInfo* property)
 {
-    SharedPtr<PropertyInfo> sharedProp(property);
-
     for (size_t i = 0, count = _properties.size(); i < count; ++i)
     {
         if (_properties[i]->GetName() == property->GetName())
         {
-            _properties.insert(_properties.begin() + i, sharedProp);
-            return;
+            //_properties.insert(_properties.begin() + i, sharedProp);
+            return false;
         }
     }
 
+    SharedPtr<PropertyInfo> sharedProp(property);
+
     _properties.push_back(sharedProp);
+    return true;
 }
 
-TypeInfoReflection* TypeInfoReflection::GetReflection(StringId32 typeId)
+const TypeInfo* TypeInfo::Get(StringId32 typeId)
 {
-    const auto iter = typeInfoCache().typeInfoReflections.find(typeId);
-    return iter != typeInfoCache().typeInfoReflections.end() ? iter->second.Get() : nullptr;
+    return typeInfoCache().GetTypeInfo(typeId);
 }
 
-TypeInfoReflection* TypeInfoReflection::GetReflection(const TypeInfo* typeInfo)
+TypeInfoReflection* Alimer::GetTypeInfoReflection(StringId32 typeId)
+{
+    return typeInfoCache().GetReflection(typeId);
+}
+
+TypeInfoReflection* Alimer::GetTypeInfoReflection(const TypeInfo* typeInfo)
 {
     ALIMER_ASSERT(typeInfo);
 

@@ -8,6 +8,8 @@
 namespace Alimer
 {
     class TypeInfoReflection;
+    class ObjectFactory;
+    template <class T> class ObjectFactoryImpl;
 
     /// Type info.
     class ALIMER_API TypeInfo final
@@ -18,11 +20,13 @@ namespace Alimer
         /// Destruct.
         ~TypeInfo() = default;
 
-        [[nodiscard]] static const TypeInfo* GetTypeInfo(StringId32 typeId);
+        /// Get type info by type hash. Return pointer to it or null if does not exist.
+        [[nodiscard]] static const TypeInfo* Get(StringId32 typeId);
 
-        template <typename T> static const TypeInfo* GetTypeInfo()
+        /// Get type info by type hash using generic type. Return pointer to it or null if does not exist.
+        template <typename T> static const TypeInfo* Get()
         {
-            return GetTypeInfo(T::GetTypeStatic());
+            return Get(T::GetTypeStatic());
         }
 
         /// Check current type is type of specified type.
@@ -40,9 +44,8 @@ namespace Alimer
         [[nodiscard]] const TypeInfo* GetBaseTypeInfo() const { return _baseTypeInfo; }
         /// Return type info reflection.
         [[nodiscard]] TypeInfoReflection* GetReflection() const { return _reflection; }
-
         /// Return properties descriptions, or null if none defined.
-        const PropertyVector& GetProperties() const;
+        [[nodiscard]] const PropertyVector& GetProperties() const;
 
     private:
         /// Type.
@@ -53,6 +56,34 @@ namespace Alimer
         const TypeInfo* _baseTypeInfo;
         /// Reflection
         TypeInfoReflection* _reflection;
+    };
+
+    /// Reflection of type info, used for registering properties, serialization and scripting.
+    class ALIMER_API TypeInfoReflection final : public RefCounted
+    {
+    public:
+        TypeInfoReflection(const TypeInfo* typeInfo);
+
+        [[nodiscard]] ObjectFactory* GetFactory() const { return _factory.get(); }
+        void SetFactory(ObjectFactory* factory);
+
+        [[nodiscard]] const std::string& GetCategory() const { return _catogory; }
+        void SetCategory(std::string_view category) { _catogory = category; }
+
+        [[nodiscard]] const TypeInfo* GetTypeInfo() const { return _typeInfo; }
+        [[nodiscard]] const std::string& GetTypeName() const { return _typeInfo ? _typeInfo->GetTypeName() : kEmptyString; }
+        [[nodiscard]] StringId32 GetTypeNameId() const { return _typeInfo ? _typeInfo->GetType() : StringId32::Empty; }
+
+        bool RegisterProperty(PropertyInfo* property);
+
+        /// Return properties descriptions, or null if none defined.
+        [[nodiscard]] PropertyVector& GetProperties() { return _properties; }
+
+    private:
+        const TypeInfo* _typeInfo = nullptr;
+        std::unique_ptr<ObjectFactory> _factory = nullptr;
+        std::string _catogory;
+        PropertyVector _properties;
     };
 
     /// Base class for object factories.
@@ -74,35 +105,15 @@ namespace Alimer
         SharedPtr<Object> CreateObject() override { return MakeShared<T>(); }
     };
 
-    /// Reflection of type info, used for registering properties, serialization and scripting.
-    class ALIMER_API TypeInfoReflection final : public RefCounted
+    /// Get type info reflection by type hash. Return pointer to it or null if does not exist.
+    ALIMER_API TypeInfoReflection* GetTypeInfoReflection(StringId32 typeId);
+
+    /// Get type info reflection by type info. Return pointer to it or null if does not exist.
+    ALIMER_API TypeInfoReflection* GetTypeInfoReflection(const TypeInfo* typeInfo);
+
+    /// Get type info reflection by type hash using generic type. Return pointer to it or null if does not exist.
+    template <typename T> static TypeInfoReflection* GetTypeInfoReflection()
     {
-    public:
-        TypeInfoReflection(const TypeInfo* typeInfo);
-
-        [[nodiscard]] ObjectFactory* GetFactory() const { return _factory.get(); }
-        void SetFactory(ObjectFactory* factory);
-
-        [[nodiscard]] const std::string& GetCategory() const { return _catogory; }
-        void SetCategory(std::string_view category) { _catogory = category; }
-
-        [[nodiscard]] const TypeInfo* GetTypeInfo() const { return _typeInfo; }
-        [[nodiscard]] const std::string& GetTypeName() const { return _typeInfo ? _typeInfo->GetTypeName() : kEmptyString; }
-        [[nodiscard]] StringId32 GetTypeNameId() const { return _typeInfo ? _typeInfo->GetType() : StringId32::Empty; }
-
-        void RegisterProperty(PropertyInfo* property);
-
-        /// Return properties descriptions, or null if none defined.
-        [[nodiscard]] const PropertyVector& GetProperties() const { return _properties; }
-
-
-        [[nodiscard]] static TypeInfoReflection* GetReflection(StringId32 typeId);
-        [[nodiscard]] static TypeInfoReflection* GetReflection(const TypeInfo* typeInfo);
-
-    private:
-        const TypeInfo* _typeInfo = nullptr;
-        std::unique_ptr<ObjectFactory> _factory = nullptr;
-        std::string _catogory;
-        PropertyVector _properties;
-    };
+        return GetTypeInfoReflection(T::GetTypeStatic());
+    }
 }

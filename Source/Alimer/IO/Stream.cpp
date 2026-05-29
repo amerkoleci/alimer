@@ -11,9 +11,9 @@
 
 using namespace Alimer;
 
-void Stream::SetName(const std::string& newName)
+void Stream::SetName(std::string_view newName)
 {
-    name = newName;
+    _name = newName;
 }
 
 bool Stream::ReadBool()

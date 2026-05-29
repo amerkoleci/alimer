@@ -18,7 +18,6 @@ SceneSystem::~SceneSystem()
 void SceneSystem::Register()
 {
     Scene::Register();
-    Entity::Register();
 }
 
 void SceneSystem::Unregister()

@@ -15,18 +15,21 @@ namespace Alimer
         ALIMER_OBJECT(Scene, Serializable);
 
         friend class Entity;
+        friend class SceneSystem;
 
+    private:
         /// Register factory and attributes.
         static void Register();
 
     public:
-        Scene(std::string_view name = kEmptyStringView);
+        Scene(StringView name = kEmptyStringView);
         ~Scene() override;
 
-        [[nodiscard]] std::string GetName() const { return _name; }
-        void SetName(std::string_view name);
+        [[nodiscard]] const String& GetName() const { return _name; }
+        void SetName(const String& name);
+        void SetName(StringView name);
 
     private:
-        std::string _name;
+        String _name;
     };
 }

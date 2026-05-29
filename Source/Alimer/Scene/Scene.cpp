@@ -20,7 +20,7 @@ void Scene::Register()
     Entity::Register();
 }
 
-Scene::Scene(std::string_view name)
+Scene::Scene(StringView name)
     : _name(name)
 {
 }
@@ -29,7 +29,12 @@ Scene::~Scene()
 {
 }
 
-void Scene::SetName(std::string_view name)
+void Scene::SetName(const String& name)
+{
+    _name = name;
+}
+
+void Scene::SetName(StringView name)
 {
     _name = name;
 }

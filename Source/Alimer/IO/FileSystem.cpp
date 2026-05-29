@@ -89,7 +89,7 @@ bool FileStream::Open(std::string_view fileName, FileMode mode_)
         return false;
 #endif
 
-    name = fileName;
+    _name = fileName;
     mode = mode_;
 
     return true;

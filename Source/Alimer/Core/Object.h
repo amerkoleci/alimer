@@ -8,9 +8,6 @@
 namespace Alimer
 {
     class Event;
-    class ObjectFactory;
-    template <class T> class ObjectFactoryImpl;
-    template <class T> class ObjectCreateFactoryImpl;
 
     /// Base class for objects with type identification
     class ALIMER_API Object : public RefCounted
@@ -91,7 +88,7 @@ namespace Alimer
         /// Set property value, template version. Return true if value was right type.
         template <class T> bool SetPropertyValue(PropertyInfo* property, const T& source)
         {
-            PropertyInfoImpl<T>* typedProperty = dynamic_cast<PropertyInfoImpl<T>*>(property);
+            PropertyInfoImpl<T>* typedProperty = static_cast<PropertyInfoImpl<T>*>(property);
             if (typedProperty != nullptr)
             {
                 typedProperty->SetValue(this, source);

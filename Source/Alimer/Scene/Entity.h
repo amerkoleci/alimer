@@ -3,11 +3,16 @@
 
 #pragma once
 
+#include "Alimer/Core/UnorderedSet.h"
 #include "Alimer/Scene/Component.h"
 
 namespace Alimer
 {
-    static constexpr uint32_t kSmallSubtaskGroupSize = 64;
+    // TODO: Layers
+    using Tags = UnorderedSet<String>;
+
+    class Entity;
+    using EntityRef = SharedPtr<Entity>;
 
     class ALIMER_API Entity final : public Serializable
     {
@@ -16,17 +21,19 @@ namespace Alimer
         friend class Component;
         friend class Scene;
 
+    private:
         /// Register factory and attributes (called by Scene::Register).
         static void Register();
 
     public:
-        Entity(std::string_view name = kEmptyStringView);
+        Entity(StringView name = kEmptyStringView);
         ~Entity() override;
 
-        [[nodiscard]] std::string GetName() const { return _name; }
-        void SetName(std::string_view name);
+        [[nodiscard]] const String& GetName() const { return _name; }
+        void SetName(const String& name);
+        void SetName(StringView name);
 
     private:
-        std::string _name;
+        String _name;
     };
 }

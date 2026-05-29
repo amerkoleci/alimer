@@ -43,7 +43,7 @@ void AssetRef::FromBinary(Stream& source)
 
 std::string AssetRef::ToString() const
 {
-    return TypeInfoReflection::GetReflection(type)->GetTypeName() + ";" + name;
+    return TypeInfo::Get(type)->GetTypeName() + ";" + name;
 }
 
 bool AssetRef::ToBinary(Stream& dest) const
@@ -98,7 +98,7 @@ void AssetRefList::FromBinary(Stream& source)
 
 std::string AssetRefList::ToString() const
 {
-    std::string ret(TypeInfoReflection::GetReflection(type)->GetTypeName());
+    std::string ret(TypeInfo::Get(type)->GetTypeName());
     for (auto it = names.begin(); it != names.end(); ++it)
     {
         ret += ";";

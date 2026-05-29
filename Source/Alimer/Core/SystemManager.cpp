@@ -13,8 +13,15 @@ SystemManager::~SystemManager()
 
 void SystemManager::Clear()
 {
+    for (auto [_, system] : _subsystems)
+    {
+        system->Unregister();
+    }
+    for (auto [_, system] : _subsystems) {
+        delete system;
+    }
+    _subsystems.clear();
 }
-
 
 void SystemManager::Setup()
 {
