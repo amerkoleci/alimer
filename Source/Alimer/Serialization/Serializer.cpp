@@ -6,7 +6,7 @@
 #include "Alimer/Core/Log.h"
 #include "Alimer/Assets/AssetRef.h"
 #include "Alimer/Serialization/Serializer.h"
-#include "Alimer/Serialization/rapidjson_wrapper.h"
+#include "Alimer/Private/rapidjson_wrapper.h"
 using namespace rapidjson;
 
 namespace Alimer
@@ -323,7 +323,7 @@ namespace Alimer
 
         JsonReadSerializer(const std::string& json)
         {
-            root.Parse(json);
+            root.Parse(json.c_str());
             if (root.HasParseError())
             {
                 //ALIMER_LOG_ERROR("Failed to parse JSON file: %s, error code: %d, offset: %zu", filePath.data(), doc.GetParseError(), doc.GetErrorOffset());

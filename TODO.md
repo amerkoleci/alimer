@@ -1,5 +1,6 @@
-## TODO
+## In Progress
 
+* Complete RHI with Vulkan support and add D3D12 RHI backend
 * Serialization (JSON and binary)
 * Scene System: Entity, Transform, Components with EntitySystem
 * Audio support

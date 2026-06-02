@@ -171,14 +171,14 @@ namespace Alimer
         /// Set from a value in memory.
         void SetValue(Object* instance, const void* value);
 
-        /// Return whether is default value.
-        virtual bool IsDefault(const Object* instance) const = 0;
-
         /// Return property name.
-        const std::string& GetName() const { return name; }
+        [[nodiscard]] const std::string& GetName() const { return _name; }
+
+        /// Return whether is default value.
+        [[nodiscard]] virtual bool IsDefault(const Object* instance) const = 0;
 
         /// Return property type.
-        virtual VariantType GetPropertyType() const = 0;
+        [[nodiscard]] virtual VariantType GetPropertyType() const = 0;
 
         /// Serialize.
         //virtual void Serialize(Object* instance, Serializer& serializer) = 0;
@@ -202,7 +202,7 @@ namespace Alimer
 
     protected:
         /// Variable name.
-        std::string name;
+        std::string _name;
         /// Attribute accessor.
         std::unique_ptr<PropertyAccessor> _accessor;
     };
@@ -248,13 +248,13 @@ namespace Alimer
         {
             T value;
             _accessor->Get(instance, &value);
-            PropertyInfo::Serialize(serializer, name, GetPropertyType(), &value);
+            PropertyInfo::Serialize(serializer, _name, GetPropertyType(), &value);
         }
 
         void Deserialize(Serializable* instance, IDeserializer& deserializer) override
         {
             T value;
-            if (PropertyInfo::Deserialize(deserializer, name, GetPropertyType(), &value))
+            if (PropertyInfo::Deserialize(deserializer, _name, GetPropertyType(), &value))
             {
                 _accessor->Set(instance, &value);
             }

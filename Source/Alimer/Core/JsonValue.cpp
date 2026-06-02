@@ -1,7 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#include "Alimer/Assets/JsonValue.h"
+#include "Alimer/Core/JsonValue.h"
 #include "Alimer/IO/Stream.h"
 #include "Alimer/Private/rapidjson_wrapper.h"
 #include <cctype>

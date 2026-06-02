@@ -3,13 +3,13 @@
 
 #include "Alimer/Core/Log.h"
 #include "Alimer/Core/Object.h"
-#include "Alimer/Assets/JsonValue.h"
+#include "Alimer/Core/JsonValue.h"
 //#include "Alimer/Serialization/Serializer.h"
 
 using namespace Alimer;
 
-PropertyInfo::PropertyInfo(const char* name_, PropertyAccessor* accessor)
-    : name(name_)
+PropertyInfo::PropertyInfo(const char* name, PropertyAccessor* accessor)
+    : _name(name)
     , _accessor(accessor)
 {
 

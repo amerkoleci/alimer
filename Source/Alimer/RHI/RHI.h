@@ -1284,6 +1284,7 @@ namespace Alimer
         [[nodiscard]] constexpr RHITextureUsage GetUsage() const { return usage; }
         [[nodiscard]] constexpr uint32_t GetMipLevelCount() const { return mipLevelCount; }
         [[nodiscard]] constexpr RHITextureSampleCount GetSampleCount() const { return sampleCount; }
+        [[nodiscard]] constexpr bool IsMultisampled() const { return sampleCount > RHITextureSampleCount::Count1; }
 
         [[nodiscard]] RHITextureView* GetDefaultView() const;
         [[nodiscard]] RHITextureView* GetView(const RHITextureViewDesc* desc = nullptr) const;

@@ -295,14 +295,14 @@ namespace Alimer
     extern RHIFactoryRef Vulkan_CreateFactory(const RHIFactoryDesc& desc);
 #endif
 
-#if defined(ALIMER_RHI_D3D12) && defined(TODO)
+#if defined(ALIMER_RHI_D3D12)
     extern bool D3D12_IsSupported();
-    extern RHIFactoryRef D3D12_CreateFactory(const FactoryDescriptor& desc);
+    extern RHIFactoryRef D3D12_CreateFactory(const RHIFactoryDesc& desc);
 #endif
 
 #if defined(ALIMER_RHI_METAL)
     extern bool Metal_IsSupported();
-    extern RHIFactoryRef Metal_CreateFactory(const FactoryDescriptor& desc);
+    extern RHIFactoryRef Metal_CreateFactory(const RHIFactoryDesc& desc);
 #endif
 
     RHIBufferRef RHIDevice::CreateBuffer(const RHIBufferDesc& desc, const void* initialData)
@@ -599,7 +599,7 @@ namespace Alimer
     {
         switch (backend)
         {
-#if defined(ALIMER_RHI_D3D12)&& defined(TODO)
+#if defined(ALIMER_RHI_D3D12)
             case RHIBackend::D3D12:
                 return D3D12_IsSupported();
 #endif
@@ -621,7 +621,7 @@ namespace Alimer
 
     RHIBackend GetPlatformPreferredBackend()
     {
-#if defined(ALIMER_RHI_D3D12)&& defined(TODO)
+#if defined(ALIMER_RHI_D3D12)
         if (D3D12_IsSupported())
         {
             return RHIBackend::D3D12;
@@ -654,11 +654,11 @@ namespace Alimer
         RHIFactoryRef factory;
         switch (backend)
         {
-#if defined(ALIMER_RHI_D3D12) && defined(TODO)
+#if defined(ALIMER_RHI_D3D12)
             case RHIBackend::D3D12:
                 if (D3D12_IsSupported())
                 {
-                    factory = D3D12_CreateDevice(appName, desc);
+                    factory = D3D12_CreateFactory(desc);
                 }
                 else
                 {
