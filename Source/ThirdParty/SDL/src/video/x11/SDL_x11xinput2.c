@@ -139,7 +139,7 @@ static SDL_Window *xinput2_get_sdlwindow(SDL_VideoData *videodata, Window window
 #endif // SDL_VIDEO_DRIVER_X11_XINPUT2
 
 #ifdef SDL_VIDEO_DRIVER_X11_XINPUT2_SUPPORTS_SCROLLINFO
-static void xinput2_reset_scrollable_valuators()
+static void xinput2_reset_scrollable_valuators(void)
 {
     for (int i = 0; i < scrollable_device_count; ++i) {
         for (int j = 0; j < scrollable_devices[i].scroll_info_count; ++j) {
@@ -590,6 +590,9 @@ void X11_HandleXinput2Event(SDL_VideoDevice *_this, XGenericEventCookie *cookie)
         bool pointer_emulated = false;
 #endif
 
+        // Store the button serial to filter out redundant core button events.
+        videodata->xinput_last_button_serial = xev->serial;
+
         if (pen) {
             if (xev->deviceid != xev->sourceid) {
                 // Discard events from "Master" devices to avoid duplicates.
@@ -607,12 +610,11 @@ void X11_HandleXinput2Event(SDL_VideoDevice *_this, XGenericEventCookie *cookie)
             SDL_WindowData *windowdata = X11_FindWindow(videodata, xev->event);
             int x_ticks = 0, y_ticks = 0;
 
-            // Store the button serial to filter out redundant core button events.
-            videodata->xinput_last_button_serial = xev->serial;
-
             if (xev->deviceid != videodata->xinput_master_pointer_device) {
-                // Ignore slave button events on non-focused windows, or focus can be incorrectly set while a grab is active.
-                if (SDL_GetMouseFocus() != windowdata->window) {
+                /* Ignore slave button events on non-focused windows, as they can arrive before FocusIn events,
+                 * or result in focus being incorrectly set while a grab is active.
+                 */
+                if (SDL_GetMouseFocus() != windowdata->window || SDL_GetKeyboardFocus() != windowdata->window) {
                     break;
                 }
 
@@ -631,7 +633,7 @@ void X11_HandleXinput2Event(SDL_VideoDevice *_this, XGenericEventCookie *cookie)
 
             if (down) {
                 X11_HandleButtonPress(_this, windowdata, (SDL_MouseID)xev->sourceid, button,
-                                      (float)xev->event_x, (float)xev->event_y, xev->time);
+                                      (float)xev->event_x, (float)xev->event_y, xev->time, xev->serial);
             } else {
                 X11_HandleButtonRelease(_this, windowdata, (SDL_MouseID)xev->sourceid, button, xev->time);
             }
