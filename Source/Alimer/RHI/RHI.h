@@ -23,7 +23,7 @@ namespace Alimer
     static constexpr uint32_t kNumFramesInFlight = 2;
     static constexpr uint32_t kMaxColorAttachments = 8;
     static constexpr uint32_t kMaxBindGroups = 4;
-    static constexpr uint32_t kMaxPushConstantsSize = 128;
+    static constexpr uint32_t kMaxPushConstantsSize = 128;  // 128 bytes is the minimum guaranteed size for push constants in Vulkan
     static constexpr uint32_t kMaxViewportsAndScissors = 16;
     static constexpr uint32_t kMaxVertexBuffers = 16;
     static constexpr uint32_t kMaxVertexAttributes = 16;
@@ -39,8 +39,12 @@ namespace Alimer
     static constexpr uint32_t kUUIDSize = 16u;
     static constexpr uint32_t kLUIDSize = 8u;
 
-    /// Number of constant buffer slots to be bound in non bindless space.
-    static constexpr uint32_t kContantBufferCount = 1;
+    /// Number of dynamic constant buffer slots to be bound in non bindless space.
+    static constexpr uint32_t kDynamicConstantBufferCount = 1;
+
+    // Static samplers
+    static constexpr uint32_t kStaticSamplerCount = 10;
+    static constexpr uint32_t kStaticSamplerRegisterSpaceBegin = 100;
 
     /// Bindless descriptor limits -> the device can allocate less than this, depending on capabilities
     static constexpr BindlessIndex kInvalidBindlessIndex = -1;
@@ -51,7 +55,7 @@ namespace Alimer
     // These are also used during shader compilation
     namespace VulkanRegisterShift
     {
-        static constexpr uint32_t kContantBuffer = 0;   // b
+        static constexpr uint32_t kConstantBuffer = 0;  // b
         static constexpr uint32_t kSRV = 1000;          // t
         static constexpr uint32_t kUAV = 2000;          // u
         static constexpr uint32_t kSampler = 3000;      // s
@@ -1095,9 +1099,6 @@ namespace Alimer
         /// The maximum size of an image array.
         uint32_t maxTextureArrayLayers = 0;
 
-        /// The maximum bind groups.
-        uint32_t maxBindGroups = 0;
-
         /// The maximum range of constant buffer.
         uint64_t maxConstantBufferBindingSize = 0;
 
@@ -1109,6 +1110,15 @@ namespace Alimer
 
         /// The alignment required for storage buffers.
         uint64_t minStorageBufferOffsetAlignment = 0;
+
+        /// The alignment required for texture data in buffer when using it as texture upload source.
+        uint64_t textureRowPitchAlignment = 0;
+
+        /// The alignment required for texture data in buffer when using it as texture upload source for 3D textures.
+        uint64_t textureDepthPitchAlignment = 0;
+
+        /// The alignment required for linear buffer allocations.
+        uint64_t minLinearAllocatorOffsetAlignment = 0;
 
         /// The maximum size of buffer.
         uint64_t maxBufferSize;
@@ -1470,8 +1480,8 @@ namespace Alimer
 
     struct RHIDescriptorBindingTable
     {
-        RHIBufferRef CBV[kContantBufferCount];
-        uint64_t CBV_offset[kContantBufferCount] = {};
+        RHIBufferRef CBV[kDynamicConstantBufferCount];
+        uint64_t CBV_offset[kDynamicConstantBufferCount] = {};
     };
 
     class ALIMER_API RHICommandEncoder

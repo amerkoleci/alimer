@@ -253,7 +253,7 @@ namespace Alimer
     /* CommandEncoder */
     void RHICommandEncoder::SetConstantBuffer(uint32_t slot, RHIBuffer* buffer, uint64_t offset)
     {
-        ALIMER_ASSERT(slot < kContantBufferCount);
+        ALIMER_ASSERT(slot < kDynamicConstantBufferCount);
 
         if (table.CBV[slot] != buffer)
         {

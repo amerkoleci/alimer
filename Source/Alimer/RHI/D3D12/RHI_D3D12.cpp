@@ -27,6 +27,7 @@
 #   include <directx/d3d12.h>
 #   include <directx/d3d12video.h>
 #   include <directx/d3dx12_resource_helpers.h>
+#   include <directx/d3dx12_root_signature.h>
 #   include <directx/d3dx12_pipeline_state_stream.h>
 #   include <directx/d3dx12_check_feature_support.h>
 #   include <dcomp.h>
@@ -1045,7 +1046,7 @@ namespace Alimer
             return result;
         }
 
-        D3D12_RESOURCE_STATES ConvertTextureLayoutLegacy(RHITextureLayout layout)
+        constexpr D3D12_RESOURCE_STATES ConvertTextureLayoutLegacy(RHITextureLayout layout)
         {
             switch (layout)
             {
@@ -1081,6 +1082,22 @@ namespace Alimer
 
                 default:
                     ALIMER_UNREACHABLE();
+            }
+        }
+
+        constexpr const char* GetSemanticName(RHIVertexAttributeSemantic value)
+        {
+            switch (value)
+            {
+                case RHIVertexAttributeSemantic::Position:      return "POSITION";
+                case RHIVertexAttributeSemantic::Normal:        return "NORMAL";
+                case RHIVertexAttributeSemantic::Tangent:       return "TANGENT";
+                case RHIVertexAttributeSemantic::TexCoord:      return "TEXCOORD";
+                case RHIVertexAttributeSemantic::Color:         return "COLOR";
+                case RHIVertexAttributeSemantic::BlendIndices:  return "BLENDINDICES";
+                case RHIVertexAttributeSemantic::BlendWeight:   return "BLENDWEIGHT";
+                case RHIVertexAttributeSemantic::Custom:        return "CUSTOM";
+                default:                                        return nullptr;
             }
         }
 
@@ -1384,6 +1401,8 @@ namespace Alimer
     class D3D12CommandBuffer final : public RHICommandBuffer
     {
         friend class D3D12Device;
+        friend class D3D12ComputePassEncoder;
+        friend class D3D12RenderPassEncoder;
 
     public:
         D3D12CommandBuffer(D3D12Device* device, RHIQueueType queueType, uint32_t id);
@@ -1392,11 +1411,13 @@ namespace Alimer
         void Clear();
         void Begin(uint32_t frameIndex, std::string_view label);
         ID3D12CommandList* End();
+        void EndEncoding();
 
         void BufferBarrier(const D3D12Buffer* buffer, RHIBufferStates newState, bool commit = false);
         void TextureBarrier(const D3D12Texture* resource, RHITextureLayout newLayout, uint32_t subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool commit = false);
         void InsertUAVBarrier(const D3D12Resource* resource, bool commit = false);
         void CommitBarriers();
+        void SetPushConstants(bool graphics, const void* data, uint32_t size, uint32_t offset);
 
         void PushDebugGroup(std::string_view name) override;
         void PopDebugGroup() override;
@@ -1438,8 +1459,8 @@ namespace Alimer
         // Legacy barriers
         D3D12_RESOURCE_BARRIER barriers[kMaxBarrierCount] = {};
 
-        D3D12RenderPassEncoder* _renderPassEncoder;
         D3D12ComputePassEncoder* _computePassEncoder;
+        D3D12RenderPassEncoder* _renderPassEncoder;
         std::vector<SharedPtr<D3D12Surface>> presentSwapChains;
     };
 
@@ -1750,9 +1771,25 @@ namespace Alimer
 #define d3d12_D3D12SerializeVersionedRootSignature D3D12SerializeVersionedRootSignature
 #endif
 
+    struct D3D12BindlessManager final
+    {
+    public:
+        D3D12Device* device;
+        bool ultimateBindless = false;
+        RootParameterIndex pushConstantsIndex = ~0u;
+        RootParameterIndex dynamicConstantBufferStartIndex = ~0u;
+        ComPtr<ID3D12RootSignature> universalRootSignature;
+
+        D3D12BindlessManager(D3D12Device* device_);
+        ~D3D12BindlessManager();
+    };
+
     class D3D12Device final : public RHIDevice
     {
+        friend class D3D12ComputePassEncoder;
+        friend class D3D12RenderPassEncoder;
         friend class D3D12CommandBuffer;
+        friend struct D3D12BindlessManager;
 
     public:
         D3D12Device(D3D12Adapter* adapter, const RHIDeviceDesc& desc);
@@ -1845,6 +1882,7 @@ namespace Alimer
         ID3D12CommandSignature* drawIndirectCommandSignature = nullptr;
         ID3D12CommandSignature* drawIndexedIndirectCommandSignature = nullptr;
         ID3D12CommandSignature* dispatchMeshIndirectCommandSignature = nullptr;
+        D3D12BindlessManager* bindlessManager;
 
         std::vector<std::unique_ptr<D3D12CommandBuffer>> commandBuffers;
         uint32_t cmdBuffersCount = 0;
@@ -2337,6 +2375,112 @@ namespace Alimer
         handle->SetName(wName.c_str());
     }
 
+    D3D12BindlessManager::D3D12BindlessManager(D3D12Device* device_)
+        : device(device_)
+    {
+        ultimateBindless = device->d3dFeatures.HighestShaderModel() >= D3D_SHADER_MODEL_6_6;
+
+        uint32_t MaxNonSamplerDescriptors = 0;
+        uint32_t MaxSamplerDescriptors = 0;
+        D3D12_FEATURE_DATA_D3D12_OPTIONS19 options19{};
+        if (FAILED(device->device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, &options19, sizeof(options19))))
+        {
+            if (device->d3dFeatures.ResourceBindingTier() == D3D12_RESOURCE_BINDING_TIER_1)
+            {
+                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
+            }
+            else if (device->d3dFeatures.ResourceBindingTier() == D3D12_RESOURCE_BINDING_TIER_2)
+            {
+                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
+            }
+            else
+            {
+                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
+            }
+            MaxSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
+        }
+        else
+        {
+            MaxNonSamplerDescriptors = options19.MaxViewDescriptorHeapSize;
+            MaxSamplerDescriptors = options19.MaxSamplerDescriptorHeapSizeWithStaticSamplers;
+        }
+
+        // Create universal root signature with bindless descriptor tables
+        uint32_t rootParameterCount = 1 + kDynamicConstantBufferCount;
+        std::vector<CD3DX12_ROOT_PARAMETER1> rootParameters;
+        rootParameters.resize(rootParameterCount);
+
+        pushConstantsIndex = 0;
+        dynamicConstantBufferStartIndex = pushConstantsIndex + 1;
+
+        // Push constants
+        constexpr uint32_t PushConstantsShaderRegister = 999; // b999 in shader
+        rootParameters[pushConstantsIndex].InitAsConstants(kMaxPushConstantsSize / 4, PushConstantsShaderRegister, 0, D3D12_SHADER_VISIBILITY_ALL);
+        // Dynamic Constant buffers
+        for (uint32_t i = 0; i < kDynamicConstantBufferCount; ++i)
+        {
+            rootParameters[kDynamicConstantBufferCount + i].InitAsConstantBufferView(i, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_ALL);
+        }
+
+        // Create entries for static samples
+        std::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplers;
+        staticSamplers.resize(kStaticSamplerCount);
+        for (uint32_t samplerIndex = 0; samplerIndex < kStaticSamplerCount; samplerIndex++)
+        {
+            uint32_t binding = kStaticSamplerRegisterSpaceBegin + samplerIndex;
+            staticSamplers[samplerIndex] = ToD3D12StaticSamplerDesc(device->staticSamplers[samplerIndex]->GetDesc(), binding, 0, D3D12_SHADER_VISIBILITY_ALL);
+        }
+
+        D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
+        rootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+        rootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(rootParameters.size());
+        rootSignatureDesc.Desc_1_1.pParameters = rootParameters.data();
+        rootSignatureDesc.Desc_1_1.NumStaticSamplers = static_cast<UINT>(staticSamplers.size());
+        rootSignatureDesc.Desc_1_1.pStaticSamplers = staticSamplers.data();
+        rootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+        if (ultimateBindless)
+        {
+            rootSignatureDesc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED;
+            rootSignatureDesc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
+        }
+
+        ComPtr<ID3DBlob> signature;
+        ComPtr<ID3DBlob> error;
+        HRESULT hr;
+        if (device->deviceConfiguration)
+        {
+            hr = device->deviceConfiguration->SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error);
+        }
+        else
+        {
+            hr = d3d12_D3D12SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error);
+        }
+
+        if (FAILED(hr))
+        {
+            const char* errString = error ? reinterpret_cast<const char*>(error->GetBufferPointer()) : "";
+            LOGE("%s, Failed to serialize root signature: %s - result: 0x%08X", errString, hr);
+            return;
+        }
+
+        hr = device->device->CreateRootSignature(0,
+            signature->GetBufferPointer(),
+            signature->GetBufferSize(),
+            IID_PPV_ARGS(universalRootSignature.GetAddressOf())
+        );
+
+        if (FAILED(hr))
+        {
+            LOGE( "%s, Failed to create root signature, result: 0x%08X", hr);
+            return;
+        }
+    }
+
+    D3D12BindlessManager::~D3D12BindlessManager()
+    {
+
+    }
+
     /* D3D12Surface */
     D3D12Surface::D3D12Surface(D3D12Factory* factory_, RHISurfaceSource* source)
         : factory(factory_)
@@ -2390,57 +2534,104 @@ namespace Alimer
 
     void D3D12ComputePassEncoder::Begin(const RHIComputePassDesc& desc)
     {
+        ClearState();
 
+        if (desc.label)
+        {
+            _commandBuffer->PushDebugGroup(desc.label);
+            _hasLabel = true;
+        }
+        else
+        {
+            _hasLabel = false;
+        }
     }
 
     void D3D12ComputePassEncoder::PushDebugGroup(std::string_view groupLabel)
     {
-
+        _commandBuffer->PushDebugGroup(groupLabel);
     }
 
     void D3D12ComputePassEncoder::PopDebugGroup()
     {
-
+        _commandBuffer->PopDebugGroup();
     }
 
     void D3D12ComputePassEncoder::InsertDebugMarker(std::string_view markerLabel)
     {
-
+        _commandBuffer->InsertDebugMarker(markerLabel);
     }
 
     void D3D12ComputePassEncoder::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer)
     {
+        auto backendSrcBuffer = static_cast<const D3D12Buffer*>(sourceBuffer);
+        auto backendDestBuffer = static_cast<const D3D12Buffer*>(destinationBuffer);
 
+        _commandBuffer->BufferBarrier(backendSrcBuffer, RHIBufferStates::CopySource);
+        _commandBuffer->BufferBarrier(backendDestBuffer, RHIBufferStates::CopyDest);
+        _commandBuffer->CommitBarriers();
+
+        // Note: D3D12 inverts the order of source and destination parameters
+        _commandBuffer->commandList6->CopyResource(backendDestBuffer->handle, backendSrcBuffer->handle);
     }
 
     void D3D12ComputePassEncoder::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size)
     {
+        auto backendSrcBuffer = static_cast<const D3D12Buffer*>(sourceBuffer);
+        auto backendDestBuffer = static_cast<const D3D12Buffer*>(destinationBuffer);
 
+        _commandBuffer->BufferBarrier(backendSrcBuffer, RHIBufferStates::CopySource);
+        _commandBuffer->BufferBarrier(backendDestBuffer, RHIBufferStates::CopyDest);
+        _commandBuffer->CommitBarriers();
+
+        // Note: D3D12 inverts the order of source and destination parameters
+        _commandBuffer->commandList6->CopyBufferRegion(
+            backendDestBuffer->handle, destinationOffset,
+            backendSrcBuffer->handle, sourceOffset,
+            size);
     }
 
     void D3D12ComputePassEncoder::SetPipeline(RHIComputePipeline* pipeline)
     {
+        if (_currentPipeline.Get() == pipeline)
+            return;
 
+        D3D12ComputePipeline* backendPipeline = static_cast<D3D12ComputePipeline*>(pipeline);
+        _commandBuffer->commandList6->SetPipelineState(backendPipeline->handle);
+        _currentPipeline = backendPipeline;
     }
 
     void D3D12ComputePassEncoder::SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset)
     {
-
+        _commandBuffer->SetPushConstants(false, data, size, offset);
     }
 
     void D3D12ComputePassEncoder::DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
     {
+        PrepareDispatch();
 
+        _commandBuffer->commandList6->Dispatch(groupCountX, groupCountY, groupCountZ);
     }
 
     void D3D12ComputePassEncoder::DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
+        PrepareDispatch();
 
+        auto backendIndirectBuffer = static_cast<const D3D12Buffer*>(indirectBuffer);
+        _commandBuffer->commandList6->ExecuteIndirect(_commandBuffer->device->dispatchIndirectCommandSignature, 1,
+            backendIndirectBuffer->handle, indirectBufferOffset, nullptr, 0);
     }
 
     void D3D12ComputePassEncoder::End()
     {
+        if (_hasLabel)
+        {
+            PopDebugGroup();
+            _hasLabel = false;
+        }
 
+        _commandBuffer->EndEncoding();
+        ClearState();
     }
 
     RHICommandBuffer* D3D12ComputePassEncoder::GetCommandBuffer() const
@@ -2450,7 +2641,8 @@ namespace Alimer
 
     void D3D12ComputePassEncoder::ClearState()
     {
-
+        _hasLabel = false;
+        _currentPipeline.Reset();
     }
 
     void D3D12ComputePassEncoder::PrepareDispatch()
@@ -2471,24 +2663,39 @@ namespace Alimer
 
     }
 
+    void D3D12RenderPassEncoder::ClearState()
+    {
+        _hasLabel = false;
+        _currentShadingRate = RHIShadingRate::Invalid;
+        _currentPipeline.Reset();
+    }
+
     void D3D12RenderPassEncoder::Begin(const RHIRenderPassDesc& desc)
     {
-
+        if (desc.label)
+        {
+            _commandBuffer->PushDebugGroup(desc.label);
+            _hasLabel = true;
+        }
+        else
+        {
+            _hasLabel = false;
+        }
     }
 
     void D3D12RenderPassEncoder::PushDebugGroup(std::string_view groupLabel)
     {
-
+        _commandBuffer->PushDebugGroup(groupLabel);
     }
 
     void D3D12RenderPassEncoder::PopDebugGroup()
     {
-
+        _commandBuffer->PopDebugGroup();
     }
 
     void D3D12RenderPassEncoder::InsertDebugMarker(std::string_view markerLabel)
     {
-
+        _commandBuffer->InsertDebugMarker(markerLabel);
     }
 
     void D3D12RenderPassEncoder::SetViewport(const RHIViewport& viewport)
@@ -2597,17 +2804,21 @@ namespace Alimer
 
     void D3D12RenderPassEncoder::End()
     {
+        //_device->vkCmdEndRendering(_vkCommandBuffer);
 
+        if (_hasLabel)
+        {
+            PopDebugGroup();
+            _hasLabel = false;
+        }
+
+        _commandBuffer->EndEncoding();
+        ClearState();
     }
 
     RHICommandBuffer* D3D12RenderPassEncoder::GetCommandBuffer() const
     {
         return _commandBuffer;
-    }
-
-    void D3D12RenderPassEncoder::ClearState()
-    {
-
     }
 
 
@@ -2630,11 +2841,16 @@ namespace Alimer
             device->device->CreateCommandList1(0, d3dCommandListType, D3D12_COMMAND_LIST_FLAG_NONE, PPV_ARGS(commandList6))
         );
         commandList6->QueryInterface(&commandList7);
+
+        _computePassEncoder = new D3D12ComputePassEncoder(device, this);
+        _renderPassEncoder = new D3D12RenderPassEncoder(device, this);
     }
 
     D3D12CommandBuffer::~D3D12CommandBuffer()
     {
         Clear();
+        SafeDelete(_computePassEncoder);
+        SafeDelete(_renderPassEncoder);
 
         for (uint32_t i = 0; i < kNumFramesInFlight; ++i)
         {
@@ -2719,6 +2935,11 @@ namespace Alimer
         ThrowIfFailed(commandList6->Close());
 
         return commandList6;
+    }
+
+    void D3D12CommandBuffer::EndEncoding()
+    {
+        _encoderActive = false;
     }
 
     void D3D12CommandBuffer::BufferBarrier(const D3D12Buffer* buffer, RHIBufferStates newState, bool commit)
@@ -2921,6 +3142,22 @@ namespace Alimer
         numBarriersToCommit = 0;
     }
 
+    void D3D12CommandBuffer::SetPushConstants(bool graphics, const void* data, uint32_t size, uint32_t offset)
+    {
+        uint32_t rootParameterIndex = device->bindlessManager->pushConstantsIndex;
+        uint32_t num32BitValuesToSet = size / sizeof(uint32_t);
+        uint32_t destOffsetIn32BitValues = offset / sizeof(uint32_t);
+
+        if (graphics)
+        {
+            commandList6->SetGraphicsRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
+        }
+        else
+        {
+            commandList6->SetComputeRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
+        }
+    }
+
     void D3D12CommandBuffer::PushDebugGroup(std::string_view name)
     {
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
@@ -3023,7 +3260,6 @@ namespace Alimer
     }
 
     /* D3D12Device */
-
     D3D12Device::D3D12Device(D3D12Adapter* adapter_, const RHIDeviceDesc& desc)
         : adapter(adapter_)
     {
@@ -3046,6 +3282,31 @@ namespace Alimer
 
         // Init feature check (https://devblogs.microsoft.com/directx/introducing-a-new-api-for-checking-feature-support-in-direct3d-12/)
         ThrowIfFailed(d3dFeatures.Init(device));
+
+        // Determine maximum supported feature level for this device
+        constexpr D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_12_0;
+        const D3D_FEATURE_LEVEL maxSupportedFeatureLevel = d3dFeatures.MaxSupportedFeatureLevel();
+        if (maxSupportedFeatureLevel < minFeatureLevel)
+        {
+            std::string majorLevel = std::to_string(minFeatureLevel >> 12);
+            std::string minorLevel = std::to_string((minFeatureLevel >> 8) & 0xF);
+            LOGF("The device doesn't support the minimum feature level required to run this engine (DX{}.{})", majorLevel, minorLevel);
+            return;
+        }
+
+        if (d3dFeatures.HighestRootSignatureVersion() < D3D_ROOT_SIGNATURE_VERSION_1_1)
+        {
+            LOGF("Direct3D12: Root signature version 1.1 not supported!");
+            return;
+        }
+
+        // Check the required shader model, or 6.6 for ultimate bindless?
+        const D3D_SHADER_MODEL highestShaderModel = d3dFeatures.HighestShaderModel();
+        if (highestShaderModel < D3D_SHADER_MODEL_6_5)
+        {
+            LOGF("Direct3D12: The device does not support the minimum shader model required to run this sample (SM 6.5)");
+            return;
+        }
 
         enhancedBarriersSupported = d3dFeatures.EnhancedBarriersSupported() == TRUE;
 
@@ -3262,70 +3523,20 @@ namespace Alimer
         shaderResourceViewHeap.Init(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, shaderResourceViewHeapSize);
         samplerHeap.Init(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, samplerHeapSize);
 
-        // Init capabilities.
-        // Determine maximum supported feature level for this device
-        constexpr D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_12_0;
-        const D3D_FEATURE_LEVEL maxSupportedFeatureLevel = d3dFeatures.MaxSupportedFeatureLevel();
-        if (maxSupportedFeatureLevel < minFeatureLevel)
-        {
-            std::string majorLevel = std::to_string(minFeatureLevel >> 12);
-            std::string minorLevel = std::to_string((minFeatureLevel >> 8) & 0xF);
-            LOGF("The device doesn't support the minimum feature level required to run this engine (DX{}.{})", majorLevel, minorLevel);
-            return;
-        }
+        // Init bindless manager
+        InitResources();
+        bindlessManager = new D3D12BindlessManager(this);
 
-        if (d3dFeatures.HighestRootSignatureVersion() < D3D_ROOT_SIGNATURE_VERSION_1_1)
-        {
-            LOGF("Direct3D12: Root signature version 1.1 not supported!");
-            return;
-        }
-
-        // Check the required shader model
-        //const D3D_SHADER_MODEL highestShaderModel = d3dFeatures.HighestShaderModel();
-        //if (highestShaderModel < D3D_SHADER_MODEL_6_5)
-        //{
-        //    LOGF("Direct3D12: The device does not support the minimum shader model required to run this sample (SM 6.5)");
-        //    return;
-        //}
-
-        uint32_t MaxNonSamplerDescriptors = 0;
-        uint32_t MaxSamplerDescriptors = 0;
-        D3D12_FEATURE_DATA_D3D12_OPTIONS19 options19{};
-        if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, &options19, sizeof(options19))))
-        {
-            if (d3dFeatures.ResourceBindingTier() == D3D12_RESOURCE_BINDING_TIER_1)
-            {
-                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
-            }
-            else if (d3dFeatures.ResourceBindingTier() == D3D12_RESOURCE_BINDING_TIER_2)
-            {
-                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
-            }
-            else
-            {
-                MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
-            }
-            MaxSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
-        }
-        else
-        {
-            MaxNonSamplerDescriptors = options19.MaxViewDescriptorHeapSize;
-            MaxSamplerDescriptors = options19.MaxSamplerDescriptorHeapSizeWithStaticSamplers;
-        }
-
+        // Timestamp frequency from the graphics queue
         ThrowIfFailed(GetGraphicsQueue().handle->GetTimestampFrequency(&_timestampFrequency));
 
         // Limits
-       // https://docs.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
-       // In DWORDS. Descriptor tables cost 1, Root constants cost 1, Root descriptors cost 2.
-        static constexpr uint32_t kMaxRootSignatureSize = 64u;
-
+        // https://docs.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
         _limits.maxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION;
         _limits.maxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
         _limits.maxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION;
         _limits.maxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION;
         _limits.maxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
-        _limits.maxBindGroups = kMaxRootSignatureSize;
 
         //uploadBufferTextureRowAlignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
         //uploadBufferTextureSliceAlignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
@@ -3335,9 +3546,10 @@ namespace Alimer
         _limits.minConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
         _limits.minStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT;
 
-        //adapterProperties.limits.maxPushConstantsSize = sizeof(uint32_t) * kMaxRootSignatureSize / 1;
-        //const uint32_t maxPushDescriptors = kMaxRootSignatureSize / 2;
-        _limits.maxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ull * 1024ull;
+        _limits.textureRowPitchAlignment = d3dFeatures.UnrestrictedBufferTextureCopyPitchSupported() ? 1u : D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+        _limits.textureDepthPitchAlignment = d3dFeatures.UnrestrictedBufferTextureCopyPitchSupported() ? 1u : D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
+        _limits.minLinearAllocatorOffsetAlignment = std::max(D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT, D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT);
+        _limits.maxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ul * 1024ul;
 
         // Slot values can be 0-15, inclusive:
         // https://docs.microsoft.com/en-ca/windows/win32/api/d3d12/ns-d3d12-d3d12_input_element_desc
@@ -3427,7 +3639,6 @@ namespace Alimer
             LOGD("D3D12: GPUUploadHeapSupported supported");
         }
 
-        InitResources();
         LOGI("D3D12: Initialized with success");
     }
 
@@ -3466,6 +3677,7 @@ namespace Alimer
         depthStencilViewHeap.Shutdown();
         shaderResourceViewHeap.Shutdown();
         samplerHeap.Shutdown();
+        SafeDelete(bindlessManager);
 
         SafeRelease(dispatchIndirectCommandSignature);
         SafeRelease(drawIndirectCommandSignature);
@@ -4346,7 +4558,7 @@ namespace Alimer
             } stream2 = {};
         } stream = {};
 
-        stream.stream1.pRootSignature = nullptr;
+        stream.stream1.pRootSignature = bindlessManager->universalRootSignature.Get();
 
         // Mesh Pipeline (D3DX12_MESH_SHADER_PIPELINE_STATE_DESC)
         if (desc.meshShader != nullptr)
@@ -4386,10 +4598,9 @@ namespace Alimer
                 {
                     const RHIVertexAttribute& attribute = vertexBufferLayout.attributes[attributeIndex];
 
-                    // TODO
                     auto& element = inputElements.emplace_back();
-                    element.SemanticName = "ATTRIBUTE";
-                    element.SemanticIndex = 0;
+                    element.SemanticName = GetSemanticName(attribute.semantic);
+                    element.SemanticIndex = attribute.semanticIndex;
                     element.Format = ToDxgiFormat(attribute.format);
                     element.InputSlot = bufferIndex;
                     element.AlignedByteOffset = attribute.offset;
@@ -4626,66 +4837,6 @@ namespace Alimer
 
         return commandBuffers[index].get();
     }
-
-#if ALIMER_BINDLESS
-    uint32_t D3D12Device::AllocateBindlessResource(D3D12_CPU_DESCRIPTOR_HANDLE handle)
-    {
-        destroyMutex.lock();
-        if (!freeBindlessResources.empty())
-        {
-            uint32_t index = freeBindlessResources.back();
-            freeBindlessResources.pop_back();
-            destroyMutex.unlock();
-
-            D3D12_CPU_DESCRIPTOR_HANDLE dstBindless = resourceDescriptorHeap.cpuStart;
-            dstBindless.ptr += index * GetDescriptorHandleIncrementSize(DescriptorHeapType::CbvSrvUav);
-            device->CopyDescriptorsSimple(1, dstBindless, handle, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-            return index;
-        }
-
-        destroyMutex.unlock();
-        return kInvalidBindlessIndex;
-    }
-
-    uint32_t D3D12Device::AllocateBindlessSampler(D3D12_CPU_DESCRIPTOR_HANDLE handle)
-    {
-        destroyMutex.lock();
-        if (!freeBindlessResources.empty())
-        {
-            uint32_t index = freeBindlessResources.back();
-            freeBindlessResources.pop_back();
-            destroyMutex.unlock();
-
-            D3D12_CPU_DESCRIPTOR_HANDLE dstBindless = samplerDescriptorHeap.cpuStart;
-            dstBindless.ptr += index * GetDescriptorHandleIncrementSize(DescriptorHeapType::Sampler);
-            device->CopyDescriptorsSimple(1, dstBindless, handle, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-            return index;
-        }
-
-        destroyMutex.unlock();
-        return kInvalidBindlessIndex;
-    }
-
-    void D3D12Device::FreeBindlessResource(uint32_t index)
-    {
-        if (index != kInvalidBindlessIndex)
-        {
-            destroyMutex.lock();
-            destroyedBindlessResources.push_back(std::make_pair(index, frameCount));
-            destroyMutex.unlock();
-        }
-    }
-
-    void D3D12Device::FreeBindlessSampler(uint32_t index)
-    {
-        if (index != kInvalidBindlessIndex)
-        {
-            destroyMutex.lock();
-            destroyedBindlessSamplers.push_back(std::make_pair(index, frameCount));
-            destroyMutex.unlock();
-        }
-    }
-#endif // ALIMER_BINDLESS
 
     ID3D12CommandSignature* D3D12Device::CreateCommandSignature(D3D12_INDIRECT_ARGUMENT_TYPE type, uint32_t stride)
     {

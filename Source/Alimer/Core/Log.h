@@ -46,14 +46,14 @@ namespace Alimer
 #define LOGV(...) spdlog::trace(__VA_ARGS__);
 #define LOGD(...) spdlog::debug(__VA_ARGS__);
 #define LOGI(...) spdlog::info(__VA_ARGS__);
-#define LOGW(...) spdlog::warn("{}: {}", ALIMER_FUNCTION_NAME, FMT::format(__VA_ARGS__));
+#define LOGW(...) spdlog::warn("{}: {}", ALIMER_FUNCTION_NAME, std::format(__VA_ARGS__));
 
 #if defined(ALIMER_ERRORS_AS_WARNINGS)
-#define LOGE(...) spdlog::warn("{}: {}", ALIMER_FUNCTION_NAME, FMT::format(__VA_ARGS__));
+#define LOGE(...) spdlog::warn("{}: {}", ALIMER_FUNCTION_NAME, std::format(__VA_ARGS__));
 #else
 #define LOGE(...) do \
     { \
-        spdlog::error("[{}:{}] {}: {}", __FILE__, __LINE__, ALIMER_FUNCTION_NAME, FMT::format(__VA_ARGS__)); \
+        spdlog::error("[{}:{}] {}: {}", __FILE__, __LINE__, ALIMER_FUNCTION_NAME, std::format(__VA_ARGS__)); \
         ALIMER_BREAKPOINT; \
         std::exit(-1); \
     } while (0)
@@ -61,7 +61,7 @@ namespace Alimer
 
 #define LOGF(...) do \
     { \
-        spdlog::critical("[{}:{}] {}: {}", __FILE__, __LINE__, ALIMER_FUNCTION_NAME, FMT::format(__VA_ARGS__)); \
+        spdlog::critical("[{}:{}] {}: {}", __FILE__, __LINE__, ALIMER_FUNCTION_NAME, std::format(__VA_ARGS__)); \
         ALIMER_BREAKPOINT; \
         std::exit(-1); \
     } while (0)

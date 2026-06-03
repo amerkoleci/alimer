@@ -22,9 +22,6 @@ using float4x4 = Alimer::Matrix4x4;
 #define alignas(x)
 #endif
 
-// Static samplers
-static constexpr uint32_t kImmutableSamplerSlotBegin = 100;
-
 struct DispatchIndirectCommand
 {
     uint32_t x;

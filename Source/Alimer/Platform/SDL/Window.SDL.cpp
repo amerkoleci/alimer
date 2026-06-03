@@ -78,7 +78,7 @@ Window::Window(const std::string& title, uint32_t width, uint32_t height, Window
     _surfaceSource = RHISurfaceSource::CreateWin32(hwnd);
 #elif defined(SDL_PLATFORM_MACOS)
     void* layer = SDL_Metal_GetLayer(_impl->view);
-    _surfaceSource = RHISurfaceSource::CreateMetal(layer);
+    _surfaceSource = RHISurfaceSource::CreateMetalLayer(layer);
 #elif defined(SDL_PLATFORM_ANDROID)
     void* window = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, nullptr);
     _surfaceSource = RHISurfaceSource::CreateAndroid(window);

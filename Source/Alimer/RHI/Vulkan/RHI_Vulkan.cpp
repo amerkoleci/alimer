@@ -52,6 +52,7 @@ ALIMER_ENABLE_WARNINGS()
 #include <deque>
 #include <memory>
 #include <sstream>
+#include <numeric>   // lcm
 
 static PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = nullptr;
 
@@ -1269,7 +1270,7 @@ namespace Alimer
         friend class VulkanDevice;
 
     public:
-        VulkanCommandBuffer(VulkanDevice* device, RHIQueueType queueType, uint32_t id);
+        VulkanCommandBuffer(VulkanDevice* device, RHIQueueType queueType);
         ~VulkanCommandBuffer() override;
 
         void Begin(uint32_t frameIndex, std::string_view label);
@@ -1305,7 +1306,6 @@ namespace Alimer
 
         VulkanDevice* device;
         RHIQueueType queueType;
-        uint32_t id;
 
         VkCommandPool commandPools[kNumFramesInFlight] = {};
         VkCommandBuffer commandBuffers[kNumFramesInFlight] = {};
@@ -2905,10 +2905,9 @@ namespace Alimer
     }
 
     /* VulkanCommandBuffer */
-    VulkanCommandBuffer::VulkanCommandBuffer(VulkanDevice* device_, RHIQueueType queueType_, uint32_t id_)
+    VulkanCommandBuffer::VulkanCommandBuffer(VulkanDevice* device_, RHIQueueType queueType_)
         : device(device_)
         , queueType(queueType_)
-        , id(id_)
     {
         for (uint32_t i = 0; i < kNumFramesInFlight; ++i)
         {
@@ -3194,12 +3193,12 @@ namespace Alimer
     {
         struct DescriptorTableInfo
         {
-            VkDescriptorBufferInfo CBV[kContantBufferCount];
+            VkDescriptorBufferInfo CBV[kDynamicConstantBufferCount];
         } infos = {};
 
         struct DescriptorTableWrites
         {
-            VkWriteDescriptorSet CBV[kContantBufferCount];
+            VkWriteDescriptorSet CBV[kDynamicConstantBufferCount];
         } writes = {};
 
         const VkDescriptorBufferInfo nullBufferInfo = {
@@ -3208,14 +3207,14 @@ namespace Alimer
             .range = VK_WHOLE_SIZE
         };
 
-        for (uint32_t i = 0; i < ALIMER_STATIC_ARRAY_SIZE(table.CBV); ++i)
+        for (uint32_t i = 0; i < kDynamicConstantBufferCount; ++i)
         {
             RHIBufferRef buffer = table.CBV[i];
             auto& info = infos.CBV[i];
             auto& write = writes.CBV[i];
             write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-            write.dstBinding = VulkanRegisterShift::kContantBuffer + i;
+            write.dstBinding = VulkanRegisterShift::kConstantBuffer + i;
             write.descriptorCount = 1;
             write.dstSet = device->bindlessManager->bindingsDescriptorSet;
             write.pBufferInfo = &info;
@@ -3572,11 +3571,11 @@ namespace Alimer
             Vector<VkDescriptorSetLayoutBinding> layoutBindings;
             Vector<VkDescriptorBindingFlags> layoutBindingsFlags;
 
-            for (uint32_t i = 0; i < kContantBufferCount; ++i)
+            for (uint32_t i = 0; i < kDynamicConstantBufferCount; ++i)
             {
                 VkDescriptorSetLayoutBinding& binding = layoutBindings.emplace_back();
                 binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-                binding.binding = VulkanRegisterShift::kContantBuffer + i;
+                binding.binding = VulkanRegisterShift::kConstantBuffer + i;
                 binding.descriptorCount = 1;
                 binding.stageFlags = VK_SHADER_STAGE_ALL;
             }
@@ -3586,7 +3585,7 @@ namespace Alimer
             {
                 VkSampler sampler = device->vkStaticSamplers[samplerIndex];
 
-                uint32_t binding = kImmutableSamplerSlotBegin + static_cast<uint32_t>(samplerIndex);
+                uint32_t binding = kStaticSamplerRegisterSpaceBegin + static_cast<uint32_t>(samplerIndex);
 
                 VkDescriptorSetLayoutBinding layoutBinding = {};
                 layoutBinding.binding = binding + VulkanRegisterShift::kSampler;
@@ -3689,7 +3688,7 @@ namespace Alimer
 
     void VulkanBindlessManager::BindDescriptorSets(VkCommandBuffer commandBuffer, VkPipelineBindPoint bindPoint)
     {
-        uint32_t uniformBufferDynamicOffsets[kContantBufferCount] = {};
+        uint32_t uniformBufferDynamicOffsets[kDynamicConstantBufferCount] = {};
 
         device->vkCmdBindDescriptorSets(
             commandBuffer,
@@ -3698,7 +3697,7 @@ namespace Alimer
             0,
             ALIMER_STATIC_ARRAY_SIZE(descriptorSets),
             descriptorSets,
-            kContantBufferCount, uniformBufferDynamicOffsets
+            kDynamicConstantBufferCount, uniformBufferDynamicOffsets
         );
     }
 
@@ -4025,11 +4024,17 @@ namespace Alimer
             _limits.maxTextureDimension3D = vkLimits.maxImageDimension3D;
             _limits.maxTextureDimensionCube = vkLimits.maxImageDimensionCube;
             _limits.maxTextureArrayLayers = vkLimits.maxImageArrayLayers;
-            _limits.maxBindGroups = vkLimits.maxBoundDescriptorSets;
             _limits.maxConstantBufferBindingSize = vkLimits.maxUniformBufferRange;
             _limits.maxStorageBufferBindingSize = vkLimits.maxStorageBufferRange;
             _limits.minConstantBufferOffsetAlignment = (uint32_t)vkLimits.minUniformBufferOffsetAlignment;
             _limits.minStorageBufferOffsetAlignment = (uint32_t)vkLimits.minStorageBufferOffsetAlignment;
+
+            _limits.textureRowPitchAlignment = vkLimits.optimalBufferCopyRowPitchAlignment;
+
+            constexpr uint64_t leastCommonMultipleStrideAccrossAllFormats = 16;
+            _limits.textureDepthPitchAlignment = std::lcm(vkLimits.optimalBufferCopyOffsetAlignment, leastCommonMultipleStrideAccrossAllFormats);
+            _limits.minLinearAllocatorOffsetAlignment = std::max(vkLimits.minUniformBufferOffsetAlignment, vkLimits.minStorageBufferOffsetAlignment);
+
             //_limits.maxPushConstantsSize = properties2.properties.limits.maxPushConstantsSize;
             [[maybe_unused]] const uint32_t maxPushDescriptors = adapter->pushDescriptorProps.maxPushDescriptors;
             _limits.maxBufferSize = adapter->properties13.maxBufferSize;
@@ -5884,7 +5889,7 @@ namespace Alimer
         uint32_t index = cmdBuffersCount++;
         if (index >= commandBuffers.size())
         {
-            commandBuffers.push_back(std::make_unique<VulkanCommandBuffer>(this, queueType, index));
+            commandBuffers.push_back(std::make_unique<VulkanCommandBuffer>(this, queueType));
         }
         cmdBuffersLocker.unlock();
 

@@ -4,12 +4,7 @@
 #pragma once
 
 #include "Alimer/Core/Vector.h"
-#include <spdlog/fmt/fmt.h>
-#ifdef SPDLOG_USE_STD_FORMAT
-#define FMT std
-#else
-#define FMT fmt
-#endif
+#include <format>
 
 namespace Alimer
 {

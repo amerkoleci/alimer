@@ -10,11 +10,11 @@ namespace
 {
     Assert::FailBehavior DefaultHandler(const char* condition, const std::string& message, const char* file, const uint32_t line)
     {
-        std::string printMessage = FMT::format("{}({}): Assert Failure: ", file, line);
+        std::string printMessage = std::format("{}({}): Assert Failure: ", file, line);
 
         if (condition != nullptr)
         {
-            printMessage += FMT::format("'{}' ", condition);
+            printMessage += std::format("'{}' ", condition);
         }
 
         if (!message.empty())
