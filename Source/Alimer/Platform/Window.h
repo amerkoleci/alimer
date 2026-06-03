@@ -83,6 +83,7 @@ namespace Alimer
         uint32_t _id{};
         std::string _title;
         PixelFormat _colorFormat = PixelFormat::BGRA8UnormSrgb;
+        RHISurfaceSourceRef _surfaceSource;
         RHISurfaceRef _surface;
     };
 }

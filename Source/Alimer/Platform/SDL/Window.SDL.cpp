@@ -69,6 +69,40 @@ Window::Window(const std::string& title, uint32_t width, uint32_t height, Window
 #endif
 
     _id = SDL_GetWindowID(_impl->handle);
+
+    // https://github.com/eliemichel/sdl3webgpu/blob/main/sdl3webgpu.c
+    [[maybe_unused]] SDL_PropertiesID properties = SDL_GetWindowProperties(_impl->handle);
+
+#if defined(SDL_PLATFORM_WIN32)
+    void* hwnd = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
+    _surfaceSource = RHISurfaceSource::CreateWin32(hwnd);
+#elif defined(SDL_PLATFORM_MACOS)
+    void* layer = SDL_Metal_GetLayer(_impl->view);
+    _surfaceSource = RHISurfaceSource::CreateMetal(layer);
+#elif defined(SDL_PLATFORM_ANDROID)
+    void* window = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, nullptr);
+    _surfaceSource = RHISurfaceSource::CreateAndroid(window);
+#elif defined(SDL_PLATFORM_LINUX)
+    if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "x11") == 0)
+    {
+        void* xdisplay = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_X11_DISPLAY_POINTER, nullptr);
+        uint64_t xwindow = (uint64_t)SDL_GetNumberProperty(properties, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
+        if (xdisplay && xwindow)
+        {
+            _surfaceSource = RHISurfaceSource::CreateXlib(xdisplay, xwindow);
+        }
+    }
+    else if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "wayland") == 0)
+    {
+        void* wayland_display = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, nullptr);
+        void* wayland_surface = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr);
+        if (wayland_display && wayland_surface)
+        {
+            _surfaceSource = RHISurfaceSource::CreateWayland(wayland_display, wayland_surface);
+        }
+    }
+#endif
+
     s_WindowCount++;
 }
 
@@ -193,39 +227,4 @@ void Window::SetCursorVisible(bool value)
     {
         SDL_HideCursor();
     }
-}
-
-
-void Window::CreateSurface(RHIFactory* factory)
-{
-    [[maybe_unused]] SDL_PropertiesID properties = SDL_GetWindowProperties(_impl->handle);
-
-#if defined(SDL_PLATFORM_WIN32)
-    void* hwnd = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
-    _surface = factory->CreateSurface(hwnd, nullptr);
-#elif defined(SDL_PLATFORM_MACOS)
-    void* layer = SDL_Metal_GetLayer(_impl->view);
-    _surface = factory->CreateSurface(layer, nullptr);
-#elif defined(SDL_PLATFORM_ANDROID)
-    void* window = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_ANDROID_WINDOW_POINTER, nullptr);
-    _surface = factory->CreateSurface(window, nullptr);
-#elif defined(SDL_PLATFORM_LINUX)
-    if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "x11") == 0)
-    {
-        void* xdisplay = SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_X11_DISPLAY_POINTER, nullptr);
-        Sint64 xwindow = SDL_GetNumberProperty(properties, SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
-        if (xdisplay && xwindow)
-        {
-        }
-    }
-    else if (SDL_strcmp(SDL_GetCurrentVideoDriver(), "wayland") == 0)
-    {
-        struct wl_display* display = (struct wl_display*)SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WAYLAND_DISPLAY_POINTER, nullptr);
-        struct wl_surface* surface = (struct wl_surface*)SDL_GetPointerProperty(properties, SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr);
-        if (display && surface)
-        {
-            _surface = factory->CreateSurface(surface, display);
-        }
-    }
-#endif
 }

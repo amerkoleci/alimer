@@ -136,6 +136,120 @@ namespace Alimer
         return it->second.Get();
     }
 
+    RHISurfaceSource::RHISurfaceSource(Type type_)
+        : type(type_)
+    {
+
+    }
+
+    RHISurfaceSourceRef RHISurfaceSource::CreateWin32(void* hwnd)
+    {
+#if defined(_WIN32)
+        if (!IsWindow(static_cast<HWND>(hwnd)))
+        {
+            LOGE("Cannot create surface source from invalid window handle");
+            return nullptr;
+        }
+#endif
+
+        RHISurfaceSourceRef surface(new RHISurfaceSource(Type::WindowsHWND));
+        surface->hwnd = hwnd;
+        return surface;
+    }
+
+    RHISurfaceSourceRef RHISurfaceSource::CreateSwapChainPanel(void* swapChainPanel)
+    {
+        RHISurfaceSourceRef surface(new RHISurfaceSource(Type::SwapChainPanel));
+        surface->idCompositionVisualOrSwapChainPanel = swapChainPanel;
+        return surface;
+    }
+
+    RHISurfaceSourceRef RHISurfaceSource::CreateAndroid(void* window)
+    {
+        RHISurfaceSourceRef surface(new RHISurfaceSource(Type::AndroidWindow));
+        surface->androidWindow = window;
+        return surface;
+    }
+
+    RHISurfaceSourceRef RHISurfaceSource::CreateWayland(void* waylandDisplay, void* waylandSurface)
+    {
+        RHISurfaceSourceRef surface(new RHISurfaceSource(Type::WaylandSurface));
+        surface->waylandDisplay = waylandDisplay;
+        surface->waylandSurface = waylandSurface;
+        return surface;
+    }
+
+    RHISurfaceSourceRef RHISurfaceSource::CreateXlib(void* display, uint64_t window)
+    {
+        RHISurfaceSourceRef surface(new RHISurfaceSource(Type::XlibWindow));
+        surface->xDisplay = display;
+        surface->xWindow = window;
+        return surface;
+    }
+
+    RHISurfaceSourceRef RHISurfaceSource::CreateMetalLayer(void* layer)
+    {
+        RHISurfaceSourceRef surface(new RHISurfaceSource(Type::MetalLayer));
+        surface->metalLayer = layer;
+        return surface;
+    }
+
+    void* RHISurfaceSource::GetHWND() const
+    {
+        ALIMER_ASSERT(type == Type::WindowsHWND);
+
+        return hwnd;
+    }
+
+    void* RHISurfaceSource::GetSwapChainPanel() const
+    {
+        ALIMER_ASSERT(type == Type::SwapChainPanel);
+
+        return idCompositionVisualOrSwapChainPanel;
+    }
+
+    void* RHISurfaceSource::GetAndroidWindow() const
+    {
+        ALIMER_ASSERT(type == Type::AndroidWindow);
+
+        return androidWindow;
+    }
+
+    void* RHISurfaceSource::GetWaylandDisplay() const
+    {
+        ALIMER_ASSERT(type == Type::WaylandSurface);
+
+        return waylandDisplay;
+    }
+
+    void* RHISurfaceSource::GetWaylandSurface() const
+    {
+        ALIMER_ASSERT(type == Type::WaylandSurface);
+
+        return waylandSurface;
+    }
+
+    void* RHISurfaceSource::GetXDisplay() const
+    {
+        ALIMER_ASSERT(type == Type::XlibWindow);
+
+        return xDisplay;
+    }
+
+    uint64_t RHISurfaceSource::GetXWindow() const
+    {
+        ALIMER_ASSERT(type == Type::XlibWindow);
+
+        return xWindow;
+    }
+
+    void* RHISurfaceSource::GetMetalLayer() const
+    {
+        ALIMER_ASSERT(type == Type::MetalLayer);
+
+        return metalLayer;
+    }
+
     /* CommandEncoder */
     void RHICommandEncoder::SetConstantBuffer(uint32_t slot, RHIBuffer* buffer, uint64_t offset)
     {
@@ -734,9 +848,9 @@ namespace Alimer
         }
     }
 
-    RHIAdapterVendor VendorIdToAdapterVendor(uint32_t vendorId)
+    RHIAdapterVendor VendorIDToAdapterVendor(uint32_t vendorID)
     {
-        switch (vendorId)
+        switch (vendorID)
         {
             case (uint32_t)KnownGPUAdapterVendor::AMD:
                 return RHIAdapterVendor::AMD;
@@ -764,7 +878,7 @@ namespace Alimer
         }
     }
 
-    uint32_t AdapterVendorToVendorId(RHIAdapterVendor vendor)
+    uint32_t AdapterVendorToVendorID(RHIAdapterVendor vendor)
     {
         switch (vendor)
         {

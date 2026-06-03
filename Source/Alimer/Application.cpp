@@ -114,7 +114,7 @@ void Application::InitBeforeRun()
 
     // Create RHI factory and device.
     RHIFactoryDesc factoryDesc{};
-    factoryDesc.preferredBackend = RHIBackend::Vulkan; // _options.graphics.preferredBackend;
+    factoryDesc.preferredBackend = RHIBackend::Vulkan;// _options.graphics.preferredBackend;
     factoryDesc.validationMode = _options.graphics.validationMode;
     factoryDesc.label = _options.name;
     _rhiFactory = RHICreateFactory(factoryDesc);

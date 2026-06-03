@@ -686,6 +686,7 @@ namespace Alimer
     class RHIQueue;
     class RHIComputePipeline;
     class RHIRenderPipeline;
+    class RHISurfaceSource;
     class RHISurface;
     class RHIQueryHeap;
     class RHIDevice;
@@ -700,6 +701,7 @@ namespace Alimer
     using RHIComputePipelineRef = SharedPtr<RHIComputePipeline>;
     using RHIRenderPipelineRef = SharedPtr<RHIRenderPipeline>;
     using RHIQueryHeapRef = SharedPtr<RHIQueryHeap>;
+    using RHISurfaceSourceRef = SharedPtr<RHISurfaceSource>;
     using RHISurfaceRef = SharedPtr<RHISurface>;
     using RHIDeviceRef = SharedPtr<RHIDevice>;
     using RHIFactoryRef = SharedPtr<RHIFactory>;
@@ -1157,10 +1159,12 @@ namespace Alimer
     struct RHIAdapterProperties
     {
         std::string         deviceName;
+        uint16_t            driverVersion[4];
+        std::string         driverDescription;
+        RHIAdapterVendor    vendor = RHIAdapterVendor::Unknown;
         uint32_t            vendorID = 0;
         uint32_t            deviceID = 0;
         RHIAdapterType      type = RHIAdapterType::Other;
-        std::string         driverDescription;
         uint8_t             uuid[kUUIDSize];
         uint64_t            luid[kLUIDSize];
         uint64_t            videoMemorySize = 0;
@@ -1375,6 +1379,64 @@ namespace Alimer
         virtual RHIQueryType GetType() const = 0;
     };
 
+    class ALIMER_API RHISurfaceSource final : public RHIObject
+    {
+    public:
+        enum class Type
+        {
+            WindowsHWND,
+            SwapChainPanel,
+            AndroidWindow,
+            WaylandSurface,
+            XlibWindow,
+            MetalLayer,
+        };
+
+        Type GetType() const { return type; }
+
+        static RHISurfaceSourceRef CreateWin32(/*HWND*/void* hwnd);
+        static RHISurfaceSourceRef CreateSwapChainPanel(/*IUnknown*/void* swapChainPanel);
+        static RHISurfaceSourceRef CreateAndroid(/*ANativeWindow*/void* window);
+        static RHISurfaceSourceRef CreateWayland(/*wl_display*/void* waylandDisplay, /*wl_surface*/void* waylandSurface);
+        static RHISurfaceSourceRef CreateXlib(/*Display*/void* display, /*Window*/uint64_t window);
+        static RHISurfaceSourceRef CreateMetalLayer(/*CAMetalLayer*/void* layer);
+
+        // Valid to call if the type is WindowsHWND
+        void* GetHWND() const;
+        // Valid to call if the type is SwapChainPanel
+        void* GetSwapChainPanel() const;
+        // Valid to call if the type is Android
+        void* GetAndroidWindow() const;
+        // Valid to call if the type is WaylandSurface
+        void* GetWaylandDisplay() const;
+        void* GetWaylandSurface() const;
+        // Valid to call if the type is XlibWindow
+        void* GetXDisplay() const;
+        uint64_t GetXWindow() const;
+        // Valid to call if the type is MetalLayer
+        void* GetMetalLayer() const;
+
+    private:
+        RHISurfaceSource(Type type);
+
+        Type type;
+
+        // WindowsHwnd
+        void* hwnd = nullptr;
+        // IDCompositionVisual/SwapChainPanel
+        void* idCompositionVisualOrSwapChainPanel = nullptr;
+        // ANativeWindow
+        void* androidWindow = nullptr;
+        // Wayland
+        void* waylandDisplay = nullptr;
+        void* waylandSurface = nullptr;
+        // Xlib
+        void* xDisplay = nullptr;
+        uint64_t xWindow = 0;
+        // MetalLayer
+        void* metalLayer = nullptr;
+    };
+
     class ALIMER_API RHISurface : public RHIObject
     {
     public:
@@ -1386,6 +1448,13 @@ namespace Alimer
         virtual void Resize(uint32_t newWidth, uint32_t newHeight) = 0;
 
     protected:
+        RHISurface(RHISurfaceSource* source_)
+            : source(source_)
+        {
+
+        }
+
+        RHISurfaceSourceRef source;
         RHISurfaceCapabilities capabilities{};
     };
 
@@ -1637,7 +1706,7 @@ namespace Alimer
         RHIAdapter* GetAdapter(uint32_t index) const;
         RHIAdapter* GetBestAdapter() const;
 
-        virtual RHISurfaceRef CreateSurface(void* window, void* display) = 0;
+        virtual RHISurfaceRef CreateSurface(RHISurfaceSource* source) = 0;
 
     protected:
         Vector<RHIAdapter*> _adapters;
@@ -1665,8 +1734,8 @@ namespace Alimer
     ALIMER_API const std::string ToString(RHIBackend type);
     ALIMER_API const std::string ToString(RHIAdapterType type);
 
-    ALIMER_API RHIAdapterVendor VendorIdToAdapterVendor(uint32_t vendorId);
-    ALIMER_API uint32_t AdapterVendorToVendorId(RHIAdapterVendor vendor);
+    ALIMER_API RHIAdapterVendor VendorIDToAdapterVendor(uint32_t vendorID);
+    ALIMER_API uint32_t AdapterVendorToVendorID(RHIAdapterVendor vendor);
 
     ALIMER_API uint32_t GetMipLevelCount(uint32_t width, uint32_t height, uint32_t depth = 1u, uint32_t minDimension = 1u, uint32_t requiredAlignment = 1u);
 

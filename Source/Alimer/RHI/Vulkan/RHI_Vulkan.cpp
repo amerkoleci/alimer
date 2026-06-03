@@ -1119,6 +1119,7 @@ namespace Alimer
         std::vector<VkSemaphore> acquireSemaphores;
         std::vector<VkSemaphore> releaseSemaphores;
 
+        VulkanSurface(RHISurfaceSource* source);
         ~VulkanSurface() override;
 
         RHIStatus GetCapabilities(RHIAdapter* adapter, RHISurfaceCapabilities* capabilities) override;
@@ -1701,7 +1702,7 @@ namespace Alimer
 
         RHIBackend GetBackend() const override { return RHIBackend::Vulkan; }
 
-        RHISurfaceRef CreateSurface(void* window, void* display) override;
+        RHISurfaceRef CreateSurface(RHISurfaceSource* source) override;
         RHINativeHandle GetNativeHandle(RHINativeHandleType objectType) override;
 
         PhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice);
@@ -1953,6 +1954,12 @@ namespace Alimer
     }
 
     /* VulkanSurface */
+    VulkanSurface::VulkanSurface(RHISurfaceSource* source)
+        : RHISurface(source)
+    {
+
+    }
+
     VulkanSurface::~VulkanSurface()
     {
         DestroySwapchain(true);
@@ -6761,9 +6768,39 @@ namespace Alimer
         memoryProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
         factory->vkGetPhysicalDeviceMemoryProperties2(handle, &memoryProperties2);
 
+        properties.deviceName = properties2.properties.deviceName;
+        properties.vendor = VendorIDToAdapterVendor(properties2.properties.vendorID);
         properties.vendorID = properties2.properties.vendorID;
         properties.deviceID = properties2.properties.deviceID;
-        properties.deviceName = properties2.properties.deviceName;
+
+        uint32_t versionRaw = properties2.properties.driverVersion;
+
+        switch (properties.vendor)
+        {
+            case RHIAdapterVendor::NVIDIA:
+                properties.driverVersion[0] = static_cast<uint16_t>((versionRaw >> 22) & 0x3FF);
+                properties.driverVersion[1] = static_cast<uint16_t>((versionRaw >> 14) & 0x0FF);
+                properties.driverVersion[2] = static_cast<uint16_t>((versionRaw >> 6) & 0x0FF);
+                properties.driverVersion[3] = static_cast<uint16_t>(versionRaw & 0x003F);
+                break;
+
+            case RHIAdapterVendor::Intel:
+#if ALIMER_PLATFORM_WINDOWS
+                // Windows Vulkan driver releases together with D3D driver, so they share the same
+                // version. But only CCC.DDDD is encoded in 32-bit driverVersion.
+                properties.driverVersion[0] = static_cast<uint16_t>(versionRaw >> 14);
+                properties.driverVersion[1] = static_cast<uint16_t>(versionRaw & 0x3FFF);
+                break;
+#endif
+
+            default:
+                // Use Vulkan driver conversions for other vendors
+                properties.driverVersion[0] = static_cast<uint16_t>(versionRaw >> 22);
+                properties.driverVersion[1] = static_cast<uint16_t>((versionRaw >> 12) & 0x3FF);
+                properties.driverVersion[2] = static_cast<uint16_t>(versionRaw & 0xFFF);
+                break;
+        }
+
         properties.driverDescription = properties12.driverName;
         if (properties12.driverInfo[0] != '\0')
         {
@@ -7260,12 +7297,12 @@ namespace Alimer
         }
     }
 
-    RHISurfaceRef VulkanFactory::CreateSurface(void* window, void* display)
+    RHISurfaceRef VulkanFactory::CreateSurface(RHISurfaceSource* source)
     {
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         VkResult result = VK_SUCCESS;
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-        HWND hwnd = (HWND)window;
+        HWND hwnd = (HWND)source->GetHWND();
         ALIMER_ASSERT(IsWindow(hwnd));
 
         const VkWin32SurfaceCreateInfoKHR createInfo = {
@@ -7281,7 +7318,7 @@ namespace Alimer
             .sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
             .pNext = nullptr,
             .flags = 0,
-            .window = (ANativeWindow*)window
+            .window = source->GetAndroidNativeWindow()
         };
         result = vkCreateAndroidSurfaceKHR(handle, &createInfo, nullptr, &surface);
 #elif defined(__APPLE__)
@@ -7289,7 +7326,7 @@ namespace Alimer
             .sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT,
             .pNext = nullptr,
             .flags = 0,
-            .pLayer = (CAMetalLayer*)window
+            .pLayer = (CAMetalLayer*)source->GetMetalLayer()
         };
 
         result = vkCreateMetalSurfaceEXT(handle, &createInfo, nullptr, &surface);
@@ -7301,7 +7338,7 @@ namespace Alimer
             return nullptr;
         }
 
-        SharedPtr<VulkanSurface> resultSurface(new VulkanSurface());
+        SharedPtr<VulkanSurface> resultSurface(new VulkanSurface(source));
         resultSurface->surface = surface;
         return resultSurface;
     }

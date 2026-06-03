@@ -8,6 +8,11 @@
 
 using namespace Alimer;
 
+void Window::CreateSurface(RHIFactory* factory)
+{
+    _surface = factory->CreateSurface(_surfaceSource);
+}
+
 void Window::CreateSwapChain(RHIDevice* device)
 {
     ALIMER_ASSERT(device);
