@@ -2,7 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "Alimer/Core/Log.h"
-#include "Alimer/Core/NativeMemory.h"
+#include "Alimer/Core/Memory.h"
 //#include "Alimer/Core/Profiler.h"
 #include "Alimer/IO/FileSystem.h"
 #include "Alimer/IO/MemoryStream.h"
@@ -14,9 +14,9 @@ using namespace Alimer;
 
 ALIMER_DISABLE_WARNINGS()
 #define STBI_ASSERT(x) ALIMER_ASSERT(x)
-#define STBI_MALLOC(sz) NativeMemory::Alloc(sz)
-#define STBI_REALLOC(p,newsz) NativeMemory::Realloc(p, newsz)
-#define STBI_FREE(p) NativeMemory::Free(p)
+#define STBI_MALLOC(sz) Memory::Alloc(sz)
+#define STBI_REALLOC(p,newsz) Memory::Realloc(p, newsz)
+#define STBI_FREE(p) Memory::Free(p)
 //#define STB_IMAGE_STATIC
 #define STBI_NO_PSD
 #define STBI_NO_PIC
@@ -27,9 +27,9 @@ ALIMER_DISABLE_WARNINGS()
 #include <stb_image.h>
 
 #define STBIW_ASSERT(x) ALIMER_ASSERT(x)
-#define STBIW_MALLOC(sz) NativeMemory::Alloc(sz)
-#define STBIW_REALLOC(p, newsz) NativeMemory::Realloc(p, newsz)
-#define STBIW_FREE(p) NativeMemory::Free(p)
+#define STBIW_MALLOC(sz) Memory::Alloc(sz)
+#define STBIW_REALLOC(p, newsz) Memory::Realloc(p, newsz)
+#define STBIW_FREE(p) Memory::Free(p)
 #define STBI_WRITE_NO_STDIO
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
@@ -765,7 +765,7 @@ void Image::Destroy() noexcept
 
     if (pixels)
     {
-        NativeMemory::AlignedFree(pixels);
+        Memory::AlignedFree(pixels);
         pixels = nullptr;
     }
 
@@ -1360,7 +1360,7 @@ bool Image::Initialize()
         return false;
 
     memset(levels, 0, sizeof(ImageLevel) * levelsCount);
-    pixels = static_cast<uint8_t*>(NativeMemory::AlignedAlloc(_memorySize, 16));
+    pixels = static_cast<uint8_t*>(Memory::AlignedAlloc(_memorySize, 16));
     if (!pixels)
     {
         Destroy();

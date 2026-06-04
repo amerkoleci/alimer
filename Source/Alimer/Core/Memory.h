@@ -7,7 +7,7 @@
 
 namespace Alimer
 {
-    class ALIMER_API NativeMemory
+    class ALIMER_API Memory
     {
     public:
         static void* AlignedAlloc(size_t size, size_t alignment);

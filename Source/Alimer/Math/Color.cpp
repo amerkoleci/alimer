@@ -523,7 +523,7 @@ std::string Color::ToRgbaHex(bool includeAlpha) const
 std::string Color::ToHex(float value)
 {
     int intValue = (int)(255.0f * value);
-    std::string stringValue = std::format("{:x}", intValue);
+    std::string stringValue = FMT::format("{:x}", intValue);
     if (stringValue.length() == 1)
     {
         return "0" + stringValue;

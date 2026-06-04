@@ -11,6 +11,7 @@
 Uses the following open-source and third-party libraries:
 
 - [stb](https://github.com/nothings/stb): Single-file public domain (or MIT licensed) libraries
+- [fmt](https://fmt.dev): A modern formatting library
 - [spdlog](https://github.com/gabime/spdlog): Fast C++ logging library
 - [unordered_dense](https://github.com/martinus/unordered_dense): A fast & densely stored hashmap and hashset based on robin-hood backward shift deletion
 - [lz4](https://github.com/lz4/lz4): Extremely Fast Compression algorithm

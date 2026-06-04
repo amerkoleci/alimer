@@ -239,6 +239,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE
 
 # Public link libraries
 target_link_libraries(${TARGET_NAME} PUBLIC
+    fmt::fmt
     spdlog
 )
 

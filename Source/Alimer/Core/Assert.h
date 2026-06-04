@@ -49,7 +49,7 @@ namespace Alimer::Assert
 		{ \
 			if (!(cond)) \
 			{ \
-				if (Alimer::Assert::ReportFailure(#cond, __FILE__, __LINE__, std::format(__VA_ARGS__)) == \
+				if (Alimer::Assert::ReportFailure(#cond, __FILE__, __LINE__, FMT::format(__VA_ARGS__)) == \
 					Alimer::Assert::FailBehavior::Halt) \
 					ALIMER_BREAKPOINT; \
 			} \
@@ -58,13 +58,13 @@ namespace Alimer::Assert
 #define ALIMER_ASSERT_FAIL(...) \
 		do \
 		{ \
-			if (Alimer::Assert::ReportFailure(0, __FILE__, __LINE__, std::format(__VA_ARGS__)) == \
+			if (Alimer::Assert::ReportFailure(0, __FILE__, __LINE__, FMT::format(__VA_ARGS__)) == \
 				Alimer::Assert::FailBehavior::Halt) \
 			    ALIMER_BREAKPOINT; \
 		} while(0)
 
 #define ALIMER_VERIFY(cond) ALIMER_ASSERT(cond)
-#define ALIMER_VERIFY_MSG(cond, ...) ALIMER_ASSERT_MSG(cond, std::format(__VA_ARGS__))
+#define ALIMER_VERIFY_MSG(cond, ...) ALIMER_ASSERT_MSG(cond, FMT::format(__VA_ARGS__))
 
 // Assert that will be called very often, like inside data structures e.g. operator[].
 // Making it non-empty can make program slow.

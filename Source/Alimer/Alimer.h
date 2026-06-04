@@ -9,7 +9,7 @@
 #include <Alimer/Core/Signal.h>
 //#include <Alimer/Core/Span.h>
 #include <Alimer/Core/Log.h>
-#include <Alimer/Core/NativeMemory.h>
+#include <Alimer/Core/Memory.h>
 #include <Alimer/Core/StringId.h>
 #include <Alimer/Core/Object.h>
 #include <Alimer/Core/JobSystem.h>
