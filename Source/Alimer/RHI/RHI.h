@@ -1241,8 +1241,7 @@ namespace Alimer
     protected:
         RHIBuffer(const RHIBufferDesc& desc_)
             : desc(desc_)
-        {
-        }
+        {}
 
         RHIBufferDesc desc;
         mutable RHIBufferStates currentState = RHIBufferStates::Undefined;
@@ -1251,16 +1250,7 @@ namespace Alimer
     class ALIMER_API RHITexture : public RHIObject
     {
     protected:
-        RHITexture(const RHITextureDesc& desc)
-            : dimension(desc.dimension)
-            , format(desc.format)
-            , width(desc.width)
-            , height(desc.height)
-            , depthOrArrayLayers(desc.depthOrArrayLayers)
-            , mipLevelCount(desc.mipLevelCount)
-            , sampleCount(desc.sampleCount)
-            , usage(desc.usage)
-        {}
+        RHITexture(const RHITextureDesc& desc, RHITextureLayout initialLayout);
 
     public:
         [[nodiscard]] constexpr RHITextureDimension GetDimension() const { return dimension; }
@@ -1303,6 +1293,16 @@ namespace Alimer
         [[nodiscard]] RHITextureView* GetDefaultView() const;
         [[nodiscard]] RHITextureView* GetView(const RHITextureViewDesc* desc = nullptr) const;
 
+        [[nodiscard]] uint32_t GetSubresourceIndex(uint32_t mipLevel, uint32_t arrayLayer, uint32_t planeSlice = 0) const;
+        [[nodiscard]] RHITextureLayout GetLayout(uint32_t mipLevel, uint32_t arrayLayer, uint32_t placeSlice = 0) const;
+        [[nodiscard]] RHITextureLayout GetLayout(uint32_t subresource) const;
+
+        // TODO: Make protected
+        void SetLayout(RHITextureLayout newLayout);
+        void SetLayout(uint32_t subresource, RHITextureLayout newLayout);
+        void SetLayout(RHITextureLayout newLayout, uint32_t mipLevel, uint32_t arrayLayer, uint32_t placeSlice = 0);
+        void SetLayout(RHITextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount) const;
+
     protected:
         virtual RHITextureViewRef CreateView(const RHITextureViewDesc& desc)  const = 0;
 
@@ -1315,6 +1315,7 @@ namespace Alimer
         uint32_t mipLevelCount;
         RHITextureSampleCount sampleCount;
         RHITextureUsage usage;
+        mutable std::vector<RHITextureLayout> subresourceLayouts;
 
     private:
         mutable RHITextureViewRef defaultView;
@@ -1453,19 +1454,31 @@ namespace Alimer
         /// Return the physical adapter surface capabilities.
         virtual RHIStatus GetCapabilities(RHIAdapter* adapter, RHISurfaceCapabilities* capabilities) = 0;
 
-        virtual void Configure(RHIDevice* device, const RHISurfaceConfig& config) = 0;
-        virtual void Unconfigure() = 0;
-        virtual void Resize(uint32_t newWidth, uint32_t newHeight) = 0;
+        void Configure(RHIDevice* device, const RHISurfaceConfig& config);
+        void Unconfigure();
+        void Resize(uint32_t newWidth, uint32_t newHeight);
+
+        RHIColorSpace GetColorSpace() const { return colorSpace; }
 
     protected:
-        RHISurface(RHISurfaceSource* source_)
-            : source(source_)
-        {
+        RHISurface(RHISurfaceSource* source_);
+        ~RHISurface() override;
 
-        }
+        virtual void ConfigureCore(RHIDevice* device) = 0;
+        virtual void UnconfigureCore() = 0;
+        virtual void ResizeCore() = 0;
 
         RHISurfaceSourceRef source;
         RHISurfaceCapabilities capabilities{};
+        PixelFormat format = PixelFormat::Undefined;
+        uint32_t width = 0;
+        uint32_t height = 0;
+        RHICompositeAlphaMode alphaMode = RHICompositeAlphaMode::Auto;
+        RHIPresentMode presentMode = RHIPresentMode::Fifo;
+        RHIColorSpace colorSpace = RHIColorSpace::SRGB;
+
+    private:
+        bool configured = false;
     };
 
     struct GPUAllocation

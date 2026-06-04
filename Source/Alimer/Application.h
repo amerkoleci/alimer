@@ -86,8 +86,8 @@ namespace Alimer
         /// Gets the main window.
         [[nodiscard]] Window* GetMainWindow() const { return _mainWindow.get(); }
 
-        /// Gets the primary RHIDevice.
-        [[nodiscard]] RHIDevice* GetPrimaryRHIDevice() const { return _rhiDevice.Get(); }
+        /// Gets the main RHIDevice.
+        [[nodiscard]] RHIDevice* GetRHIDevice() const { return _rhiDevice.Get(); }
 
         /// Gets the main Scene.
         //[[nodiscard]] Scene* GetScene() const { return _scene.Get(); }

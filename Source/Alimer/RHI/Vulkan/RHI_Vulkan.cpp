@@ -1001,16 +1001,14 @@ namespace Alimer
 
         uint64_t allocatedSize{};
         //void* pMappedData{ nullptr };
-        uint32_t numSubResources = 0;
-        mutable std::vector<RHITextureLayout> imageLayouts;
 #if defined(_WIN32)
         void* sharedHandle = nullptr;
 #else
         int sharedHandle = 0;
 #endif
 
-        explicit VulkanTexture(VulkanDevice* device_, const RHITextureDesc& desc)
-            : RHITexture(desc)
+        explicit VulkanTexture(VulkanDevice* device_, const RHITextureDesc& desc, RHITextureLayout initialLayout)
+            : RHITexture(desc, initialLayout)
             , device(device_)
         {
 
@@ -1105,16 +1103,10 @@ namespace Alimer
         VkSurfaceKHR surface = VK_NULL_HANDLE;
         VkSwapchainKHR handle = VK_NULL_HANDLE;
 
-        bool configured = false;
         uint32_t imageIndex = 0;
-        VkExtent2D extent{};
         uint32_t queuePresentSupport = 0;
         RHISurfaceConfig config{};
-        PixelFormat colorFormat = PixelFormat::Undefined;
         RHITextureUsage usage = RHITextureUsage::None;
-        RHIColorSpace colorSpace = RHIColorSpace::SRGB;
-        RHICompositeAlphaMode alphaMode = RHICompositeAlphaMode::Auto;
-        RHIPresentMode presentMode = RHIPresentMode::Fifo;
         std::vector<SharedPtr<VulkanTexture>> backbufferTextures;
         size_t acquireSemaphoreIndex = 0;
         std::vector<VkSemaphore> acquireSemaphores;
@@ -1124,9 +1116,9 @@ namespace Alimer
         ~VulkanSurface() override;
 
         RHIStatus GetCapabilities(RHIAdapter* adapter, RHISurfaceCapabilities* capabilities) override;
-        void Configure(RHIDevice* device, const RHISurfaceConfig& config) override;
-        void Unconfigure() override;
-        void Resize(uint32_t newWidth, uint32_t newHeight) override;
+        void ConfigureCore(RHIDevice* device) override;
+        void UnconfigureCore() override;
+        void ResizeCore() override;
         void SetLabel(const char* label) override;
 
         void CreateSwapchain();
@@ -1963,7 +1955,6 @@ namespace Alimer
     VulkanSurface::~VulkanSurface()
     {
         DestroySwapchain(true);
-        configured = false;
     }
 
     RHIStatus VulkanSurface::GetCapabilities(RHIAdapter* adapter, RHISurfaceCapabilities* capabilities)
@@ -1995,7 +1986,7 @@ namespace Alimer
         return RHIStatus::Success;
     }
 
-    void VulkanSurface::Configure(RHIDevice* device_, const RHISurfaceConfig& config)
+    void VulkanSurface::ConfigureCore(RHIDevice* device_)
     {
         VulkanDevice* backendDevice = static_cast<VulkanDevice*>(device_);
 
@@ -2029,31 +2020,16 @@ namespace Alimer
         }
 
         device = backendDevice;
-        colorFormat = config.format;
-        alphaMode = config.alphaMode;
-        presentMode = config.presentMode;
-        extent.width = config.width;
-        extent.height = config.height;
         CreateSwapchain();
-        configured = true;
     }
 
-    void VulkanSurface::Unconfigure()
+    void VulkanSurface::UnconfigureCore()
     {
-        if (!configured)
-            return;
-
         DestroySwapchain(false);
-        configured = false;
     }
 
-    void VulkanSurface::Resize(uint32_t newWidth, uint32_t newHeight)
+    void VulkanSurface::ResizeCore()
     {
-        if (extent.width == newWidth && extent.height == newHeight)
-            return;
-
-        extent.width = newWidth;
-        extent.height = newHeight;
         CreateSwapchain();
     }
 
@@ -2080,7 +2056,7 @@ namespace Alimer
         VK_CHECK(adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(adapter->handle, surface, &presentModeCount, swapchainPresentModes.data()));
 
         VkSurfaceFormatKHR surfaceFormat = {};
-        surfaceFormat.format = adapter->ToVkFormat(colorFormat);
+        surfaceFormat.format = adapter->ToVkFormat(format);
         surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 
         bool valid = false;
@@ -2133,16 +2109,17 @@ namespace Alimer
         }
 
         // Get current extent, if it's (0, 0) then we use the one from config, but we need to clamp it to the allowed range.
-        if (extent.width == 0 || extent.height == 0)
+        if (width == 0 || height == 0)
         {
             if (caps.currentExtent.width != 0xFFFFFFFF && caps.currentExtent.height != 0xFFFFFFFF)
             {
-                extent = caps.currentExtent;
+                width = caps.currentExtent.width;
+                height = caps.currentExtent.height;
             }
         }
 
-        extent.width = Max(caps.minImageExtent.width, Min(caps.maxImageExtent.width, extent.width));
-        extent.height = Max(caps.minImageExtent.height, Min(caps.maxImageExtent.height, extent.height));
+        width = Alimer::Clamp(caps.minImageExtent.width, width, caps.maxImageExtent.width);
+        height = Alimer::Clamp(caps.minImageExtent.height, height, caps.maxImageExtent.height);
 
         VkPresentModeKHR vkPresentMode = ToVk(presentMode);
 
@@ -2188,7 +2165,7 @@ namespace Alimer
         createInfo.minImageCount = imageCount;
         createInfo.imageFormat = surfaceFormat.format;
         createInfo.imageColorSpace = surfaceFormat.colorSpace;
-        createInfo.imageExtent = { extent.width, extent.height };
+        createInfo.imageExtent = { width, height };
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
@@ -2222,24 +2199,20 @@ namespace Alimer
 
         imageIndex = 0;
         backbufferTextures.resize(imageCount);
-        colorFormat = FromVkFormat(createInfo.imageFormat);
-        extent = createInfo.imageExtent;
+        format = FromVkFormat(createInfo.imageFormat);
 
         RHITextureDesc textureDesc{};
-        textureDesc.format = colorFormat;
-        textureDesc.width = createInfo.imageExtent.width;
-        textureDesc.height = createInfo.imageExtent.height;
+        textureDesc.format = format;
+        textureDesc.width = width;
+        textureDesc.height = height;
         textureDesc.usage = RHITextureUsage::RenderTarget;
 
         for (uint32_t i = 0; i < imageCount; ++i)
         {
-            SharedPtr<VulkanTexture> texture(new VulkanTexture(device, textureDesc));
+            SharedPtr<VulkanTexture> texture(new VulkanTexture(device, textureDesc, RHITextureLayout::Undefined));
             texture->vkFormat = createInfo.imageFormat;
             texture->handle = swapchainImages[i];
             texture->allocatedSize = 0;
-            texture->numSubResources = 1;
-            texture->imageLayouts.resize(1);
-            texture->imageLayouts[0] = RHITextureLayout::Undefined;
 
             backbufferTextures[i] = texture;
         }
@@ -3117,7 +3090,7 @@ namespace Alimer
     {
         const uint32_t mipLevelCount = texture->GetMipLevelCount();
         const uint32_t subresource = CalculateSubresource(baseMiplevel, baseArrayLayer, mipLevelCount);
-        RHITextureLayout currentLayout = texture->imageLayouts[subresource];
+        RHITextureLayout currentLayout = texture->GetLayout(subresource);
         if (currentLayout == newLayout)
             return;
 
@@ -3147,14 +3120,7 @@ namespace Alimer
         if (numBarriersToCommit == kMaxBarrierCount)
             CommitBarriers();
 
-        for (uint32_t arrayLayer = baseArrayLayer; arrayLayer < (baseArrayLayer + layerCount); arrayLayer++)
-        {
-            for (uint32_t mipLevel = baseMiplevel; mipLevel < (baseMiplevel + levelCount); mipLevel++)
-            {
-                const uint32_t iterSubresource = CalculateSubresource(mipLevel, arrayLayer, mipLevelCount);
-                texture->imageLayouts[iterSubresource] = newLayout;
-            }
-        }
+        texture->SetLayout(newLayout, baseMiplevel, levelCount, baseArrayLayer, layerCount);    
     }
 
     void VulkanCommandBuffer::TextureBarrier(const VulkanTextureView* view, RHITextureLayout newLayout)
@@ -4892,8 +4858,31 @@ namespace Alimer
     RHITextureRef VulkanDevice::CreateTextureCore(const RHITextureDesc& desc, const RHITextureData* initialData)
     {
         const bool isDepthStencil = IsDepthStencilFormat(desc.format);
+        RHITextureLayout initialLayout = RHITextureLayout::Undefined;
 
-        SharedPtr<VulkanTexture> texture(new VulkanTexture(this, desc));
+        if (CheckBitsAny(desc.usage, RHITextureUsage::ShaderRead))
+        {
+            initialLayout = RHITextureLayout::ShaderResource;
+        }
+
+        if (CheckBitsAny(desc.usage, RHITextureUsage::ShaderWrite))
+        {
+            initialLayout = RHITextureLayout::UnorderedAccess;
+        }
+
+        if (CheckBitsAny(desc.usage, RHITextureUsage::RenderTarget))
+        {
+            if (isDepthStencil)
+            {
+                initialLayout = RHITextureLayout::DepthWrite;
+            }
+            else
+            {
+                initialLayout = RHITextureLayout::RenderTarget;
+            }
+        }
+
+        SharedPtr<VulkanTexture> texture(new VulkanTexture(this, desc, initialLayout));
         texture->vkFormat = ToVkFormat(desc.format);
 
         VkImageCreateInfo createInfo = {};
@@ -4963,18 +4952,14 @@ namespace Alimer
             createInfo.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         }
 
-        RHITextureLayout initialLayout = RHITextureLayout::Undefined;
-
         if (CheckBitsAny(desc.usage, RHITextureUsage::ShaderRead))
         {
             createInfo.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
-            initialLayout = RHITextureLayout::ShaderResource;
         }
 
         if (CheckBitsAny(desc.usage, RHITextureUsage::ShaderWrite))
         {
             createInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
-            initialLayout = RHITextureLayout::UnorderedAccess;
         }
 
         if (CheckBitsAny(desc.usage, RHITextureUsage::RenderTarget))
@@ -4982,12 +4967,10 @@ namespace Alimer
             if (isDepthStencil)
             {
                 createInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-                initialLayout = RHITextureLayout::DepthWrite;
             }
             else
             {
                 createInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-                initialLayout = RHITextureLayout::RenderTarget;
             }
         }
 
@@ -5150,13 +5133,6 @@ namespace Alimer
         }
 
         const bool depthOnlyFormat = IsDepthOnlyFormat(desc.format);
-
-        texture->numSubResources = desc.mipLevelCount * desc.depthOrArrayLayers;
-        texture->imageLayouts.resize(texture->numSubResources);
-        for (uint32_t i = 0; i < texture->numSubResources; i++)
-        {
-            texture->imageLayouts[i] = initialLayout;
-        }
 
         // Issue data copy on request
         VkImageSubresourceRange range{};
@@ -5328,7 +5304,7 @@ namespace Alimer
 
     RHITextureRef VulkanDevice::CreateTextureFromNativeHandleCore(RHINativeHandle handle, const RHITextureDesc& desc)
     {
-        SharedPtr<VulkanTexture> texture(new VulkanTexture(this, desc));
+        SharedPtr<VulkanTexture> texture(new VulkanTexture(this, desc, RHITextureLayout::Undefined));
         texture->vkFormat = ToVkFormat(desc.format);
 
         texture->handle = (VkImage)handle.integer;

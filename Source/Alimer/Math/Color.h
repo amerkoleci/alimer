@@ -223,6 +223,9 @@ namespace Alimer
 
         operator const float* () const noexcept { return &r; }
 
+        /// Convert from HSV to RGB color space.
+        [[nodiscard]] static Color FromHSV(float h, float s, float v, float a = 1.0f);
+
         [[nodiscard]] static Color Clamp(const Color& value, const Color& min, const Color& max) noexcept;
         [[nodiscard]] static Color Saturate(const Color& vector) noexcept;
 

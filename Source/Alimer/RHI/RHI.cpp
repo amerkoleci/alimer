@@ -77,6 +77,25 @@ namespace Alimer
         return defaultView.Get();
     }
 
+    /* RHITexture */
+    RHITexture::RHITexture(const RHITextureDesc& desc, RHITextureLayout initialLayout)
+        : dimension(desc.dimension)
+        , format(desc.format)
+        , width(desc.width)
+        , height(desc.height)
+        , depthOrArrayLayers(desc.depthOrArrayLayers)
+        , mipLevelCount(desc.mipLevelCount)
+        , sampleCount(desc.sampleCount)
+        , usage(desc.usage)
+    {
+        const uint32_t numSubResources = desc.mipLevelCount * desc.depthOrArrayLayers;
+        subresourceLayouts.resize(numSubResources);
+        for (uint32_t i = 0; i < numSubResources; i++)
+        {
+            subresourceLayouts[i] = initialLayout;
+        }
+    }
+
     RHITextureView* RHITexture::GetView(const RHITextureViewDesc* desc) const
     {
         if (!CheckBitsAny(usage, RHITextureUsage::ShaderRead | RHITextureUsage::ShaderWrite | RHITextureUsage::RenderTarget))
@@ -136,6 +155,64 @@ namespace Alimer
         return it->second.Get();
     }
 
+    uint32_t RHITexture::GetSubresourceIndex(uint32_t mipLevel, uint32_t arrayLayer, uint32_t planeSlice) const
+    {
+        return mipLevel + arrayLayer * mipLevelCount + planeSlice * mipLevelCount * depthOrArrayLayers;
+    }
+
+    RHITextureLayout RHITexture::GetLayout(uint32_t mipLevel, uint32_t arrayLayer, uint32_t placeSlice) const
+    {
+        ALIMER_ASSERT(mipLevel < mipLevelCount);
+        ALIMER_ASSERT(arrayLayer < depthOrArrayLayers);
+
+        uint32_t subresource = GetSubresourceIndex(mipLevel, arrayLayer, placeSlice);
+        return subresourceLayouts[subresource];
+    }
+
+    RHITextureLayout RHITexture::GetLayout(uint32_t subresource) const
+    {
+        ALIMER_ASSERT(subresource < subresourceLayouts.size());
+
+        return subresourceLayouts[subresource];
+    }
+
+    void RHITexture::SetLayout(RHITextureLayout newLayout)
+    {
+        for (size_t i = 0; i < subresourceLayouts.size(); i++)
+        {
+            subresourceLayouts[i] = newLayout;
+        }
+    }
+
+    void RHITexture::SetLayout(uint32_t subresource, RHITextureLayout newLayout)
+    {
+        ALIMER_ASSERT(subresource < subresourceLayouts.size());
+
+        subresourceLayouts[subresource] = newLayout;
+    }
+
+    void RHITexture::SetLayout(RHITextureLayout newLayout, uint32_t mipLevel, uint32_t arrayLayer, uint32_t placeSlice)
+    {
+        ALIMER_ASSERT(mipLevel < mipLevelCount);
+        ALIMER_ASSERT(arrayLayer < depthOrArrayLayers);
+
+        const uint32_t subresource = GetSubresourceIndex(mipLevel, arrayLayer, placeSlice);
+        subresourceLayouts[subresource] = newLayout;
+    }
+
+    void RHITexture::SetLayout(RHITextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount) const
+    {
+        for (uint32_t arrayLayer = baseArrayLayer; arrayLayer < (baseArrayLayer + layerCount); arrayLayer++)
+        {
+            for (uint32_t mipLevel = baseMiplevel; mipLevel < (baseMiplevel + levelCount); mipLevel++)
+            {
+                uint32_t subresource = GetSubresourceIndex(mipLevel, arrayLayer);
+                subresourceLayouts[subresource] = newLayout;
+            }
+        }
+    }
+
+    /* RHISurfaceSource */
     RHISurfaceSource::RHISurfaceSource(Type type_)
         : type(type_)
     {
@@ -248,6 +325,58 @@ namespace Alimer
         ALIMER_ASSERT(type == Type::MetalLayer);
 
         return metalLayer;
+    }
+
+    /* RHISurface */
+    RHISurface::RHISurface(RHISurfaceSource* source_)
+        : source(source_)
+    {
+
+    }
+
+    RHISurface::~RHISurface()
+    {
+        configured = false;
+    }
+
+    void RHISurface::Configure(RHIDevice* device, const RHISurfaceConfig& config)
+    {
+        if (configured)
+        {
+            Unconfigure();
+        }
+
+        width = Max(config.width, 1u);
+        height = Max(config.height, 1u);
+        format = config.format;
+        alphaMode = config.alphaMode;
+        presentMode = config.presentMode;
+        ConfigureCore(device);
+        configured = true;
+    }
+
+    void RHISurface::Unconfigure()
+    {
+        if (!configured)
+            return;
+
+        width = 0;
+        height = 0;
+        format = PixelFormat::Undefined;
+        alphaMode = RHICompositeAlphaMode::Auto;
+        presentMode = RHIPresentMode::Fifo;
+        UnconfigureCore();
+        configured = false;
+    }
+
+    void RHISurface::Resize(uint32_t newWidth, uint32_t newHeight)
+    {
+        if (width == newWidth && height == newHeight)
+            return;
+
+        width = Max(newWidth, 1u);
+        height = Max(newHeight, 1u);
+        ResizeCore();
     }
 
     /* CommandEncoder */

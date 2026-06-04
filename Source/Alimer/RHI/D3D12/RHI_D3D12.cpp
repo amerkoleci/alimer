@@ -120,6 +120,13 @@ namespace Alimer
         static_assert(offsetof(DrawIndexedIndirectCommand, baseVertex) == offsetof(D3D12_DRAW_INDEXED_ARGUMENTS, BaseVertexLocation), "Layout mismatch");
         static_assert(offsetof(DrawIndexedIndirectCommand, firstInstance) == offsetof(D3D12_DRAW_INDEXED_ARGUMENTS, StartInstanceLocation), "Layout mismatch");
 
+        inline long ComputeIntersectionArea(
+            long ax1, long ay1, long ax2, long ay2,
+            long bx1, long by1, long bx2, long by2) noexcept
+        {
+            return std::max(0l, std::min(ax2, bx2) - std::max(ax1, bx1)) * std::max(0l, std::min(ay2, by2) - std::max(ay1, by1));
+        }
+
         inline DXGI_FORMAT ToDxgiRTVFormat(PixelFormat format)
         {
             return static_cast<DXGI_FORMAT>(ToDxgiFormat(format));
@@ -1188,8 +1195,8 @@ namespace Alimer
         uint32_t numSubResources = 0;
         mutable Vector<RHITextureLayout> subResourcesStates;
 
-        explicit D3D12Texture(D3D12Device* device_, const RHITextureDesc& desc)
-            : RHITexture(desc)
+        explicit D3D12Texture(D3D12Device* device_, const RHITextureDesc& desc, RHITextureLayout initialLayout)
+            : RHITexture(desc, initialLayout)
         {
             device = device_;
         }
@@ -1283,27 +1290,31 @@ namespace Alimer
     struct D3D12Surface final : public RHISurface
     {
         D3D12Factory* factory = nullptr;
-        D3D12Device* device = nullptr;
+        SharedPtr<D3D12Device> device;
 
-        IDXGISwapChain3* handle = nullptr;
+        ComPtr<IDXGISwapChain3> swapChain3;
 
-        uint32_t width = 0;
-        uint32_t height = 0;
         uint32_t syncInterval = 1u;
         uint32_t presentFlags = 0;
+        DXGI_FORMAT backBufferFormat = DXGI_FORMAT_UNKNOWN;
         uint32_t backBufferCount = 0;
         uint32_t backBufferIndex = 0;
-        PixelFormat colorFormat = PixelFormat::Undefined;
         std::vector<SharedPtr<D3D12Texture>> backbufferTextures;
 
         D3D12Surface(D3D12Factory* factory, RHISurfaceSource* source);
         ~D3D12Surface() override;
 
         RHIStatus GetCapabilities(RHIAdapter* adapter, RHISurfaceCapabilities* capabilities) override;
-        void Configure(RHIDevice* device, const RHISurfaceConfig& config) override;
-        void Unconfigure() override;
-        void Resize(uint32_t newWidth, uint32_t newHeight) override;
+        void ConfigureCore(RHIDevice* device) override;
+        void UnconfigureCore() override;
+        void ResizeCore() override;
         void SetLabel(const char* label) override;
+
+        HRESULT Present();
+
+    private:
+        void AfterReset();
+        void UpdateColorSpace();
     };
 
     class D3D12CommandBuffer;
@@ -1792,6 +1803,10 @@ namespace Alimer
         friend struct D3D12BindlessManager;
 
     public:
+        D3D12Adapter* adapter = nullptr;
+        ID3D12Device5* device = nullptr;
+        ID3D12Device8* device8 = nullptr;
+
         D3D12Device(D3D12Adapter* adapter, const RHIDeviceDesc& desc);
         ~D3D12Device() override;
 
@@ -1840,10 +1855,7 @@ namespace Alimer
 
     private:
         bool shuttingDown{ false };
-        D3D12Adapter* adapter;
 
-        ID3D12Device5* device = nullptr;
-        ID3D12Device8* device8 = nullptr;
         ComPtr<ID3D12VideoDevice> videoDevice;
         ComPtr<ID3D12DeviceConfiguration> deviceConfiguration;
 
@@ -2471,7 +2483,7 @@ namespace Alimer
 
         if (FAILED(hr))
         {
-            LOGE( "%s, Failed to create root signature, result: 0x%08X", hr);
+            LOGE("%s, Failed to create root signature, result: 0x%08X", hr);
             return;
         }
     }
@@ -2496,27 +2508,319 @@ namespace Alimer
 
     RHIStatus D3D12Surface::GetCapabilities(RHIAdapter* adapter, RHISurfaceCapabilities* capabilities)
     {
+        if (!capabilities)
+            return RHIStatus::Error;
+
+
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+        if (source->GetType() == RHISurfaceSource::Type::WindowsHWND)
+        {
+            HWND hwnd = static_cast<HWND>(source->GetHWND());
+            if (!IsWindow(hwnd))
+            {
+                LOGE("Win32: Invalid vulkan hwnd handle");
+                return RHIStatus::Error;
+            }
+
+            RECT windowRect;
+            GetClientRect(hwnd, &windowRect);
+            uint32_t currentWidth = static_cast<uint32_t>(windowRect.right - windowRect.left);
+            uint32_t currentHeight = static_cast<uint32_t>(windowRect.bottom - windowRect.top);
+        }
+#endif
+
         return RHIStatus::Error;
     }
 
-    void D3D12Surface::Configure(RHIDevice* device, const RHISurfaceConfig& config)
+    void D3D12Surface::ConfigureCore(RHIDevice* device_)
     {
+        device = static_cast<D3D12Device*>(device_);
+        D3D12Factory* factory = device->adapter->factory;
 
+        syncInterval = PresentModeToSyncInterval(presentMode);
+        presentFlags = (presentMode == RHIPresentMode::Immediate && factory->tearingSupported) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
+        backBufferFormat = ToDxgiSwapChainFormat(format);
+        backBufferCount = PresentModeToBufferCount(presentMode);
+        backBufferIndex = 0;
+
+        DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+        swapChainDesc.Width = width;
+        swapChainDesc.Height = height;
+        swapChainDesc.Format = backBufferFormat;
+        swapChainDesc.Stereo = FALSE;
+        swapChainDesc.SampleDesc.Count = 1;
+        swapChainDesc.SampleDesc.Quality = 0;
+        swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        swapChainDesc.BufferCount = backBufferCount;
+        swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
+        swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+        swapChainDesc.Flags = (factory->tearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u);
+
+        HRESULT hr = E_FAIL;
+        ComPtr<IDXGISwapChain1> tempSwapChain;
+
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+        const HWND hwnd = static_cast<HWND>(source->GetHWND());
+
+        DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {
+            .Windowed = TRUE
+        };
+
+        hr = factory->handle->CreateSwapChainForHwnd(
+            device->GetD3D12GraphicsQueue(),
+            hwnd,
+            &swapChainDesc,
+            &fullscreenDesc,
+            nullptr,
+            tempSwapChain.GetAddressOf()
+        );
+        ThrowIfFailed(hr);
+        ThrowIfFailed(tempSwapChain.As(&swapChain3));
+
+        // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
+        ThrowIfFailed(factory->handle->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER));
+#endif
+        UpdateColorSpace();
+        AfterReset();
     }
 
-    void D3D12Surface::Unconfigure()
+    void D3D12Surface::UnconfigureCore()
     {
+        if (device)
+        {
+            device->WaitIdle();
+        }
 
+        for (size_t i = 0; i < backbufferTextures.size(); ++i)
+        {
+            backbufferTextures[i].Reset();
+        }
+
+        backbufferTextures.clear();
+        syncInterval = 1u;
+        presentFlags = 0;
+        backBufferFormat = DXGI_FORMAT_UNKNOWN;
+        backBufferCount = 0;
+        backBufferIndex = 0;
+
+        SafeRelease(swapChain3);
+        device.Reset();
     }
 
-    void D3D12Surface::Resize(uint32_t newWidth, uint32_t newHeight)
+    void D3D12Surface::ResizeCore()
     {
+        device->WaitIdle();
 
+        for (size_t i = 0; i < backbufferTextures.size(); ++i)
+        {
+            backbufferTextures[i].Reset();
+        }
+
+        backBufferIndex = 0;
+        backbufferTextures.clear();
+        // If the swap chain already exists, resize it.
+        HRESULT hr = swapChain3->ResizeBuffers(
+            backBufferCount,
+            width,
+            height,
+            backBufferFormat,
+            factory->tearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
+        );
+
+        if (hr == DXGI_ERROR_DEVICE_REMOVED
+            || hr == DXGI_ERROR_DEVICE_RESET)
+        {
+#if DEBUG
+            HRESULT logHR = (hr == DXGI_ERROR_DEVICE_REMOVED) ? backendDevice.Device->GetDeviceRemovedReason() : hr;
+            System.Diagnostics.Debug.WriteLine($"Device Lost on ResizeBuffers: Reason code {logHR}");
+#endif
+            // If the device was removed for any reason, a new device and swap chain will need to be created.
+            device->OnDeviceRemoved();
+
+            // Everything is set up now. Do not continue execution of this method. HandleDeviceLost will reenter this method
+            // and correctly set up the new device.
+            return;
+        }
+        else
+        {
+            ThrowIfFailed(hr);
+        }
+
+        UpdateColorSpace();
+        AfterReset();
     }
 
     void D3D12Surface::SetLabel(const char* label)
     {
 
+    }
+
+    void D3D12Surface::AfterReset()
+    {
+        DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
+        ThrowIfFailed(swapChain3->GetDesc1(&swapChainDesc));
+
+        backbufferTextures.resize(swapChainDesc.BufferCount);
+        RHITextureDesc textureDesc{};
+        textureDesc.format = format;
+        textureDesc.width = width;
+        textureDesc.height = height;
+        textureDesc.usage = RHITextureUsage::RenderTarget;
+
+        for (uint32_t i = 0; i < swapChainDesc.BufferCount; ++i)
+        {
+            SharedPtr<D3D12Texture> texture(new D3D12Texture(device, textureDesc, RHITextureLayout::Present));
+            texture->dxgiFormat = (DXGI_FORMAT)ToDxgiFormat(format);
+            ThrowIfFailed(swapChain3->GetBuffer(i, IID_PPV_ARGS(&texture->handle)));
+
+            D3D12_RESOURCE_DESC resourceDesc = texture->handle->GetDesc();
+
+            texture->allocatedSize = 0;
+            texture->numSubResources = resourceDesc.MipLevels * resourceDesc.DepthOrArraySize;
+            texture->subResourcesStates.resize(texture->numSubResources);
+            texture->subResourcesStates[0] = RHITextureLayout::Present;
+
+            texture->footPrints.resize(texture->numSubResources);
+            texture->rowSizesInBytes.resize(texture->footPrints.size());
+            texture->numRows.resize(texture->footPrints.size());
+            device->device->GetCopyableFootprints(
+                &resourceDesc,
+                0,
+                (UINT)texture->footPrints.size(),
+                0,
+                texture->footPrints.data(),
+                texture->numRows.data(),
+                texture->rowSizesInBytes.data(),
+                &texture->allocatedSize
+            );
+
+            backbufferTextures[i] = texture;
+        }
+
+        // Reset the index to the current back buffer.
+        backBufferIndex = swapChain3->GetCurrentBackBufferIndex();
+    }
+
+    void D3D12Surface::UpdateColorSpace()
+    {
+        D3D12Factory* factory = device->adapter->factory;
+
+        D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport{};
+        formatSupport.Format = backBufferFormat;
+        HRESULT hr = device->device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT));
+        if (SUCCEEDED(hr)
+            && (formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_DISPLAY) == 0)
+        {
+            return;
+        }
+
+        bool isDisplayHDR10 = false;
+
+        // Detect output
+        // HDR display query: https://docs.microsoft.com/en-us/windows/win32/direct3darticles/high-dynamic-rangeù
+
+        // Get the retangle bounds of the app window.
+        RECT windowBounds;
+        if (!GetWindowRect((HWND)source->GetHWND(), &windowBounds))
+        {
+            LOGE("GetWindowRect failed with error code {}", GetLastError());
+            return;
+        }
+
+        int ax1 = windowBounds.left;
+        int ay1 = windowBounds.top;
+        int ax2 = windowBounds.right;
+        int ay2 = windowBounds.bottom;
+
+        ComPtr<IDXGIOutput> bestOutput;
+        long bestIntersectArea = -1;
+
+        // Search for an HDR display among the outputs (e.g. in case of a virtual output from a remote desktop session).
+        ComPtr<IDXGIAdapter> adapter;
+        for (uint32_t adapterIndex = 0;
+            SUCCEEDED(factory->handle->EnumAdapters(adapterIndex, adapter.ReleaseAndGetAddressOf()));
+            ++adapterIndex)
+        {
+            ComPtr<IDXGIOutput> output;
+            for (uint32_t outputIndex = 0;
+                SUCCEEDED(adapter.Get()->EnumOutputs(outputIndex, output.ReleaseAndGetAddressOf()));
+                ++outputIndex)
+            {
+                // Get the rectangle bounds of current output.
+                DXGI_OUTPUT_DESC desc;
+                ThrowIfFailed(output.Get()->GetDesc(&desc));
+                RECT desktopCoordinates = desc.DesktopCoordinates;
+
+                // Compute the intersection
+                int intersectArea = ComputeIntersectionArea(ax1, ay1, ax2, ay2, desktopCoordinates.left, desktopCoordinates.top, desktopCoordinates.right, desktopCoordinates.bottom);
+                if (intersectArea > bestIntersectArea)
+                {
+                    bestOutput.Swap(output);
+                    bestIntersectArea = intersectArea;
+                }
+            }
+        }
+
+        if (bestOutput)
+        {
+            ComPtr<IDXGIOutput6> output6;
+            if (SUCCEEDED(bestOutput.As(&output6)))
+            {
+                DXGI_OUTPUT_DESC1 desc;
+                ThrowIfFailed(output6.Get()->GetDesc1(&desc));
+
+                if (desc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020)
+                {
+                    // Display output is HDR10.
+                    isDisplayHDR10 = true;
+                }
+            }
+        }
+
+        // The application creates the HDR10 signal.
+        DXGI_COLOR_SPACE_TYPE dxgiColorSpace;
+        switch (backBufferFormat)
+        {
+            case DXGI_FORMAT_R10G10B10A2_UNORM:
+                dxgiColorSpace = isDisplayHDR10 ? DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 : DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+                break;
+                // The system creates the HDR10 signal; application uses linear values.
+            case DXGI_FORMAT_R16G16B16A16_FLOAT:
+                dxgiColorSpace = DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709;
+                break;
+                // Anything else will be SDR (SRGB):
+            default:
+                dxgiColorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
+                break;
+        }
+
+        switch (dxgiColorSpace)
+        {
+            default:
+            case DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709:
+                colorSpace = RHIColorSpace::SRGB;
+                break;
+            case DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709:
+                colorSpace = RHIColorSpace::HDR_LINEAR;
+                break;
+            case DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020:
+                colorSpace = RHIColorSpace::HDR10_ST2084;
+                break;
+        }
+
+        UINT colorSpaceSupport = 0;
+        if (SUCCEEDED(swapChain3->CheckColorSpaceSupport(dxgiColorSpace, &colorSpaceSupport))
+            && (colorSpaceSupport & DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) != 0)
+        {
+            ThrowIfFailed(swapChain3->SetColorSpace1(dxgiColorSpace));
+        }
+    }
+
+    HRESULT D3D12Surface::Present()
+    {
+        const HRESULT hr = swapChain3->Present(syncInterval, presentFlags);
+        return hr;
     }
 
     /* D3D12ComputePassEncoder */
@@ -2699,8 +3003,7 @@ namespace Alimer
     }
 
     void D3D12RenderPassEncoder::SetViewport(const RHIViewport& viewport)
-    {
-    }
+    {}
 
     void D3D12RenderPassEncoder::SetViewports(const RHIViewport* viewports, uint32_t count)
     {
@@ -3827,9 +4130,9 @@ namespace Alimer
             for (uint32_t cmd = 0; cmd < cmd_last; ++cmd)
             {
                 D3D12CommandBuffer& commandBuffer = *commandBuffers[cmd].get();
-                for (auto& swapChain : commandBuffer.presentSwapChains)
+                for (auto& surface : commandBuffer.presentSwapChains)
                 {
-                    hr = swapChain->handle->Present(swapChain->syncInterval, swapChain->presentFlags);
+                    hr = surface->Present();
 
                     // If the device was reset we must completely reinitialize the renderer.
                     if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
@@ -4049,10 +4352,34 @@ namespace Alimer
 
     RHITextureRef D3D12Device::CreateTextureCore(const RHITextureDesc& desc, const RHITextureData* initialData)
     {
-        SharedPtr<D3D12Texture> texture(new D3D12Texture(this, desc));
+        const bool isDepthStencil = IsDepthStencilFormat(desc.format);
+        RHITextureLayout initialLayout = RHITextureLayout::Undefined;
+        if (initialData == nullptr)
+        {
+            if (CheckBitsAny(desc.usage, RHITextureUsage::RenderTarget))
+            {
+                if (isDepthStencil)
+                {
+                    initialLayout = RHITextureLayout::DepthWrite;
+                }
+                else
+                {
+                    initialLayout = RHITextureLayout::RenderTarget;
+                }
+            }
+            else if (CheckBitsAny(desc.usage, RHITextureUsage::ShaderWrite))
+            {
+                initialLayout = RHITextureLayout::UnorderedAccess;
+            }
+            else if (CheckBitsAny(desc.usage, RHITextureUsage::ShaderRead))
+            {
+                initialLayout = RHITextureLayout::ShaderResource;
+            }
+        }
+
+        SharedPtr<D3D12Texture> texture(new D3D12Texture(this, desc, initialLayout));
         texture->dxgiFormat = (DXGI_FORMAT)ToDxgiFormat(desc.format);
 
-        const bool isDepthStencil = IsDepthStencilFormat(desc.format);
 
         if (isDepthStencil && CheckBitsAny(desc.usage, RHITextureUsage::ShaderReadWrite))
         {
@@ -4112,30 +4439,6 @@ namespace Alimer
         if (CheckBitsAny(desc.usage, RHITextureUsage::ShaderWrite))
         {
             resourceDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-        }
-
-        RHITextureLayout initialLayout = RHITextureLayout::Undefined;
-        if (initialData == nullptr)
-        {
-            if (CheckBitsAny(desc.usage, RHITextureUsage::RenderTarget))
-            {
-                if (isDepthStencil)
-                {
-                    initialLayout = RHITextureLayout::DepthWrite;
-                }
-                else
-                {
-                    initialLayout = RHITextureLayout::RenderTarget;
-                }
-            }
-            else if (CheckBitsAny(desc.usage, RHITextureUsage::ShaderWrite))
-            {
-                initialLayout = RHITextureLayout::UnorderedAccess;
-            }
-            else if (CheckBitsAny(desc.usage, RHITextureUsage::ShaderRead))
-            {
-                initialLayout = RHITextureLayout::ShaderResource;
-            }
         }
 
         D3D12_CLEAR_VALUE clearValue = {};
@@ -4430,7 +4733,7 @@ namespace Alimer
 
     RHITextureRef D3D12Device::CreateTextureFromNativeHandleCore(RHINativeHandle handle, const RHITextureDesc& desc)
     {
-        SharedPtr<D3D12Texture> texture(new D3D12Texture(this, desc));
+        SharedPtr<D3D12Texture> texture(new D3D12Texture(this, desc, RHITextureLayout::Undefined));
         texture->dxgiFormat = (DXGI_FORMAT)ToDxgiFormat(desc.format);
 
         const bool isDepthStencil = IsDepthStencilFormat(desc.format);
@@ -5559,15 +5862,6 @@ namespace Alimer
 
                     dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_ERROR, true);
                     dxgiInfoQueue->SetBreakOnSeverity(DXGI_DEBUG_ALL, DXGI_INFO_QUEUE_MESSAGE_SEVERITY_CORRUPTION, true);
-
-                    DXGI_INFO_QUEUE_MESSAGE_ID hide[] =
-                    {
-                        80 /* IDXGISwapChain::GetContainingOutput: The swapchain's adapter does not control the output on which the swapchain's window resides. */,
-                    };
-                    DXGI_INFO_QUEUE_FILTER filter = {};
-                    filter.DenyList.NumIDs = static_cast<UINT>(std::size(hide));
-                    filter.DenyList.pIDList = hide;
-                    dxgiInfoQueue->AddStorageFilterEntries(DXGI_DEBUG_DXGI, &filter);
                 }
 #endif
             }
@@ -5664,23 +5958,6 @@ namespace Alimer
     RHISurfaceRef D3D12Factory::CreateSurface(RHISurfaceSource* source)
     {
         SharedPtr<D3D12Surface> surface(new D3D12Surface(this, source));
-
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-        if (source->GetType() == RHISurfaceSource::Type::WindowsHWND)
-        {
-            HWND hwnd = static_cast<HWND>(source->GetHWND());
-            if (!IsWindow(hwnd))
-            {
-                LOGE("Win32: Invalid vulkan hwnd handle");
-                return nullptr;
-            }
-
-            RECT windowRect;
-            GetClientRect(hwnd, &windowRect);
-            surface->width = static_cast<uint32_t>(windowRect.right - windowRect.left);
-            surface->height = static_cast<uint32_t>(windowRect.bottom - windowRect.top);
-        }
-#endif
 
         return surface;
     }

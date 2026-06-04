@@ -192,5 +192,5 @@ Application& Alimer::GetApplication()
 
 RHIDevice* Alimer::GetPrimaryRHIDevice()
 {
-    return Application::Get().GetPrimaryRHIDevice();
+    return Application::Get().GetRHIDevice();
 }
