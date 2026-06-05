@@ -526,13 +526,13 @@ namespace Alimer
     {
         Load,
         Clear,
-        DontCare,
+        Discard,
     };
 
     enum class RHIStoreAction : uint32_t
     {
         Store,
-        DontCare
+        Discard
     };
 
     enum class RHIShaderStages : uint32_t
@@ -1026,12 +1026,12 @@ namespace Alimer
         RHITextureView* view = nullptr;
 
         RHILoadAction depthLoadAction = RHILoadAction::Clear;
-        RHIStoreAction depthStoreAction = RHIStoreAction::DontCare;
+        RHIStoreAction depthStoreAction = RHIStoreAction::Discard;
         float depthClearValue = 1.0f;
         bool depthReadOnly = false;
 
         RHILoadAction stencilLoadAction = RHILoadAction::Clear;
-        RHIStoreAction stencilStoreAction = RHIStoreAction::DontCare;
+        RHIStoreAction stencilStoreAction = RHIStoreAction::Discard;
         uint8_t stencilClearValue = 0;
         bool stencilReadOnly = false;
     };
@@ -1047,11 +1047,13 @@ namespace Alimer
         uint32_t colorAttachmentCount = 0;
         const RHIRenderPassColorAttachment* colorAttachments = nullptr;
         const RHIRenderPassDepthStencilAttachment* depthStencilAttachment = nullptr;
+        const RHITexture* shadingRateTexture = nullptr;
     };
 
     struct RHISurfaceCapabilities
     {
-        RHITextureUsage usages;
+        RHITextureUsage supportedUsages;
+        PixelFormat preferredFormat;
         uint32_t formatCount;
         const PixelFormat* formats;
         uint32_t presentModeCount;
@@ -1299,8 +1301,8 @@ namespace Alimer
 
         // TODO: Make protected
         void SetLayout(RHITextureLayout newLayout);
-        void SetLayout(uint32_t subresource, RHITextureLayout newLayout);
-        void SetLayout(RHITextureLayout newLayout, uint32_t mipLevel, uint32_t arrayLayer, uint32_t placeSlice = 0);
+        void SetLayout(uint32_t subresource, RHITextureLayout newLayout) const;
+        void SetLayout(RHITextureLayout newLayout, uint32_t mipLevel, uint32_t arrayLayer, uint32_t placeSlice = 0) const;
         void SetLayout(RHITextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount) const;
 
     protected:
@@ -1559,7 +1561,7 @@ namespace Alimer
 
         virtual void SetViewport(const RHIViewport& viewport) = 0;
         virtual void SetViewports(const RHIViewport* viewports, uint32_t count) = 0;
-        virtual void SetScissorRect(const RHIScissorRect& rect) = 0;
+        virtual void SetScissorRect(const RHIScissorRect& scissorRect) = 0;
         virtual void SetScissorRects(const RHIScissorRect* scissorRects, uint32_t count) = 0;
         virtual void SetStencilReference(uint32_t referenceValue) = 0;
         virtual void SetBlendColor(const Color& color) = 0;

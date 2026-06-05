@@ -1192,8 +1192,6 @@ namespace Alimer
         D3D12_GPU_VIRTUAL_ADDRESS gpuAddress{};
         void* pMappedData = nullptr;
         HANDLE sharedHandle = nullptr;
-        uint32_t numSubResources = 0;
-        mutable Vector<RHITextureLayout> subResourcesStates;
 
         explicit D3D12Texture(D3D12Device* device_, const RHITextureDesc& desc, RHITextureLayout initialLayout)
             : RHITexture(desc, initialLayout)
@@ -1298,7 +1296,6 @@ namespace Alimer
         uint32_t presentFlags = 0;
         DXGI_FORMAT backBufferFormat = DXGI_FORMAT_UNKNOWN;
         uint32_t backBufferCount = 0;
-        uint32_t backBufferIndex = 0;
         std::vector<SharedPtr<D3D12Texture>> backbufferTextures;
 
         D3D12Surface(D3D12Factory* factory, RHISurfaceSource* source);
@@ -1328,6 +1325,7 @@ namespace Alimer
         ~D3D12ComputePassEncoder() override;
 
         void Begin(const RHIComputePassDesc& desc);
+        void End() override;
 
         void PushDebugGroup(std::string_view groupLabel) override;
         void PopDebugGroup() override;
@@ -1341,7 +1339,6 @@ namespace Alimer
         void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
         void DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
 
-        void End() override;
         RHICommandBuffer* GetCommandBuffer() const override;
 
     private:
@@ -1371,7 +1368,7 @@ namespace Alimer
 
         void SetViewport(const RHIViewport& viewport) override;
         void SetViewports(const RHIViewport* viewports, uint32_t count) override;
-        void SetScissorRect(const RHIScissorRect& rect) override;
+        void SetScissorRect(const RHIScissorRect& scissorRect) override;
         void SetScissorRects(const RHIScissorRect* scissorRects, uint32_t count) override;
         void SetStencilReference(uint32_t referenceValue) override;
         void SetBlendColor(const Color& color) override;
@@ -1407,6 +1404,12 @@ namespace Alimer
         bool _hasLabel{ false };
         RHIShadingRate _currentShadingRate{ RHIShadingRate::Invalid };
         SharedPtr<D3D12RenderPipeline> _currentPipeline;
+
+        D3D12_RENDER_PASS_RENDER_TARGET_DESC RTVs[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
+        D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DSV = {};
+        D3D12_RENDER_PASS_FLAGS renderPassFlags = D3D12_RENDER_PASS_FLAG_NONE;
+        bool hasShadingRateAttachment = false;
+        D3D12_VERTEX_BUFFER_VIEW vboViews[kMaxVertexBuffers] = {};
     };
 
     class D3D12CommandBuffer final : public RHICommandBuffer
@@ -1426,6 +1429,9 @@ namespace Alimer
 
         void BufferBarrier(const D3D12Buffer* buffer, RHIBufferStates newState, bool commit = false);
         void TextureBarrier(const D3D12Texture* resource, RHITextureLayout newLayout, uint32_t subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool commit = false);
+        void TextureBarrier(const D3D12Texture* texture, RHITextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, RHITextureAspect aspect = RHITextureAspect::All);
+        void TextureBarrier(const D3D12TextureView* view, RHITextureLayout newLayout);
+
         void InsertUAVBarrier(const D3D12Resource* resource, bool commit = false);
         void CommitBarriers();
         void SetPushConstants(bool graphics, const void* data, uint32_t size, uint32_t offset);
@@ -1456,7 +1462,7 @@ namespace Alimer
         uint32_t id;
 
         ID3D12CommandAllocator* commandAllocators[kNumFramesInFlight] = {};
-        ID3D12GraphicsCommandList6* commandList6 = nullptr;
+        ID3D12GraphicsCommandList6* commandList = nullptr;
         ID3D12GraphicsCommandList7* commandList7 = nullptr;
 
         std::vector<D3D12CommandBuffer*> waits;
@@ -1472,7 +1478,7 @@ namespace Alimer
 
         D3D12ComputePassEncoder* _computePassEncoder;
         D3D12RenderPassEncoder* _renderPassEncoder;
-        std::vector<SharedPtr<D3D12Surface>> presentSwapChains;
+        std::vector<SharedPtr<D3D12Surface>> presentSurfaces;
     };
 
     struct D3D12Queue final : public RHIQueue
@@ -1894,7 +1900,7 @@ namespace Alimer
         ID3D12CommandSignature* drawIndirectCommandSignature = nullptr;
         ID3D12CommandSignature* drawIndexedIndirectCommandSignature = nullptr;
         ID3D12CommandSignature* dispatchMeshIndirectCommandSignature = nullptr;
-        D3D12BindlessManager* bindlessManager;
+        D3D12BindlessManager* bindlessManager = nullptr;
 
         std::vector<std::unique_ptr<D3D12CommandBuffer>> commandBuffers;
         uint32_t cmdBuffersCount = 0;
@@ -2529,6 +2535,22 @@ namespace Alimer
         }
 #endif
 
+        capabilities->preferredFormat = PixelFormat::BGRA8UnormSrgb;
+        capabilities->supportedUsages = RHITextureUsage::ShaderRead | RHITextureUsage::RenderTarget;
+        static const PixelFormat kSupportedFormats[] = {
+            PixelFormat::BGRA8Unorm,
+            PixelFormat::BGRA8UnormSrgb,
+            PixelFormat::RGBA8Unorm,
+            PixelFormat::RGBA8UnormSrgb,
+            PixelFormat::RGBA16Float,
+            PixelFormat::RGB10A2Unorm,
+        };
+        capabilities->formats = kSupportedFormats;
+        capabilities->formatCount = ALIMER_STATIC_ARRAY_SIZE(kSupportedFormats);
+        capabilities->presentModeCount = 0;
+        capabilities->presentModes = nullptr;
+        capabilities->alphaModeCount = 0;
+        capabilities->alphaModes = nullptr;
         return RHIStatus::Error;
     }
 
@@ -2541,7 +2563,6 @@ namespace Alimer
         presentFlags = (presentMode == RHIPresentMode::Immediate && factory->tearingSupported) ? DXGI_PRESENT_ALLOW_TEARING : 0u;
         backBufferFormat = ToDxgiSwapChainFormat(format);
         backBufferCount = PresentModeToBufferCount(presentMode);
-        backBufferIndex = 0;
 
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
         swapChainDesc.Width = width;
@@ -2602,7 +2623,6 @@ namespace Alimer
         presentFlags = 0;
         backBufferFormat = DXGI_FORMAT_UNKNOWN;
         backBufferCount = 0;
-        backBufferIndex = 0;
 
         SafeRelease(swapChain3);
         device.Reset();
@@ -2617,7 +2637,6 @@ namespace Alimer
             backbufferTextures[i].Reset();
         }
 
-        backBufferIndex = 0;
         backbufferTextures.clear();
         // If the swap chain already exists, resize it.
         HRESULT hr = swapChain3->ResizeBuffers(
@@ -2677,11 +2696,9 @@ namespace Alimer
             D3D12_RESOURCE_DESC resourceDesc = texture->handle->GetDesc();
 
             texture->allocatedSize = 0;
-            texture->numSubResources = resourceDesc.MipLevels * resourceDesc.DepthOrArraySize;
-            texture->subResourcesStates.resize(texture->numSubResources);
-            texture->subResourcesStates[0] = RHITextureLayout::Present;
+            const uint32_t numSubResources = resourceDesc.MipLevels * resourceDesc.DepthOrArraySize;
 
-            texture->footPrints.resize(texture->numSubResources);
+            texture->footPrints.resize(numSubResources);
             texture->rowSizesInBytes.resize(texture->footPrints.size());
             texture->numRows.resize(texture->footPrints.size());
             device->device->GetCopyableFootprints(
@@ -2697,9 +2714,6 @@ namespace Alimer
 
             backbufferTextures[i] = texture;
         }
-
-        // Reset the index to the current back buffer.
-        backBufferIndex = swapChain3->GetCurrentBackBufferIndex();
     }
 
     void D3D12Surface::UpdateColorSpace()
@@ -2851,6 +2865,18 @@ namespace Alimer
         }
     }
 
+    void D3D12ComputePassEncoder::End()
+    {
+        if (_hasLabel)
+        {
+            PopDebugGroup();
+            _hasLabel = false;
+        }
+
+        _commandBuffer->EndEncoding();
+        ClearState();
+    }
+
     void D3D12ComputePassEncoder::PushDebugGroup(std::string_view groupLabel)
     {
         _commandBuffer->PushDebugGroup(groupLabel);
@@ -2876,7 +2902,7 @@ namespace Alimer
         _commandBuffer->CommitBarriers();
 
         // Note: D3D12 inverts the order of source and destination parameters
-        _commandBuffer->commandList6->CopyResource(backendDestBuffer->handle, backendSrcBuffer->handle);
+        _commandBuffer->commandList->CopyResource(backendDestBuffer->handle, backendSrcBuffer->handle);
     }
 
     void D3D12ComputePassEncoder::CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size)
@@ -2889,7 +2915,7 @@ namespace Alimer
         _commandBuffer->CommitBarriers();
 
         // Note: D3D12 inverts the order of source and destination parameters
-        _commandBuffer->commandList6->CopyBufferRegion(
+        _commandBuffer->commandList->CopyBufferRegion(
             backendDestBuffer->handle, destinationOffset,
             backendSrcBuffer->handle, sourceOffset,
             size);
@@ -2901,7 +2927,7 @@ namespace Alimer
             return;
 
         D3D12ComputePipeline* backendPipeline = static_cast<D3D12ComputePipeline*>(pipeline);
-        _commandBuffer->commandList6->SetPipelineState(backendPipeline->handle);
+        _commandBuffer->commandList->SetPipelineState(backendPipeline->handle);
         _currentPipeline = backendPipeline;
     }
 
@@ -2914,7 +2940,7 @@ namespace Alimer
     {
         PrepareDispatch();
 
-        _commandBuffer->commandList6->Dispatch(groupCountX, groupCountY, groupCountZ);
+        _commandBuffer->commandList->Dispatch(groupCountX, groupCountY, groupCountZ);
     }
 
     void D3D12ComputePassEncoder::DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
@@ -2922,20 +2948,8 @@ namespace Alimer
         PrepareDispatch();
 
         auto backendIndirectBuffer = static_cast<const D3D12Buffer*>(indirectBuffer);
-        _commandBuffer->commandList6->ExecuteIndirect(_commandBuffer->device->dispatchIndirectCommandSignature, 1,
+        _commandBuffer->commandList->ExecuteIndirect(_commandBuffer->device->dispatchIndirectCommandSignature, 1,
             backendIndirectBuffer->handle, indirectBufferOffset, nullptr, 0);
-    }
-
-    void D3D12ComputePassEncoder::End()
-    {
-        if (_hasLabel)
-        {
-            PopDebugGroup();
-            _hasLabel = false;
-        }
-
-        _commandBuffer->EndEncoding();
-        ClearState();
     }
 
     RHICommandBuffer* D3D12ComputePassEncoder::GetCommandBuffer() const
@@ -2969,7 +2983,14 @@ namespace Alimer
 
     void D3D12RenderPassEncoder::ClearState()
     {
+        // Release stuff we don't need anymore
+        for (uint32_t i = 0; i < kMaxVertexBuffers; ++i)
+        {
+            vboViews[i] = {};
+        }
+
         _hasLabel = false;
+        hasShadingRateAttachment = false;
         _currentShadingRate = RHIShadingRate::Invalid;
         _currentPipeline.Reset();
     }
@@ -2985,6 +3006,188 @@ namespace Alimer
         {
             _hasLabel = false;
         }
+
+        //Rect2D renderArea = { 0u, 0u, UINT32_MAX, UINT32_MAX };
+        uint32_t width = UINT32_MAX;
+        uint32_t height = UINT32_MAX;
+
+        for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
+        {
+            ALIMER_VERIFY(desc.colorAttachments[i].view != nullptr);
+
+            const RHIRenderPassColorAttachment& attachment = desc.colorAttachments[i];
+            D3D12TextureView* view = static_cast<D3D12TextureView*>(attachment.view);
+            const DXGI_FORMAT rtvFormat = view->RTVFormat;
+
+            width = std::min(width, std::max(view->GetWidth(), 1u));
+            height = std::min(height, std::max(view->GetHeight(), 1u));
+
+            RTVs[i].cpuDescriptor = view->RTV;
+            RTVs[i].BeginningAccess.Clear.ClearValue.Format = rtvFormat;
+
+            switch (attachment.loadAction)
+            {
+                default:
+                case RHILoadAction::Load:
+                    RTVs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                    break;
+
+                case RHILoadAction::Clear:
+                    RTVs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                    RTVs[i].BeginningAccess.Clear.ClearValue.Color[0] = attachment.clearColor.float32[0];
+                    RTVs[i].BeginningAccess.Clear.ClearValue.Color[1] = attachment.clearColor.float32[1];
+                    RTVs[i].BeginningAccess.Clear.ClearValue.Color[2] = attachment.clearColor.float32[2];
+                    RTVs[i].BeginningAccess.Clear.ClearValue.Color[3] = attachment.clearColor.float32[3];
+                    break;
+
+                case RHILoadAction::Discard:
+                    RTVs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+                    break;
+            }
+
+            switch (attachment.storeAction)
+            {
+                default:
+                case RHIStoreAction::Store:
+                    RTVs[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                    break;
+
+                case RHIStoreAction::Discard:
+                    RTVs[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                    break;
+            }
+
+            _commandBuffer->TextureBarrier(view, RHITextureLayout::RenderTarget);
+        }
+
+        const bool hasDepthOrStencil = desc.depthStencilAttachment != nullptr && desc.depthStencilAttachment->view != nullptr;
+
+        if (hasDepthOrStencil)
+        {
+            const RHIRenderPassDepthStencilAttachment& attachment = *desc.depthStencilAttachment;
+
+            D3D12TextureView* view = static_cast<D3D12TextureView*>(attachment.view);
+
+            const DXGI_FORMAT dsvFormat = view->DSVFormat;
+
+            width = std::min(width, std::max(view->GetWidth(), 1u));
+            height = std::min(height, std::max(view->GetHeight(), 1u));
+
+            DSV.cpuDescriptor = attachment.depthReadOnly ? view->DSVReadOnly : view->DSV;
+            DSV.DepthBeginningAccess.Clear.ClearValue.Format = dsvFormat;
+            DSV.StencilBeginningAccess.Clear.ClearValue.Format = dsvFormat;
+
+            switch (attachment.depthLoadAction)
+            {
+                default:
+                case RHILoadAction::Load:
+                    DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                    break;
+
+                case RHILoadAction::Clear:
+                    DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                    DSV.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = attachment.depthClearValue;
+                    break;
+                case RHILoadAction::Discard:
+                    DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+                    break;
+            }
+
+            switch (attachment.depthStoreAction)
+            {
+                default:
+                case RHIStoreAction::Store:
+                    DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                    break;
+                case RHIStoreAction::Discard:
+                    DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                    break;
+            }
+
+            if (IsStencilFormat(view->GetFormat()))
+            {
+                switch (attachment.stencilLoadAction)
+                {
+                    default:
+                    case RHILoadAction::Load:
+                        DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                        break;
+
+                    case RHILoadAction::Clear:
+                        DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                        DSV.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = static_cast<UINT8>(attachment.stencilClearValue);
+                        break;
+                    case RHILoadAction::Discard:
+                        DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+                        break;
+                }
+
+                switch (attachment.stencilStoreAction)
+                {
+                    default:
+                    case RHIStoreAction::Store:
+                        DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                        break;
+                    case RHIStoreAction::Discard:
+                        DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                        break;
+                }
+            }
+            else
+            {
+                DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
+                DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
+            }
+
+            _commandBuffer->TextureBarrier(view, attachment.depthReadOnly ? RHITextureLayout::DepthRead : RHITextureLayout::DepthWrite);
+        }
+
+        // ShadingRate
+        hasShadingRateAttachment = desc.shadingRateTexture != nullptr;
+        if (hasShadingRateAttachment)
+        {
+            const D3D12Texture* backendTexture = static_cast<const D3D12Texture*>(desc.shadingRateTexture);
+            _commandBuffer->TextureBarrier(backendTexture, RHITextureLayout::ShadingRateSurface);
+        }
+
+        _commandBuffer->CommitBarriers();
+        _commandBuffer->commandList->BeginRenderPass(
+            desc.colorAttachmentCount,
+            RTVs,
+            hasDepthOrStencil ? &DSV : nullptr,
+            renderPassFlags
+        );
+
+        if (hasShadingRateAttachment)
+        {
+            const D3D12Texture* backendTexture = static_cast<const D3D12Texture*>(desc.shadingRateTexture);
+            _commandBuffer->commandList->RSSetShadingRateImage(backendTexture->handle);
+        }
+
+        D3D12_VIEWPORT viewport = { 0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f };
+        D3D12_RECT scissorRect = { 0, 0, LONG(width), LONG(height) };
+        _commandBuffer->commandList->RSSetViewports(1, &viewport);
+        _commandBuffer->commandList->RSSetScissorRects(1, &scissorRect);
+        _currentShadingRate = RHIShadingRate::Invalid;
+    }
+
+    void D3D12RenderPassEncoder::End()
+    {
+        _commandBuffer->commandList->EndRenderPass();
+
+        if (hasShadingRateAttachment)
+        {
+            _commandBuffer->commandList->RSSetShadingRateImage(nullptr);
+        }
+
+        if (_hasLabel)
+        {
+            PopDebugGroup();
+            _hasLabel = false;
+        }
+
+        _commandBuffer->EndEncoding();
+        ClearState();
     }
 
     void D3D12RenderPassEncoder::PushDebugGroup(std::string_view groupLabel)
@@ -3003,46 +3206,91 @@ namespace Alimer
     }
 
     void D3D12RenderPassEncoder::SetViewport(const RHIViewport& viewport)
-    {}
+    {
+        _commandBuffer->commandList->RSSetViewports(1, (const D3D12_VIEWPORT*)&viewport);
+    }
 
     void D3D12RenderPassEncoder::SetViewports(const RHIViewport* viewports, uint32_t count)
     {
+        ALIMER_ASSERT(viewports != nullptr);
+        ALIMER_ASSERT(count < D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
 
+        _commandBuffer->commandList->RSSetViewports(count, (const D3D12_VIEWPORT*)viewports);
     }
 
-    void D3D12RenderPassEncoder::SetScissorRect(const RHIScissorRect& rect)
+    void D3D12RenderPassEncoder::SetScissorRect(const RHIScissorRect& scissorRect)
     {
+        D3D12_RECT d3dScissorRect;
+        d3dScissorRect.left = LONG(scissorRect.x);
+        d3dScissorRect.top = LONG(scissorRect.y);
+        d3dScissorRect.right = LONG(scissorRect.x + scissorRect.width);
+        d3dScissorRect.bottom = LONG(scissorRect.y + scissorRect.height);
 
+        _commandBuffer->commandList->RSSetScissorRects(1, &d3dScissorRect);
     }
 
     void D3D12RenderPassEncoder::SetScissorRects(const RHIScissorRect* scissorRects, uint32_t count)
     {
+        ALIMER_ASSERT(scissorRects != nullptr);
+        ALIMER_ASSERT(count < D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
 
+        D3D12_RECT d3dScissorRects[D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE];
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            d3dScissorRects[i].left = LONG(scissorRects[i].x);
+            d3dScissorRects[i].top = LONG(scissorRects[i].y);
+            d3dScissorRects[i].right = LONG(scissorRects[i].x + scissorRects[i].width);
+            d3dScissorRects[i].bottom = LONG(scissorRects[i].y + scissorRects[i].height);
+        }
+
+        _commandBuffer->commandList->RSSetScissorRects(count, d3dScissorRects);
     }
 
     void D3D12RenderPassEncoder::SetStencilReference(uint32_t referenceValue)
     {
-
+        _commandBuffer->commandList->OMSetStencilRef(referenceValue);
     }
 
     void D3D12RenderPassEncoder::SetBlendColor(const Color& color)
     {
-
+        _commandBuffer->commandList->OMSetBlendFactor(color.Data());
     }
 
     void D3D12RenderPassEncoder::SetShadingRate(RHIShadingRate rate)
     {
+        if (_commandBuffer->device->d3dFeatures.VariableShadingRateTier() != D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED
+            && _currentShadingRate != rate)
+        {
+            _currentShadingRate = rate;
 
+            D3D12_SHADING_RATE d3dRate = D3D12_SHADING_RATE_1X1;
+            _commandBuffer->device->WriteShadingRateValue(rate, &d3dRate);
+
+            D3D12_SHADING_RATE_COMBINER combiners[] =
+            {
+                D3D12_SHADING_RATE_COMBINER_MAX,
+                D3D12_SHADING_RATE_COMBINER_MAX,
+            };
+            _commandBuffer->commandList->RSSetShadingRate(d3dRate, combiners);
+        }
     }
 
     void D3D12RenderPassEncoder::SetDepthBounds(float minBounds, float maxBounds)
     {
-
+        _commandBuffer->commandList->OMSetDepthBounds(minBounds, maxBounds);
     }
 
     void D3D12RenderPassEncoder::SetPipeline(RHIRenderPipeline* pipeline)
     {
+        if (_currentPipeline.Get() == pipeline)
+            return;
 
+        D3D12RenderPipeline* newPipeline = static_cast<D3D12RenderPipeline*>(pipeline);
+
+        _commandBuffer->commandList->SetPipelineState(newPipeline->handle);
+        _commandBuffer->commandList->IASetPrimitiveTopology(newPipeline->primitiveTopology);
+
+        _currentPipeline = newPipeline;
     }
 
     void D3D12RenderPassEncoder::SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset)
@@ -3052,27 +3300,64 @@ namespace Alimer
 
     void D3D12RenderPassEncoder::SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset)
     {
+        const D3D12Buffer* backendBuffer = static_cast<const D3D12Buffer*>(buffer);
 
+        vboViews[slot].BufferLocation = backendBuffer->deviceAddress + (D3D12_GPU_VIRTUAL_ADDRESS)offset;
+        vboViews[slot].SizeInBytes = (UINT)(backendBuffer->GetSize() - offset);
+        vboViews[slot].StrideInBytes = 0;
     }
 
     void D3D12RenderPassEncoder::SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets)
     {
+        ALIMER_ASSERT(buffers != nullptr);
+        ALIMER_ASSERT(count <= ALIMER_STATIC_ARRAY_SIZE(buffers));
+        ALIMER_ASSERT(count <= kMaxVertexBuffers);
 
+        for (uint32_t i = 0; i < count; ++i)
+        {
+            if (buffers[i] == nullptr)
+            {
+                vboViews[slot] = {};
+            }
+            else
+            {
+                const D3D12Buffer* backendBuffer = static_cast<const D3D12Buffer*>(buffers[i]);
+                vboViews[slot].BufferLocation = backendBuffer->deviceAddress + (D3D12_GPU_VIRTUAL_ADDRESS)offsets[i];
+                vboViews[slot].SizeInBytes = (UINT)(backendBuffer->GetSize() - offsets[i]);
+                vboViews[slot].StrideInBytes = 0;
+            }
+        }
     }
 
     void D3D12RenderPassEncoder::SetIndexBuffer(const RHIBuffer* buffer, uint64_t offset, RHIIndexFormat format)
     {
+        const D3D12Buffer* backendBuffer = static_cast<const D3D12Buffer*>(buffer);
 
+        D3D12_INDEX_BUFFER_VIEW view;
+        view.BufferLocation = backendBuffer->deviceAddress + (D3D12_GPU_VIRTUAL_ADDRESS)offset;
+        view.SizeInBytes = (UINT)(backendBuffer->GetSize() - offset);
+        view.Format = format == RHIIndexFormat::Uint32 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+        _commandBuffer->commandList->IASetIndexBuffer(&view);
     }
 
     void D3D12RenderPassEncoder::PrepareDraw()
     {
+        if (_currentPipeline->numVertexBindings > 0)
+        {
+            for (uint32_t i = 0; i < _currentPipeline->numVertexBindings; ++i)
+            {
+                vboViews[i].StrideInBytes = _currentPipeline->strides[i];
+            }
 
+            _commandBuffer->commandList->IASetVertexBuffers(0, _currentPipeline->numVertexBindings, vboViews);
+        }
     }
 
     void D3D12RenderPassEncoder::Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
     {
+        PrepareDraw();
 
+        _commandBuffer->commandList->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
     void D3D12RenderPassEncoder::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
@@ -3105,20 +3390,6 @@ namespace Alimer
 
     }
 
-    void D3D12RenderPassEncoder::End()
-    {
-        //_device->vkCmdEndRendering(_vkCommandBuffer);
-
-        if (_hasLabel)
-        {
-            PopDebugGroup();
-            _hasLabel = false;
-        }
-
-        _commandBuffer->EndEncoding();
-        ClearState();
-    }
-
     RHICommandBuffer* D3D12RenderPassEncoder::GetCommandBuffer() const
     {
         return _commandBuffer;
@@ -3141,9 +3412,9 @@ namespace Alimer
         }
 
         ThrowIfFailed(
-            device->device->CreateCommandList1(0, d3dCommandListType, D3D12_COMMAND_LIST_FLAG_NONE, PPV_ARGS(commandList6))
+            device->device->CreateCommandList1(0, d3dCommandListType, D3D12_COMMAND_LIST_FLAG_NONE, PPV_ARGS(commandList))
         );
-        commandList6->QueryInterface(&commandList7);
+        commandList->QueryInterface(&commandList7);
 
         _computePassEncoder = new D3D12ComputePassEncoder(device, this);
         _renderPassEncoder = new D3D12RenderPassEncoder(device, this);
@@ -3161,7 +3432,7 @@ namespace Alimer
         }
 
         SafeRelease(commandList7);
-        SafeRelease(commandList6);
+        SafeRelease(commandList);
     }
 
     void D3D12CommandBuffer::Clear()
@@ -3170,7 +3441,7 @@ namespace Alimer
         globalBarriers.clear();
         textureBarriers.clear();
         bufferBarriers.clear();
-        presentSwapChains.clear();
+        presentSurfaces.clear();
     }
 
     void D3D12CommandBuffer::Begin(uint32_t frameIndex, std::string_view label)
@@ -3182,7 +3453,7 @@ namespace Alimer
 
         // Start the command list in a default state:
         ThrowIfFailed(commandAllocators[frameIndex]->Reset());
-        ThrowIfFailed(commandList6->Reset(commandAllocators[frameIndex], nullptr));
+        ThrowIfFailed(commandList->Reset(commandAllocators[frameIndex], nullptr));
 
         if (queueType != RHIQueueType::Copy)
         {
@@ -3190,16 +3461,15 @@ namespace Alimer
                 device->shaderResourceViewHeap.GetShaderVisibleHeap(),
                 device->samplerHeap.GetShaderVisibleHeap()
             };
-            commandList6->SetDescriptorHeaps(2u, heaps);
+            commandList->SetDescriptorHeaps(2u, heaps);
+
+            // Set univeral root signature as well
+            commandList->SetComputeRootSignature(device->bindlessManager->universalRootSignature.Get());
+            commandList->SetGraphicsRootSignature(device->bindlessManager->universalRootSignature.Get());
         }
 
         if (queueType == RHIQueueType::Graphics)
         {
-            //for (uint32_t i = 0; i < kMaxVertexBuffers; ++i)
-            //{
-            //    vboViews[i] = {};
-            //}
-
             D3D12_RECT scissorRects[D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 1];
             for (size_t i = 0; i < std::size(scissorRects); ++i)
             {
@@ -3208,10 +3478,10 @@ namespace Alimer
                 scissorRects[i].right = D3D12_VIEWPORT_BOUNDS_MAX;
                 scissorRects[i].top = D3D12_VIEWPORT_BOUNDS_MIN;
             }
-            commandList6->RSSetScissorRects((uint32_t)std::size(scissorRects), scissorRects);
+            commandList->RSSetScissorRects((uint32_t)std::size(scissorRects), scissorRects);
 
             const float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-            commandList6->OMSetBlendFactor(blendFactor);
+            commandList->OMSetBlendFactor(blendFactor);
         }
 
         hasLabel = !label.empty();
@@ -3224,9 +3494,9 @@ namespace Alimer
 
     ID3D12CommandList* D3D12CommandBuffer::End()
     {
-        for (auto& swapChain : presentSwapChains)
+        for (auto& surface : presentSurfaces)
         {
-            TextureBarrier(swapChain->backbufferTextures[swapChain->backBufferIndex], RHITextureLayout::Present);
+            TextureBarrier(surface->backbufferTextures[surface->swapChain3->GetCurrentBackBufferIndex()], RHITextureLayout::Present);
         }
         CommitBarriers();
 
@@ -3235,9 +3505,9 @@ namespace Alimer
             PopDebugGroup();
         }
 
-        ThrowIfFailed(commandList6->Close());
+        ThrowIfFailed(commandList->Close());
 
-        return commandList6;
+        return commandList;
     }
 
     void D3D12CommandBuffer::EndEncoding()
@@ -3306,7 +3576,7 @@ namespace Alimer
     void D3D12CommandBuffer::TextureBarrier(const D3D12Texture* resource, RHITextureLayout newLayout, uint32_t subresource, bool commit)
     {
         const uint32_t index = (subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) ? 0 : subresource;
-        const RHITextureLayout currentLayout = resource->subResourcesStates[index];
+        const RHITextureLayout currentLayout = resource->GetLayout(index);
         if (currentLayout == newLayout)
             return;
 
@@ -3339,7 +3609,7 @@ namespace Alimer
             barrier.Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE; // TODO Handle discard when we have transient resources
             ALIMER_ASSERT(barrier.LayoutBefore != barrier.LayoutAfter);
 
-            resource->subResourcesStates[index] = newLayout;
+            resource->SetLayout(index, newLayout);
             numBarriersToCommit++;
         }
         else
@@ -3375,7 +3645,7 @@ namespace Alimer
                     barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
                 }
 
-                resource->subResourcesStates[index] = newLayout;
+                resource->SetLayout(index, newLayout);
             }
             else if (newStateLegacy == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
             {
@@ -3385,6 +3655,34 @@ namespace Alimer
 
         if (commit || numBarriersToCommit == kMaxBarrierCount)
             CommitBarriers();
+    }
+
+    void D3D12CommandBuffer::TextureBarrier(const D3D12Texture* texture, RHITextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, RHITextureAspect aspect)
+    {
+        const uint32_t mipLevelCount = texture->GetMipLevelCount();
+        const uint32_t subresource = CalculateSubresource(baseMiplevel, baseArrayLayer, mipLevelCount);
+        RHITextureLayout currentLayout = texture->GetLayout(subresource);
+        if (currentLayout == newLayout)
+            return;
+
+        for (uint32_t arrayLayer = baseArrayLayer; arrayLayer < (baseArrayLayer + layerCount); arrayLayer++)
+        {
+            for (uint32_t mipLevel = baseMiplevel; mipLevel < (baseMiplevel + levelCount); mipLevel++)
+            {
+                uint32_t subresource = texture->GetSubresourceIndex(mipLevel, arrayLayer);
+                TextureBarrier(texture, newLayout, subresource, false);
+            }
+        }
+    }
+
+    void D3D12CommandBuffer::TextureBarrier(const D3D12TextureView* view, RHITextureLayout newLayout)
+    {
+        const D3D12Texture* backendTexture = static_cast<const D3D12Texture*>(view->GetTexture());
+        TextureBarrier(backendTexture, newLayout,
+            view->GetBaseMipLevel(), view->GetMipLevelCount(),
+            view->GetBaseArrayLayer(), view->GetArrayLayerCount(),
+            view->GetAspect()
+        );
     }
 
     void D3D12CommandBuffer::InsertUAVBarrier(const D3D12Resource* resource, bool commit)
@@ -3439,7 +3737,7 @@ namespace Alimer
         }
         else if (numBarriersToCommit > 0)
         {
-            commandList6->ResourceBarrier(numBarriersToCommit, barriers);
+            commandList->ResourceBarrier(numBarriersToCommit, barriers);
         }
 
         numBarriersToCommit = 0;
@@ -3453,11 +3751,11 @@ namespace Alimer
 
         if (graphics)
         {
-            commandList6->SetGraphicsRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
+            commandList->SetGraphicsRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
         }
         else
         {
-            commandList6->SetComputeRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
+            commandList->SetComputeRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
         }
     }
 
@@ -3466,13 +3764,13 @@ namespace Alimer
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
         if (d3d12_state.PIXBeginEventOnCommandList != nullptr)
         {
-            d3d12_state.PIXBeginEventOnCommandList(commandList6, PIX_COLOR_DEFAULT, name.data());
+            d3d12_state.PIXBeginEventOnCommandList(commandList, PIX_COLOR_DEFAULT, name.data());
         }
         else
 #endif
         {
             auto wide = ToUtf16(name);
-            PIXBeginEvent(commandList6, PIX_COLOR_DEFAULT, wide.c_str());
+            PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, wide.c_str());
         }
     }
 
@@ -3481,12 +3779,12 @@ namespace Alimer
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
         if (d3d12_state.PIXEndEventOnCommandList != nullptr)
         {
-            d3d12_state.PIXEndEventOnCommandList(commandList6);
+            d3d12_state.PIXEndEventOnCommandList(commandList);
         }
         else
 #endif
         {
-            PIXEndEvent(commandList6);
+            PIXEndEvent(commandList);
         }
     }
 
@@ -3495,13 +3793,13 @@ namespace Alimer
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
         if (d3d12_state.PIXSetMarkerOnCommandList != nullptr)
         {
-            d3d12_state.PIXSetMarkerOnCommandList(commandList6, PIX_COLOR_DEFAULT, name.data());
+            d3d12_state.PIXSetMarkerOnCommandList(commandList, PIX_COLOR_DEFAULT, name.data());
         }
         else
 #endif
         {
             auto wide = ToUtf16(name);
-            PIXSetMarker(commandList6, PIX_COLOR_DEFAULT, wide.c_str());
+            PIXSetMarker(commandList, PIX_COLOR_DEFAULT, wide.c_str());
         }
     }
     void D3D12CommandBuffer::BeginQuery(const RHIQueryHeap* heap, uint32_t index)
@@ -3527,7 +3825,39 @@ namespace Alimer
 
     RHITexture* D3D12CommandBuffer::AcquireSurfaceTexture(RHISurface* surface)
     {
-        return nullptr;
+        D3D12Surface* backendSurface = (D3D12Surface*)surface;
+
+#if TODO_D3D12
+        DWORD result = WaitForSingleObjectEx(
+            backendSurface->frameLatencyWaitableObject,
+            1000, // 1 second timeout (shouldn't ever occur)
+            true
+        );
+
+        switch (result)
+        {
+            case WAIT_ABANDONED:
+            case WAIT_FAILED:
+                return GPUAcquireSurfaceResult_Lost;
+            case WAIT_OBJECT_0:
+                // OK
+                break;
+            case WAIT_TIMEOUT:
+                return GPUAcquireSurfaceResult_SuccessOptimal;
+
+            default:
+                alimerLogError(LogCategory_GPU, "Unexpected wait status: 0x%08X", result);
+                return GPUAcquireSurfaceResult_Lost;
+        }
+#endif // 0
+
+
+        // Fence and events?
+        const UINT backBufferIndex = backendSurface->swapChain3->GetCurrentBackBufferIndex();
+        D3D12Texture* swapChainTexture = backendSurface->backbufferTextures[backBufferIndex];
+        presentSurfaces.push_back(SharedPtr<D3D12Surface>(backendSurface));
+
+        return swapChainTexture;
     }
 
     RHIComputePassEncoder* D3D12CommandBuffer::BeginComputePassCore(const RHIComputePassDesc& desc)
@@ -3552,7 +3882,7 @@ namespace Alimer
         switch (type)
         {
             case RHINativeHandleType::D3D12_GraphicsCommandList:
-                return RHINativeHandle(commandList6);
+                return RHINativeHandle(commandList);
 
             case RHINativeHandleType::D3D12_CommandAllocator:
                 return RHINativeHandle(commandAllocators[device->GetFrameIndex()]);
@@ -4130,7 +4460,7 @@ namespace Alimer
             for (uint32_t cmd = 0; cmd < cmd_last; ++cmd)
             {
                 D3D12CommandBuffer& commandBuffer = *commandBuffers[cmd].get();
-                for (auto& surface : commandBuffer.presentSwapChains)
+                for (auto& surface : commandBuffer.presentSurfaces)
                 {
                     hr = surface->Present();
 
@@ -4148,6 +4478,7 @@ namespace Alimer
                         OnDeviceRemoved();
                     }
                 }
+                commandBuffer.presentSurfaces.clear();
             }
         }
 
@@ -4461,9 +4792,8 @@ namespace Alimer
         }
 
         texture->allocatedSize = 0;
-        texture->numSubResources = desc.mipLevelCount * desc.depthOrArrayLayers;
-        texture->subResourcesStates.resize(texture->numSubResources);
-        texture->footPrints.resize(texture->numSubResources);
+        const uint32_t numSubResources = desc.mipLevelCount * desc.depthOrArrayLayers;
+        texture->footPrints.resize(numSubResources);
         texture->rowSizesInBytes.resize(texture->footPrints.size());
         texture->numRows.resize(texture->footPrints.size());
         if (enhancedBarriersSupported)
@@ -4491,11 +4821,6 @@ namespace Alimer
                 texture->rowSizesInBytes.data(),
                 &texture->allocatedSize
             );
-        }
-
-        for (uint32_t i = 0; i < texture->numSubResources; i++)
-        {
-            texture->subResourcesStates[i] = initialLayout;
         }
 
         D3D12MA::ALLOCATION_DESC allocationDesc = {};
@@ -4747,8 +5072,8 @@ namespace Alimer
 
         D3D12_RESOURCE_DESC resourceDesc = texture->handle->GetDesc();
         texture->allocatedSize = 0;
-        texture->numSubResources = desc.mipLevelCount * desc.depthOrArrayLayers;
-        texture->footPrints.resize(texture->numSubResources);
+        const uint32_t numSubResources = desc.mipLevelCount * desc.depthOrArrayLayers;
+        texture->footPrints.resize(numSubResources);
         texture->rowSizesInBytes.resize(texture->footPrints.size());
         texture->numRows.resize(texture->footPrints.size());
         device->GetCopyableFootprints(

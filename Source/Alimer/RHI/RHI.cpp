@@ -184,14 +184,14 @@ namespace Alimer
         }
     }
 
-    void RHITexture::SetLayout(uint32_t subresource, RHITextureLayout newLayout)
+    void RHITexture::SetLayout(uint32_t subresource, RHITextureLayout newLayout) const
     {
         ALIMER_ASSERT(subresource < subresourceLayouts.size());
 
         subresourceLayouts[subresource] = newLayout;
     }
 
-    void RHITexture::SetLayout(RHITextureLayout newLayout, uint32_t mipLevel, uint32_t arrayLayer, uint32_t placeSlice)
+    void RHITexture::SetLayout(RHITextureLayout newLayout, uint32_t mipLevel, uint32_t arrayLayer, uint32_t placeSlice) const
     {
         ALIMER_ASSERT(mipLevel < mipLevelCount);
         ALIMER_ASSERT(arrayLayer < depthOrArrayLayers);

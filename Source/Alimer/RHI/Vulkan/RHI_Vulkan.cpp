@@ -541,7 +541,7 @@ namespace Alimer
                     return VK_ATTACHMENT_LOAD_OP_LOAD;
                 case RHILoadAction::Clear:
                     return VK_ATTACHMENT_LOAD_OP_CLEAR;
-                case RHILoadAction::DontCare:
+                case RHILoadAction::Discard:
                     return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 
                 default:
@@ -556,7 +556,7 @@ namespace Alimer
             {
                 case RHIStoreAction::Store:
                     return VK_ATTACHMENT_STORE_OP_STORE;
-                case RHIStoreAction::DontCare:
+                case RHIStoreAction::Discard:
                     return VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
                 default:
@@ -1175,6 +1175,7 @@ namespace Alimer
 
         void Reset(VkCommandBuffer commandBuffer);
         void Begin(const RHIComputePassDesc& desc);
+        void End() override;
 
         void PushDebugGroup(std::string_view groupLabel) override;
         void PopDebugGroup() override;
@@ -1188,7 +1189,6 @@ namespace Alimer
         void DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
         void DispatchIndirectCore(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
 
-        void End() override;
         RHICommandBuffer* GetCommandBuffer() const override;
 
     private:
@@ -1212,6 +1212,7 @@ namespace Alimer
 
         void Reset(VkCommandBuffer commandBuffer);
         void Begin(const RHIRenderPassDesc& desc);
+        void End() override;
 
         void PushDebugGroup(std::string_view groupLabel) override;
         void PopDebugGroup() override;
@@ -1219,7 +1220,7 @@ namespace Alimer
 
         void SetViewport(const RHIViewport& viewport) override;
         void SetViewports(const RHIViewport* viewports, uint32_t count) override;
-        void SetScissorRect(const RHIScissorRect& rect) override;
+        void SetScissorRect(const RHIScissorRect& scissorRect) override;
         void SetScissorRects(const RHIScissorRect* scissorRects, uint32_t count) override;
         void SetStencilReference(uint32_t referenceValue) override;
         void SetBlendColor(const Color& color) override;
@@ -1242,7 +1243,6 @@ namespace Alimer
         void DrawMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
         void DrawMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount) override;
 
-        void End() override;
 
         RHICommandBuffer* GetCommandBuffer() const override;
 
@@ -1262,7 +1262,10 @@ namespace Alimer
         friend class VulkanDevice;
 
     public:
-        VulkanCommandBuffer(VulkanDevice* device, RHIQueueType queueType);
+        VulkanDevice* device;
+        RHIQueueType queueType;
+
+        VulkanCommandBuffer(VulkanDevice* device_, RHIQueueType queueType_);
         ~VulkanCommandBuffer() override;
 
         void Begin(uint32_t frameIndex, std::string_view label);
@@ -1295,9 +1298,6 @@ namespace Alimer
 
     private:
         static constexpr uint32_t kMaxBarrierCount = 16;
-
-        VulkanDevice* device;
-        RHIQueueType queueType;
 
         VkCommandPool commandPools[kNumFramesInFlight] = {};
         VkCommandBuffer commandBuffers[kNumFramesInFlight] = {};
@@ -1476,6 +1476,9 @@ namespace Alimer
 #define VULKAN_DEVICE_FUNCTION(func) PFN_##func func;
 #include "RHI_Vulkan_Funcs.h"
 
+        VulkanAdapter* _adapter;
+        VkDevice handle = VK_NULL_HANDLE;
+
         VulkanDevice(VulkanAdapter* adapter, const RHIDeviceDesc& desc);
         ~VulkanDevice() override;
 
@@ -1562,8 +1565,7 @@ namespace Alimer
 
     private:
         bool shuttingDown{ false };
-        VulkanAdapter* _adapter;
-        VkDevice handle = VK_NULL_HANDLE;
+
         VulkanQueue queues[ecast(RHIQueueType::Count)];
 
         VmaAllocator allocator{ VK_NULL_HANDLE };
@@ -2304,6 +2306,18 @@ namespace Alimer
         }
     }
 
+    void VulkanComputePassEncoder::End()
+    {
+        if (_hasLabel)
+        {
+            PopDebugGroup();
+            _hasLabel = false;
+        }
+
+        _commandBuffer->EndEncoding();
+        ClearState();
+    }
+
     void VulkanComputePassEncoder::PushDebugGroup(std::string_view groupLabel)
     {
         _commandBuffer->PushDebugGroup(groupLabel);
@@ -2410,19 +2424,6 @@ namespace Alimer
         _device->vkCmdDispatchIndirect(_vkCommandBuffer, backendIndirectBuffer->handle, indirectBufferOffset);
     }
 
-
-    void VulkanComputePassEncoder::End()
-    {
-        if (_hasLabel)
-        {
-            PopDebugGroup();
-            _hasLabel = false;
-        }
-
-        _commandBuffer->EndEncoding();
-        ClearState();
-    }
-
     RHICommandBuffer* VulkanComputePassEncoder::GetCommandBuffer() const
     {
         return _commandBuffer;
@@ -2476,8 +2477,8 @@ namespace Alimer
         VkRenderingAttachmentInfo depthAttachment = {};
         VkRenderingAttachmentInfo stencilAttachment = {};
 
-        PixelFormat depthStencilFormat = desc.depthStencilAttachment != nullptr ? desc.depthStencilAttachment->view->GetFormat() : PixelFormat::Undefined;
-        const bool hasDepthOrStencil = desc.depthStencilAttachment != nullptr;
+        const bool hasDepthOrStencil = desc.depthStencilAttachment != nullptr && desc.depthStencilAttachment->view != nullptr;
+        PixelFormat depthStencilFormat = hasDepthOrStencil ? desc.depthStencilAttachment->view->GetFormat() : PixelFormat::Undefined;
 
         for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
         {
@@ -2526,6 +2527,26 @@ namespace Alimer
             // Barrier
             _commandBuffer->TextureBarrier(view, attachment.depthReadOnly ? RHITextureLayout::DepthRead : RHITextureLayout::DepthWrite);
         }
+
+        // ShadingRate
+        const bool hasShadingRateAttachment = desc.shadingRateTexture != nullptr;
+        // Shading rate
+        VkRenderingFragmentShadingRateAttachmentInfoKHR shadingRateAttachmentInfo = {};
+        if (hasShadingRateAttachment)
+        {
+            const auto& tileExtent = _commandBuffer->device->_adapter->fragmentShadingRateProperties.minFragmentShadingRateAttachmentTexelSize;
+            const uint32_t tileSize = std::max(tileExtent.width, tileExtent.height);
+
+            const VulkanTexture* backendTexture = static_cast<const VulkanTexture*>(desc.shadingRateTexture);
+
+            shadingRateAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR;
+            shadingRateAttachmentInfo.imageView = static_cast<VulkanTextureView*>(backendTexture->GetDefaultView())->handle;
+            shadingRateAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+            shadingRateAttachmentInfo.shadingRateAttachmentTexelSize = { tileSize, tileSize };
+
+            _commandBuffer->TextureBarrier(backendTexture, RHITextureLayout::ShadingRateSurface, 0, 1u, 0u, 1u);
+        }
+
         _commandBuffer->CommitBarriers();
 
         VkRenderingInfo renderingInfo = {};
@@ -2558,6 +2579,20 @@ namespace Alimer
         scissorRect.extent.width = renderArea.extent.width;
         scissorRect.extent.height = renderArea.extent.height;
         _device->vkCmdSetScissor(_vkCommandBuffer, 0, 1, &scissorRect);
+    }
+
+    void VulkanRenderPassEncoder::End()
+    {
+        _device->vkCmdEndRendering(_vkCommandBuffer);
+
+        if (_hasLabel)
+        {
+            PopDebugGroup();
+            _hasLabel = false;
+        }
+
+        _commandBuffer->EndEncoding();
+        ClearState();
     }
 
     void VulkanRenderPassEncoder::PushDebugGroup(std::string_view groupLabel)
@@ -2608,9 +2643,9 @@ namespace Alimer
         _device->vkCmdSetViewport(_vkCommandBuffer, 0, count, vkViewports);
     }
 
-    void VulkanRenderPassEncoder::SetScissorRect(const RHIScissorRect& rect)
+    void VulkanRenderPassEncoder::SetScissorRect(const RHIScissorRect& scissorRect)
     {
-        _device->vkCmdSetScissor(_vkCommandBuffer, 0, 1, (VkRect2D*)&rect);
+        _device->vkCmdSetScissor(_vkCommandBuffer, 0, 1, (VkRect2D*)&scissorRect);
     }
 
     void VulkanRenderPassEncoder::SetScissorRects(const RHIScissorRect* scissorRects, uint32_t count)
@@ -2620,7 +2655,6 @@ namespace Alimer
 
         _device->vkCmdSetScissor(_vkCommandBuffer, 0, count, (const VkRect2D*)scissorRects);
     }
-
 
     void VulkanRenderPassEncoder::SetStencilReference(uint32_t reference)
     {
@@ -2856,20 +2890,6 @@ namespace Alimer
             backendIndirectBuffer->handle, indirectBufferOffset,
             vulkanCountBuffer->handle, countBufferOffset,
             maxCount, sizeof(DispatchIndirectCommand));
-    }
-
-    void VulkanRenderPassEncoder::End()
-    {
-        _device->vkCmdEndRendering(_vkCommandBuffer);
-
-        if (_hasLabel)
-        {
-            PopDebugGroup();
-            _hasLabel = false;
-        }
-
-        _commandBuffer->EndEncoding();
-        ClearState();
     }
 
     RHICommandBuffer* VulkanRenderPassEncoder::GetCommandBuffer() const
