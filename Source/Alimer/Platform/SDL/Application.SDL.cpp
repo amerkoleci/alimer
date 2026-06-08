@@ -232,11 +232,11 @@ bool Application::PlatformInit()
     }
 
     const int version = SDL_GetVersion();
-    LOGI("SDL Initialized: v{}.{}.{}, revision: {}",
+    [[ maybe_unused ]] const char* revision = SDL_GetRevision();
+    LOGI("SDL Initialized: v{}.{}.{}",
         SDL_VERSIONNUM_MAJOR(version),
         SDL_VERSIONNUM_MINOR(version),
-        SDL_VERSIONNUM_MICRO(version),
-        SDL_GetRevision()
+        SDL_VERSIONNUM_MICRO(version)
     );
 
     return true;

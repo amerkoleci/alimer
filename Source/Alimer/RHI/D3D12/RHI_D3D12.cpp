@@ -1347,8 +1347,7 @@ namespace Alimer
 
         D3D12Device* _device;
         D3D12CommandBuffer* _commandBuffer;
-        ID3D12GraphicsCommandList* _d3dCommandList = nullptr;
-        bool _hasLabel{ false };
+        bool _hasLabel = false;
         SharedPtr<D3D12ComputePipeline> _currentPipeline;
     };
 
@@ -1370,7 +1369,7 @@ namespace Alimer
         void SetViewports(const RHIViewport* viewports, uint32_t count) override;
         void SetScissorRect(const RHIScissorRect& scissorRect) override;
         void SetScissorRects(const RHIScissorRect* scissorRects, uint32_t count) override;
-        void SetStencilReference(uint32_t referenceValue) override;
+        void SetStencilReference(uint32_t reference) override;
         void SetBlendColor(const Color& color) override;
         void SetShadingRate(RHIShadingRate rate) override;
         void SetDepthBounds(float minBounds, float maxBounds) override;
@@ -1400,26 +1399,31 @@ namespace Alimer
 
         D3D12Device* _device;
         D3D12CommandBuffer* _commandBuffer;
-        ID3D12GraphicsCommandList* _d3dCommandList = nullptr;
-        bool _hasLabel{ false };
-        RHIShadingRate _currentShadingRate{ RHIShadingRate::Invalid };
+        bool _hasLabel = false;
+        RHIShadingRate _currentShadingRate = RHIShadingRate::Invalid;
         SharedPtr<D3D12RenderPipeline> _currentPipeline;
 
-        D3D12_RENDER_PASS_RENDER_TARGET_DESC RTVs[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
-        D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DSV = {};
-        D3D12_RENDER_PASS_FLAGS renderPassFlags = D3D12_RENDER_PASS_FLAG_NONE;
-        bool hasShadingRateAttachment = false;
-        D3D12_VERTEX_BUFFER_VIEW vboViews[kMaxVertexBuffers] = {};
+        D3D12_CPU_DESCRIPTOR_HANDLE _RTVDescriptors[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
+        D3D12_RENDER_PASS_RENDER_TARGET_DESC _RTVs[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
+        D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS _resolveSubresourceParams[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
+        D3D12_RENDER_PASS_DEPTH_STENCIL_DESC _DSV = {};
+        D3D12_RENDER_PASS_FLAGS _renderPassFlags = D3D12_RENDER_PASS_FLAG_NONE;
+        bool _hasShadingRateAttachment = false;
+        D3D12_VERTEX_BUFFER_VIEW _vboViews[kMaxVertexBuffers] = {};
     };
 
     class D3D12CommandBuffer final : public RHICommandBuffer
     {
         friend class D3D12Device;
-        friend class D3D12ComputePassEncoder;
-        friend class D3D12RenderPassEncoder;
 
     public:
-        D3D12CommandBuffer(D3D12Device* device, RHIQueueType queueType, uint32_t id);
+        D3D12Device* device;
+        RHIQueueType queueType;
+        uint32_t id;
+        ID3D12GraphicsCommandList6* commandList = nullptr;
+        ID3D12GraphicsCommandList7* commandList7 = nullptr;
+
+        D3D12CommandBuffer(D3D12Device* device_, RHIQueueType queueType_, uint32_t id_);
         ~D3D12CommandBuffer() override;
 
         void Clear();
@@ -1434,7 +1438,6 @@ namespace Alimer
 
         void InsertUAVBarrier(const D3D12Resource* resource, bool commit = false);
         void CommitBarriers();
-        void SetPushConstants(bool graphics, const void* data, uint32_t size, uint32_t offset);
 
         void PushDebugGroup(std::string_view name) override;
         void PopDebugGroup() override;
@@ -1457,13 +1460,7 @@ namespace Alimer
     private:
         static constexpr uint32_t kMaxBarrierCount = 16;
 
-        D3D12Device* device;
-        RHIQueueType queueType;
-        uint32_t id;
-
         ID3D12CommandAllocator* commandAllocators[kNumFramesInFlight] = {};
-        ID3D12GraphicsCommandList6* commandList = nullptr;
-        ID3D12GraphicsCommandList7* commandList7 = nullptr;
 
         std::vector<D3D12CommandBuffer*> waits;
         std::atomic_bool hasPendingWaits{ false };
@@ -1476,8 +1473,8 @@ namespace Alimer
         // Legacy barriers
         D3D12_RESOURCE_BARRIER barriers[kMaxBarrierCount] = {};
 
-        D3D12ComputePassEncoder* _computePassEncoder;
-        D3D12RenderPassEncoder* _renderPassEncoder;
+        D3D12ComputePassEncoder* computePassEncoder;
+        D3D12RenderPassEncoder* renderPassEncoder;
         std::vector<SharedPtr<D3D12Surface>> presentSurfaces;
     };
 
@@ -1820,8 +1817,7 @@ namespace Alimer
         uint64_t CommitFrame() override;
 
         RHIBufferRef CreateBufferCore(const RHIBufferDesc& desc, RHINativeHandle nativeHandle, const void* initialData) override;
-        RHITextureRef CreateTextureCore(const RHITextureDesc& desc, const RHITextureData* initialData) override;
-        RHITextureRef CreateTextureFromNativeHandleCore(RHINativeHandle handle, const RHITextureDesc& desc) override;
+        RHITextureRef CreateTextureCore(const RHITextureDesc& desc, RHINativeHandle nativeHandle, const RHITextureData* initialData) override;
         RHISamplerRef CreateSamplerCore(const RHISamplerDesc& desc) override;
 
         RHIShaderModuleRef CreateShaderModuleCore(const RHIShaderModuleDesc& desc) override;
@@ -2915,10 +2911,7 @@ namespace Alimer
         _commandBuffer->CommitBarriers();
 
         // Note: D3D12 inverts the order of source and destination parameters
-        _commandBuffer->commandList->CopyBufferRegion(
-            backendDestBuffer->handle, destinationOffset,
-            backendSrcBuffer->handle, sourceOffset,
-            size);
+        _commandBuffer->commandList->CopyBufferRegion(backendDestBuffer->handle, destinationOffset, backendSrcBuffer->handle, sourceOffset, size);
     }
 
     void D3D12ComputePassEncoder::SetPipeline(RHIComputePipeline* pipeline)
@@ -2933,7 +2926,11 @@ namespace Alimer
 
     void D3D12ComputePassEncoder::SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset)
     {
-        _commandBuffer->SetPushConstants(false, data, size, offset);
+        uint32_t rootParameterIndex = _commandBuffer->device->bindlessManager->pushConstantsIndex;
+        uint32_t num32BitValuesToSet = size / sizeof(uint32_t);
+        uint32_t destOffsetIn32BitValues = offset / sizeof(uint32_t);
+
+        _commandBuffer->commandList->SetComputeRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
     }
 
     void D3D12ComputePassEncoder::DispatchCore(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
@@ -2986,11 +2983,11 @@ namespace Alimer
         // Release stuff we don't need anymore
         for (uint32_t i = 0; i < kMaxVertexBuffers; ++i)
         {
-            vboViews[i] = {};
+            _vboViews[i] = {};
         }
 
         _hasLabel = false;
-        hasShadingRateAttachment = false;
+        _hasShadingRateAttachment = false;
         _currentShadingRate = RHIShadingRate::Invalid;
         _currentPipeline.Reset();
     }
@@ -3008,8 +3005,8 @@ namespace Alimer
         }
 
         //Rect2D renderArea = { 0u, 0u, UINT32_MAX, UINT32_MAX };
-        uint32_t width = UINT32_MAX;
-        uint32_t height = UINT32_MAX;
+        uint32_t width = Limits<uint32_t>::Max;
+        uint32_t height = Limits<uint32_t>::Max;
 
         for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
         {
@@ -3022,39 +3019,64 @@ namespace Alimer
             width = std::min(width, std::max(view->GetWidth(), 1u));
             height = std::min(height, std::max(view->GetHeight(), 1u));
 
-            RTVs[i].cpuDescriptor = view->RTV;
-            RTVs[i].BeginningAccess.Clear.ClearValue.Format = rtvFormat;
+            _RTVDescriptors[i] = view->RTV;
+            _RTVs[i].cpuDescriptor = view->RTV;
+            _RTVs[i].BeginningAccess.Clear.ClearValue.Format = rtvFormat;
 
             switch (attachment.loadAction)
             {
                 default:
                 case RHILoadAction::Load:
-                    RTVs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                    _RTVs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
                     break;
 
                 case RHILoadAction::Clear:
-                    RTVs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-                    RTVs[i].BeginningAccess.Clear.ClearValue.Color[0] = attachment.clearColor.float32[0];
-                    RTVs[i].BeginningAccess.Clear.ClearValue.Color[1] = attachment.clearColor.float32[1];
-                    RTVs[i].BeginningAccess.Clear.ClearValue.Color[2] = attachment.clearColor.float32[2];
-                    RTVs[i].BeginningAccess.Clear.ClearValue.Color[3] = attachment.clearColor.float32[3];
+                    _RTVs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                    _RTVs[i].BeginningAccess.Clear.ClearValue.Color[0] = attachment.clearColor.float32[0];
+                    _RTVs[i].BeginningAccess.Clear.ClearValue.Color[1] = attachment.clearColor.float32[1];
+                    _RTVs[i].BeginningAccess.Clear.ClearValue.Color[2] = attachment.clearColor.float32[2];
+                    _RTVs[i].BeginningAccess.Clear.ClearValue.Color[3] = attachment.clearColor.float32[3];
                     break;
 
                 case RHILoadAction::Discard:
-                    RTVs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+                    _RTVs[i].BeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
                     break;
             }
 
-            switch (attachment.storeAction)
+            if (attachment.resolveView != nullptr)
             {
-                default:
-                case RHIStoreAction::Store:
-                    RTVs[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
-                    break;
+                const D3D12Texture* resolveSourceTexture = static_cast<const D3D12Texture*>(view->GetTexture());
+                const D3D12Texture* resolveDestinationTexture = static_cast<const D3D12Texture*>(attachment.resolveView->GetTexture());
 
-                case RHIStoreAction::Discard:
-                    RTVs[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
-                    break;
+                //
+                _resolveSubresourceParams[i].SrcSubresource = 0;
+                _resolveSubresourceParams[i].DstSubresource = attachment.resolveView->GetSubresourceIndex();
+                _resolveSubresourceParams[i].DstX = 0;
+                _resolveSubresourceParams[i].DstY = 0;
+                _resolveSubresourceParams[i].SrcRect = { 0, 0, (LONG)resolveSourceTexture->GetWidth(), (LONG)resolveSourceTexture->GetHeight() };
+
+                _RTVs[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_RESOLVE;
+                _RTVs[i].EndingAccess.Resolve.pSrcResource = resolveSourceTexture->handle;
+                _RTVs[i].EndingAccess.Resolve.pDstResource = resolveDestinationTexture->handle;
+                _RTVs[i].EndingAccess.Resolve.SubresourceCount = 1u;
+                _RTVs[i].EndingAccess.Resolve.pSubresourceParameters = &_resolveSubresourceParams[i];
+                _RTVs[i].EndingAccess.Resolve.Format = resolveDestinationTexture->dxgiFormat;
+                _RTVs[i].EndingAccess.Resolve.ResolveMode = D3D12_RESOLVE_MODE_AVERAGE;
+                _RTVs[i].EndingAccess.Resolve.PreserveResolveSource = (attachment.storeAction == RHIStoreAction::Store) ? TRUE : FALSE;
+            }
+            else
+            {
+                switch (attachment.storeAction)
+                {
+                    default:
+                    case RHIStoreAction::Store:
+                        _RTVs[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                        break;
+
+                    case RHIStoreAction::Discard:
+                        _RTVs[i].EndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                        break;
+                }
             }
 
             _commandBuffer->TextureBarrier(view, RHITextureLayout::RenderTarget);
@@ -3073,23 +3095,23 @@ namespace Alimer
             width = std::min(width, std::max(view->GetWidth(), 1u));
             height = std::min(height, std::max(view->GetHeight(), 1u));
 
-            DSV.cpuDescriptor = attachment.depthReadOnly ? view->DSVReadOnly : view->DSV;
-            DSV.DepthBeginningAccess.Clear.ClearValue.Format = dsvFormat;
-            DSV.StencilBeginningAccess.Clear.ClearValue.Format = dsvFormat;
+            _DSV.cpuDescriptor = attachment.depthReadOnly ? view->DSVReadOnly : view->DSV;
+            _DSV.DepthBeginningAccess.Clear.ClearValue.Format = dsvFormat;
+            _DSV.StencilBeginningAccess.Clear.ClearValue.Format = dsvFormat;
 
             switch (attachment.depthLoadAction)
             {
                 default:
                 case RHILoadAction::Load:
-                    DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                    _DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
                     break;
 
                 case RHILoadAction::Clear:
-                    DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-                    DSV.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = attachment.depthClearValue;
+                    _DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                    _DSV.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth = attachment.depthClearValue;
                     break;
                 case RHILoadAction::Discard:
-                    DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+                    _DSV.DepthBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
                     break;
             }
 
@@ -3097,10 +3119,10 @@ namespace Alimer
             {
                 default:
                 case RHIStoreAction::Store:
-                    DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                    _DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
                     break;
                 case RHIStoreAction::Discard:
-                    DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                    _DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
                     break;
             }
 
@@ -3110,15 +3132,15 @@ namespace Alimer
                 {
                     default:
                     case RHILoadAction::Load:
-                        DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+                        _DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
                         break;
 
                     case RHILoadAction::Clear:
-                        DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-                        DSV.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = static_cast<UINT8>(attachment.stencilClearValue);
+                        _DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+                        _DSV.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil = static_cast<UINT8>(attachment.stencilClearValue);
                         break;
                     case RHILoadAction::Discard:
-                        DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+                        _DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
                         break;
                 }
 
@@ -3126,56 +3148,124 @@ namespace Alimer
                 {
                     default:
                     case RHIStoreAction::Store:
-                        DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+                        _DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
                         break;
                     case RHIStoreAction::Discard:
-                        DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+                        _DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
                         break;
                 }
             }
             else
             {
-                DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
-                DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
+                _DSV.StencilBeginningAccess.Type = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
+                _DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
             }
 
             _commandBuffer->TextureBarrier(view, attachment.depthReadOnly ? RHITextureLayout::DepthRead : RHITextureLayout::DepthWrite);
+
+            // ShadingRate
+            _hasShadingRateAttachment = desc.shadingRateTexture != nullptr;
+            if (_hasShadingRateAttachment)
+            {
+                const D3D12Texture* backendTexture = static_cast<const D3D12Texture*>(desc.shadingRateTexture);
+                _commandBuffer->TextureBarrier(backendTexture, RHITextureLayout::ShadingRateSurface);
+            }
+
+            _commandBuffer->CommitBarriers();
+
+            // Shading rate attachment must be set before calling OMSetRenderTargets or BeginRenderPass
+            if (_hasShadingRateAttachment)
+            {
+                const D3D12Texture* backendTexture = static_cast<const D3D12Texture*>(desc.shadingRateTexture);
+                _commandBuffer->commandList->RSSetShadingRateImage(backendTexture->handle);
+            }
+
+            // https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_render_pass_tier
+            if (_device->d3dFeatures.RenderPassesValid())
+            {
+                _commandBuffer->commandList->BeginRenderPass(
+                    desc.colorAttachmentCount,
+                    _RTVs,
+                    hasDepthOrStencil ? &_DSV : nullptr,
+                    _renderPassFlags
+                );
+            }
+            else
+            {
+                // Emulate render pass using OMSetRenderTargets and explicit clear calls
+                _commandBuffer->commandList->OMSetRenderTargets(
+                    desc.colorAttachmentCount,
+                    _RTVDescriptors,
+                    FALSE,
+                    _DSV.cpuDescriptor.ptr == 0 ? nullptr : &_DSV.cpuDescriptor
+                );
+
+                for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
+                {
+                    if (_RTVs[i].BeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+                    {
+                        _commandBuffer->commandList->ClearRenderTargetView(
+                            _RTVs[i].cpuDescriptor,
+                            _RTVs[i].BeginningAccess.Clear.ClearValue.Color,
+                            0,
+                            nullptr
+                        );
+                    }
+                }
+                if (_DSV.DepthBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR
+                    || _DSV.StencilBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+                {
+                    D3D12_CLEAR_FLAGS clearFlags = {};
+                    float depthClear = 0.0f;
+                    uint8_t stencilClear = 0u;
+
+                    if (_DSV.DepthBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+                    {
+                        clearFlags |= D3D12_CLEAR_FLAG_DEPTH;
+                        depthClear = _DSV.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth;
+                    }
+                    if (_DSV.StencilBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+                    {
+                        clearFlags |= D3D12_CLEAR_FLAG_STENCIL;
+                        stencilClear = _DSV.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil;
+                    }
+
+                    _commandBuffer->commandList->ClearDepthStencilView(
+                        _DSV.cpuDescriptor,
+                        clearFlags,
+                        depthClear,
+                        stencilClear,
+                        0,
+                        nullptr
+                    );
+                }
+            }
         }
 
-        // ShadingRate
-        hasShadingRateAttachment = desc.shadingRateTexture != nullptr;
-        if (hasShadingRateAttachment)
-        {
-            const D3D12Texture* backendTexture = static_cast<const D3D12Texture*>(desc.shadingRateTexture);
-            _commandBuffer->TextureBarrier(backendTexture, RHITextureLayout::ShadingRateSurface);
-        }
-
-        _commandBuffer->CommitBarriers();
-        _commandBuffer->commandList->BeginRenderPass(
-            desc.colorAttachmentCount,
-            RTVs,
-            hasDepthOrStencil ? &DSV : nullptr,
-            renderPassFlags
-        );
-
-        if (hasShadingRateAttachment)
-        {
-            const D3D12Texture* backendTexture = static_cast<const D3D12Texture*>(desc.shadingRateTexture);
-            _commandBuffer->commandList->RSSetShadingRateImage(backendTexture->handle);
-        }
-
+        // Set up default dynamic state
         D3D12_VIEWPORT viewport = { 0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f };
         D3D12_RECT scissorRect = { 0, 0, LONG(width), LONG(height) };
         _commandBuffer->commandList->RSSetViewports(1, &viewport);
         _commandBuffer->commandList->RSSetScissorRects(1, &scissorRect);
+        const float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        _commandBuffer->commandList->OMSetBlendFactor(blendFactor);
+        _commandBuffer->commandList->OMSetStencilRef(0);
         _currentShadingRate = RHIShadingRate::Invalid;
     }
 
     void D3D12RenderPassEncoder::End()
     {
-        _commandBuffer->commandList->EndRenderPass();
+        // https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_render_pass_tier
+        if (_device->d3dFeatures.RenderPassesValid())
+        {
+            _commandBuffer->commandList->EndRenderPass();
+        }
+        else
+        {
+            // TODO: Handle resolve here
+        }
 
-        if (hasShadingRateAttachment)
+        if (_hasShadingRateAttachment)
         {
             _commandBuffer->commandList->RSSetShadingRateImage(nullptr);
         }
@@ -3246,9 +3336,9 @@ namespace Alimer
         _commandBuffer->commandList->RSSetScissorRects(count, d3dScissorRects);
     }
 
-    void D3D12RenderPassEncoder::SetStencilReference(uint32_t referenceValue)
+    void D3D12RenderPassEncoder::SetStencilReference(uint32_t reference)
     {
-        _commandBuffer->commandList->OMSetStencilRef(referenceValue);
+        _commandBuffer->commandList->OMSetStencilRef(reference);
     }
 
     void D3D12RenderPassEncoder::SetBlendColor(const Color& color)
@@ -3295,16 +3385,20 @@ namespace Alimer
 
     void D3D12RenderPassEncoder::SetPushConstantsCore(const void* data, uint32_t size, uint32_t offset)
     {
+        uint32_t rootParameterIndex = _commandBuffer->device->bindlessManager->pushConstantsIndex;
+        uint32_t num32BitValuesToSet = size / sizeof(uint32_t);
+        uint32_t destOffsetIn32BitValues = offset / sizeof(uint32_t);
 
+        _commandBuffer->commandList->SetGraphicsRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
     }
 
     void D3D12RenderPassEncoder::SetVertexBuffer(uint32_t slot, const RHIBuffer* buffer, uint64_t offset)
     {
         const D3D12Buffer* backendBuffer = static_cast<const D3D12Buffer*>(buffer);
 
-        vboViews[slot].BufferLocation = backendBuffer->deviceAddress + (D3D12_GPU_VIRTUAL_ADDRESS)offset;
-        vboViews[slot].SizeInBytes = (UINT)(backendBuffer->GetSize() - offset);
-        vboViews[slot].StrideInBytes = 0;
+        _vboViews[slot].BufferLocation = backendBuffer->deviceAddress + (D3D12_GPU_VIRTUAL_ADDRESS)offset;
+        _vboViews[slot].SizeInBytes = (UINT)(backendBuffer->GetSize() - offset);
+        _vboViews[slot].StrideInBytes = 0;
     }
 
     void D3D12RenderPassEncoder::SetVertexBuffers(uint32_t slot, uint32_t count, const RHIBuffer** buffers, const uint64_t* offsets)
@@ -3317,14 +3411,14 @@ namespace Alimer
         {
             if (buffers[i] == nullptr)
             {
-                vboViews[slot] = {};
+                _vboViews[slot] = {};
             }
             else
             {
                 const D3D12Buffer* backendBuffer = static_cast<const D3D12Buffer*>(buffers[i]);
-                vboViews[slot].BufferLocation = backendBuffer->deviceAddress + (D3D12_GPU_VIRTUAL_ADDRESS)offsets[i];
-                vboViews[slot].SizeInBytes = (UINT)(backendBuffer->GetSize() - offsets[i]);
-                vboViews[slot].StrideInBytes = 0;
+                _vboViews[slot].BufferLocation = backendBuffer->deviceAddress + (D3D12_GPU_VIRTUAL_ADDRESS)offsets[i];
+                _vboViews[slot].SizeInBytes = (UINT)(backendBuffer->GetSize() - offsets[i]);
+                _vboViews[slot].StrideInBytes = 0;
             }
         }
     }
@@ -3333,10 +3427,11 @@ namespace Alimer
     {
         const D3D12Buffer* backendBuffer = static_cast<const D3D12Buffer*>(buffer);
 
-        D3D12_INDEX_BUFFER_VIEW view;
-        view.BufferLocation = backendBuffer->deviceAddress + (D3D12_GPU_VIRTUAL_ADDRESS)offset;
-        view.SizeInBytes = (UINT)(backendBuffer->GetSize() - offset);
-        view.Format = format == RHIIndexFormat::Uint32 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+        const D3D12_INDEX_BUFFER_VIEW view = {
+            .BufferLocation = backendBuffer->deviceAddress + (D3D12_GPU_VIRTUAL_ADDRESS)offset,
+            .SizeInBytes = (UINT)(backendBuffer->GetSize() - offset),
+            .Format = format == RHIIndexFormat::Uint32 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT
+        };
         _commandBuffer->commandList->IASetIndexBuffer(&view);
     }
 
@@ -3346,10 +3441,10 @@ namespace Alimer
         {
             for (uint32_t i = 0; i < _currentPipeline->numVertexBindings; ++i)
             {
-                vboViews[i].StrideInBytes = _currentPipeline->strides[i];
+                _vboViews[i].StrideInBytes = _currentPipeline->strides[i];
             }
 
-            _commandBuffer->commandList->IASetVertexBuffers(0, _currentPipeline->numVertexBindings, vboViews);
+            _commandBuffer->commandList->IASetVertexBuffers(0, _currentPipeline->numVertexBindings, _vboViews);
         }
     }
 
@@ -3362,32 +3457,53 @@ namespace Alimer
 
     void D3D12RenderPassEncoder::DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
     {
+        PrepareDraw();
 
+        _commandBuffer->commandList->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
     }
 
     void D3D12RenderPassEncoder::DrawIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
+        PrepareDraw();
 
+        const D3D12Buffer* backendIndirectBuffer = static_cast<const D3D12Buffer*>(indirectBuffer);
+        _commandBuffer->commandList->ExecuteIndirect(_commandBuffer->device->drawIndirectCommandSignature, 1, backendIndirectBuffer->handle, indirectBufferOffset, nullptr, 0);
     }
 
     void D3D12RenderPassEncoder::DrawIndexedIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
+        PrepareDraw();
 
+        const D3D12Buffer* backendIndirectBuffer = static_cast<const D3D12Buffer*>(indirectBuffer);
+        _commandBuffer->commandList->ExecuteIndirect(_commandBuffer->device->drawIndexedIndirectCommandSignature, 1, backendIndirectBuffer->handle, indirectBufferOffset, nullptr, 0);
     }
 
     void D3D12RenderPassEncoder::DrawMesh(uint32_t threadGroupCountX, uint32_t threadGroupCountY, uint32_t threadGroupCountZ)
     {
+        PrepareDraw();
 
+        _commandBuffer->commandList->DispatchMesh(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
     }
 
     void D3D12RenderPassEncoder::DrawMeshIndirect(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset)
     {
+        PrepareDraw();
 
+        const D3D12Buffer* backendIndirectBuffer = static_cast<const D3D12Buffer*>(indirectBuffer);
+        _commandBuffer->commandList->ExecuteIndirect(_commandBuffer->device->dispatchMeshIndirectCommandSignature, 1, backendIndirectBuffer->handle, indirectBufferOffset, nullptr, 0);
     }
 
     void D3D12RenderPassEncoder::DrawMeshIndirectCount(const RHIBuffer* indirectBuffer, uint64_t indirectBufferOffset, const RHIBuffer* countBuffer, uint64_t countBufferOffset, uint32_t maxCount)
     {
+        PrepareDraw();
 
+        const D3D12Buffer* backendIndirectBuffer = static_cast<const D3D12Buffer*>(indirectBuffer);
+        const D3D12Buffer* backendCountBuffer = static_cast<const D3D12Buffer*>(countBuffer);
+
+        _commandBuffer->commandList->ExecuteIndirect(_commandBuffer->device->dispatchMeshIndirectCommandSignature,
+            maxCount,
+            backendIndirectBuffer->handle, indirectBufferOffset,
+            backendCountBuffer->handle, countBufferOffset);
     }
 
     RHICommandBuffer* D3D12RenderPassEncoder::GetCommandBuffer() const
@@ -3416,15 +3532,15 @@ namespace Alimer
         );
         commandList->QueryInterface(&commandList7);
 
-        _computePassEncoder = new D3D12ComputePassEncoder(device, this);
-        _renderPassEncoder = new D3D12RenderPassEncoder(device, this);
+        computePassEncoder = new D3D12ComputePassEncoder(device, this);
+        renderPassEncoder = new D3D12RenderPassEncoder(device, this);
     }
 
     D3D12CommandBuffer::~D3D12CommandBuffer()
     {
         Clear();
-        SafeDelete(_computePassEncoder);
-        SafeDelete(_renderPassEncoder);
+        SafeDelete(computePassEncoder);
+        SafeDelete(renderPassEncoder);
 
         for (uint32_t i = 0; i < kNumFramesInFlight; ++i)
         {
@@ -3479,9 +3595,6 @@ namespace Alimer
                 scissorRects[i].top = D3D12_VIEWPORT_BOUNDS_MIN;
             }
             commandList->RSSetScissorRects((uint32_t)std::size(scissorRects), scissorRects);
-
-            const float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-            commandList->OMSetBlendFactor(blendFactor);
         }
 
         hasLabel = !label.empty();
@@ -3520,7 +3633,7 @@ namespace Alimer
         if (buffer->immutableState || buffer->currentState == newState)
             return;
 
-        if (device->d3dFeatures.EnhancedBarriersSupported())
+        if (device->enhancedBarriersSupported)
         {
             D3D12BufferStateMapping mappingBefore = ConvertBufferState(buffer->currentState);
             D3D12BufferStateMapping mappingAfter = ConvertBufferState(newState);
@@ -3575,8 +3688,8 @@ namespace Alimer
 
     void D3D12CommandBuffer::TextureBarrier(const D3D12Texture* resource, RHITextureLayout newLayout, uint32_t subresource, bool commit)
     {
-        const uint32_t index = (subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) ? 0 : subresource;
-        const RHITextureLayout currentLayout = resource->GetLayout(index);
+        subresource = (subresource == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) ? 0 : subresource;
+        const RHITextureLayout currentLayout = resource->GetLayout(subresource);
         if (currentLayout == newLayout)
             return;
 
@@ -3609,7 +3722,7 @@ namespace Alimer
             barrier.Flags = D3D12_TEXTURE_BARRIER_FLAG_NONE; // TODO Handle discard when we have transient resources
             ALIMER_ASSERT(barrier.LayoutBefore != barrier.LayoutAfter);
 
-            resource->SetLayout(index, newLayout);
+            SetTextureLayout(resource, subresource, newLayout);
             numBarriersToCommit++;
         }
         else
@@ -3645,7 +3758,7 @@ namespace Alimer
                     barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
                 }
 
-                resource->SetLayout(index, newLayout);
+                SetTextureLayout(resource, subresource, newLayout);
             }
             else if (newStateLegacy == D3D12_RESOURCE_STATE_UNORDERED_ACCESS)
             {
@@ -3741,22 +3854,6 @@ namespace Alimer
         }
 
         numBarriersToCommit = 0;
-    }
-
-    void D3D12CommandBuffer::SetPushConstants(bool graphics, const void* data, uint32_t size, uint32_t offset)
-    {
-        uint32_t rootParameterIndex = device->bindlessManager->pushConstantsIndex;
-        uint32_t num32BitValuesToSet = size / sizeof(uint32_t);
-        uint32_t destOffsetIn32BitValues = offset / sizeof(uint32_t);
-
-        if (graphics)
-        {
-            commandList->SetGraphicsRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
-        }
-        else
-        {
-            commandList->SetComputeRoot32BitConstants(rootParameterIndex, num32BitValuesToSet, data, destOffsetIn32BitValues);
-        }
     }
 
     void D3D12CommandBuffer::PushDebugGroup(std::string_view name)
@@ -3862,14 +3959,14 @@ namespace Alimer
 
     RHIComputePassEncoder* D3D12CommandBuffer::BeginComputePassCore(const RHIComputePassDesc& desc)
     {
-        _computePassEncoder->Begin(desc);
-        return _computePassEncoder;
+        computePassEncoder->Begin(desc);
+        return computePassEncoder;
     }
 
     RHIRenderPassEncoder* D3D12CommandBuffer::BeginRenderPassCore(const RHIRenderPassDesc& desc)
     {
-        _renderPassEncoder->Begin(desc);
-        return _renderPassEncoder;
+        renderPassEncoder->Begin(desc);
+        return renderPassEncoder;
     }
 
     RHIDevice* D3D12CommandBuffer::GetDevice() const
@@ -4170,10 +4267,6 @@ namespace Alimer
         _limits.maxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION;
         _limits.maxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION;
         _limits.maxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
-
-        //uploadBufferTextureRowAlignment = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
-        //uploadBufferTextureSliceAlignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
-
         _limits.maxConstantBufferBindingSize = D3D12_REQ_IMMEDIATE_CONSTANT_BUFFER_ELEMENT_COUNT * 16;
         _limits.maxStorageBufferBindingSize = (1 << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1;
         _limits.minConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
@@ -4681,9 +4774,11 @@ namespace Alimer
         return buffer;
     }
 
-    RHITextureRef D3D12Device::CreateTextureCore(const RHITextureDesc& desc, const RHITextureData* initialData)
+    RHITextureRef D3D12Device::CreateTextureCore(const RHITextureDesc& desc, RHINativeHandle nativeHandle, const RHITextureData* initialData)
     {
+        const uint32_t numSubResources = desc.mipLevelCount * desc.depthOrArrayLayers;
         const bool isDepthStencil = IsDepthStencilFormat(desc.format);
+
         RHITextureLayout initialLayout = RHITextureLayout::Undefined;
         if (initialData == nullptr)
         {
@@ -4710,11 +4805,39 @@ namespace Alimer
 
         SharedPtr<D3D12Texture> texture(new D3D12Texture(this, desc, initialLayout));
         texture->dxgiFormat = (DXGI_FORMAT)ToDxgiFormat(desc.format);
-
+        texture->allocatedSize = 0;
+        texture->footPrints.resize(numSubResources);
+        texture->rowSizesInBytes.resize(texture->footPrints.size());
+        texture->numRows.resize(texture->footPrints.size());
 
         if (isDepthStencil && CheckBitsAny(desc.usage, RHITextureUsage::ShaderReadWrite))
         {
             texture->dxgiFormat = GetTypelessFormatFromDepthFormat(desc.format);
+        }
+
+        if (nativeHandle)
+        {
+            texture->handle = static_cast<ID3D12Resource*>(nativeHandle.pointer);
+            D3D12_RESOURCE_DESC resourceDesc = texture->handle->GetDesc();
+
+            device->GetCopyableFootprints(
+                &resourceDesc,
+                0,
+                (UINT)texture->footPrints.size(),
+                0,
+                texture->footPrints.data(),
+                texture->numRows.data(),
+                texture->rowSizesInBytes.data(),
+                &texture->allocatedSize
+            );
+
+            if (desc.label)
+            {
+                texture->SetLabel(desc.label);
+            }
+
+
+            return texture;
         }
 
         const uint32_t arraySizeMultiplier = (desc.dimension == RHITextureDimension::TextureCube) ? 6 : 1;
@@ -4791,11 +4914,6 @@ namespace Alimer
             pClearValue = nullptr;
         }
 
-        texture->allocatedSize = 0;
-        const uint32_t numSubResources = desc.mipLevelCount * desc.depthOrArrayLayers;
-        texture->footPrints.resize(numSubResources);
-        texture->rowSizesInBytes.resize(texture->footPrints.size());
-        texture->numRows.resize(texture->footPrints.size());
         if (enhancedBarriersSupported)
         {
             device8->GetCopyableFootprints1(
@@ -5051,45 +5169,6 @@ namespace Alimer
                 LOGE("D3D12: Failed to create texture shared handle");
                 return nullptr;
             }
-        }
-
-        return texture;
-    }
-
-    RHITextureRef D3D12Device::CreateTextureFromNativeHandleCore(RHINativeHandle handle, const RHITextureDesc& desc)
-    {
-        SharedPtr<D3D12Texture> texture(new D3D12Texture(this, desc, RHITextureLayout::Undefined));
-        texture->dxgiFormat = (DXGI_FORMAT)ToDxgiFormat(desc.format);
-
-        const bool isDepthStencil = IsDepthStencilFormat(desc.format);
-
-        if (isDepthStencil && CheckBitsAny(desc.usage, RHITextureUsage::ShaderReadWrite))
-        {
-            texture->dxgiFormat = GetTypelessFormatFromDepthFormat(desc.format);
-        }
-
-        texture->handle = static_cast<ID3D12Resource*>(handle.pointer);
-
-        D3D12_RESOURCE_DESC resourceDesc = texture->handle->GetDesc();
-        texture->allocatedSize = 0;
-        const uint32_t numSubResources = desc.mipLevelCount * desc.depthOrArrayLayers;
-        texture->footPrints.resize(numSubResources);
-        texture->rowSizesInBytes.resize(texture->footPrints.size());
-        texture->numRows.resize(texture->footPrints.size());
-        device->GetCopyableFootprints(
-            &resourceDesc,
-            0,
-            (UINT)texture->footPrints.size(),
-            0,
-            texture->footPrints.data(),
-            texture->numRows.data(),
-            texture->rowSizesInBytes.data(),
-            &texture->allocatedSize
-        );
-
-        if (desc.label)
-        {
-            texture->SetLabel(desc.label);
         }
 
         return texture;

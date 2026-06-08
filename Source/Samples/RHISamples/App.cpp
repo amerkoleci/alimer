@@ -18,12 +18,12 @@ public:
     void OnWindowResized(Window* window) override;
 
 private:
-    Sample* _runningSample = nullptr;
+    Sample* runningSample = nullptr;
 };
 
 RHISamplesApp::~RHISamplesApp()
 {
-    SafeDelete(_runningSample);
+    SafeDelete(runningSample);
 }
 
 void RHISamplesApp::Setup()
@@ -39,14 +39,11 @@ void RHISamplesApp::Initialize()
 {
     PixelFormat depthStencilFormat = PixelFormat::Depth32Float;
 
-    _runningSample = new DrawTriangle();
-    //_runningSample = new DrawIndexedQuad();
-    //_runningSample = new DrawSpinningCube();
+    //runningSample = new DrawTriangle();
+    //runningSample = new DrawIndexedQuad();
+    runningSample = new DrawSpinningCube();
 
-    _runningSample->Initialize(_rhiDevice,
-        GetMainWindow()->GetSizeInPixels(),
-        GetMainWindow()->GetColorFormat(),
-        depthStencilFormat);
+    runningSample->Initialize(_rhiDevice, GetMainWindow()->GetSizeInPixels(), GetMainWindow()->GetColorFormat(), depthStencilFormat);
 
     // Audio test
     //AudioClipRef clipFactory = CreateObject<AudioClip>();
@@ -89,12 +86,12 @@ void RHISamplesApp::Initialize()
 
 void RHISamplesApp::Draw([[maybe_unused]] RHICommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture)
 {
-    _runningSample->Draw(commandBuffer, outputTexture);
+    runningSample->Draw(commandBuffer, outputTexture);
 }
 
 void RHISamplesApp::OnWindowResized(Window* window)
 {
-    _runningSample->Resize(window->GetSizeInPixels());
+    runningSample->Resize(window->GetSizeInPixels());
 }
 
 ALIMER_DEFINE_APPLICATION(RHISamplesApp);

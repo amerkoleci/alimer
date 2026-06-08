@@ -176,7 +176,7 @@ namespace Alimer
         return subresourceLayouts[subresource];
     }
 
-    void RHITexture::SetLayout(RHITextureLayout newLayout)
+    void RHITexture::SetLayout(RHITextureLayout newLayout) const
     {
         for (size_t i = 0; i < subresourceLayouts.size(); i++)
         {
@@ -210,6 +210,12 @@ namespace Alimer
                 subresourceLayouts[subresource] = newLayout;
             }
         }
+    }
+
+    /* RHITextureView */
+    uint32_t RHITextureView::GetSubresourceIndex(uint32_t planeSlice) const
+    {
+        return texture->GetSubresourceIndex(baseMipLevel, baseArrayLayer, planeSlice);
     }
 
     /* RHISurfaceSource */
@@ -507,6 +513,16 @@ namespace Alimer
         _encoderActive = false;
     }
 
+    void RHICommandBuffer::SetTextureLayout(const RHITexture* texture, uint32_t subresource, RHITextureLayout newLayout) const
+    {
+        texture->SetLayout(subresource, newLayout);
+    }
+
+    void RHICommandBuffer::SetTextureLayout(const RHITexture* texture, RHITextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount) const
+    {
+        texture->SetLayout(newLayout, baseMiplevel, levelCount, baseArrayLayer, layerCount);
+    }
+
     RHIComputePassEncoder* RHICommandBuffer::BeginComputePass(const RHIComputePassDesc& desc)
     {
         if (_encoderActive)
@@ -710,7 +726,7 @@ namespace Alimer
             creationDesc.mipLevelCount = GetMipLevelCount(desc.width, desc.height, desc.depthOrArrayLayers);
         }
 
-        return CreateTextureCore(creationDesc, initialData);
+        return CreateTextureCore(creationDesc, nullptr, initialData);
     }
 
     RHITextureRef RHIDevice::CreateTextureFromNativeHandle(RHINativeHandle handle, const RHITextureDesc& desc)
@@ -726,7 +742,7 @@ namespace Alimer
             creationDesc.mipLevelCount = GetMipLevelCount(desc.width, desc.height, desc.depthOrArrayLayers);
         }
 
-        return CreateTextureFromNativeHandleCore(handle, creationDesc);
+        return CreateTextureCore(creationDesc, handle, nullptr);
     }
 
     RHISamplerRef RHIDevice::CreateSampler(const RHISamplerDesc& desc)

@@ -1251,6 +1251,8 @@ namespace Alimer
 
     class ALIMER_API RHITexture : public RHIObject
     {
+        friend class RHICommandBuffer; // SetLayout
+
     protected:
         RHITexture(const RHITextureDesc& desc, RHITextureLayout initialLayout);
 
@@ -1299,14 +1301,12 @@ namespace Alimer
         [[nodiscard]] RHITextureLayout GetLayout(uint32_t mipLevel, uint32_t arrayLayer, uint32_t placeSlice = 0) const;
         [[nodiscard]] RHITextureLayout GetLayout(uint32_t subresource) const;
 
-        // TODO: Make protected
-        void SetLayout(RHITextureLayout newLayout);
+    protected:
+        virtual RHITextureViewRef CreateView(const RHITextureViewDesc& desc)  const = 0;
+        void SetLayout(RHITextureLayout newLayout) const;
         void SetLayout(uint32_t subresource, RHITextureLayout newLayout) const;
         void SetLayout(RHITextureLayout newLayout, uint32_t mipLevel, uint32_t arrayLayer, uint32_t placeSlice = 0) const;
         void SetLayout(RHITextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount) const;
-
-    protected:
-        virtual RHITextureViewRef CreateView(const RHITextureViewDesc& desc)  const = 0;
 
     protected:
         RHITextureDimension dimension;
@@ -1350,6 +1350,7 @@ namespace Alimer
 
         [[nodiscard]] constexpr uint32_t GetWidth() const { return texture->GetWidth(baseMipLevel); }
         [[nodiscard]] constexpr uint32_t GetHeight() const { return texture->GetHeight(baseMipLevel); }
+        [[nodiscard]] uint32_t GetSubresourceIndex(uint32_t planeSlice = 0) const;
 
     protected:
         const RHITexture* texture;
@@ -1563,7 +1564,7 @@ namespace Alimer
         virtual void SetViewports(const RHIViewport* viewports, uint32_t count) = 0;
         virtual void SetScissorRect(const RHIScissorRect& scissorRect) = 0;
         virtual void SetScissorRects(const RHIScissorRect* scissorRects, uint32_t count) = 0;
-        virtual void SetStencilReference(uint32_t referenceValue) = 0;
+        virtual void SetStencilReference(uint32_t reference) = 0;
         virtual void SetBlendColor(const Color& color) = 0;
         virtual void SetShadingRate(RHIShadingRate rate) = 0;
         virtual void SetDepthBounds(float minBounds, float maxBounds) = 0;
@@ -1621,6 +1622,8 @@ namespace Alimer
 
     protected:
         void Reset(uint32_t frameIndex);
+        void SetTextureLayout(const RHITexture* texture, uint32_t subresource, RHITextureLayout newLayout) const;
+        void SetTextureLayout(const RHITexture* texture, RHITextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount) const;
 
         virtual RHIComputePassEncoder* BeginComputePassCore(const RHIComputePassDesc& desc) = 0;
         virtual RHIRenderPassEncoder* BeginRenderPassCore(const RHIRenderPassDesc& desc) = 0;
@@ -1680,14 +1683,14 @@ namespace Alimer
         //[[nodiscard]] virtual bool QueryVertexFormatSupport(VertexFormat format) = 0;
 
         [[nodiscard]] constexpr uint64_t GetTimestampFrequency() const { return _timestampFrequency; }
-        [[nodiscard]] RHILinearAllocator& GetFrameAllocator() { return frameAllocators[_frameIndex]; }
+        [[nodiscard]] RHILinearAllocator& GetFrameAllocator() { return _frameAllocators[_frameIndex]; }
 
     protected:
         virtual void InitResources();
         virtual bool ValidateTextureDesc(const RHITextureDesc& desc);
+
         virtual RHIBufferRef CreateBufferCore(const RHIBufferDesc& desc, RHINativeHandle nativeHandle, const void* initialData) = 0;
-        virtual RHITextureRef CreateTextureCore(const RHITextureDesc& desc, const RHITextureData* initialData) = 0;
-        virtual RHITextureRef CreateTextureFromNativeHandleCore(RHINativeHandle handle, const RHITextureDesc& desc) = 0;
+        virtual RHITextureRef CreateTextureCore(const RHITextureDesc& desc, RHINativeHandle nativeHandle, const RHITextureData* initialData) = 0;
         virtual RHISamplerRef CreateSamplerCore(const RHISamplerDesc& desc) = 0;
         virtual RHIShaderModuleRef CreateShaderModuleCore(const RHIShaderModuleDesc& desc) = 0;
         virtual RHIComputePipelineRef CreateComputePipelineCore(const RHIComputePipelineDesc& desc) = 0;
@@ -1701,11 +1704,8 @@ namespace Alimer
         uint64_t _frameCount{};
         uint32_t _frameIndex{};
 
-        //uint32_t uploadBufferTextureRowAlignment = 1u;
-        //uint32_t uploadBufferTextureSliceAlignment = 1u;
-
         Vector<RHISamplerRef> staticSamplers;
-        RHILinearAllocator frameAllocators[kNumFramesInFlight];
+        RHILinearAllocator _frameAllocators[kNumFramesInFlight];
     };
 
     class ALIMER_API RHIAdapter

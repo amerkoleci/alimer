@@ -960,7 +960,6 @@ namespace Alimer
     public:
         VkBuffer handle = VK_NULL_HANDLE;
         VmaAllocation allocation = nullptr;
-
         uint64_t allocatedSize{};
         VkDeviceAddress deviceAddress{};
         void* pMappedData{ nullptr };
@@ -1000,7 +999,6 @@ namespace Alimer
         VkFormat vkFormat = VK_FORMAT_UNDEFINED;
 
         uint64_t allocatedSize{};
-        //void* pMappedData{ nullptr };
 #if defined(_WIN32)
         void* sharedHandle = nullptr;
 #else
@@ -1222,7 +1220,7 @@ namespace Alimer
         void SetViewports(const RHIViewport* viewports, uint32_t count) override;
         void SetScissorRect(const RHIScissorRect& scissorRect) override;
         void SetScissorRects(const RHIScissorRect* scissorRects, uint32_t count) override;
-        void SetStencilReference(uint32_t referenceValue) override;
+        void SetStencilReference(uint32_t reference) override;
         void SetBlendColor(const Color& color) override;
         void SetShadingRate(RHIShadingRate rate) override;
         void SetDepthBounds(float minBounds, float maxBounds) override;
@@ -1488,8 +1486,7 @@ namespace Alimer
         uint64_t CommitFrame() override;
 
         RHIBufferRef CreateBufferCore(const RHIBufferDesc& desc, RHINativeHandle nativeHandle, const void* initialData) override;
-        RHITextureRef CreateTextureCore(const RHITextureDesc& desc, const RHITextureData* initialData) override;
-        RHITextureRef CreateTextureFromNativeHandleCore(RHINativeHandle handle, const RHITextureDesc& desc) override;
+        RHITextureRef CreateTextureCore(const RHITextureDesc& desc, RHINativeHandle nativeHandle, const RHITextureData* initialData) override;
         RHISamplerRef CreateSamplerCore(const RHISamplerDesc& desc) override;
 
         VkSampler GetOrCreateVulkanSampler(const RHISamplerDesc* desc);
@@ -3140,7 +3137,7 @@ namespace Alimer
         if (numBarriersToCommit == kMaxBarrierCount)
             CommitBarriers();
 
-        texture->SetLayout(newLayout, baseMiplevel, levelCount, baseArrayLayer, layerCount);    
+        SetTextureLayout(texture, newLayout, baseMiplevel, levelCount, baseArrayLayer, layerCount);    
     }
 
     void VulkanCommandBuffer::TextureBarrier(const VulkanTextureView* view, RHITextureLayout newLayout)
@@ -4626,7 +4623,7 @@ namespace Alimer
         }
 
         // Begin new frame
-        frameAllocators[_frameIndex].Reset();
+        _frameAllocators[_frameIndex].Reset();
         _frameCount++;
         _frameIndex = _frameCount % kNumFramesInFlight;
 
@@ -4653,7 +4650,7 @@ namespace Alimer
 
         if (nativeHandle)
         {
-            buffer->handle = static_cast<VkBuffer>(nativeHandle.pointer);
+            buffer->handle = (VkBuffer)nativeHandle.integer;
 
             if (desc.label)
             {
@@ -4875,7 +4872,7 @@ namespace Alimer
         return buffer;
     }
 
-    RHITextureRef VulkanDevice::CreateTextureCore(const RHITextureDesc& desc, const RHITextureData* initialData)
+    RHITextureRef VulkanDevice::CreateTextureCore(const RHITextureDesc& desc, RHINativeHandle nativeHandle, const RHITextureData* initialData)
     {
         const bool isDepthStencil = IsDepthStencilFormat(desc.format);
         RHITextureLayout initialLayout = RHITextureLayout::Undefined;
@@ -4904,6 +4901,17 @@ namespace Alimer
 
         SharedPtr<VulkanTexture> texture(new VulkanTexture(this, desc, initialLayout));
         texture->vkFormat = ToVkFormat(desc.format);
+        if (nativeHandle)
+        {
+            texture->handle = (VkImage)nativeHandle.integer;
+
+            if (desc.label)
+            {
+                texture->SetLabel(desc.label);
+            }
+
+            return texture;
+        }
 
         VkImageCreateInfo createInfo = {};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -5317,21 +5325,6 @@ namespace Alimer
             vkCmdPipelineBarrier2(uploadContext.transitionCommandBuffer, &dependencyInfo);
 
             copyAllocator.Submit(uploadContext);
-        }
-
-        return texture;
-    }
-
-    RHITextureRef VulkanDevice::CreateTextureFromNativeHandleCore(RHINativeHandle handle, const RHITextureDesc& desc)
-    {
-        SharedPtr<VulkanTexture> texture(new VulkanTexture(this, desc, RHITextureLayout::Undefined));
-        texture->vkFormat = ToVkFormat(desc.format);
-
-        texture->handle = (VkImage)handle.integer;
-
-        if (desc.label)
-        {
-            texture->SetLabel(desc.label);
         }
 
         return texture;
