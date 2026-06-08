@@ -5,6 +5,7 @@
 
 #include "Alimer/Core/String.h"
 #include "Alimer/Core/Vector.h"
+#include "Alimer/Core/UUID.h"
 #include "Alimer/IO/Types.h"
 
 namespace Alimer
@@ -64,6 +65,8 @@ namespace Alimer
         float ReadFloat();
         /// Read a double.
         double ReadDouble();
+        /// Read a UUID.
+        UUID ReadUUID();
 		/// Read a null-terminated string.
 		std::string ReadString();
 		/// Read a variable-length encoded unsigned integer, which can use 29 bits maximum.

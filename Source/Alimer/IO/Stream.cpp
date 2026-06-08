@@ -91,6 +91,13 @@ double Stream::ReadDouble()
     return ret;
 }
 
+UUID Stream::ReadUUID()
+{
+    uint64_t ret;
+    Read(&ret, sizeof ret);
+    return UUID(ret);
+}
+
 std::string Stream::ReadString()
 {
     std::string ret;

@@ -6,6 +6,9 @@
 #include "Alimer/Application.h"
 
 #if defined(_WIN32) && !defined(ALIMER_WIN32_CONSOLE)
+#ifndef UUID_DEFINED
+#define UUID_DEFINED // To avoid collision with Alimer::UUID
+#endif
 #include <Windows.h>
 #ifdef _MSC_VER
 #    include <crtdbg.h>
