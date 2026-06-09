@@ -133,6 +133,8 @@ namespace Alimer
         bool Write(float value);
         /// Write a double.
         bool Write(double value);
+        /// Write a UUID.
+        bool Write(const UUID& value);
         /// Write a c-string.
         bool Write(const char* value);
         /// Write a string.

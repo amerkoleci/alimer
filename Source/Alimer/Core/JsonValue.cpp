@@ -14,6 +14,8 @@ using namespace rapidjson;
 
 namespace
 {
+    static_assert(sizeof(JsonValueType) == sizeof(uint8_t), "Unexpected JsonValueType size.");
+
     // Convert rapidjson value to JSON value.
     static void FromRapidjsonValue(JsonValue& jsonValue, const rapidjson::Value& rapidjsonValue)
     {
@@ -60,7 +62,7 @@ namespace
                 jsonValue.SetEmptyObject();
                 for (rapidjson::Value::ConstMemberIterator i = rapidjsonValue.MemberBegin(); i != rapidjsonValue.MemberEnd(); ++i)
                 {
-                    JsonValue& value = jsonValue[std::string(i->name.GetString())];
+                    JsonValue& value = jsonValue[String(i->name.GetString())];
                     FromRapidjsonValue(value, i->value);
                 }
             }
@@ -290,7 +292,7 @@ JsonValue& JsonValue::operator = (double rhs)
     return *this;
 }
 
-JsonValue& JsonValue::operator = (std::string_view value)
+JsonValue& JsonValue::operator = (StringView value)
 {
     SetType(JsonValueType::String);
     *_stringValue = value;
@@ -298,7 +300,7 @@ JsonValue& JsonValue::operator = (std::string_view value)
     return *this;
 }
 
-JsonValue& JsonValue::operator = (const std::string& value)
+JsonValue& JsonValue::operator = (const String& value)
 {
     SetType(JsonValueType::String);
     *_stringValue = value;
@@ -409,14 +411,14 @@ const JsonValue& JsonValue::Get(size_t index) const
     return _arrayValue->at(index);
 }
 
-JsonValue& JsonValue::operator [] (const std::string& key)
+JsonValue& JsonValue::operator [] (const String& key)
 {
     SetType(JsonValueType::Object);
 
     return (*_objectValue)[key];
 }
 
-const JsonValue& JsonValue::operator [] (const std::string& key) const
+const JsonValue& JsonValue::operator [] (const String& key) const
 {
     if (GetValueType() != JsonValueType::Object)
         return EMPTY;
@@ -425,7 +427,7 @@ const JsonValue& JsonValue::operator [] (const std::string& key) const
     return it != _objectValue->end() ? it->second : EMPTY;
 }
 
-void JsonValue::Set(std::string_view key, JsonValue value)
+void JsonValue::Set(StringView key, JsonValue value)
 {
     // Convert to object type
     SetType(JsonValueType::Object);
@@ -433,7 +435,7 @@ void JsonValue::Set(std::string_view key, JsonValue value)
     (*_objectValue)[key.data()] = std::move(value);
 }
 
-void JsonValue::Set(const std::string& key, JsonValue value)
+void JsonValue::Set(const String& key, JsonValue value)
 {
     // Convert to object type
     SetType(JsonValueType::Object);
@@ -441,7 +443,7 @@ void JsonValue::Set(const std::string& key, JsonValue value)
     (*_objectValue)[key] = std::move(value);
 }
 
-const JsonValue& JsonValue::Get(const std::string& key) const
+const JsonValue& JsonValue::Get(const String& key) const
 {
     if (GetValueType() != JsonValueType::Object)
         return EMPTY;
@@ -483,14 +485,14 @@ bool JsonValue::operator == (const JsonValue& rhs) const
     }
 }
 
-JsonValue JsonValue::Parse(std::string_view str, bool reportError)
+JsonValue JsonValue::Parse(StringView str, bool reportError)
 {
     JsonValue result;
     result.FromString(str, reportError);
     return result;
 }
 
-bool JsonValue::FromString(std::string_view str, bool reportError)
+bool JsonValue::FromString(StringView str, bool reportError)
 {
     Document document;
     document.Parse(str.data());
@@ -545,7 +547,7 @@ void JsonValue::FromBinary(Stream& source)
             size_t num = source.ReadVLE();
             for (size_t i = 0; i < num && !source.IsEof(); ++i)
             {
-                std::string key = source.ReadString();
+                String key = source.ReadString();
                 (*this)[key] = source.ReadJsonValue();
             }
         }
@@ -556,7 +558,7 @@ void JsonValue::FromBinary(Stream& source)
     }
 }
 
-void JsonValue::ToString(std::string& dest, const std::string& indendation) const
+void JsonValue::ToString(String& dest, const String& indendation) const
 {
     rapidjson::Document document;
     ToRapidjsonValue(document, *this, document.GetAllocator());
@@ -569,9 +571,9 @@ void JsonValue::ToString(std::string& dest, const std::string& indendation) cons
     dest = buffer.GetString();
 }
 
-std::string JsonValue::ToString(const std::string& indendation) const
+String JsonValue::ToString(const String& indendation) const
 {
-    std::string ret;
+    String ret;
     ToString(ret, indendation);
     return ret;
 }
@@ -620,14 +622,14 @@ void JsonValue::ToBinary(Stream& dest) const
     }
 }
 
-void JsonValue::Insert(const std::pair<std::string, JsonValue>& pair)
+void JsonValue::Insert(const std::pair<String, JsonValue>& pair)
 {
     SetType(JsonValueType::Object);
 
     _objectValue->insert(pair);
 }
 
-bool JsonValue::Erase(const std::string& key)
+bool JsonValue::Erase(const String& key)
 {
     if (GetValueType() != JsonValueType::Object)
         return false;
@@ -682,7 +684,7 @@ bool JsonValue::Empty() const
         return false;
 }
 
-bool JsonValue::Contains(const std::string& key) const
+bool JsonValue::Contains(const String& key) const
 {
     if (GetValueType() != JsonValueType::Object)
         return false;
@@ -719,7 +721,7 @@ void JsonValue::SetType(JsonValueType valueType, JSONNumberType numberType)
     switch (GetValueType())
     {
         case JsonValueType::String:
-            _stringValue = new std::string();
+            _stringValue = new String();
             break;
 
         case JsonValueType::Array:

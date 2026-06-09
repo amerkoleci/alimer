@@ -93,9 +93,9 @@ double Stream::ReadDouble()
 
 UUID Stream::ReadUUID()
 {
-    uint64_t ret;
+    UUID ret;
     Read(&ret, sizeof ret);
-    return UUID(ret);
+    return ret;
 }
 
 std::string Stream::ReadString()
@@ -322,6 +322,11 @@ bool Stream::Write(float value)
 bool Stream::Write(double value)
 {
     return Write(&value, sizeof(double)) == sizeof(double);
+}
+
+bool Stream::Write(const UUID& value)
+{
+    return Write(&value, sizeof(UUID)) == sizeof(UUID);
 }
 
 bool Stream::Write(const char* value)

@@ -115,12 +115,12 @@ namespace Alimer
             *this = value;
         }
         /// Construct from a string.
-        JsonValue(std::string_view value)
+        JsonValue(StringView value)
         {
             *this = value;
         }
         /// Construct from a string.
-        JsonValue(const std::string& value)
+        JsonValue(const String& value)
         {
             *this = value;
         }
@@ -169,9 +169,9 @@ namespace Alimer
         /// Assign a floating point number.
         JsonValue& operator = (double rhs);
         /// Assign a string_view.
-        JsonValue& operator = (std::string_view value);
+        JsonValue& operator = (StringView value);
         /// Assign a string.
-        JsonValue& operator = (const std::string& value);
+        JsonValue& operator = (const String& value);
         /// Assign a C string.
         JsonValue& operator = (const char* value);
         /// Assign a JSON array.
@@ -202,15 +202,15 @@ namespace Alimer
         const JsonValue& Get(size_t index) const;
 
         /// Index as an object. Becomes an object if was not before.
-        JsonValue& operator [] (const std::string& key);
+        JsonValue& operator [] (const String& key);
         /// Const index as an object. Return a null value if not an object.
-        const JsonValue& operator [] (const std::string& key) const;
+        const JsonValue& operator [] (const String& key) const;
         /// Set JSON value with key.
-        void Set(std::string_view key, JsonValue value);
+        void Set(StringView key, JsonValue value);
         /// Set JSON value with key.
-        void Set(const std::string& key, JsonValue value);
+        void Set(const String& key, JsonValue value);
         /// Return JSON value with key.
-        const JsonValue& Get(const std::string& key) const;
+        const JsonValue& Get(const String& key) const;
 
         /// Test for equality with another JSON value.
         bool operator == (const JsonValue& rhs) const;
@@ -218,24 +218,24 @@ namespace Alimer
         bool operator != (const JsonValue& rhs) const { return !(*this == rhs); }
 
         /// Parse from a string. Return populated value on success, empty otherwise.
-        static JsonValue Parse(std::string_view str, bool reportError = true);
+        static JsonValue Parse(StringView str, bool reportError = true);
 
         /// Parse from a string. Return true on success.
-        bool FromString(std::string_view str, bool reportError = true);
+        bool FromString(StringView str, bool reportError = true);
         /// Parse from a binary stream.
         void FromBinary(Stream& source);
         /// Write to a string. Called recursively to write nested values.
-        void ToString(std::string& dest, const std::string& indendation = "\t") const;
+        void ToString(String& dest, const String& indendation = "\t") const;
         /// Return as string.
-        std::string ToString(const std::string& indendation = "\t") const;
+        String ToString(const String& indendation = "\t") const;
         /// Serialize to a binary stream.
         void ToBinary(Stream& dest) const;
         
         /// Insert an associative value. Becomes an object if was not before.
-        void Insert(const std::pair<std::string, JsonValue>& pair);
+        void Insert(const std::pair<String, JsonValue>& pair);
         
         /// Remove an associative value. No-op if not an object.
-        bool Erase(const std::string& key);
+        bool Erase(const String& key);
         /// Clear array or object. No-op otherwise.
         void Clear();
         /// Set to an empty array.
@@ -302,7 +302,7 @@ namespace Alimer
 
         size_t GetStringLength() const { ALIMER_ASSERT(IsString()); return _stringValue->length(); }
         /// Return value as a string, or empty string on type mismatch.
-        const std::string& GetString(const std::string& defaultValue = kEmptyString) const { return IsString() ? *_stringValue : defaultValue; }
+        const String& GetString(const String& defaultValue = kEmptyString) const { return IsString() ? *_stringValue : defaultValue; }
         /// Return C string value. Default to empty string literal.
         const char* GetCString(const char* defaultValue = "") const { return IsString() ? _stringValue->c_str() : defaultValue; }
         /// Return value as an array, or empty on type mismatch.
@@ -310,7 +310,7 @@ namespace Alimer
         /// Return value as an object, or empty on type mismatch.
         const JsonObject& GetObject() const { return IsObject() ? *_objectValue : emptyJSONObject; }
         /// Return whether has an associative value.
-        bool Contains(const std::string& key) const;
+        bool Contains(const String& key) const;
 
         /// Empty (null) value.
         static const JsonValue EMPTY;
@@ -333,7 +333,7 @@ namespace Alimer
             /// Number value.
             double _numberValue;
             /// String value.
-            std::string* _stringValue;
+            String* _stringValue;
             /// Array value.
             JsonArray* _arrayValue;
             /// Object value.

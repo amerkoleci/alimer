@@ -110,11 +110,11 @@ bool Vector3::TryParse(StringView str, Vector3* result)
     return true;
 }
 
-std::string Vector3::ToString() const
+String Vector3::ToString() const
 {
     char tempBuffer[kConversionBufferLength];
     snprintf(tempBuffer, kConversionBufferLength, "%g %g %g", x, y, z);
-    return std::string(tempBuffer);
+    return String(tempBuffer);
 }
 
 //float32x4 Vector3::ToSIMD() const

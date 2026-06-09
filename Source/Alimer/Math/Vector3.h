@@ -275,7 +275,7 @@ namespace Alimer
         [[nodiscard]] constexpr Vector2 ToVector2() const noexcept { return Vector2(x, y); }
 
         /// Return as string.
-        [[nodiscard]] std::string ToString() const;
+        [[nodiscard]] String ToString() const;
 
 #if defined(ALIMER_USE_SSE) || defined(ALIMER_USE_NEON)
         explicit Vector3(simd_float4_param xyz);
