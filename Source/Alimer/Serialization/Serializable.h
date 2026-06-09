@@ -12,6 +12,7 @@ namespace Alimer
     class ISerializer;
     class IDeserializer;
 
+
     /// Base class for objects with automatic serialization using properties.
     class ALIMER_API Serializable : public Object
     {

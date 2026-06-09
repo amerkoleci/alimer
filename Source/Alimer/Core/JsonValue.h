@@ -248,7 +248,7 @@ namespace Alimer
         /// Return number of values for objects or arrays, or 0 otherwise.
         size_t Size() const;
         /// Return whether an object or array is empty. Return false if not an object or array.
-        bool Empty() const;
+        bool IsEmpty() const;
 
         /// Return the value type.
         JsonValueType GetValueType() const;
@@ -306,18 +306,18 @@ namespace Alimer
         /// Return C string value. Default to empty string literal.
         const char* GetCString(const char* defaultValue = "") const { return IsString() ? _stringValue->c_str() : defaultValue; }
         /// Return value as an array, or empty on type mismatch.
-        const JsonArray& GetArray() const { return IsArray() ? *_arrayValue : emptyJSONArray; }
+        const JsonArray& GetArray() const { return IsArray() ? *_arrayValue : EmptyJsonArray; }
         /// Return value as an object, or empty on type mismatch.
-        const JsonObject& GetObject() const { return IsObject() ? *_objectValue : emptyJSONObject; }
+        const JsonObject& GetObject() const { return IsObject() ? *_objectValue : EmptyJsonObject; }
         /// Return whether has an associative value.
         bool Contains(const String& key) const;
 
         /// Empty (null) value.
-        static const JsonValue EMPTY;
+        static const JsonValue Empty;
         /// Empty array.
-        static const JsonArray emptyJSONArray;
+        static const JsonArray EmptyJsonArray;
         /// Empty object.
-        static const JsonObject emptyJSONObject;
+        static const JsonObject EmptyJsonObject;
 
     protected:
         /// Assign a new type and perform the necessary dynamic allocation / deletion.

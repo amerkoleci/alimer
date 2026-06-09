@@ -46,11 +46,11 @@ void Serializable::Load(Stream& source/*, ObjectResolver& resolver*/)
         return;
 
     //StringId32 type = source.ReadStringId32();
-    size_t numAttrs = source.ReadVLE();
-    for (size_t i = 0; i < numAttrs; ++i)
+    size_t propertyCount = source.ReadVLE();
+    for (size_t i = 0; i < propertyCount; ++i)
     {
         // Skip attribute if wrong type or extra data
-        VariantType type = (VariantType)source.ReadUInt8();
+        VariantType type = source.ReadEnum<VariantType>();
         bool skip = true;
 
         if (i < properties.size())
@@ -79,13 +79,13 @@ void Serializable::Save(Stream& dest)
     if (properties.empty())
         return;
 
-    dest.Write(GetType());
+    //dest.Write(GetType());
     dest.WriteVLE(properties.size());
     for (size_t i = 0, count = properties.size(); i < count; ++i)
     {
         PropertyInfo* property = properties[i].Get();
 
-        dest.Write((uint8_t)property->GetPropertyType());
+        dest.Write(property->GetPropertyType());
         property->ToBinary(this, dest);
     }
 }

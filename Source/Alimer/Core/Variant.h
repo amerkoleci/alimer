@@ -4,6 +4,8 @@
 #pragma once
 
 #include "Alimer/Core/RefCounted.h"
+#include "Alimer/Core/JsonValue.h"
+#include "Alimer/IO/Types.h"
 #include "Alimer/Math/Quaternion.h"
 #include "Alimer/Math/Color.h"
 #include "Alimer/Math/Matrix3x2.h"
@@ -39,8 +41,10 @@ namespace Alimer
 
         Pointer,
         RefPtr,
+        ObjectRef,
         AssetRef,
         AssetRefList,
+        JsonValue,
 
         Vector2,
         Vector3,
@@ -112,8 +116,10 @@ namespace Alimer
     //template <> inline VariantType GetVariantType<UUID>() { return VariantType::UInt64; }
     template <> inline VariantType GetVariantType<void*>() { return VariantType::Pointer; }
     template <> inline VariantType GetVariantType<RefCounted*>() { return VariantType::RefPtr; }
+    template <> inline VariantType GetVariantType<ObjectRef>() { return VariantType::ObjectRef; }
     template <> inline VariantType GetVariantType<AssetRef>() { return VariantType::AssetRef; }
     template <> inline VariantType GetVariantType<AssetRefList>() { return VariantType::AssetRefList; }
+    template <> inline VariantType GetVariantType<JsonValue>() { return VariantType::JsonValue; }
 
     template <> inline VariantType GetVariantType<Vector2>() { return VariantType::Vector2; }
     template <> inline VariantType GetVariantType<Vector3>() { return VariantType::Vector3; }
@@ -171,8 +177,10 @@ namespace Alimer
         ByteVector byteVector;
         void* pointer;
         WeakPtr<RefCounted> weakPtr;
+        ObjectRef objectRef;
         AssetRef assetRef;
         AssetRefList assetRefList;
+        JsonValue jsonValue;
 
         Vector2 vector2;
         Vector3 vector3;
@@ -287,7 +295,7 @@ namespace Alimer
 
         /// Construct from enum.
         template<typename TEnum, typename = typename std::enable_if_t<std::is_enum_v<TEnum>>>
-        Variant(const TEnum value) noexcept
+        Variant(const TEnum& value) noexcept
         {
             *this = value;
         }
@@ -322,6 +330,12 @@ namespace Alimer
             *this = value;
         }
 
+        /// Construct from a object reference.
+        Variant(const ObjectRef& value) noexcept  // NOLINT(google-explicit-constructor)
+        {
+            *this = value;
+        }
+
         /// Construct from a asset reference.
         Variant(const AssetRef& value) noexcept  // NOLINT(google-explicit-constructor)
         {
@@ -330,6 +344,12 @@ namespace Alimer
 
         /// Construct from a asset reference list.
         Variant(const AssetRefList& value) noexcept  // NOLINT(google-explicit-constructor)
+        {
+            *this = value;
+        }
+
+        /// Construct from a json value.
+        Variant(const JsonValue& value) noexcept  // NOLINT(google-explicit-constructor)
         {
             *this = value;
         }
@@ -519,7 +539,7 @@ namespace Alimer
 
         /// Assign from an enum value.
         template<typename TEnum, typename = typename std::enable_if_t<std::is_enum_v<TEnum>>>
-        Variant& operator =(const TEnum enumValue)
+        Variant& operator =(const TEnum& enumValue)
         {
             SetType(VariantType::Enum);
             value.uint64 = ecast(enumValue);
@@ -583,6 +603,14 @@ namespace Alimer
         }
 
         /// Assign from a asset reference.
+        Variant& operator =(const ObjectRef& rhs)
+        {
+            SetType(VariantType::ObjectRef);
+            value.objectRef = rhs;
+            return *this;
+        }
+
+        /// Assign from a asset reference.
         Variant& operator =(const AssetRef& rhs)
         {
             SetType(VariantType::AssetRef);
@@ -598,6 +626,13 @@ namespace Alimer
             return *this;
         }
 
+        /// Assign from a json value.
+        Variant& operator =(const JsonValue& rhs)
+        {
+            SetType(VariantType::JsonValue);
+            value.jsonValue = rhs;
+            return *this;
+        }
 
         /// Assign from a Vector2.
         Variant& operator =(const Vector2& rhs)
@@ -808,6 +843,12 @@ namespace Alimer
                 return false;
         }
 
+        /// Test for equality with a object reference. To return true, both the type and value must match.
+        bool operator ==(const ObjectRef& rhs) const
+        {
+            return type == VariantType::ObjectRef ? value.objectRef == rhs : false;
+        }
+
         /// Test for equality with a asset reference. To return true, both the type and value must match.
         bool operator ==(const AssetRef& rhs) const
         {
@@ -818,6 +859,12 @@ namespace Alimer
         bool operator ==(const AssetRefList& rhs) const
         {
             return type == VariantType::AssetRefList ? value.assetRefList == rhs : false;
+        }
+
+        /// Test for equality with a json value. To return true, both the type and value must match.
+        bool operator ==(const JsonValue& rhs) const
+        {
+            return type == VariantType::JsonValue ? value.jsonValue == rhs : false;
         }
 
         /// Test for equality with a Vector2. To return true, both the type and value must match.
@@ -940,11 +987,17 @@ namespace Alimer
         /// Test for inequality with a RefCounted pointer.
         bool operator !=(RefCounted* rhs) const { return !(*this == rhs); }
 
+        /// Test for inequality with a object reference.
+        bool operator !=(const ObjectRef& rhs) const { return !(*this == rhs); }
+
         /// Test for inequality with a asset reference.
         bool operator !=(const AssetRef& rhs) const { return !(*this == rhs); }
 
         /// Test for inequality with a asset reference list.
         bool operator !=(const AssetRefList& rhs) const { return !(*this == rhs); }
+
+        /// Test for inequality with a json value.
+        bool operator !=(const JsonValue& rhs) const { return !(*this == rhs); }
 
         /// Test for inequality with a Vector2.
         bool operator !=(const Vector2& rhs) const { return !(*this == rhs); }
@@ -1045,11 +1098,17 @@ namespace Alimer
         /// Return a RefCounted pointer or null on type mismatch. Will return null if holding a void pointer, as it can not be safely verified that the object is a RefCounted.
         RefCounted* GetPtr() const noexcept;
 
+        /// Return a object reference or empty on type mismatch.
+        const ObjectRef& GetObjectRef() const noexcept;
+
         /// Return a asset reference or empty on type mismatch.
         const AssetRef& GetAssetRef() const noexcept;
 
         /// Return a asset reference list or empty on type mismatch.
         const AssetRefList& GetAssetRefList() const noexcept;
+
+        /// Return a json value or empty on type mismatch.
+        const JsonValue& GetJsonValue() const noexcept;
 
         /// Return Vector2 or zero on type mismatch.
         const Vector2& GetVector2() const noexcept;
@@ -1139,8 +1198,10 @@ namespace Alimer
     template <> ALIMER_API StringId32 Variant::Get<StringId32>() const;
     template <> ALIMER_API void* Variant::Get<void*>() const;
     template <> ALIMER_API RefCounted* Variant::Get<RefCounted*>() const;
+    template <> ALIMER_API ObjectRef Variant::Get<ObjectRef>() const;
     template <> ALIMER_API AssetRef Variant::Get<AssetRef>() const;
     template <> ALIMER_API AssetRefList Variant::Get<AssetRefList>() const;
+    template <> ALIMER_API JsonValue Variant::Get<JsonValue>() const;
 
     template <> ALIMER_API const Vector2& Variant::Get<const Vector2&>() const;
     template <> ALIMER_API Vector2 Variant::Get<Vector2>() const;

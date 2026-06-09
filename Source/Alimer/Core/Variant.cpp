@@ -34,8 +34,10 @@ namespace
 
         "Pointer",
         "RefPtr",
+        "ObjectRef",
         "AssetRef",
         "AssetRefList",
+        "JsonValue",
 
         "Vector2",
         "Vector3",
@@ -71,7 +73,7 @@ namespace
         nullptr
     };
 
-    static const uint32_t typeSizeInBytes[] =
+    static const uint32_t s_TypeSizeInBytes[] =
     {
         0,
         sizeof(bool),
@@ -86,14 +88,16 @@ namespace
         sizeof(float),
         sizeof(double),
         sizeof(uint64_t), // We store enum as uint_64_t
-        sizeof(String),
+        0, // String
         sizeof(ByteVector),
         sizeof(StringVector),
 
         0, // Pointer
         0, // RefPtr
-        sizeof(AssetRef),
-        sizeof(AssetRefList),
+        sizeof(ObjectRef),
+        0, // AssetRef
+        0, // AssetRefList
+        0, // JsonValue
 
         sizeof(Vector2),
         sizeof(Vector3),
@@ -129,12 +133,12 @@ namespace
     };
 
     static_assert(sizeof(typeNames) / sizeof(const char*) == (size_t)VariantType::Count + 1, "Variant type name array is out-of-date");
-    static_assert(sizeof(typeSizeInBytes) / sizeof(uint32_t) == (size_t)VariantType::Count + 1, "Variant type size array is out-of-date");
+    static_assert(sizeof(s_TypeSizeInBytes) / sizeof(uint32_t) == (size_t)VariantType::Count + 1, "Variant type size array is out-of-date");
 }
 
 uint32_t Alimer::GetVariantTypeSize(VariantType type)
 {
-    return typeSizeInBytes[ecast(type)];
+    return s_TypeSizeInBytes[ecast(type)];
 }
 
 std::string Alimer::GetVariantTypeName(VariantType type)
@@ -278,8 +282,10 @@ Variant::Variant(VariantType type)
 
         case VariantType::ByteVector:
         case VariantType::StringVector:
+        case VariantType::ObjectRef:
         case VariantType::AssetRef:
         case VariantType::AssetRefList:
+        case VariantType::JsonValue:
             SetType(type);
             break;
 
@@ -312,12 +318,20 @@ void Variant::SetType(VariantType newType)
             value.weakPtr.~WeakPtr<RefCounted>();
             break;
 
+        case VariantType::ObjectRef:
+            value.objectRef.~ObjectRef();
+            break;
+
         case VariantType::AssetRef:
             value.assetRef.~AssetRef();
             break;
 
         case VariantType::AssetRefList:
             value.assetRefList.~AssetRefList();
+            break;
+
+        case VariantType::JsonValue:
+            value.jsonValue.~JsonValue();
             break;
 
         default:
@@ -344,12 +358,20 @@ void Variant::SetType(VariantType newType)
             new(&value.weakPtr) WeakPtr<RefCounted>();
             break;
 
+        case VariantType::ObjectRef:
+            new(&value.objectRef) ObjectRef();
+            break;
+
         case VariantType::AssetRef:
             new(&value.assetRef) AssetRef();
             break;
 
         case VariantType::AssetRefList:
             new(&value.assetRefList) AssetRefList();
+            break;
+
+        case VariantType::JsonValue:
+            new(&value.jsonValue) JsonValue();
             break;
 
         default:
@@ -380,12 +402,20 @@ Variant& Variant::operator =(const Variant& other)
             value.weakPtr = other.value.weakPtr;
             break;
 
+        case VariantType::ObjectRef:
+            value.objectRef = other.value.objectRef;
+            break;
+
         case VariantType::AssetRef:
             value.assetRef = other.value.assetRef;
             break;
 
         case VariantType::AssetRefList:
             value.assetRefList = other.value.assetRefList;
+            break;
+
+        case VariantType::JsonValue:
+            value.jsonValue = other.value.jsonValue;
             break;
 
         case VariantType::Vector2:
@@ -450,6 +480,10 @@ Variant& Variant::operator =(Variant&& rhs)
             moveConstruct(value.byteVector, rhs.value.byteVector);
             break;
 
+        case VariantType::ObjectRef:
+            moveConstruct(value.objectRef, rhs.value.objectRef);
+            break;
+
         case VariantType::AssetRef:
             moveConstruct(value.assetRef, rhs.value.assetRef);
             break;
@@ -458,7 +492,9 @@ Variant& Variant::operator =(Variant&& rhs)
             moveConstruct(value.assetRefList, rhs.value.assetRefList);
             break;
 
-            //case VAR_VARIANTVECTOR: moveConstruct(value_.variantVector_, rhs.value_.variantVector_); break;
+        case VariantType::JsonValue:
+            moveConstruct(value.jsonValue, rhs.value.jsonValue);
+            break;
 
         case VariantType::StringVector:
             moveConstruct(value.stringVector, rhs.value.stringVector);
@@ -772,6 +808,11 @@ RefCounted* Variant::GetPtr() const noexcept
     return type == VariantType::RefPtr ? value.weakPtr : nullptr;
 }
 
+const ObjectRef& Variant::GetObjectRef() const noexcept
+{
+    return type == VariantType::ObjectRef ? value.objectRef : ObjectRef::Invalid;
+}
+
 const AssetRef& Variant::GetAssetRef() const noexcept
 {
     return type == VariantType::AssetRef ? value.assetRef : AssetRef::Empty;
@@ -780,6 +821,11 @@ const AssetRef& Variant::GetAssetRef() const noexcept
 const AssetRefList& Variant::GetAssetRefList() const noexcept
 {
     return type == VariantType::AssetRefList ? value.assetRefList : AssetRefList::Empty;
+}
+
+const JsonValue& Variant::GetJsonValue() const noexcept
+{
+    return type == VariantType::JsonValue ? value.jsonValue : JsonValue::Empty;
 }
 
 const Vector2& Variant::GetVector2() const noexcept
@@ -873,11 +919,17 @@ bool Variant::operator ==(const Variant& rhs) const
         case VariantType::StringVector:
             return value.stringVector == rhs.value.stringVector;
 
+        case VariantType::ObjectRef:
+            return value.objectRef == rhs.value.objectRef;
+
         case VariantType::AssetRef:
             return value.assetRef == rhs.value.assetRef;
 
         case VariantType::AssetRefList:
             return value.assetRefList == rhs.value.assetRefList;
+
+        case VariantType::JsonValue:
+            return value.jsonValue == rhs.value.jsonValue;
 
         case VariantType::Vector2:
             return value.vector2 == rhs.value.vector2;
@@ -1020,6 +1072,11 @@ template <> RefCounted* Variant::Get<RefCounted*>() const
     return GetPtr();
 }
 
+template <> ObjectRef Variant::Get<ObjectRef>() const
+{
+    return GetObjectRef();
+}
+
 template <> AssetRef Variant::Get<AssetRef>() const
 {
     return GetAssetRef();
@@ -1028,6 +1085,11 @@ template <> AssetRef Variant::Get<AssetRef>() const
 template <> AssetRefList Variant::Get<AssetRefList>() const
 {
     return GetAssetRefList();
+}
+
+template <> JsonValue Variant::Get<JsonValue>() const
+{
+    return GetJsonValue();
 }
 
 template <> const Vector2& Variant::Get<const Vector2&>() const

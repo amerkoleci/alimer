@@ -46,11 +46,10 @@ std::string AssetRef::ToString() const
     return TypeInfo::Get(type)->GetTypeName() + ";" + name;
 }
 
-bool AssetRef::ToBinary(Stream& dest) const
+void AssetRef::ToBinary(Stream& dest) const
 {
-    bool success = dest.Write(type);
-    success &= dest.Write(name);
-    return success;
+    dest.Write(type);
+    dest.Write(name);
 }
 
 const AssetRefList AssetRefList::Empty{ };

@@ -62,7 +62,6 @@
 
 // Serialization
 #include <Alimer/Serialization/Serializer.h>
-#include <Alimer/Serialization/BinarySerializer.h>
 
 // Assets
 #include <Alimer/Assets/AssetManager.h>

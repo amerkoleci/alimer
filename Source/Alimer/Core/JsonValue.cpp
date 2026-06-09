@@ -151,12 +151,11 @@ namespace
                 break;
         }
     }
-
 }
 
-const JsonValue JsonValue::EMPTY;
-const JsonArray JsonValue::emptyJSONArray;
-const JsonObject JsonValue::emptyJSONObject;
+const JsonValue JsonValue::Empty;
+const JsonArray JsonValue::EmptyJsonArray;
+const JsonObject JsonValue::EmptyJsonObject;
 
 JsonValueType JsonValue::GetValueType() const
 {
@@ -342,7 +341,7 @@ JsonValue& JsonValue::operator [] (size_t index)
 const JsonValue& JsonValue::operator [] (size_t index) const
 {
     if (GetValueType() != JsonValueType::Array)
-        return EMPTY;
+        return Empty;
 
     return (*_arrayValue)[index];
 }
@@ -395,7 +394,7 @@ JsonValue& JsonValue::Back()
 const JsonValue& JsonValue::Back() const
 {
     if (GetValueType() != JsonValueType::Array)
-        return EMPTY;
+        return Empty;
 
     return (*_arrayValue)[_arrayValue->size() - 1];
 }
@@ -403,10 +402,10 @@ const JsonValue& JsonValue::Back() const
 const JsonValue& JsonValue::Get(size_t index) const
 {
     if (GetValueType() != JsonValueType::Array)
-        return EMPTY;
+        return Empty;
 
     if (index < 0 || index >= _arrayValue->size())
-        return EMPTY;
+        return Empty;
 
     return _arrayValue->at(index);
 }
@@ -421,10 +420,10 @@ JsonValue& JsonValue::operator [] (const String& key)
 const JsonValue& JsonValue::operator [] (const String& key) const
 {
     if (GetValueType() != JsonValueType::Object)
-        return EMPTY;
+        return Empty;
 
     auto it = _objectValue->find(key);
-    return it != _objectValue->end() ? it->second : EMPTY;
+    return it != _objectValue->end() ? it->second : Empty;
 }
 
 void JsonValue::Set(StringView key, JsonValue value)
@@ -446,11 +445,11 @@ void JsonValue::Set(const String& key, JsonValue value)
 const JsonValue& JsonValue::Get(const String& key) const
 {
     if (GetValueType() != JsonValueType::Object)
-        return EMPTY;
+        return Empty;
 
     auto i = _objectValue->find(key);
     if (i == _objectValue->end())
-        return EMPTY;
+        return Empty;
 
     return i->second;
 }
@@ -674,7 +673,7 @@ size_t JsonValue::Size() const
         return 0;
 }
 
-bool JsonValue::Empty() const
+bool JsonValue::IsEmpty() const
 {
     if (GetValueType() == JsonValueType::Array)
         return _arrayValue->empty();
@@ -749,7 +748,7 @@ JsonObjectIterator Alimer::begin(JsonValue& value)
 ConstJsonObjectIterator Alimer::begin(const JsonValue& value)
 {
     if (value.GetValueType() != JsonValueType::Object)
-        return JsonValue::emptyJSONObject.begin();
+        return JsonValue::EmptyJsonObject.begin();
 
     return value._objectValue->begin();
 }
@@ -765,7 +764,7 @@ JsonObjectIterator Alimer::end(JsonValue& value)
 ConstJsonObjectIterator Alimer::end(const JsonValue& value)
 {
     if (value.GetValueType() != JsonValueType::Object)
-        return JsonValue::emptyJSONObject.end();
+        return JsonValue::EmptyJsonObject.end();
 
     return value._objectValue->end();
 }

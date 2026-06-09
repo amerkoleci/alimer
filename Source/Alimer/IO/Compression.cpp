@@ -13,7 +13,7 @@ namespace Alimer
         return (uint32_t)LZ4_compressBound(srcSize);
     }
 
-    uint32_t CompressData(void* dest, const void* src, uint32_t srcSize, uint32_t compressionLevel)
+    uint32_t CompressData(const void* src, uint32_t srcSize, void* dest, uint32_t compressionLevel)
     {
         if (!dest || !src || !srcSize)
             return 0;
@@ -22,7 +22,7 @@ namespace Alimer
         return (uint32_t)LZ4_compress_HC((const char*)src, (char*)dest, srcSize, LZ4_compressBound(srcSize), static_cast<int>(compressionLevel));
     }
 
-    uint32_t DecompressData(void* dest, const void* src, uint32_t destSize)
+    uint32_t DecompressData(const void* src, void* dest, uint32_t destSize)
     {
         if (!dest || !src || !destSize)
             return 0;
@@ -30,7 +30,7 @@ namespace Alimer
         return (uint32_t)LZ4_decompress_safe((const char*)src, (char*)dest, (int)destSize, LZ4_compressBound(destSize));
     }
 
-    bool CompressStream(Stream& dest, Stream& src)
+    bool CompressStream(Stream& src, Stream& dest)
     {
         const size_t srcSize = src.GetSize() - src.GetPosition();
         // Prepend the source and dest. data size in the stream so that we know to buffer & uncompress the right amount
@@ -38,7 +38,7 @@ namespace Alimer
         {
             dest.Write(0u);
             dest.Write(0u);
-            return true;
+            return false;
         }
 
         const uint32_t maxDestSize = (uint32_t)LZ4_compressBound((int)srcSize);
@@ -49,14 +49,13 @@ namespace Alimer
             return false;
 
         uint32_t destSize = (uint32_t)LZ4_compress_HC((const char*)srcBuffer.get(), (char*)destBuffer.get(), (int)srcSize, LZ4_compressBound((int)srcSize), 0);
-        bool success = true;
-        success &= dest.Write((uint32_t)srcSize);
-        success &= dest.Write(destSize);
-        success &= dest.Write(destBuffer.get(), destSize) == destSize;
-        return success;
+        dest.Write((uint32_t)srcSize);
+        dest.Write(destSize);
+        dest.Write(destBuffer.get(), destSize);
+        return true;
     }
 
-    bool DecompressStream(Stream& dest, Stream& src)
+    bool DecompressStream(Stream& src, Stream& dest)
     {
         if (src.IsEof())
             return false;

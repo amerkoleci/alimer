@@ -40,6 +40,7 @@ namespace Alimer
     private:
         uint64_t _value;
     };
+
     static_assert(sizeof(UUID) == sizeof(uint64_t), "Unexpected UUID size.");
 }
 

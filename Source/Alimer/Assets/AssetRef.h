@@ -52,7 +52,7 @@ namespace Alimer
 		/// Return as a string.
         String ToString() const;
 		/// Serialize to a binary stream.
-		bool ToBinary(Stream& dest) const;
+		void ToBinary(Stream& dest) const;
 
 		/// Test for equality with another reference.
 		bool operator == (const AssetRef& rhs) const { return type == rhs.type && name == rhs.name; }

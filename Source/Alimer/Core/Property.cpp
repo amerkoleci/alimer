@@ -30,24 +30,21 @@ void PropertyInfo::Skip(VariantType type, Stream& source)
             source.ReadString();
             break;
 
-#if TODO_NEW
+        case VariantType::ObjectRef:
+            source.ReadObjectRef();
+            break;
+
         case VariantType::AssetRef:
             source.ReadAssetRef();
             break;
-#endif // TODO_NEW
 
+        case VariantType::AssetRefList:
+            source.ReadAssetRefList();
+            break;
 
-        //case VariantType::AssetRefList:
-        //    source.ReadAssetRefList();
-        //    break;
-        //
-        //case ATTR_OBJECTREF:
-        //    source.Read<ObjectRef>();
-        //    break;
-        //
-        //case ATTR_JSONVALUE:
-        //    source.Read<JSONValue>();
-        //    break;
+        case VariantType::JsonValue:
+            source.ReadJsonValue();
+            break;
 
         default:
             break;

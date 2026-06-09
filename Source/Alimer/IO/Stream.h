@@ -15,8 +15,9 @@ namespace Alimer
     struct Vector3;
     struct Vector4;
     struct Quaternion;
-    struct Rect;
-    struct RectF;
+    //struct Rect;
+    //struct RectF;
+    struct ObjectRef;
     struct AssetRef;
     struct AssetRefList;
     class JsonValue;
@@ -68,13 +69,13 @@ namespace Alimer
         /// Read a UUID.
         UUID ReadUUID();
 		/// Read a null-terminated string.
-		std::string ReadString();
+        String ReadString();
 		/// Read a variable-length encoded unsigned integer, which can use 29 bits maximum.
 		uint32_t ReadVLE();
 		/// Read a text line.
-        std::string ReadLine();
+        String ReadLine();
 		/// Read a 4-character file ID.
-        std::string ReadFileID();
+        String ReadFileID();
         /// Read a 32-bit StringId32.
         StringId32 ReadStringId32();
 		/// Read a vector bytes
@@ -92,77 +93,106 @@ namespace Alimer
         /// Read a quaternion.
         Quaternion ReadQuaternion();
         /// Read a rect.
-        Rect ReadRect();
+        //Rect ReadRect();
         /// Read a rect.
-        RectF ReadRectF();
+        //RectF ReadRectF();
+        /// Read an object reference.
+        ObjectRef ReadObjectRef();
         /// Read an asset reference.
         AssetRef ReadAssetRef();
+        /// Read an asset list reference.
+        AssetRefList ReadAssetRefList();
         /// Read a JsonValue.
         JsonValue ReadJsonValue();
 
-        /// Read a value, template version.
-        template <typename T> void Read(T& data)
+        /// Read enum.
+        template<typename TEnum, typename = typename std::enable_if_t<std::is_enum_v<TEnum>>>
+        TEnum ReadEnum()
         {
-            Read(&data, sizeof(T));
+            TEnum data;
+            Read(&data, sizeof(TEnum));
+            return data;
+        }
+
+        /// Write an 8-bit unsigned integer.
+        void Write(const uint8_t& value);
+        /// Write a 16-bit unsigned integer.
+        void Write(const uint16_t& value);
+        /// Write a 32-bit unsigned integer.
+        void Write(const uint32_t& value);
+        /// Write a 64-bit unsigned integer.
+        void Write(const uint64_t& value);
+        /// Write an 8-bit signed integer.
+        void Write(const int8_t& value);
+        /// Write a 16-bit signed integer.
+        void Write(const int16_t& value);
+        /// Write a 32-bit signed integer.
+        void Write(const int32_t& value);
+        /// Write a 64-bit signed integer.
+        void Write(const int64_t& value);
+        /// Write a bool.
+        void Write(const bool& value);
+        /// Write a float.
+        void Write(const float& value);
+        /// Write a double.
+        void Write(const double& value);
+        /// Write a single UTF8 character.
+        void Write(const char& value);
+        /// Write a UUID.
+        void Write(const UUID& value);
+        /// Write a c-string.
+        void Write(const char* value);
+        /// Write a string.
+        void Write(StringView value);
+        /// Write a string.
+        void Write(const String& value);
+        /// Write a string id.
+        void Write(const StringId32& value);
+        /// Write a four-letter file ID. If the string is not long enough, spaces will be appended.
+        void WriteFileID(const char* value, size_t length);
+		/// Write a four-letter file ID. If the string is not long enough, spaces will be appended.
+        void WriteFileID(StringView value);
+		/// Write a byte buffer, with size encoded as VLE.
+        void WriteBuffer(const Vector<uint8_t>& buffer);
+		/// Write a variable-length encoded unsigned integer, which can use 29 bits maximum.
+        void WriteVLE(const size_t& value);
+        /// Write a text line. Char codes 13 & 10 will be automatically appended.
+        void WriteLine(StringView value);
+        /// Write a Vector2.
+        void Write(const Vector2& value);
+        /// Write a Vector3.
+        void Write(const Vector3& value);
+        /// Write a Vector4.
+        void Write(const Vector4& value);
+        /// Write a quaternion.
+        void Write(const Quaternion& value);
+        /// Write an object reference.
+        void Write(const ObjectRef& value);
+        /// Write an asset reference.
+        void Write(const AssetRef& value);
+        /// Write an asset list reference.
+        void Write(const AssetRefList& value);
+        /// Write a JSON value.
+        void Write(const JsonValue& value);
+        /// Construct from enum.
+        template<typename TEnum, typename = typename std::enable_if_t<std::is_enum_v<TEnum>>>
+        void Write(const TEnum& value) noexcept
+        {
+            Write(&value, sizeof(TEnum));
+        }
+
+        /// Read a value, template version.
+        template <typename T> T Read()
+        {
+            T result;
+            Read(&result, sizeof(T));
+            return result;
         }
 
         template<typename T> void Write(const T& data) const
         {
             Write(sizeof(T), &data);
         }
-
-        /// Write an 8-bit unsigned integer.
-        bool Write(uint8_t value);
-        /// Write a 16-bit unsigned integer.
-        bool Write(uint16_t value);
-        /// Write a 32-bit unsigned integer.
-        bool Write(uint32_t value);
-        /// Write a 64-bit unsigned integer.
-        bool Write(uint64_t value);
-        /// Write an 8-bit signed integer.
-        bool Write(int8_t value);
-        /// Write a 16-bit signed integer.
-        bool Write(int16_t value);
-        /// Write a 32-bit signed integer.
-        bool Write(int32_t value);
-        /// Write a 64-bit signed integer.
-        bool Write(int64_t value);
-        /// Write a bool.
-        bool Write(bool value);
-        /// Write a float.
-        bool Write(float value);
-        /// Write a double.
-        bool Write(double value);
-        /// Write a UUID.
-        bool Write(const UUID& value);
-        /// Write a c-string.
-        bool Write(const char* value);
-        /// Write a string.
-        bool Write(const std::string& value);
-        /// Write a string id.
-        bool Write(const StringId32& value);
-        /// Write a four-letter file ID. If the string is not long enough, spaces will be appended.
-        bool WriteFileID(const char* value, size_t length);
-		/// Write a four-letter file ID. If the string is not long enough, spaces will be appended.
-		bool WriteFileID(const std::string& value);
-		/// Write a byte buffer, with size encoded as VLE.
-		bool WriteBuffer(const Vector<uint8_t>& buffer);
-		/// Write a variable-length encoded unsigned integer, which can use 29 bits maximum.
-        bool WriteVLE(size_t value);
-		/// Write a text line. Char codes 13 & 10 will be automatically appended.
-		bool WriteLine(const std::string& value);
-        /// Write a Vector2.
-        bool WriteVector2(const Vector2& value);
-        /// Write a Vector3.
-        bool WriteVector3(const Vector3& value);
-        /// Write a Vector4.
-        bool WriteVector4(const Vector4& value);
-        /// Write a quaternion.
-        bool WriteQuaternion(const Quaternion& value);
-        /// Write an asset reference.
-        bool WriteAssetRef(const AssetRef& value);
-        /// Write a JSON value.
-        void Write(const JsonValue& value);
 
 		/// Return the stream name.
 		const std::string& GetName() const { return _name; }
