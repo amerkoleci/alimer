@@ -1,7 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-
 #include "Alimer/Scene/Component.h"
 #include "Alimer/Scene/Entity.h"
 #include "Alimer/Scene/Scene.h"
@@ -13,12 +12,12 @@ Entity* Component::GetEntity() const
     return _entity;
 }
 
-[[nodiscard]] UUID Component::GetID() const
+UUID Component::GetID() const
 {
     return _id;
 }
 
-[[nodiscard]] Scene* Component::GetScene() const
+Scene* Component::GetScene() const
 {
     return _entity ? _entity->GetScene() : nullptr;
 }

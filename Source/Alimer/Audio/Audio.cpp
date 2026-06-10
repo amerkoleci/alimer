@@ -6,6 +6,8 @@
 #include "Alimer/Audio/Audio.h"
 #include "Alimer/Audio/AudioClip.h"
 #include "Alimer/Audio/AudioSource.h"
+#include "Alimer/Audio/Components/AudioSourceComponent.h"
+#include "Alimer/Audio/Components/AudioListenerComponent.h"
 
 ALIMER_DISABLE_WARNINGS()
 #define STB_VORBIS_HEADER_ONLY
@@ -45,7 +47,6 @@ static struct
 {
     std::atomic_bool initialized;
     ma_engine engine{};
-    float masterVolume;
     uint32_t masterChannels;
     uint32_t masterRate;
     uint32_t listenerCount;
@@ -71,15 +72,14 @@ bool Audio::Initialize(const AudioConfig* config)
 
     AudioClip::Register();
     AudioSource::Register();
+    AudioSourceComponent::Register();
+    AudioListenerComponent::Register();
 
     if (config != nullptr)
     {
-        SetMasterVolume(config->masterVolume);
+        SetVolume(config->masterVolume);
     }
-    else
-    {
-        g_audio.masterVolume = ma_engine_get_volume(&g_audio.engine);
-    }
+
     g_audio.masterChannels = ma_engine_get_channels(&g_audio.engine);
     g_audio.masterRate = ma_engine_get_sample_rate(&g_audio.engine);
     g_audio.listenerCount =  ma_engine_get_listener_count(&g_audio.engine);
@@ -102,6 +102,12 @@ void Audio::Shutdown()
     if (!g_audio.initialized.load())
         return;
 
+    for (uint32_t i = 0; i < g_audio.listenerCount; ++i)
+    {
+        delete Listeners[i];
+        Listeners[i] = nullptr;
+    }
+
     ma_engine_uninit(&g_audio.engine);
     g_audio.initialized.store(false);
     memset(&g_audio, 0, sizeof(g_audio));
@@ -123,23 +129,21 @@ void Audio::Resume()
     }
 }
 
-float Audio::GetMasterVolume()
+float Audio::GetVolume(VolumeUnit unit)
 {
-    return g_audio.masterVolume;
+    const float volume = ma_engine_get_volume(&g_audio.engine);
+    return (unit == VolumeUnit::Linear) ? volume : ma_volume_linear_to_db(volume);
 }
 
-void Audio::SetMasterVolume(float volume)
+void Audio::SetVolume(float volume, VolumeUnit unit)
 {
-    if (ma_engine_set_volume(&g_audio.engine, volume) == MA_SUCCESS)
+    if (unit == VolumeUnit::Decibels)
+        volume = ma_volume_db_to_linear(volume);
+
+    if (ma_engine_set_volume(&g_audio.engine, volume) != MA_SUCCESS)
     {
-        g_audio.masterVolume = volume;
+        LOGE("Audio: Failed to set master volume");
     }
-}
-
-void Audio::SetMasterVolumeInDecibels(float decibels)
-{
-    g_audio.masterVolume = ma_volume_db_to_linear(decibels);
-    ma_engine_set_gain_db(&g_audio.engine, decibels);
 }
 
 uint32_t Audio::GetOutputChannels() 

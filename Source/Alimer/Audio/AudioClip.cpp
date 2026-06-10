@@ -98,22 +98,6 @@ bool AudioClip::BeginLoad(Stream& source)
     _format = FromMiniAudio(format);
     _frames = static_cast<size_t>(frames);
 
-#if 0
-    if (IsWAV(buffer.get(), dataSize))
-    {
-
-    }
-    else if (IsOgg(buffer.get(), dataSize))
-    {
-        _streamed = true;
-    }
-    else
-#endif // 0
-
-    {
-        _streamed = true;
-    }
-
     return true;
 }
 

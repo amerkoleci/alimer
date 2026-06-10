@@ -10,9 +10,6 @@ struct ma_decoder;
 
 namespace Alimer
 {
-    class AudioClip;
-    using AudioClipRef = SharedPtr<AudioClip>;
-
     class ALIMER_API AudioClip final : public Asset
     {
         ALIMER_OBJECT(AudioClip, Asset);
@@ -26,8 +23,6 @@ namespace Alimer
 
         bool DefineEncoded(const void* data, const void* pData, size_t sizeInBytes);
         bool DefineDecoded(const void* data, uint64_t frameCount, AudioFormat format, uint32_t channels, uint32_t sampleRate);
-
-        bool IsStreamed() const { return _streamed; }
 
         [[nodiscard]] ma_decoder* GetDecoder() const { return _decoder; }
 
@@ -43,6 +38,5 @@ namespace Alimer
         uint32_t _channels = 2u;
         uint32_t _sampleRate = 0;
         uint64_t _frames = 0;
-        bool _streamed = false;
     };
 }

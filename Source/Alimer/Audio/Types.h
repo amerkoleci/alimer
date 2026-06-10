@@ -7,7 +7,13 @@
 
 namespace Alimer
 {
-    enum class AudioFormat
+    enum class VolumeUnit : uint8_t
+    {
+        Linear,
+        Decibels
+    };
+
+    enum class AudioFormat : uint8_t
     {
         /// 8-bit unsigned integer, range [0, 255]
         Uint8,
@@ -22,6 +28,11 @@ namespace Alimer
 
         Count
     };
+
+    class AudioClip;
+    class AudioSource;
+    using AudioClipRef = SharedPtr<AudioClip>;
+    using AudioSourceRef = SharedPtr<AudioSource>;
 
     constexpr uint32_t GetSampleSize(AudioFormat format)
     {

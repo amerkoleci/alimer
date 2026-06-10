@@ -46,7 +46,7 @@ void AudioSource::SetClip(AudioClip* clip)
 
     // TODO: Handle MA_SOUND_FLAG_NO_PITCH and MA_SOUND_FLAG_NO_SPATIALIZATION
     ma_uint32 flags = 0;
-    if (clip->IsStreamed())
+    if (_streamed)
         flags |= MA_SOUND_FLAG_STREAM;
     
     ma_result result = ma_sound_init_from_data_source(Audio::GetEngine(), clip->GetDecoder(), flags, nullptr, pImpl->handle);

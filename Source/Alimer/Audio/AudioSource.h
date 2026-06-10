@@ -7,9 +7,6 @@
 
 namespace Alimer
 {
-    class AudioSource;
-    using AudioSourceRef = SharedPtr<AudioSource>;
-
     struct AudioSourceImpl;
 
     class ALIMER_API AudioSource final : public Object
@@ -27,6 +24,7 @@ namespace Alimer
         /// Register object factory and properties.
         static void Register();
 
+        /// Constructor
         AudioSource(AudioClip* clip = nullptr);
 
         /// Destructor
@@ -45,5 +43,6 @@ namespace Alimer
         AudioSourceImpl* pImpl;
         AudioClipRef _clip;
         State _state = State::Stopped;
+        bool _streamed = false;
     };
 }

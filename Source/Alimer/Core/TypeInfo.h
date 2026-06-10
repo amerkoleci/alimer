@@ -67,8 +67,17 @@ namespace Alimer
         [[nodiscard]] ObjectFactory* GetFactory() const { return _factory.get(); }
         void SetFactory(ObjectFactory* factory);
 
-        [[nodiscard]] const std::string& GetCategory() const { return _catogory; }
-        void SetCategory(std::string_view category) { _catogory = category; }
+        /// Register an object factory, template version.
+        template <class T> inline void SetFactory()
+        {
+            SetFactory(new ObjectFactoryImpl<T>());
+        }
+
+        [[nodiscard]] const String& GetCategory() const { return _catogory; }
+        void SetCategory(StringView value) { _catogory = value; }
+
+        [[nodiscard]] const String& GetDisplayName() const { return _displayName; }
+        void SetDisplayName(StringView value) { _displayName = value; }
 
         [[nodiscard]] const TypeInfo* GetTypeInfo() const { return _typeInfo; }
         [[nodiscard]] const std::string& GetTypeName() const { return _typeInfo ? _typeInfo->GetTypeName() : kEmptyString; }
@@ -82,7 +91,8 @@ namespace Alimer
     private:
         const TypeInfo* _typeInfo = nullptr;
         std::unique_ptr<ObjectFactory> _factory = nullptr;
-        std::string _catogory;
+        String _catogory;
+        String _displayName;
         PropertyVector _properties;
     };
 

@@ -6,6 +6,7 @@
 #include "Alimer/Core/Object.h"
 #include "Alimer/Core/Vector.h"
 #include "Alimer/Math/Vector3.h"
+#include "Alimer/Audio/Types.h"
 struct ma_engine;
 
 namespace Alimer
@@ -51,9 +52,8 @@ namespace Alimer
         static void Suspend();
         static void Resume();
 
-        static float GetMasterVolume();
-        static void SetMasterVolume(float volume);
-        static void SetMasterVolumeInDecibels(float decibels);
+        static float GetVolume(VolumeUnit unit = VolumeUnit::Linear);
+        static void SetVolume(float volume, VolumeUnit unit = VolumeUnit::Linear);
 
         /// Returns the number of channels going into the mastering voice
         static uint32_t GetOutputChannels();

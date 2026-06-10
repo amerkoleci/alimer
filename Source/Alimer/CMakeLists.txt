@@ -48,6 +48,7 @@ define_engine_source_files(
     RHI
     Animations
     Audio
+    Audio/Components
     Shaders
     Renderer
     Physics
