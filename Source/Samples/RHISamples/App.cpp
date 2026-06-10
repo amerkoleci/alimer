@@ -29,7 +29,7 @@ RHISamplesApp::~RHISamplesApp()
 void RHISamplesApp::Setup()
 {
     _options.name = "RHI Samples";
-    //_options.graphics.preferredBackend = RHIBackend::Vulkan;
+    _options.graphics.preferredBackend = RHIBackend::Vulkan;
 #if defined(_DEBUG)
     _options.graphics.validationMode = RHIValidationMode::Enabled;
 #endif

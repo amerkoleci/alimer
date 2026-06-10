@@ -53,6 +53,7 @@ Application::~Application()
     _rhiDevice.Reset();
     _rhiFactory.Reset();
     Input::Shutdown();
+    Audio::ShutdownEngine();
     Audio::Shutdown();
     Log::Shutdown();
     JobSystem::Shutdown();
@@ -109,7 +110,7 @@ void Application::InitBeforeRun()
 {
     JobSystem::Context ctx;
     JobSystem::Execute(ctx, [](JobSystem::JobArgs /*args*/) { Input::Initialize(); Input::Update(); });
-    JobSystem::Execute(ctx, [](JobSystem::JobArgs /*args*/) { Audio::Initialize(); });
+    JobSystem::Execute(ctx, [](JobSystem::JobArgs /*args*/) { Audio::Initialize(); Audio::InitEngine(); });
     JobSystem::Execute(ctx, [&](JobSystem::JobArgs /*args*/) { AssetManager::Start(_options.assetsDirectory); });
 
     // Create RHI factory and device.

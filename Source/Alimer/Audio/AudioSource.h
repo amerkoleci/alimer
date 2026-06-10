@@ -33,16 +33,39 @@ namespace Alimer
         /// Plays the audio source.
         void Play();
 
+        /// Pauses the audio source.
+        void Pause();
+
+        /// Stops the audio source.
+        void Stop();
+
         AudioClip* GetClip() const { return _clip.Get(); }
         void SetClip(AudioClip* clip);
 
         /// Gets the current state of the audio source.
-        State GetState() const noexcept;
+        [[nodiscard]] State GetState() const noexcept;
+
+        [[nodiscard]] bool IsValid() const { return _isValid; }
+
+
+        [[nodiscard]] bool IsLooping() const noexcept { return _isLooping; }
+        void SetLooping(bool looping);
+
+        [[nodiscard]] float GetVolume() const noexcept  { return _volume; }
+        void SetVolume(float volume);
+
+        [[nodiscard]] bool IsSpatializationEnabled() const noexcept { return _spatializationEnabled; }
+        void SetSpatializationEnabled(bool enabled);
 
     private:
         AudioSourceImpl* pImpl;
         AudioClipRef _clip;
         State _state = State::Stopped;
+        bool _isValid = false;
+        bool _isLooping = false;
+        float _volume = 1.0f;
+        bool _pitchingEnabled = false;
+        bool _spatializationEnabled = true;
         bool _streamed = false;
     };
 }

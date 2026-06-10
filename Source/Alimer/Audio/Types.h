@@ -7,13 +7,19 @@
 
 namespace Alimer
 {
-    enum class VolumeUnit : uint8_t
+    enum class AudioDeviceType
+    {
+        Playback,
+        Capture,
+    };
+
+    enum class VolumeUnit
     {
         Linear,
         Decibels
     };
 
-    enum class AudioFormat : uint8_t
+    enum class AudioFormat
     {
         /// 8-bit unsigned integer, range [0, 255]
         Uint8,

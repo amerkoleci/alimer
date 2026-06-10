@@ -31,6 +31,7 @@ namespace
                 ALIMER_UNREACHABLE();
         }
     }
+
     constexpr ma_format ToMiniAudio(AudioFormat value)
     {
         switch (value)

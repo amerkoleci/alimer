@@ -14,7 +14,7 @@ void AudioListenerComponent::Register()
     reflection->SetCategory("Audio");
     reflection->SetDisplayName("Audio Listener Component");
 
-    CopyBaseProperties<AudioListenerComponent, Component>();
+    //CopyBaseProperties<AudioListenerComponent, Component>();
 }
 
 AudioListenerComponent::~AudioListenerComponent()

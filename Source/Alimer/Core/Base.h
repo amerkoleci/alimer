@@ -11,6 +11,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <mutex>
 #include <atomic>
 #include <initializer_list>
 #include <memory>
