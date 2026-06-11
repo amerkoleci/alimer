@@ -5,6 +5,7 @@
 #include "Alimer/IO/MemoryStream.h"
 #include "Alimer/Audio/AudioClip.h"
 #include "Alimer/Audio/Audio.h"
+#include "Alimer/Application.h"
 
 ALIMER_DISABLE_WARNINGS()
 //#define STB_VORBIS_HEADER_ONLY
@@ -104,17 +105,25 @@ bool AudioClip::BeginLoad(Stream& source)
 
 bool AudioClip::DefineEncoded(const void* data, const void* pData, size_t sizeInBytes)
 {
-    ma_resource_manager* manager = ma_engine_get_resource_manager(Audio::GetEngine());
+    // TODO: Improve GetEngine access
+    ma_resource_manager* manager = ma_engine_get_resource_manager(GetPrimaryAudioEngine()->GetEngine());
     ma_result result = ma_resource_manager_register_encoded_data(manager, name.c_str(), data, static_cast<ma_uint64>(sizeInBytes));
     return result == MA_TRUE;
 }
 
 bool AudioClip::DefineDecoded(const void* data, uint64_t frameCount, AudioFormat format, uint32_t channels, uint32_t sampleRate)
 {
-    ma_resource_manager* manager = ma_engine_get_resource_manager(Audio::GetEngine());
+    // TODO: Improve GetEngine access
+    ma_resource_manager* manager = ma_engine_get_resource_manager(GetPrimaryAudioEngine()->GetEngine());
     ma_format miniAudioFormat = ToMiniAudio(format);
     ma_result result = ma_resource_manager_register_decoded_data(manager, name.c_str(), data, static_cast<ma_uint64>(frameCount), miniAudioFormat, channels, sampleRate);
     return result == MA_TRUE;
+}
+
+uint32_t AudioClip::GetStride() const
+{
+    const uint32_t bytesPerSample = GetSampleSize(_format);
+    return bytesPerSample * _channels;
 }
 
 bool AudioClip::IsWAV(const uint8_t* data, size_t size)

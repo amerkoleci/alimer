@@ -27,14 +27,74 @@ namespace Alimer
 
     struct AudioConfig
     {
-        AudioDevice* playbackDevice = nullptr;
+        AudioDeviceId* playbackDeviceId = nullptr;
         /// Audio output channel count.
         uint32_t channelCount = 0;
         /// Audio output sample rate.
         uint32_t sampleRate = 0;
     };
 
-    class ALIMER_API Audio final 
+    struct AudioEngineImpl;
+
+    class ALIMER_API AudioEngine final : public RefCounted
+    {
+    public:
+        AudioEngine(const AudioConfig* config = nullptr);
+        ~AudioEngine() override;
+
+        /// Returns the number of channels going into the mastering voice
+        [[nodiscard]] uint32_t GetOutputChannelCount() const;
+
+        /// Returns the sample rate going into the mastering voice
+        [[nodiscard]] uint32_t GetOutputSampleRate() const;
+
+        /// Returns the current state of the audio engine.
+        [[nodiscard]] AudioEngineState GetState() const;
+
+        /// Get the number of audio listeners supported by the engine.
+        [[nodiscard]] uint32_t GetListenerCount() const { return _listenerCount; }
+
+        void Suspend();
+        void Resume();
+
+        [[nodiscard]] float GetMasterVolume(VolumeUnit unit = VolumeUnit::Linear) const;
+        void SetMasterVolume(float volume, VolumeUnit unit = VolumeUnit::Linear);
+
+        [[nodiscard]] float GetVolume(VolumeUnit unit = VolumeUnit::Linear) const;
+        void SetVolume(float volume, VolumeUnit unit = VolumeUnit::Linear);
+
+        [[nodiscard]] uint64_t GetTimeInPCMFrames() const;
+        [[nodiscard]] uint64_t GetTimeInMilliseconds() const;
+        void SetTimeInPCMFrames(uint64_t value);
+        void SetTimeInMilliseconds(uint64_t value);
+
+        /* Listener */
+        [[nodiscard]] bool IsListenerEnabled(uint32_t listenerIndex) const;
+        void SetListenerEnabled(uint32_t listenerIndex, bool enabled);
+
+        [[nodiscard]] Vector3 GetListenerPosition(uint32_t listenerIndex) const;
+        void SetListenerPosition(uint32_t listenerIndex, const Vector3& value);
+
+        [[nodiscard]] Vector3 GetListenerDirection(uint32_t listenerIndex) const;
+        void SetListenerDirection(uint32_t listenerIndex, const Vector3& value);
+
+        [[nodiscard]] Vector3 GetListenerVelocity(uint32_t listenerIndex) const;
+        void SetListenerVelocity(uint32_t listenerIndex, const Vector3& value);
+
+        [[nodiscard]] Vector3 GetListenerWorldUp(uint32_t listenerIndex) const;
+        void SetListenerWorldUp(uint32_t listenerIndex, const Vector3& value);
+
+        void GetListenerCone(uint32_t listenerIndex, float& innerAngleInRadians, float& outerAngleInRadians, float& outerGain) const;
+        void SetListenerCone(uint32_t listenerIndex, float innerAngleInRadians, float outerAngleInRadians, float outerGain);
+
+        [[nodiscard]] ma_engine* GetEngine() const;
+
+    protected:
+        AudioEngineImpl* _impl;
+        uint32_t _listenerCount = 0;
+    };
+
+    class ALIMER_API Audio final
     {
     public:
         static Vector<AudioDevice> PlaybackDevices;
@@ -42,40 +102,6 @@ namespace Alimer
 
         static bool Initialize();
         static void Shutdown();
-        static bool InitEngine(const AudioConfig* config = nullptr);
-        static void ShutdownEngine();
-        static void Suspend();
-        static void Resume();
 
-        static float GetVolume(VolumeUnit unit = VolumeUnit::Linear);
-        static void SetVolume(float volume, VolumeUnit unit = VolumeUnit::Linear);
-
-        /// Returns the number of channels going into the mastering voice
-        [[nodiscard]] static uint32_t GetOutputChannelCount();
-
-        /// Returns the sample rate going into the mastering voice
-        [[nodiscard]] static uint32_t GetOutputSampleRate();
-
-        /* Listener */
-        [[nodiscard]] static uint32_t GetListenerCount();
-        [[nodiscard]] static bool IsListenerEnabled(uint32_t listenerIndex);
-        static void SetListenerEnabled(uint32_t listenerIndex, bool enabled);
-
-        [[nodiscard]] static Vector3 GetListenerPosition(uint32_t listenerIndex);
-        static void SetListenerPosition(uint32_t listenerIndex, const Vector3& value);
-
-        [[nodiscard]] static Vector3 GetListenerDirection(uint32_t listenerIndex);
-        static void SetListenerDirection(uint32_t listenerIndex, const Vector3& value);
-
-        [[nodiscard]] static Vector3 GetListenerVelocity(uint32_t listenerIndex);
-        static void SetListenerVelocity(uint32_t listenerIndex, const Vector3& value);
-
-        [[nodiscard]] static Vector3 GetListenerWorldUp(uint32_t listenerIndex);
-        static void SetListenerWorldUp(uint32_t listenerIndex, const Vector3& value);
-
-        static void SetListenerCone(uint32_t listenerIndex, float innerAngleInRadians, float outerAngleInRadians, float outerGain);
-        static void GetListenerCone(uint32_t listenerIndex, float& innerAngleInRadians, float& outerAngleInRadians, float& outerGain);
-
-        [[nodiscard]] static ma_engine* GetEngine();
     };
 }

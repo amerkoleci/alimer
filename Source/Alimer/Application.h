@@ -7,6 +7,7 @@
 #include "Alimer/Platform/Window.h"
 #include "Alimer/Core/Timer.h"
 #include "Alimer/RHI/RHI.h"
+#include "Alimer/Audio/Audio.h"
 //#include "Alimer/Animations/AnimationSystem.h"
 //#include "Alimer/Scene/Scene.h"
 
@@ -89,6 +90,9 @@ namespace Alimer
         /// Gets the main RHIDevice.
         [[nodiscard]] RHIDevice* GetRHIDevice() const { return _rhiDevice.Get(); }
 
+        /// Gets the main AudioEngine.
+        [[nodiscard]] AudioEngine* GetAudioEngine() const { return _audioEngine.Get(); }
+
         /// Gets the main Scene.
         //[[nodiscard]] Scene* GetScene() const { return _scene.Get(); }
 
@@ -116,6 +120,7 @@ namespace Alimer
         Timer _timer;
         RHIAdapter* _rhiAdapter = nullptr;
         RHIDeviceRef _rhiDevice;
+        AudioEngineRef _audioEngine;
 
     private:
         /* Platform App implementations */
@@ -139,4 +144,7 @@ namespace Alimer
 
     /** Provides access to the primary RHIDevice of the Application. */
     ALIMER_API RHIDevice* GetPrimaryRHIDevice();
+
+    /** Provides access to the primary AudioEngine of the Application. */
+    ALIMER_API AudioEngine* GetPrimaryAudioEngine();
 }

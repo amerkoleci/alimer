@@ -13,6 +13,15 @@ namespace Alimer
         Capture,
     };
 
+    enum class AudioEngineState
+    {
+        Uninitialized,
+        Stopped,
+        Started,
+        Starting,
+        Stopping,
+    };
+
     enum class VolumeUnit
     {
         Linear,
@@ -35,10 +44,18 @@ namespace Alimer
         Count
     };
 
+    enum class AudioPanMode
+    {
+        Balance,
+        Pan,
+    };
+
     class AudioClip;
     class AudioSource;
+    class AudioEngine;
     using AudioClipRef = SharedPtr<AudioClip>;
     using AudioSourceRef = SharedPtr<AudioSource>;
+    using AudioEngineRef = SharedPtr<AudioEngine>;
 
     constexpr uint32_t GetSampleSize(AudioFormat format)
     {

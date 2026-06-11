@@ -37,6 +37,18 @@ ALIMER_ENABLE_WARNINGS()
 
 using namespace Alimer;
 
+namespace Alimer
+{
+    struct AudioEngineImpl final
+    {
+        std::mutex readMutex;
+        ma_device device;
+        ma_engine handle;
+        ma_node* endpointNode = nullptr;
+        ma_node_graph* nodeGraph = nullptr;
+    };
+}
+
 namespace
 {
     static constexpr AudioDeviceType FromMiniaudio(ma_device_type type)
@@ -50,6 +62,26 @@ namespace
             default:
                 assert(false && "Unknown ma_device_type");
                 return AudioDeviceType::Playback;
+        }
+    }
+
+    static constexpr AudioEngineState FromMiniaudio(ma_device_state value)
+    {
+        switch (value)
+        {
+            case ma_device_state_uninitialized:
+                return AudioEngineState::Uninitialized;
+            case ma_device_state_stopped:
+                return AudioEngineState::Stopped;
+            case ma_device_state_started:
+                return AudioEngineState::Started;
+            case ma_device_state_starting:
+                return AudioEngineState::Starting;
+            case ma_device_state_stopping:
+                return AudioEngineState::Stopping;
+            default:
+                assert(false && "Unknown ma_device_state");
+                return AudioEngineState::Uninitialized;
         }
     }
 
@@ -81,41 +113,82 @@ namespace
                 break;
         }
     }
-}
 
-struct AudioEngine final
-{
-    std::atomic_uint32_t refCount;
-    std::mutex readMutex;
-    ma_device device;
-    ma_engine handle;
-    ma_node* endpointNode = nullptr;
-    ma_node_graph* nodeGraph = nullptr;
-    uint32_t listenerCount = 0;
-};
-
-static void DataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
-{
-    AudioEngine& thisEngine = *static_cast<AudioEngine*>(pDevice->pUserData);
-    std::unique_lock callbackLock(thisEngine.readMutex);
-
-    if (thisEngine.handle.pResourceManager != nullptr)
+    static void DataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
     {
-        if ((thisEngine.handle.pResourceManager->config.flags & MA_RESOURCE_MANAGER_FLAG_NO_THREADING) != 0)
-        {
-            ma_resource_manager_process_next_job(thisEngine.handle.pResourceManager);
-        }
-    }
+        AudioEngineImpl& thisEngine = *static_cast<AudioEngineImpl*>(pDevice->pUserData);
+        std::unique_lock callbackLock(thisEngine.readMutex);
 
-    ma_engine_read_pcm_frames(&thisEngine.handle, pOutput, frameCount, nullptr);
+        if (thisEngine.handle.pResourceManager != nullptr)
+        {
+            if ((thisEngine.handle.pResourceManager->config.flags & MA_RESOURCE_MANAGER_FLAG_NO_THREADING) != 0)
+            {
+                ma_resource_manager_process_next_job(thisEngine.handle.pResourceManager);
+            }
+        }
+
+        ma_engine_read_pcm_frames(&thisEngine.handle, pOutput, frameCount, nullptr);
+    }
 }
 
 static struct
 {
     std::atomic_bool initialized;
     ma_context* context = nullptr;
-    AudioEngine* engine = nullptr;
 } g_audio;
+
+AudioEngine::AudioEngine(const AudioConfig* config)
+    : _impl(new AudioEngineImpl())
+{
+
+    ma_device_config deviceConfig = ma_device_config_init(ma_device_type_playback);
+    if (config && config->playbackDeviceId)
+    {
+        deviceConfig.playback.pDeviceID = reinterpret_cast<const ma_device_id*>(&config->playbackDeviceId->data[0]);
+    }
+    deviceConfig.playback.format = ma_format_f32;
+    deviceConfig.playback.channels = (config != nullptr && config->channelCount > 0) ? config->channelCount : 2;
+    deviceConfig.sampleRate = (config != nullptr && config->sampleRate > 0) ? config->sampleRate : 48000;
+    deviceConfig.dataCallback = DataCallback;
+    deviceConfig.pUserData = _impl;
+
+    ma_result result = ma_device_init(g_audio.context, &deviceConfig, &_impl->device);
+    if (result != MA_SUCCESS)
+    {
+        LOGE("Failed to initialize audio device");
+        return;
+    }
+
+    ma_engine_config engineConfig = ma_engine_config_init();
+    engineConfig.pDevice = &_impl->device;
+    engineConfig.pProcessUserData = _impl;
+    engineConfig.listenerCount = 1;
+    result = ma_engine_init(&engineConfig, &_impl->handle);
+    if (result != MA_SUCCESS)
+    {
+        LOGE("Failed to initialize audio engine");
+        return;
+    }
+
+    char name[512];
+    ma_device_get_name(&_impl->device, ma_device_type_playback, name, 512, nullptr);
+    LOGI("Audio engine created with success using playback device '{}'", name);
+
+    _impl->endpointNode = ma_engine_get_endpoint(&_impl->handle);
+    _impl->nodeGraph = ma_engine_get_node_graph(&_impl->handle);
+    _listenerCount = ma_engine_get_listener_count(&_impl->handle);
+}
+
+AudioEngine::~AudioEngine()
+{
+    if (_impl)
+    {
+        ma_engine_uninit(&_impl->handle);
+        ma_device_uninit(&_impl->device);
+        delete _impl;
+        _impl = nullptr;
+    }
+}
 
 Vector<AudioDevice> Audio::PlaybackDevices;
 Vector<AudioDevice> Audio::CaptureDevices;
@@ -155,31 +228,31 @@ bool Audio::Initialize()
 
     // Enumerate devices
     result = ma_context_enumerate_devices(g_audio.context, [](ma_context* /*context*/, ma_device_type deviceType, const ma_device_info* info, void* userdata) -> ma_bool32
-    {
-        const AudioDeviceType engineDeviceType = FromMiniaudio(deviceType);
-
-        static_assert(sizeof(AudioDeviceId) >= sizeof(ma_device_id));
-        static_assert(alignof(AudioDeviceId) >= alignof(ma_device_id));
-        static_assert(std::tuple_size_v<decltype(AudioDevice::deviceName)> >= MA_MAX_DEVICE_NAME_LENGTH + 1);
-
-        std::vector<AudioDevice>& deviceList = (deviceType == ma_device_type_playback) ? Audio::PlaybackDevices : Audio::CaptureDevices;
-        auto& device = deviceList.emplace_back();
-        std::memcpy(&device.deviceId.data[0], &info->id, sizeof(ma_device_id));
-        std::strcpy(&device.deviceName[0], &info->name[0]);
-
-        device.isDefault = info->isDefault == MA_TRUE;
-        if (deviceType == ma_device_type_playback)
         {
-            device.deviceType = AudioDeviceType::Playback;
-        }
-        else
-        {
-            assert(deviceType == ma_device_type_capture);
-            device.deviceType = AudioDeviceType::Capture;
-        }
+            const AudioDeviceType engineDeviceType = FromMiniaudio(deviceType);
 
-        return MA_TRUE;
-    }, nullptr);
+            static_assert(sizeof(AudioDeviceId) >= sizeof(ma_device_id));
+            static_assert(alignof(AudioDeviceId) >= alignof(ma_device_id));
+            static_assert(std::tuple_size_v<decltype(AudioDevice::deviceName)> >= MA_MAX_DEVICE_NAME_LENGTH + 1);
+
+            std::vector<AudioDevice>& deviceList = (deviceType == ma_device_type_playback) ? Audio::PlaybackDevices : Audio::CaptureDevices;
+            auto& device = deviceList.emplace_back();
+            std::memcpy(&device.deviceId.data[0], &info->id, sizeof(ma_device_id));
+            std::strcpy(&device.deviceName[0], &info->name[0]);
+
+            device.isDefault = info->isDefault == MA_TRUE;
+            if (deviceType == ma_device_type_playback)
+            {
+                device.deviceType = AudioDeviceType::Playback;
+            }
+            else
+            {
+                assert(deviceType == ma_device_type_capture);
+                device.deviceType = AudioDeviceType::Capture;
+            }
+
+            return MA_TRUE;
+        }, nullptr);
     if (result != MA_SUCCESS)
     {
         LOGE("ma_context_enumerate_devices failed: {}", ma_result_description(result));
@@ -205,11 +278,6 @@ void Audio::Shutdown()
     if (!g_audio.initialized.load())
         return;
 
-    if (g_audio.engine)
-    {
-        ShutdownEngine();
-    }
-
     if (g_audio.context)
     {
         ma_result result = ma_context_uninit(g_audio.context);
@@ -226,180 +294,171 @@ void Audio::Shutdown()
     memset(&g_audio, 0, sizeof(g_audio));
 }
 
-bool Audio::InitEngine(const AudioConfig* config)
+uint32_t AudioEngine::GetOutputChannelCount() const
 {
-    if (g_audio.engine)
-        return true;
-
-    g_audio.engine = new AudioEngine();
-
-    ma_device_config deviceConfig = ma_device_config_init(ma_device_type_playback);
-    if (config && config->playbackDevice)
-    {
-        //deviceConfig.playback.pDeviceID = &config->playbackDevice->info->id;
-    }
-    deviceConfig.playback.format = ma_format_f32;
-    deviceConfig.playback.channels = (config != nullptr && config->channelCount > 0) ? config->channelCount : 2;
-    deviceConfig.sampleRate = (config != nullptr && config->sampleRate > 0) ? config->sampleRate : 48000;
-    deviceConfig.dataCallback = DataCallback;
-    deviceConfig.pUserData = g_audio.engine;
-
-    ma_result result = ma_device_init(g_audio.context, &deviceConfig, &g_audio.engine->device);
-    if (result != MA_SUCCESS)
-    {
-        LOGE("Failed to initialize audio device");
-        delete g_audio.engine;
-        g_audio.engine = nullptr;
-        return false;
-    }
-
-    ma_engine_config engineConfig = ma_engine_config_init();
-    engineConfig.pDevice = &g_audio.engine->device;
-    engineConfig.pProcessUserData = g_audio.engine;
-    engineConfig.listenerCount = 1;
-    result = ma_engine_init(&engineConfig, &g_audio.engine->handle);
-    if (result != MA_SUCCESS)
-    {
-        LOGE("Failed to initialize audio engine");
-        delete g_audio.engine;
-        g_audio.engine = nullptr;
-        return false;
-    }
-
-    char name[512];
-    ma_device_get_name(&g_audio.engine->device, ma_device_type_playback, name, 512, nullptr);
-    LOGI("Audio engine created with success using playback device {}", name);
-
-    g_audio.engine->endpointNode = ma_engine_get_endpoint(&g_audio.engine->handle);
-    g_audio.engine->nodeGraph = ma_engine_get_node_graph(&g_audio.engine->handle);
-
-    // Init listeners
-    g_audio.engine->listenerCount = ma_engine_get_listener_count(&g_audio.engine->handle);
-
-    LOGI("Audio Engine Initialized");
-    return true;
+    return ma_engine_get_channels(&_impl->handle);
 }
 
-void Audio::ShutdownEngine()
+uint32_t AudioEngine::GetOutputSampleRate() const
 {
-    if (!g_audio.engine)
-        return;
-
-    ma_engine_uninit(&g_audio.engine->handle);
-    ma_device_uninit(&g_audio.engine->device);
-    delete g_audio.engine;
-    g_audio.engine = nullptr;
+    return ma_engine_get_sample_rate(&_impl->handle);
 }
 
-void Audio::Suspend()
+void AudioEngine::Suspend()
 {
-    if (ma_engine_stop(&g_audio.engine->handle) != MA_SUCCESS)
+    if (ma_engine_stop(&_impl->handle) != MA_SUCCESS)
     {
         LOGE("Audio: Failed to suspend");
     }
 }
 
-void Audio::Resume()
+void AudioEngine::Resume()
 {
-    if (ma_engine_start(&g_audio.engine->handle) != MA_SUCCESS)
+    if (ma_engine_start(&_impl->handle) != MA_SUCCESS)
     {
         LOGE("Audio: Failed to resume");
     }
 }
 
-float Audio::GetVolume(VolumeUnit unit)
+AudioEngineState AudioEngine::GetState() const
 {
-    const float volume = ma_engine_get_volume(&g_audio.engine->handle);
+    ma_device_state state = ma_device_get_state(&_impl->device);
+    return FromMiniaudio(state);
+}
+
+float AudioEngine::GetMasterVolume(VolumeUnit unit) const
+{
+    float volume;
+    ma_result result = ma_device_get_master_volume(&_impl->device, &volume);
+    if (result != MA_SUCCESS)
+    {
+        LOGE( "ma_device_get_master_volume failed: {}", ma_result_description(result));
+        return 0.f;
+    }
+
     return (unit == VolumeUnit::Linear) ? volume : ma_volume_linear_to_db(volume);
 }
 
-void Audio::SetVolume(float volume, VolumeUnit unit)
+void AudioEngine::SetMasterVolume(float volume, VolumeUnit unit)
 {
     if (unit == VolumeUnit::Decibels)
         volume = ma_volume_db_to_linear(volume);
 
-    if (ma_engine_set_volume(&g_audio.engine->handle, volume) != MA_SUCCESS)
+    ma_result result = ma_device_set_master_volume(&_impl->device, volume);
+    if (result != MA_SUCCESS)
+    {
+        LOGE("ma_device_set_master_volume failed: {}", ma_result_description(result));
+    }
+}
+
+float AudioEngine::GetVolume(VolumeUnit unit) const
+{
+    const float volume = ma_engine_get_volume(&_impl->handle);
+    return (unit == VolumeUnit::Linear) ? volume : ma_volume_linear_to_db(volume);
+}
+
+void AudioEngine::SetVolume(float volume, VolumeUnit unit)
+{
+    if (unit == VolumeUnit::Decibels)
+        volume = ma_volume_db_to_linear(volume);
+
+    ma_result result = ma_engine_set_volume(&_impl->handle, volume);
+    if (result != MA_SUCCESS)
     {
         LOGE("Audio: Failed to set master volume");
     }
 }
 
-uint32_t Audio::GetOutputChannelCount()
+
+uint64_t AudioEngine::GetTimeInPCMFrames() const
 {
-    return ma_engine_get_channels(&g_audio.engine->handle);
+    return (uint64_t)ma_engine_get_time_in_pcm_frames(&_impl->handle);
 }
 
-uint32_t Audio::GetOutputSampleRate()
+uint64_t AudioEngine::GetTimeInMilliseconds() const
 {
-    return ma_engine_get_sample_rate(&g_audio.engine->handle);
+    return (uint64_t)ma_engine_get_time_in_milliseconds(&_impl->handle);
 }
 
-uint32_t Audio::GetListenerCount()
+void AudioEngine::SetTimeInPCMFrames(uint64_t value)
 {
-    return g_audio.engine->listenerCount;
+    ma_result result = ma_engine_set_time_in_pcm_frames(&_impl->handle, (ma_uint64)value);
+    if (result != MA_SUCCESS)
+    {
+        LOGE("ma_engine_set_time_in_pcm_frames failed: {}", ma_result_description(result));
+    }
 }
 
-bool Audio::IsListenerEnabled(uint32_t listenerIndex)
+void AudioEngine::SetTimeInMilliseconds(uint64_t value)
 {
-    return ma_engine_listener_is_enabled(&g_audio.engine->handle, listenerIndex);
+    ma_result result = ma_engine_set_time_in_milliseconds(&_impl->handle, (ma_uint64)value);
+    if (result != MA_SUCCESS)
+    {
+        LOGE("ma_engine_set_time_in_milliseconds failed: {}", ma_result_description(result));
+    }
 }
 
-void Audio::SetListenerEnabled(uint32_t listenerIndex, bool enabled)
+bool AudioEngine::IsListenerEnabled(uint32_t listenerIndex) const
 {
-    ma_engine_listener_set_enabled(&g_audio.engine->handle, listenerIndex, (enabled) ? MA_TRUE : MA_FALSE);
+    return ma_engine_listener_is_enabled(&_impl->handle, listenerIndex);
 }
 
-Vector3 Audio::GetListenerPosition(uint32_t listenerIndex)
+void AudioEngine::SetListenerEnabled(uint32_t listenerIndex, bool enabled)
 {
-    return ToVector3(ma_engine_listener_get_position(&g_audio.engine->handle, listenerIndex));
+    ma_engine_listener_set_enabled(&_impl->handle, listenerIndex, (enabled) ? MA_TRUE : MA_FALSE);
 }
 
-void Audio::SetListenerPosition(uint32_t listenerIndex, const Vector3& value)
+Vector3 AudioEngine::GetListenerPosition(uint32_t listenerIndex) const
 {
-    ma_engine_listener_set_position(&g_audio.engine->handle, listenerIndex, value.x, value.y, value.z);
+    return ToVector3(ma_engine_listener_get_position(&_impl->handle, listenerIndex));
 }
 
-Vector3 Audio::GetListenerDirection(uint32_t listenerIndex)
+void AudioEngine::SetListenerPosition(uint32_t listenerIndex, const Vector3& value)
 {
-    return ToVector3(ma_engine_listener_get_direction(&g_audio.engine->handle, listenerIndex));
+    ma_engine_listener_set_position(&_impl->handle, listenerIndex, value.x, value.y, value.z);
 }
 
-void Audio::SetListenerDirection(uint32_t listenerIndex, const Vector3& value)
+Vector3 AudioEngine::GetListenerDirection(uint32_t listenerIndex) const
 {
-    ma_engine_listener_set_direction(&g_audio.engine->handle, listenerIndex, value.x, value.y, value.z);
+    return ToVector3(ma_engine_listener_get_direction(&_impl->handle, listenerIndex));
 }
 
-Vector3 Audio::GetListenerVelocity(uint32_t listenerIndex)
+void AudioEngine::SetListenerDirection(uint32_t listenerIndex, const Vector3& value)
 {
-    return ToVector3(ma_engine_listener_get_velocity(&g_audio.engine->handle, listenerIndex));
+    ma_engine_listener_set_direction(&_impl->handle, listenerIndex, value.x, value.y, value.z);
 }
 
-void Audio::SetListenerVelocity(uint32_t listenerIndex, const Vector3& value)
+Vector3 AudioEngine::GetListenerVelocity(uint32_t listenerIndex) const
 {
-    ma_engine_listener_set_velocity(&g_audio.engine->handle, listenerIndex, value.x, value.y, value.z);
+    return ToVector3(ma_engine_listener_get_velocity(&_impl->handle, listenerIndex));
 }
 
-Vector3 Audio::GetListenerWorldUp(uint32_t listenerIndex)
+void AudioEngine::SetListenerVelocity(uint32_t listenerIndex, const Vector3& value)
 {
-    return ToVector3(ma_engine_listener_get_world_up(&g_audio.engine->handle, listenerIndex));
+    ma_engine_listener_set_velocity(&_impl->handle, listenerIndex, value.x, value.y, value.z);
 }
 
-void Audio::SetListenerWorldUp(uint32_t listenerIndex, const Vector3& value)
+Vector3 AudioEngine::GetListenerWorldUp(uint32_t listenerIndex) const
 {
-    ma_engine_listener_set_world_up(&g_audio.engine->handle, listenerIndex, value.x, value.y, value.z);
+    return ToVector3(ma_engine_listener_get_world_up(&_impl->handle, listenerIndex));
 }
 
-void Audio::SetListenerCone(uint32_t listenerIndex, float innerAngleInRadians, float outerAngleInRadians, float outerGain)
+void AudioEngine::SetListenerWorldUp(uint32_t listenerIndex, const Vector3& value)
 {
-    ma_engine_listener_set_cone(&g_audio.engine->handle, listenerIndex, innerAngleInRadians, outerAngleInRadians, outerGain);
+    ma_engine_listener_set_world_up(&_impl->handle, listenerIndex, value.x, value.y, value.z);
 }
 
-void Audio::GetListenerCone(uint32_t listenerIndex, float& innerAngleInRadians, float& outerAngleInRadians, float& outerGain)
+void AudioEngine::GetListenerCone(uint32_t listenerIndex, float& innerAngleInRadians, float& outerAngleInRadians, float& outerGain) const
 {
-    ma_engine_listener_get_cone(&g_audio.engine->handle, listenerIndex, &innerAngleInRadians, &outerAngleInRadians, &outerGain);
+    ma_engine_listener_get_cone(&_impl->handle, listenerIndex, &innerAngleInRadians, &outerAngleInRadians, &outerGain);
 }
 
-ma_engine* Audio::GetEngine()
+void AudioEngine::SetListenerCone(uint32_t listenerIndex, float innerAngleInRadians, float outerAngleInRadians, float outerGain)
 {
-    return &g_audio.engine->handle;
+    ma_engine_listener_set_cone(&_impl->handle, listenerIndex, innerAngleInRadians, outerAngleInRadians, outerGain);
+}
+
+ma_engine* AudioEngine::GetEngine()  const
+{
+    return &_impl->handle;
 }

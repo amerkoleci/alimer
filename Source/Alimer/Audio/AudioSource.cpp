@@ -5,6 +5,7 @@
 #include "Alimer/IO/MemoryStream.h"
 #include "Alimer/Audio/AudioSource.h"
 #include "Alimer/Audio/Audio.h"
+#include "Alimer/Application.h"
 #include <miniaudio.h>
 
 namespace Alimer
@@ -13,6 +14,32 @@ namespace Alimer
     {
         ma_sound* handle = nullptr;
     };
+
+    constexpr AudioPanMode FromMiniaudio(ma_pan_mode value)
+    {
+        switch (value)
+        {
+            case ma_pan_mode_balance: return AudioPanMode::Balance;
+            case ma_pan_mode_pan:     return AudioPanMode::Pan;
+
+            default:
+                ALIMER_UNREACHABLE();
+                return AudioPanMode::Balance;
+        }
+    }
+
+    constexpr ma_pan_mode ToMiniaudio(AudioPanMode value)
+    {
+        switch (value)
+        {
+            case AudioPanMode::Balance: return ma_pan_mode_balance;
+            case AudioPanMode::Pan:     return ma_pan_mode_pan;
+
+            default:
+                ALIMER_UNREACHABLE();
+                return ma_pan_mode_balance;
+        }
+    }
 }
 
 using namespace Alimer;
@@ -65,8 +92,8 @@ void AudioSource::SetClip(AudioClip* clip)
 
     if (!_spatializationEnabled)
         flags |= MA_SOUND_FLAG_NO_SPATIALIZATION;
-    
-    ma_result result = ma_sound_init_from_data_source(Audio::GetEngine(), clip->GetDecoder(), flags, nullptr, pImpl->handle);
+
+    ma_result result = ma_sound_init_from_data_source(GetPrimaryAudioEngine()->GetEngine(), clip->GetDecoder(), flags, nullptr, pImpl->handle);
     if (result != MA_SUCCESS)
     {
         // An error occurred.
@@ -111,6 +138,11 @@ void AudioSource::Stop()
     _state = State::Stopped;
 }
 
+bool AudioSource::IsAtEnd() const
+{
+    return ma_sound_at_end(pImpl->handle) == MA_TRUE;
+}
+
 void AudioSource::SetLooping(bool looping)
 {
     _isLooping = looping;
@@ -129,11 +161,77 @@ void AudioSource::SetVolume(float volume)
     }
 }
 
+float AudioSource::GetPan() const
+{
+    return _isValid ? ma_sound_get_pan(pImpl->handle) : 0.0f;
+}
+
+void AudioSource::SetPan(float value)
+{
+    if (_isValid)
+    {
+        ma_sound_set_pan(pImpl->handle, value);
+    }
+}
+
+AudioPanMode AudioSource::GetPanMode() const
+{
+    return _isValid ? FromMiniaudio(ma_sound_get_pan_mode(pImpl->handle)) : AudioPanMode::Balance;
+}
+
+void AudioSource::SetPanMode(AudioPanMode value)
+{
+    if (_isValid)
+    {
+        ma_sound_set_pan_mode(pImpl->handle, ToMiniaudio(value));
+    }
+}
+
+float AudioSource::GetPitch() const
+{
+    return _isValid ? ma_sound_get_pitch(pImpl->handle) : 1.0f;
+}
+
+void AudioSource::SetPitch(float value)
+{
+    if (_isValid)
+    {
+        ma_sound_set_pitch(pImpl->handle, value);
+    }
+}
+
 void AudioSource::SetSpatializationEnabled(bool enabled)
 {
     _spatializationEnabled = enabled;
     if (_isValid)
     {
         ma_sound_set_spatialization_enabled(pImpl->handle, enabled);
+    }
+}
+
+void AudioSource::SetPosition(const Vector3& position)
+{
+    //_position = position;
+    if (_isValid)
+    {
+        ma_sound_set_position(pImpl->handle, position.x, position.y, position.z);
+    }
+}
+
+void AudioSource::SetDirection(const Vector3& direction)
+{
+    //_direction = direction;
+    if (_isValid)
+    {
+        ma_sound_set_direction(pImpl->handle, direction.x, direction.y, direction.z);
+    }
+}
+
+void AudioSource::SetVelocity(const Vector3& velocity)
+{
+    //_velocity = velocity;
+    if (_isValid)
+    {
+        ma_sound_set_velocity(pImpl->handle, velocity.x, velocity.y, velocity.z);
     }
 }

@@ -6,7 +6,6 @@
 #include "Alimer/Core/Timer.h"
 #include "Alimer/Core/JobSystem.h"
 #include "Alimer/Input.h"
-#include "Alimer/Audio/Audio.h"
 #include "Alimer/Application.h"
 #include "Alimer/Assets/AssetManager.h"
 #include "Alimer/Scene/SceneSystem.h"
@@ -52,8 +51,8 @@ Application::~Application()
 
     _rhiDevice.Reset();
     _rhiFactory.Reset();
+    _audioEngine.Reset();
     Input::Shutdown();
-    Audio::ShutdownEngine();
     Audio::Shutdown();
     Log::Shutdown();
     JobSystem::Shutdown();
@@ -110,7 +109,7 @@ void Application::InitBeforeRun()
 {
     JobSystem::Context ctx;
     JobSystem::Execute(ctx, [](JobSystem::JobArgs /*args*/) { Input::Initialize(); Input::Update(); });
-    JobSystem::Execute(ctx, [](JobSystem::JobArgs /*args*/) { Audio::Initialize(); Audio::InitEngine(); });
+    JobSystem::Execute(ctx, [&](JobSystem::JobArgs /*args*/) { Audio::Initialize(); _audioEngine = new AudioEngine(); });
     JobSystem::Execute(ctx, [&](JobSystem::JobArgs /*args*/) { AssetManager::Start(_options.assetsDirectory); });
 
     // Create RHI factory and device.
@@ -194,4 +193,9 @@ Application& Alimer::GetApplication()
 RHIDevice* Alimer::GetPrimaryRHIDevice()
 {
     return Application::Get().GetRHIDevice();
+}
+
+AudioEngine* Alimer::GetPrimaryAudioEngine()
+{
+    return Application::Get().GetAudioEngine();
 }

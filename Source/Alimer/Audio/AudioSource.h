@@ -39,23 +39,42 @@ namespace Alimer
         /// Stops the audio source.
         void Stop();
 
-        AudioClip* GetClip() const { return _clip.Get(); }
-        void SetClip(AudioClip* clip);
-
         /// Gets the current state of the audio source.
         [[nodiscard]] State GetState() const noexcept;
 
-        [[nodiscard]] bool IsValid() const { return _isValid; }
+        [[nodiscard]] AudioClip* GetClip() const { return _clip.Get(); }
+        void SetClip(AudioClip* clip);
 
+        [[nodiscard]] bool IsValid() const { return _isValid; }
+        [[nodiscard]] bool IsAtEnd() const;
 
         [[nodiscard]] bool IsLooping() const noexcept { return _isLooping; }
         void SetLooping(bool looping);
 
-        [[nodiscard]] float GetVolume() const noexcept  { return _volume; }
+        [[nodiscard]] float GetVolume() const noexcept { return _volume; }
         void SetVolume(float volume);
+
+        float GetPan() const;
+        void SetPan(float value);
+
+        [[nodiscard]] AudioPanMode GetPanMode() const;
+        void SetPanMode(AudioPanMode value);
+
+        [[nodiscard]] float GetPitch() const;
+        void SetPitch(float value);
 
         [[nodiscard]] bool IsSpatializationEnabled() const noexcept { return _spatializationEnabled; }
         void SetSpatializationEnabled(bool enabled);
+
+        /// Sets the audio source's position
+        void SetPosition(const Vector3& position);
+
+        /// Sets the audio source's rotation
+        void SetDirection(const Vector3& direction);
+
+        /// Sets the audio source's velocity
+        void SetVelocity(const Vector3& velocity);
+
 
     private:
         AudioSourceImpl* pImpl;

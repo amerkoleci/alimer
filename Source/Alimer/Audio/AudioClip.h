@@ -24,6 +24,12 @@ namespace Alimer
         bool DefineEncoded(const void* data, const void* pData, size_t sizeInBytes);
         bool DefineDecoded(const void* data, uint64_t frameCount, AudioFormat format, uint32_t channels, uint32_t sampleRate);
 
+        [[nodiscard]] AudioFormat GetFormat() const { return _format; }
+        [[nodiscard]] uint32_t GetChannelCount() { return _channels; }
+        [[nodiscard]] uint32_t GetSampleRate() { return _sampleRate; }
+        [[nodiscard]] uint64_t GetFrameCount() { return _frames; }
+        [[nodiscard]] uint32_t GetStride() const;
+
         [[nodiscard]] ma_decoder* GetDecoder() const { return _decoder; }
 
     protected:
