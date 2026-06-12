@@ -77,17 +77,17 @@ namespace Alimer
 
     namespace File
     {
-        ALIMER_API bool Exists(std::string_view path);
+        ALIMER_API bool Exists(StringView path);
 
-        ALIMER_API std::string ReadAllText(std::string_view path);
-        ALIMER_API Vector<uint8_t> ReadAllBytes(std::string_view path);
-        ALIMER_API bool ReadAllBytes(std::string_view path, Vector<uint8_t>& data);
-        ALIMER_API bool WriteAllBytes(std::string_view path, const uint8_t* data, size_t size);
-        ALIMER_API size_t GetFileSizeInBytes(std::string_view path);
+        ALIMER_API std::string ReadAllText(StringView path);
+        ALIMER_API Vector<uint8_t> ReadAllBytes(StringView path);
+        ALIMER_API bool ReadAllBytes(StringView path, Vector<uint8_t>& data);
+        ALIMER_API bool WriteAllBytes(StringView path, const uint8_t* data, size_t size);
+        ALIMER_API size_t GetFileSizeInBytes(StringView path);
     }
 
     namespace Directory
     {
-        ALIMER_API bool Exists(std::string_view path);
+        ALIMER_API bool Exists(StringView path);
     }
 }

@@ -385,36 +385,8 @@ namespace Alimer
         ResizeCore();
     }
 
-    /* CommandEncoder */
-    void RHICommandEncoder::SetConstantBuffer(uint32_t slot, RHIBuffer* buffer, uint64_t offset)
-    {
-        ALIMER_ASSERT(slot < kDynamicConstantBufferCount);
-
-        if (table.CBV[slot] != buffer)
-        {
-            table.CBV[slot].Reset(buffer);
-            //binder.dirty |= DescriptorBinder::DIRTY_DESCRIPTOR;
-        }
-
-        if (table.CBV_offset[slot] != offset)
-        {
-            table.CBV_offset[slot] = offset;
-        }
-    }
-
-    void RHICommandEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
-    {
-        if (size > kMaxPushConstantsSize)
-        {
-            LOGF("Push constant limit of {} exceeded (pushing {} bytes)", kMaxPushConstantsSize, size);
-            return;
-        }
-
-        SetPushConstantsCore(data, size, offset);
-    }
-
-    /* RHIComputePassEncoder */
-    GPUAllocation RHIComputePassEncoder::AllocateGPU(uint64_t size)
+    /* RHICommandEncoder */
+    GPUAllocation RHICommandEncoder::AllocateGPU(uint64_t size)
     {
         if (size == 0)
         {
@@ -449,6 +421,34 @@ namespace Alimer
         return allocation;
     }
 
+    void RHICommandEncoder::SetConstantBuffer(uint32_t slot, RHIBuffer* buffer, uint64_t offset)
+    {
+        ALIMER_ASSERT(slot < kDynamicConstantBufferCount);
+
+        if (table.CBV[slot] != buffer)
+        {
+            table.CBV[slot].Reset(buffer);
+            //binder.dirty |= DescriptorBinder::DIRTY_DESCRIPTOR;
+        }
+
+        if (table.CBV_offset[slot] != offset)
+        {
+            table.CBV_offset[slot] = offset;
+        }
+    }
+
+    void RHICommandEncoder::SetPushConstants(const void* data, uint32_t size, uint32_t offset)
+    {
+        if (size > kMaxPushConstantsSize)
+        {
+            LOGF("Push constant limit of {} exceeded (pushing {} bytes)", kMaxPushConstantsSize, size);
+            return;
+        }
+
+        SetPushConstantsCore(data, size, offset);
+    }
+
+    /* RHIComputePassEncoder */
     void RHIComputePassEncoder::UploadBufferData(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size)
     {
         if (buffer == nullptr || data == nullptr)

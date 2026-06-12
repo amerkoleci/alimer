@@ -25,11 +25,11 @@
 #endif
 
 #if defined(ALIMER_METAL)
-#   define ALIMER_PUSH_CONSTANTS(type, name) ConstantBuffer<type> name : register(b0)
+#   define ALIMER_PUSH_CONSTANTS(type) ConstantBuffer<type> push : register(b0)
 #elif defined(ALIMER_SPIRV)
-#   define ALIMER_PUSH_CONSTANTS(type, name) [[vk::push_constant]] ConstantBuffer<type> name
+#   define ALIMER_PUSH_CONSTANTS(type) [[vk::push_constant]] ConstantBuffer<type> push
 #else
-#   define ALIMER_PUSH_CONSTANTS(type, name) ConstantBuffer<type> name : register(b999, space0)
+#   define ALIMER_PUSH_CONSTANTS(type) ConstantBuffer<type> push : register(b999, space0)
 #endif
 
 /* Static Samplers */

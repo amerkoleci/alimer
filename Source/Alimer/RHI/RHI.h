@@ -22,7 +22,6 @@ namespace Alimer
     /* Constants */
     static constexpr uint32_t kNumFramesInFlight = 2;
     static constexpr uint32_t kMaxColorAttachments = 8;
-    static constexpr uint32_t kMaxBindGroups = 4;
     static constexpr uint32_t kMaxPushConstantsSize = 128;  // 128 bytes is the minimum guaranteed size for push constants in Vulkan
     static constexpr uint32_t kMaxViewportsAndScissors = 16;
     static constexpr uint32_t kMaxVertexBuffers = 16;
@@ -40,7 +39,7 @@ namespace Alimer
     static constexpr uint32_t kLUIDSize = 8u;
 
     /// Number of dynamic constant buffer slots to be bound in non bindless space.
-    static constexpr uint32_t kDynamicConstantBufferCount = 1;
+    static constexpr uint32_t kDynamicConstantBufferCount = 4;
 
     // Static samplers
     static constexpr uint32_t kStaticSamplerCount = 10;
@@ -48,8 +47,9 @@ namespace Alimer
 
     /// Bindless descriptor limits -> the device can allocate less than this, depending on capabilities
     static constexpr BindlessIndex kInvalidBindlessIndex = -1;
-    static constexpr uint32_t kBindlessResourceCapacity = 500000;
-    static constexpr uint32_t kBindlessSamplerCapacity = 256;
+    static constexpr uint32_t kMaxBindlessResources = 500'000;
+    static constexpr uint32_t kMaxBindlessSamplers = 256;
+    static constexpr uint32_t kMaxBindlessAccelerationStructures = 8;
 
     // These shifts are made so that Vulkan resource bindings slots don't interfere with each other across shader stages:
     // These are also used during shader compilation
@@ -1510,8 +1510,18 @@ namespace Alimer
         virtual void InsertDebugMarker(std::string_view markerLabel) = 0;
 
         // Do we expose barriers?
+
+        GPUAllocation AllocateGPU(uint64_t size);
         void SetConstantBuffer(uint32_t slot, RHIBuffer* buffer, uint64_t offset = 0);
         void SetPushConstants(const void* data, uint32_t size, uint32_t offset = 0);
+
+        template<typename T>
+        void SetDynamicConstantBuffer(uint32_t slot, const T& data)
+        {
+            GPUAllocation allocation = AllocateGPU(sizeof(T));
+            std::memcpy(allocation.data, &data, sizeof(T));
+            SetConstantBuffer(slot, allocation.buffer.Get(), allocation.offset);
+        }
 
         template<typename T>
         void SetPushConstants(const T& data, uint32_t offset = 0)
@@ -1535,7 +1545,6 @@ namespace Alimer
     public:
         virtual ~RHIComputePassEncoder() = default;
 
-        GPUAllocation AllocateGPU(uint64_t size);
         virtual void UploadBufferData(const RHIBuffer* buffer, uint64_t offset, const void* data, uint64_t size = 0);
         virtual void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, const RHIBuffer* destinationBuffer) = 0;
         virtual void CopyBufferToBuffer(const RHIBuffer* sourceBuffer, uint64_t sourceOffset, const RHIBuffer* destinationBuffer, uint64_t destinationOffset, uint64_t size) = 0;

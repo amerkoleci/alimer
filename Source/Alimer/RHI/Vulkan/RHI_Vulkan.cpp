@@ -3525,32 +3525,8 @@ namespace Alimer
         // Do we support mutable descriptor types?
         mutableDescriptorType = device->_adapter->mutableDescriptorTypeFeaturesEXT.mutableDescriptorType == VK_TRUE && false;
 
-        std::vector<VkDescriptorSetLayout> setLayouts;
-        if (mutableDescriptorType)
+        // First set (space0)
         {
-            std::vector<VkDescriptorType> descriptorTypes = {
-               VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-               VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-               VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
-               VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
-               VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-               VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
-            };
-
-            VkMutableDescriptorTypeListEXT mutableDescriptorTypeList = {
-                .descriptorTypeCount = (uint32_t)descriptorTypes.size(),
-                .pDescriptorTypes = descriptorTypes.data()
-            };
-
-            VkMutableDescriptorTypeCreateInfoEXT mutableCreateInfo = {
-                .sType = VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT,
-                .mutableDescriptorTypeListCount = 1,
-                .pMutableDescriptorTypeLists = &mutableDescriptorTypeList
-            };
-        }
-        else
-        {
-            // First set (space0)
             Vector<VkDescriptorSetLayoutBinding> layoutBindings;
             Vector<VkDescriptorBindingFlags> layoutBindingsFlags;
 
@@ -3607,14 +3583,6 @@ namespace Alimer
             VK_CHECK(device->vkCreateDescriptorSetLayout(device->GetHandle(), &layoutInfo, nullptr, &bindingsSetLayout));
             device->SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, reinterpret_cast<uint64_t>(bindingsSetLayout), "Bindings SetLayout");
 
-            // Bindless now
-            VkPhysicalDeviceVulkan12Properties properties12 = device_->_adapter->properties12;
-            bindlessSampledImages.Init(device, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, std::min(kBindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindSampledImages / 2));
-
-            // Setup set layouts
-            setLayouts.push_back(bindingsSetLayout);
-            setLayouts.push_back(bindlessSampledImages.descriptorSetLayout);
-
             // Setup descriptor sets
             const VkDescriptorSetAllocateInfo allocateInfo = {
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -3623,8 +3591,115 @@ namespace Alimer
                 .pSetLayouts = &bindingsSetLayout,
             };
             VK_CHECK(device->vkAllocateDescriptorSets(device->GetHandle(), &allocateInfo, &bindingsDescriptorSet));
-
             descriptorSets[DESCRIPTOR_SET_BINDINGS] = bindingsDescriptorSet;
+        }
+
+        std::vector<VkDescriptorSetLayout> setLayouts;
+        setLayouts.push_back(bindingsSetLayout);
+        if (mutableDescriptorType)
+        {
+            std::vector<VkDescriptorType> descriptorTypes = {
+               VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+               VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+               VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+               VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+               VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+               VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
+            };
+
+            VkMutableDescriptorTypeListEXT mutableDescriptorTypeList = {
+                .descriptorTypeCount = (uint32_t)descriptorTypes.size(),
+                .pDescriptorTypes = descriptorTypes.data()
+            };
+
+            VkMutableDescriptorTypeCreateInfoEXT mutableCreateInfo = {
+                .sType = VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT,
+                .mutableDescriptorTypeListCount = 1,
+                .pMutableDescriptorTypeLists = &mutableDescriptorTypeList
+            };
+
+            const VkDescriptorSetLayoutBinding cbvSrvUavBinding = {
+                .binding = 0,
+                .descriptorType = VK_DESCRIPTOR_TYPE_MUTABLE_EXT,
+                .descriptorCount = kMaxBindlessResources,
+                .stageFlags = VK_SHADER_STAGE_ALL
+            };
+
+            const VkDescriptorSetLayoutBinding samplerBinding = {
+                .binding = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER,
+                .descriptorCount = kMaxBindlessSamplers,
+                .stageFlags = VK_SHADER_STAGE_ALL
+            };
+
+            Vector<VkDescriptorSetLayoutBinding> bindings = {
+                cbvSrvUavBinding,
+                samplerBinding,
+            };
+
+            Vector<VkDescriptorBindingFlags> bindingFlags = {
+                VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+                VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+            };
+
+            const VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo = {
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+                .pNext = &mutableCreateInfo,
+                .bindingCount = static_cast<uint32_t>(bindings.size()),
+                .pBindingFlags = bindingFlags.data()
+            };
+
+            const VkDescriptorSetLayoutCreateInfo layoutInfo = {
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+                .pNext = &bindingFlagsInfo,
+                .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+                .bindingCount = (uint32_t)bindings.size(),
+                .pBindings = bindings.data(),
+            };
+
+            VkDescriptorSetLayout bindlessLayout = VK_NULL_HANDLE;
+            VK_CHECK(device->vkCreateDescriptorSetLayout(device->GetHandle(), &layoutInfo, nullptr, &bindlessLayout));
+
+            device->SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, reinterpret_cast<uint64_t>(bindlessLayout), "Bindless SetLayout");
+            setLayouts.push_back(bindlessLayout);
+
+            Vector<VkDescriptorPoolSize> poolSizes = {
+                { VK_DESCRIPTOR_TYPE_MUTABLE_EXT, kMaxBindlessResources },
+                { VK_DESCRIPTOR_TYPE_SAMPLER, kMaxBindlessSamplers }
+            };
+
+            const VkDescriptorPoolCreateInfo poolCreateInfo = {
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
+                .maxSets = 1,
+                .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
+                .pPoolSizes = poolSizes.data(),
+            };
+            VkDescriptorPool bindlessDescriptorPool = VK_NULL_HANDLE;
+            VK_CHECK(device->vkCreateDescriptorPool(device->GetHandle(), &poolCreateInfo, nullptr, &bindlessDescriptorPool));
+            device->SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_POOL, reinterpret_cast<uint64_t>(bindlessDescriptorPool), "Bindless DescriptorPool");
+
+            const VkDescriptorSetAllocateInfo allocateInfo = {
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                .descriptorPool = bindlessDescriptorPool,
+                .descriptorSetCount = 1,
+                .pSetLayouts = &bindlessLayout,
+            };
+            VkDescriptorSet bindlessDescriptorSet = VK_NULL_HANDLE;
+            VK_CHECK(device->vkAllocateDescriptorSets(device->GetHandle(), &allocateInfo, &bindlessDescriptorSet));
+            device->SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET, reinterpret_cast<uint64_t>(bindlessDescriptorSet), "Bindless DescriptorSet");
+
+            descriptorSets[DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE] = bindlessDescriptorSet;
+        }
+        else
+        {
+            // Bindless now
+            VkPhysicalDeviceVulkan12Properties properties12 = device_->_adapter->properties12;
+            bindlessSampledImages.Init(device, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, std::min(kMaxBindlessResources, properties12.maxDescriptorSetUpdateAfterBindSampledImages / 2));
+
+            // Setup set layouts
+            setLayouts.push_back(bindlessSampledImages.descriptorSetLayout);
+            
             descriptorSets[DESCRIPTOR_SET_BINDLESS_SAMPLED_IMAGE] = bindlessSampledImages.descriptorSet;
         }
 
@@ -4453,6 +4528,11 @@ namespace Alimer
             {
                 vkDestroyFence(handle, queues[i].frameFences[frameIndex], nullptr);
             }
+        }
+
+        for (uint32_t frameIndex = 0; frameIndex < kNumFramesInFlight; ++frameIndex)
+        {
+            _frameAllocators[frameIndex].buffer.Reset();
         }
 
         SafeDelete(bindlessManager);

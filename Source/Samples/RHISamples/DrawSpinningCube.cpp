@@ -99,7 +99,6 @@ void DrawSpinningCube::Initialize(RHIDevice* device, const UInt2& windowSize, Pi
 
     _vertexBuffer = RHICreateBuffer(device, vertices, RHIBufferUsage::Vertex);
     _indexBuffer = RHICreateBuffer(device, indices, RHIBufferUsage::Index);
-    _constantBuffer = RHICreateBuffer(device, sizeof(PushData), RHIBufferUsage::Constant, RHIMemoryType::Upload);
 
     RHIShaderModuleRef vertexShader = RHILoadShader(device, RHIShaderStages::Vertex, "Cube");
     RHIShaderModuleRef fragmentShader = RHILoadShader(device, RHIShaderStages::Fragment, "Cube");
@@ -176,10 +175,10 @@ void DrawSpinningCube::Draw(RHICommandBuffer* commandBuffer, RHITexture* outputT
     //pushData.viewMatrix = viewMatrix;
     //pushData.projectionMatrix = projectionMatrix;
     pushData.worldViewProjectionMatrix = worldMatrix * viewMatrix * projectionMatrix;
-    memcpy(_constantBuffer->GetMappedData(), &pushData, sizeof(PushData));  
 
-    renderPass->SetConstantBuffer(0, _constantBuffer.Get());
-    renderPass->SetPushConstants(pushData);
+    //renderPass->SetConstantBuffer(0, _constantBuffer.Get());
+    renderPass->SetDynamicConstantBuffer(0, pushData);
+    //renderPass->SetPushConstants(pushData);
     renderPass->DrawIndexed(36);
     renderPass->End();
 }

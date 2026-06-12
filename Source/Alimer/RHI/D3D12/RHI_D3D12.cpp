@@ -2433,7 +2433,7 @@ namespace Alimer
         // Dynamic Constant buffers
         for (uint32_t i = 0; i < kDynamicConstantBufferCount; ++i)
         {
-            rootParameters[kDynamicConstantBufferCount + i].InitAsConstantBufferView(i, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_ALL);
+            rootParameters[dynamicConstantBufferStartIndex + i].InitAsConstantBufferView(i, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_ALL);
         }
 
         // Create entries for static samples
@@ -4394,6 +4394,11 @@ namespace Alimer
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
         umaPool.Reset();
 #endif
+
+        for (uint32_t frameIndex = 0; frameIndex < kNumFramesInFlight; ++frameIndex)
+        {
+            _frameAllocators[frameIndex].buffer.Reset();
+        }
 
         // Shutdown copy allocator
         copyAllocator.Shutdown();

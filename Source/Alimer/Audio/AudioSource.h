@@ -66,15 +66,23 @@ namespace Alimer
         [[nodiscard]] bool IsSpatializationEnabled() const noexcept { return _spatializationEnabled; }
         void SetSpatializationEnabled(bool enabled);
 
+        /// Gets the audio source's position
+        Vector3 GetPosition() const;
+
         /// Sets the audio source's position
         void SetPosition(const Vector3& position);
+
+        /// Gets the audio source's rotation
+        Vector3 GetDirection() const;
 
         /// Sets the audio source's rotation
         void SetDirection(const Vector3& direction);
 
+        /// Gets the audio source's velocity
+        Vector3 GetVelocity() const;
+
         /// Sets the audio source's velocity
         void SetVelocity(const Vector3& velocity);
-
 
     private:
         AudioSourceImpl* pImpl;

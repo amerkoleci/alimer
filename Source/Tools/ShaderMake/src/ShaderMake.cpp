@@ -1331,8 +1331,13 @@ void DxcCompile()
                 // -fvk-bind-sampler-heap <binding> <set>
                 // -fvk-bind-resource-heap <binding> <set>
                 // -fvk-bind-counter-heap <binding> <set>:
-                //arguments.Add("-fvk-bind-sampler-heap");
-                //arguments.Add("-fvk-bind-resource-heap");
+                args.push_back(L"-fvk-bind-resource-heap");
+                args.push_back(L"1");
+                args.push_back(L"0");
+
+                args.push_back(L"-fvk-bind-sampler-heap");
+                args.push_back(L"2");
+                args.push_back(L"0");
             }
             else // Not supported by SPIRV gen
             {

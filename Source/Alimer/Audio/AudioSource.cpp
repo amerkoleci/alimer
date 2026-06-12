@@ -28,6 +28,11 @@ namespace Alimer
         }
     }
 
+    constexpr Vector3 FromMiniaudio(const ma_vec3f& vec)
+    {
+        return Vector3(vec.x, vec.y, vec.z);
+    }
+
     constexpr ma_pan_mode ToMiniaudio(AudioPanMode value)
     {
         switch (value)
@@ -87,7 +92,7 @@ void AudioSource::SetClip(AudioClip* clip)
     if (_isLooping)
         flags |= MA_SOUND_FLAG_LOOPING;
 
-    if(!_pitchingEnabled)
+    if (!_pitchingEnabled)
         flags |= MA_SOUND_FLAG_NO_PITCH;
 
     if (!_spatializationEnabled)
@@ -209,6 +214,15 @@ void AudioSource::SetSpatializationEnabled(bool enabled)
     }
 }
 
+Vector3 AudioSource::GetPosition() const
+{
+    if (_isValid)
+    {
+        return FromMiniaudio(ma_sound_get_position(pImpl->handle));
+    }
+    return Vector3::Zero;
+}
+
 void AudioSource::SetPosition(const Vector3& position)
 {
     //_position = position;
@@ -218,6 +232,16 @@ void AudioSource::SetPosition(const Vector3& position)
     }
 }
 
+Vector3 AudioSource::GetDirection() const
+{
+    if (_isValid)
+    {
+        return FromMiniaudio(ma_sound_get_direction(pImpl->handle));
+    }
+
+    return Vector3::Forward;
+}
+
 void AudioSource::SetDirection(const Vector3& direction)
 {
     //_direction = direction;
@@ -225,6 +249,15 @@ void AudioSource::SetDirection(const Vector3& direction)
     {
         ma_sound_set_direction(pImpl->handle, direction.x, direction.y, direction.z);
     }
+}
+
+Vector3 AudioSource::GetVelocity() const
+{
+    if (_isValid)
+    {
+        return FromMiniaudio(ma_sound_get_velocity(pImpl->handle));
+    }
+    return Vector3::Zero;
 }
 
 void AudioSource::SetVelocity(const Vector3& velocity)

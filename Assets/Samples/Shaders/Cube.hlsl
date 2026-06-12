@@ -17,9 +17,9 @@ struct PushData
 {
     float4x4 worldViewProjectionMatrix;
 };
+
+ConstantBuffer<PushData> push : register(b0);
 //ALIMER_PUSH_CONSTANTS(PushData);
-//ConstantBuffer<PushData> push : register(b0);
-ALIMER_PUSH_CONSTANTS(PushData, push);
 
 VertexOutput vertexMain(in VertexInput input)
 {

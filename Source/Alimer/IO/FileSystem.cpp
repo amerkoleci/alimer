@@ -373,12 +373,12 @@ std::string Path::GetExtension(std::string_view fullPath, bool lowercaseExtensio
 }
 
 /* File */
-bool File::Exists(std::string_view path)
+bool File::Exists(StringView path)
 {
     return std::filesystem::exists(path) && std::filesystem::is_regular_file(path);
 }
 
-std::string File::ReadAllText(std::string_view path)
+std::string File::ReadAllText(StringView path)
 {
     if (!File::Exists(path))
         return {};
@@ -388,7 +388,7 @@ std::string File::ReadAllText(std::string_view path)
     return result;
 }
 
-Vector<uint8_t> File::ReadAllBytes(std::string_view path)
+Vector<uint8_t> File::ReadAllBytes(StringView path)
 {
     if (!File::Exists(path))
         return {};
@@ -397,7 +397,7 @@ Vector<uint8_t> File::ReadAllBytes(std::string_view path)
     return stream.ReadBytes();
 }
 
-bool File::ReadAllBytes(std::string_view path, Vector<uint8_t>& data)
+bool File::ReadAllBytes(StringView path, Vector<uint8_t>& data)
 {
     if (!File::Exists(path))
         return false;
@@ -407,7 +407,7 @@ bool File::ReadAllBytes(std::string_view path, Vector<uint8_t>& data)
     return true;
 }
 
-bool File::WriteAllBytes(std::string_view path, const uint8_t* data, size_t size)
+bool File::WriteAllBytes(StringView path, const uint8_t* data, size_t size)
 {
     if (size <= 0)
     {
@@ -419,7 +419,7 @@ bool File::WriteAllBytes(std::string_view path, const uint8_t* data, size_t size
     return false;
 }
 
-size_t File::GetFileSizeInBytes(std::string_view path)
+size_t File::GetFileSizeInBytes(StringView path)
 {
     if (!File::Exists(path))
         return 0;
@@ -429,7 +429,7 @@ size_t File::GetFileSizeInBytes(std::string_view path)
 }
 
 /* Directory */
-bool Directory::Exists(std::string_view path)
+bool Directory::Exists(StringView path)
 {
     return std::filesystem::exists(path) && std::filesystem::is_directory(path);
 }
