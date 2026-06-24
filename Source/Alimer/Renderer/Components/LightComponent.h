@@ -3,24 +3,22 @@
 
 #pragma once
 
-#include "Alimer/Audio/AudioSource.h"
+#include "Alimer/Renderer/Types.h"
 #include "Alimer/Scene/Component.h"
 
 namespace Alimer
 {
-    class ALIMER_API AudioSourceComponent final : public Component
+    /// Light component that can be attached to an entity.
+    class ALIMER_API LightComponent final : public Component
     {
-        ALIMER_OBJECT(AudioSourceComponent, Component);
+        ALIMER_OBJECT(LightComponent, Component);
 
     public:
         /// Register object factory and properties.
         static void Register();
 
-        AudioSourceComponent();
-        ~AudioSourceComponent() override;
-
-    private:
-        AudioClipRef _audioClip;
-        AudioSource* _source;
+        LightComponent() = default;
+        ~LightComponent() override;
     };
+
 }

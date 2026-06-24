@@ -51,7 +51,9 @@ define_engine_source_files(
     Audio/Components
     Shaders
     Renderer
+    Renderer/Components
     Physics
+    Physics/Components
     UI
     ImGui
 )

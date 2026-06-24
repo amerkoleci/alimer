@@ -3,24 +3,22 @@
 
 #pragma once
 
-#include "Alimer/Audio/AudioSource.h"
 #include "Alimer/Scene/Component.h"
+#include "Alimer/Math/Vector3.h"
 
 namespace Alimer
 {
-    class ALIMER_API AudioSourceComponent final : public Component
+    class ALIMER_API CollisionShapeComponent : public Component
     {
-        ALIMER_OBJECT(AudioSourceComponent, Component);
+        ALIMER_OBJECT(CollisionShapeComponent, Component);
 
     public:
         /// Register object factory and properties.
         static void Register();
 
-        AudioSourceComponent();
-        ~AudioSourceComponent() override;
+        CollisionShapeComponent() = default;
+        ~CollisionShapeComponent() override;
 
     private:
-        AudioClipRef _audioClip;
-        AudioSource* _source;
     };
 }

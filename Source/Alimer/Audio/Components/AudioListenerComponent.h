@@ -8,10 +8,11 @@
 
 namespace Alimer
 {
-    class AudioListenerComponent : public Component
+    class ALIMER_API AudioListenerComponent : public Component
     {
-    public:
+        ALIMER_OBJECT(AudioListenerComponent, Component);
 
+    public:
         /// Register object factory and properties.
         static void Register();
 
@@ -22,7 +23,6 @@ namespace Alimer
         void SetVelocity(const Vector3& velocity) { _velocity = velocity; }
 
     private:
-        bool m_Primary = false;
         Vector3 _velocity = Vector3(0.0f);
     };
 }

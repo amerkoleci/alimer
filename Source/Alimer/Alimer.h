@@ -28,13 +28,13 @@
 #include <Alimer/IO/MemoryStream.h>
 #include <Alimer/IO/FileSystem.h>
 
+// Assets
+#include <Alimer/Assets/AssetManager.h>
+
 // Audio
 #include <Alimer/Audio/AudioClip.h>
 #include <Alimer/Audio/AudioSource.h>
 #include <Alimer/Audio/Audio.h>
-
-// Renderer
-#include <Alimer/Shaders/ShaderDefinitions.h>
 
 // Scene
 #include <Alimer/Scene/Entity.h>
@@ -43,9 +43,18 @@
 //#include <Alimer/Scene/MeshComponent.h>
 //#include <Alimer/Scene/Light.h>
 
+// Renderer
+#include <Alimer/Shaders/ShaderDefinitions.h>
+#include <Alimer/Renderer/Components/CameraComponent.h>
+#include <Alimer/Renderer/Components/LightComponent.h>
+#include <Alimer/Renderer/Components/MeshComponent.h>
+
+// Physics
+#include <Alimer/Physics/Components/CollisionShapeComponent.h>
+#include <Alimer/Physics/Components/RigidBodyComponent.h>
+
 #if TODO
 #include <Alimer/Renderer/Texture.h>
-#include <Alimer/Renderer/Mesh.h>
 #include <Alimer/Renderer/Font.h>
 #include <Alimer/Renderer/SpriteBatch.h>
 #include <Alimer/Renderer/SceneRenderer.h>
@@ -54,17 +63,10 @@
 #include "Alimer/Animations/AnimationSystem.h"
 #include "Alimer/Animations/AnimationTarget.h"
 #include "Alimer/Animations/AnimationClip.h"
-
-// Physics
-#include <Alimer/Physics/CollisionShapeComponent.h>
-#include <Alimer/Physics/RigidBody.h>
 #endif
 
 // Serialization
 #include <Alimer/Serialization/Serializer.h>
-
-// Assets
-#include <Alimer/Assets/AssetManager.h>
 
 // Platform
 #include <Alimer/Platform/Platform.h>
