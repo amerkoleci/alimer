@@ -45,6 +45,9 @@ void RHISamplesApp::Initialize()
 
     _runningSample->Initialize(_rhiDevice, GetMainWindow()->GetSizeInPixels(), GetMainWindow()->GetColorFormat(), depthStencilFormat);
 
+    LightComponent* lightComponent = new LightComponent(LightType::Directional);
+    auto type = lightComponent->GetPropertyValue<LightType>("type");
+
     // Audio test
     //AudioClipRef clipFactory = CreateObject<AudioClip>();
     //AudioClipRef clip = GetAssets().Load<AudioClip>("Sounds/BGM.mp3");

@@ -23,6 +23,11 @@
 //#include <Alimer/Math/Rect.h>
 #include <Alimer/Math/Quaternion.h>
 #include <Alimer/Math/Matrix4x4.h>
+#include <Alimer/Math/Plane.h>
+#include <Alimer/Math/BoundingBox.h>
+#include <Alimer/Math/BoundingSphere.h>
+#include <Alimer/Math/BoundingFrustum.h>
+#include <Alimer/Math/Ray.h>
 
 // IO
 #include <Alimer/IO/MemoryStream.h>

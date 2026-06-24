@@ -7,5 +7,22 @@
 
 namespace Alimer
 {
-    
+    enum class RigidBodyType 
+    {
+        Static = 0,
+        Kinematic,
+        Dynamic
+    };
+
+    enum class ColliderShapeType
+    {
+        Box,
+        Sphere,
+        Capsule,
+        Cylinder,
+        ConvexHull,
+        Mesh,
+        Compound,
+        Terrain,
+    };
 }

@@ -281,4 +281,78 @@ namespace Alimer
         /// Default value.
         T _defaultValue;
     };
+
+    /// Template implementation of an attribute description with specific type.
+    template <class T> class PropertyInfoEnumImpl final : public PropertyInfo
+    {
+    public:
+        /// Construct.
+        PropertyInfoEnumImpl(const char* name, PropertyAccessor* accessor_, const T& defaultValue)
+            : PropertyInfo(name, accessor_)
+            , _defaultValue(defaultValue)
+        {}
+
+        /// Copy current attribute value.
+        void GetValue(const Object* instance, T& dest) const { _accessor->Get(instance, &dest); }
+
+        /// Set new attribute value.
+        void SetValue(Object* instance, const T& source) { _accessor->Set(instance, &source); }
+
+        /// Return current attribute value.
+        [[nodiscard]] T GetValue(const Object* instance) const
+        {
+            T result;
+            _accessor->Get(instance, &result);
+            return result;
+        }
+
+        /// Return default value.
+        [[nodiscard]] const T& GetDefaultValue() const { return _defaultValue; }
+
+        /// Return whether is default value.
+        [[nodiscard]] bool IsDefault(const Object* instance) const override { return GetValue(instance) == _defaultValue; }
+
+        VariantType GetPropertyType() const override
+        {
+            return VariantType::Enum;
+        }
+
+#if TODO_SERIALIAZION
+        void Serialize(Object* instance, Serializer& serializer) override
+        {
+            T value;
+            _accessor->Get(instance, &value);
+            PropertyInfo::Serialize(serializer, _name, GetPropertyType(), &value);
+        }
+
+        void Deserialize(Serializable* instance, IDeserializer& deserializer) override
+        {
+            T value;
+            if (PropertyInfo::Deserialize(deserializer, _name, GetPropertyType(), &value))
+            {
+                _accessor->Set(instance, &value);
+            }
+        }
+#endif // TODO_SERIALIAZION
+
+        /// Deserialize from a binary stream.
+        void FromBinary(Object* instance, Stream& source) override
+        {
+            T value;
+            source.Read(&value, sizeof(T));
+            _accessor->Set(instance, &value);
+        }
+
+        /// Serialize to a binary stream.
+        void ToBinary(Object* instance, Stream& dest) override
+        {
+            T value;
+            _accessor->Get(instance, &value);
+            dest.Write(&value, sizeof(T));
+        }
+
+    private:
+        /// Default value.
+        T _defaultValue;
+    };
 }

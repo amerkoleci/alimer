@@ -5,7 +5,6 @@
 
 #include "Alimer/Scene/Component.h"
 #include "Alimer/Renderer/Mesh.h"
-#include <unordered_map>
 
 namespace Alimer
 {

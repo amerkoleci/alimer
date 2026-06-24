@@ -166,11 +166,11 @@ namespace Alimer
         RegisterProperty(T::GetTypeStatic(), new PropertyInfoImpl<U>(name, new PropertyAccessorImpl<T, U>(getFunction, setFunction), defaultValue));
     }
 
-    //template<typename T, typename TEnum, typename = typename std::enable_if<std::is_enum<TEnum>::value>::type>
-    //static void RegisterEnumProperty(const char* name, TEnum(T::* getFunction)() const, void (T::* setFunction)(TEnum), const TEnum& defaultValue = TEnum())
-    //{
-    //    RegisterProperty(T::GetTypeStatic(), new PropertyInfoImpl<std::underlying_type<T>::type>(name, new PropertyAccessorImpl<T, TEnum>(getFunction, setFunction), defaultValue));
-    //}
+    template<typename T, typename TEnum, typename = typename std::enable_if_t<std::is_enum_v<TEnum>>>
+    static void RegisterEnumProperty(const char* name, TEnum(T::* getFunction)() const, void (T::* setFunction)(TEnum), const TEnum& defaultValue = TEnum())
+    {
+        RegisterProperty(T::GetTypeStatic(), new PropertyInfoEnumImpl<TEnum>(name, new PropertyAccessorImpl<T, TEnum>(getFunction, setFunction), defaultValue));
+    }
 
     /// Register a per-class property with reference access, template version. Should not be used for base class properties unless the type is explicitly specified, as by default the property will be re-registered to the base class redundantly.
     template <typename T, typename U> static void RegisterRefProperty(const char* name, const U& (T::* getFunction)() const, void (T::* setFunction)(const U&), const U& defaultValue = U())

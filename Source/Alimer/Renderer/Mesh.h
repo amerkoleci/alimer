@@ -3,12 +3,34 @@
 
 #pragma once
 
+#include "Alimer/Core/Vector.h"
+#include "Alimer/Math/Color.h"
+#include "Alimer/Math/BoundingBox.h"
 #include "Alimer/Renderer/Types.h"
 #include "Alimer/Assets/Asset.h"
 #include "Alimer/RHI/RHI.h"
 
 namespace Alimer
 {
+    class ALIMER_API SubMesh final : public RefCounted
+    {
+        friend class Mesh;
+
+    public:
+        [[nodiscard]] Mesh* GetMesh() const { return _mesh; }
+        [[nodiscard]] uint32_t GetIndexStart() const { return _indexStart; }
+        [[nodiscard]] uint32_t GetIndexCount() const { return _indexCount; }
+        [[nodiscard]] uint32_t GetMaterialIndex() const { return _materialIndex; }
+
+    private:
+        SubMesh(Mesh* mesh, uint32_t indexStart, uint32_t indexCount, uint32_t materialIndex = 0);
+
+        Mesh* _mesh;
+        uint32_t _indexStart;
+        uint32_t _indexCount;
+        uint32_t _materialIndex;
+    };
+
     class ALIMER_API Mesh final : public Asset
     {
     public:
@@ -22,7 +44,42 @@ namespace Alimer
 
         void Destroy();
 
+        void SetVertexCount(uint32_t vertexCount);
+        void SetPositions(const Vector3* positions);
+        void SetNormals(const Vector3* normals);
+        void SetTangents(const Vector4* tangents);
+        void SetTexCoords0(const Vector2* texcoords);
+        void SetTexCoords1(const Vector2* texcoords);
+        void SetColors(const Color* colors);
+        void SetIndices(const uint16_t* indices, uint32_t indexCount);
+        void SetIndices(const uint32_t* indices, uint32_t indexCount);
+
+        SubMesh* AddSubMesh(uint32_t indexStart, uint32_t indexCount, uint32_t materialIndex = 0);
+
+        [[nodiscard]] uint32_t GetVertexCount() const { return _vertexCount; }
+        [[nodiscard]] uint32_t GetVertexStride() const { return _vertexStride; }
+
     private:
         void ClearCpuData();
+
+        Vector<Vector3> _positions;
+        Vector<Vector3> _normals;
+        Vector<Vector4> _tangents;
+        Vector<Vector2> _texCoords0;
+        Vector<Vector2> _texCoords1;
+        Vector<Color> _colors;
+        Vector<UShort4> _jointIndices;
+        Vector<Vector4> _jointWeights;
+        Vector<uint32_t> _indices;
+
+        uint32_t _vertexCount = 0;
+        uint32_t _indexCount = 0;
+        RHIIndexFormat _indexFormat = RHIIndexFormat::Uint16;
+        uint64_t indexBufferOffset = 0;
+
+        Vector<SharedPtr<SubMesh> > _subMeshes;
+
+        Vector<RHIVertexAttribute> _vertexAttributes;
+        uint32_t _vertexStride = 0;
     };
 }
