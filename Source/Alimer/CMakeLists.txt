@@ -84,6 +84,9 @@ if (ALIMER_RHI_METAL)
     define_engine_source_files(RHI/Metal NO_INSTALL)
 endif()
 
+# Jolt Physics
+define_engine_source_files(Physics/Jolt NO_INSTALL)
+
 group_sources()
 
 if (ALIMER_BUILD_SHARED)

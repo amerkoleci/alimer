@@ -16,7 +16,7 @@ SubMesh::SubMesh(Mesh* mesh, uint32_t indexStart, uint32_t indexCount, uint32_t 
 {
 }
 
-Mesh::Mesh(std::string_view name)
+Mesh::Mesh(StringView name)
     : Asset(name)
 {}
 
@@ -132,6 +132,17 @@ SubMesh* Mesh::AddSubMesh(uint32_t indexStart, uint32_t indexCount, uint32_t mat
     SharedPtr<SubMesh> subMesh(new SubMesh(this, indexStart, indexCount, materialIndex));
     _subMeshes.push_back(subMesh);
     return subMesh.Get();
+}
+
+
+void Mesh::SetBoundingBox(const BoundingBox& value)
+{
+    _boundingBox = value;
+}
+
+void Mesh::RecalculateBounds()
+{
+    _boundingBox = BoundingBox::CreateFromPoints(_positions.data(), _positions.size());
 }
 
 void Mesh::Destroy()

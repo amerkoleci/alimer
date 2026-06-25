@@ -20,7 +20,7 @@ namespace Alimer
         void Register() override;
         void Unregister() override; 
 
-        std::string GetName() const override { return "Scene System"; }
+        String GetName() const override { return "Scene System"; }
         int GetPriority() const override { return 0; }
 
     private:

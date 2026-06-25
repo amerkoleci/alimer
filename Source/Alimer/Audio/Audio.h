@@ -102,6 +102,5 @@ namespace Alimer
 
         static bool Initialize();
         static void Shutdown();
-
     };
 }

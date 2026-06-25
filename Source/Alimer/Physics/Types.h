@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "Alimer/Core/Base.h"
+#include "Alimer/Core/RefCounted.h"
 
 namespace Alimer
 {
@@ -14,7 +14,7 @@ namespace Alimer
         Dynamic
     };
 
-    enum class ColliderShapeType
+    enum class CollisionShapeType
     {
         Box,
         Sphere,
@@ -25,4 +25,11 @@ namespace Alimer
         Compound,
         Terrain,
     };
+
+    class CollisionShape;
+    class RigidBody;
+    class PhysicsWorld;
+
+    using RigidBodyRef = SharedPtr<RigidBody>;
+    using PhysicsWorldRef = SharedPtr<PhysicsWorld>;
 }

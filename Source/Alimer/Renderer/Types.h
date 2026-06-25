@@ -5,9 +5,45 @@
 
 #include "Alimer/Core/RefCounted.h"
 #include "Alimer/Math/Vector3.h"
+#include "Alimer/RHI/RHI.h"
 
 namespace Alimer
 {
+    enum class MaterialAlphaMode : uint8_t
+    {
+        Opaque,
+        Mask,
+        Blend,
+
+        Count
+    };
+
+    enum class MaterialTextureUVChannel : uint8_t
+    {
+        UV0,
+        UV1,
+    };
+
+    enum class MaterialTextureSlot : uint8_t
+    {
+        MetalnessRoughnessMap,
+        NormalMap,
+        EmissiveMap,
+        DisplacementeMap,
+        OcclusionMap,
+        TransmissionMap,
+        SheenColorMap,
+        SheenRoughnessMap,
+        ClearCoatMap,
+        ClearCoatRoughnessMap,
+        ClearCoatNormalMap,
+        SpeculareMap,
+        AnisotropyMap,
+        TransparencyMap,
+
+        Count
+    };
+
     /// Light types.
     enum class LightType
     {
@@ -26,6 +62,17 @@ namespace Alimer
         float rotation = 0.0f;
     };
 
+
+    struct ALIMER_API MaterialTextureMap final
+    {
+        String name;
+        RHITextureRef resource;
+        MaterialTextureUVChannel channel = MaterialTextureUVChannel::UV0;
+    };
+
+    class Material;
     class Mesh;
+
+    using MaterialRef = SharedPtr<Material>;
     using MeshRef = SharedPtr<Mesh>;
 }

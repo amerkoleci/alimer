@@ -37,7 +37,7 @@ namespace Alimer
         static void Register();
 
         /// Constructor.
-        explicit Mesh(std::string_view name = kEmptyStringView);
+        explicit Mesh(StringView name = kEmptyStringView);
 
         /// Destructor.
         ~Mesh() override;
@@ -54,10 +54,21 @@ namespace Alimer
         void SetIndices(const uint16_t* indices, uint32_t indexCount);
         void SetIndices(const uint32_t* indices, uint32_t indexCount);
 
-        SubMesh* AddSubMesh(uint32_t indexStart, uint32_t indexCount, uint32_t materialIndex = 0);
+        [[nodiscard]] SubMesh* AddSubMesh(uint32_t indexStart, uint32_t indexCount, uint32_t materialIndex = 0);
+        [[nodiscard]] uint32_t GetSubmeshCount() const { return (uint32_t)_subMeshes.size(); }
+        [[nodiscard]] SubMesh* GetSubmesh(uint32_t index = 0) const { return _subMeshes[index].Get(); }
 
         [[nodiscard]] uint32_t GetVertexCount() const { return _vertexCount; }
         [[nodiscard]] uint32_t GetVertexStride() const { return _vertexStride; }
+
+        /// Gets local-space bounding box.
+        const BoundingBox& GetBoundingBox() const { return _boundingBox; }
+
+        /// Set local-space bounding box.
+        void SetBoundingBox(const BoundingBox& value);
+
+        /// Recalculates local-space bounding box from vertex positions.
+        void RecalculateBounds();
 
     private:
         void ClearCpuData();
@@ -78,6 +89,7 @@ namespace Alimer
         uint64_t indexBufferOffset = 0;
 
         Vector<SharedPtr<SubMesh> > _subMeshes;
+        BoundingBox _boundingBox;
 
         Vector<RHIVertexAttribute> _vertexAttributes;
         uint32_t _vertexStride = 0;

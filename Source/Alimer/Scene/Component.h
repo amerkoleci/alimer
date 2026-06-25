@@ -3,13 +3,11 @@
 
 #pragma once
 
+#include "Alimer/Scene/Types.h"
 #include "Alimer/Serialization/Serializable.h"
 
 namespace Alimer
 {
-    class Entity;
-    class Scene;
-
     /// Base class for Entity components.
     class ALIMER_API Component : public Serializable
     {

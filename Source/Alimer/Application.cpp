@@ -9,6 +9,7 @@
 #include "Alimer/Application.h"
 #include "Alimer/Assets/AssetManager.h"
 #include "Alimer/Scene/SceneSystem.h"
+#include "Alimer/Physics/Physics.h"
 #include <thread>
 
 using namespace Alimer;
@@ -52,6 +53,7 @@ Application::~Application()
     _rhiDevice.Reset();
     _rhiFactory.Reset();
     _audioEngine.Reset();
+    Physics::Shutdown();
     Input::Shutdown();
     Audio::Shutdown();
     Log::Shutdown();
@@ -111,6 +113,7 @@ void Application::InitBeforeRun()
     JobSystem::Execute(ctx, [](JobSystem::JobArgs /*args*/) { Input::Initialize(); Input::Update(); });
     JobSystem::Execute(ctx, [&](JobSystem::JobArgs /*args*/) { Audio::Initialize(); _audioEngine = new AudioEngine(); });
     JobSystem::Execute(ctx, [&](JobSystem::JobArgs /*args*/) { AssetManager::Start(_options.assetsDirectory); });
+    JobSystem::Execute(ctx, [](JobSystem::JobArgs /*args*/) { Physics::Initialize(); });
 
     // Create RHI factory and device.
     RHIFactoryDesc factoryDesc{};

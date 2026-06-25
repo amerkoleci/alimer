@@ -12,7 +12,7 @@
 namespace Alimer
 {
     /// Class that manages the systems
-    class ALIMER_API SystemManager
+    class ALIMER_API SystemManager final
     {
     public:
         SystemManager() = default;

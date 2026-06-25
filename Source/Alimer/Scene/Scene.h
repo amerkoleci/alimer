@@ -3,12 +3,12 @@
 
 #pragma once
 
+#include "Alimer/Scene/Types.h"
 #include "Alimer/Scene/Entity.h"
 
 namespace Alimer
 {
-    class Scene;
-    using SceneRef = SharedPtr<Scene>;
+    class PhysicsWorld;
 
     class ALIMER_API Scene final : public Serializable
     {
@@ -29,7 +29,12 @@ namespace Alimer
         void SetName(const String& name);
         void SetName(StringView name);
 
+        [[nodiscard]] bool LoadGLTF(const String& path);
+
+        [[nodiscard]] PhysicsWorld* GetPhysicsWorld() const { return _physicsWorld.Get(); }
+
     private:
         String _name;
+        SharedPtr<PhysicsWorld> _physicsWorld;
     };
 }

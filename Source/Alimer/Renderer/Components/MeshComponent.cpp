@@ -27,10 +27,19 @@ void MeshComponent::SetMesh(Mesh* value)
         return;
 
     _mesh = value;
-    //materials.resize(mesh->GetSubmeshCount());
-    //for (size_t i = 0; i < materials.size(); ++i)
-    //    materials[i] = Material::DefaultMaterial();
-    //
-    //_localBoundingBox = mesh->GetBoundingBox();
-    //_worldBoundingBoxDirty = true;
+    if (value)
+    {
+        _materials.resize(value->GetSubmeshCount());
+        //for (size_t i = 0; i < materials.size(); ++i)
+        //    materials[i] = Material::DefaultMaterial();
+
+        _localBoundingBox = value->GetBoundingBox();
+    }
+    else
+    {
+        _materials.clear();
+        _localBoundingBox = {};
+    }
+
+    _worldBoundingBoxDirty = true;
 }

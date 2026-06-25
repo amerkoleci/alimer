@@ -11,9 +11,6 @@ namespace Alimer
     // TODO: Layers
     using Tags = UnorderedSet<String>;
 
-    class Entity;
-    using EntityRef = SharedPtr<Entity>;
-
     class ALIMER_API Entity final : public Serializable
     {
         ALIMER_OBJECT(Entity, Serializable);

@@ -5,6 +5,7 @@
 
 #include "Alimer/Scene/Component.h"
 #include "Alimer/Renderer/Mesh.h"
+#include "Alimer/Renderer/Material.h"
 
 namespace Alimer
 {
@@ -24,6 +25,12 @@ namespace Alimer
 
     private:
         MeshRef _mesh;
+        Vector<MaterialRef> _materials;
+        /// Local-space bounding box.
+        BoundingBox _localBoundingBox;
+        /// World-space bounding box.
+        mutable BoundingBox _worldBoundingBox;
+        /// World-space bounding box dirty flag.
+        mutable bool _worldBoundingBoxDirty{ true };
     };
-
 }

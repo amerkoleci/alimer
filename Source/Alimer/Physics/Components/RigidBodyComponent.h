@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "Alimer/Audio/AudioSource.h"
+#include "Alimer/Physics/Types.h"
 #include "Alimer/Scene/Component.h"
 
 namespace Alimer
@@ -20,5 +20,6 @@ namespace Alimer
         ~RigidBodyComponent() override;
 
     private:
+        RigidBodyRef _rigidBody;
     };
 }

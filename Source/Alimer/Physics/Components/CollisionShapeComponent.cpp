@@ -4,6 +4,7 @@
 #include "Alimer/Physics/Components/CollisionShapeComponent.h"
 #include "Alimer/Scene/Entity.h"
 #include "Alimer/Scene/Scene.h"
+#include "Alimer/Physics/Physics.h"
 
 using namespace Alimer;
 
@@ -15,6 +16,11 @@ void CollisionShapeComponent::Register()
     reflection->SetDisplayName("Collision Shape Component");
 
     //CopyBaseProperties<CollisionShapeComponent, Component>();
+}
+
+CollisionShapeComponent::CollisionShapeComponent(CollisionShapeType type)
+    : _shapeType(type)
+{
 }
 
 CollisionShapeComponent::~CollisionShapeComponent()

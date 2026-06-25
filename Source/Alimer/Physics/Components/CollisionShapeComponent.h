@@ -3,11 +3,14 @@
 
 #pragma once
 
-#include "Alimer/Scene/Component.h"
+#include "Alimer/Physics/Types.h"
 #include "Alimer/Math/Vector3.h"
+#include "Alimer/Scene/Component.h"
 
 namespace Alimer
 {
+    static constexpr CollisionShapeType kDefaultCollisionShapeType = CollisionShapeType::Box;
+
     class ALIMER_API CollisionShapeComponent : public Component
     {
         ALIMER_OBJECT(CollisionShapeComponent, Component);
@@ -16,9 +19,16 @@ namespace Alimer
         /// Register object factory and properties.
         static void Register();
 
-        CollisionShapeComponent() = default;
+        CollisionShapeComponent(CollisionShapeType type = kDefaultCollisionShapeType);
         ~CollisionShapeComponent() override;
 
+        /// Return shape type.
+        [[nodiscard]] CollisionShapeType GetShapeType() const { return _shapeType; }
+
+        /// Set shape type.
+        void SetShapeType(CollisionShapeType type);
+
     private:
+        CollisionShapeType _shapeType = kDefaultCollisionShapeType;
     };
 }

@@ -4,6 +4,7 @@
 #include "Alimer/Physics/Components/RigidBodyComponent.h"
 #include "Alimer/Scene/Entity.h"
 #include "Alimer/Scene/Scene.h"
+#include "Alimer/Physics/Physics.h"
 
 using namespace Alimer;
 
