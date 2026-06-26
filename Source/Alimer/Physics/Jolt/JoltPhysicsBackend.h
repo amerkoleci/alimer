@@ -34,7 +34,7 @@ namespace Alimer
         [[nodiscard]] JPH::BodyInterface& GetBodyInterface();
         [[nodiscard]] JPH::BodyInterface& GetBodyInterfaceNoLock();
 
-        RigidBodyRef CreateRigidBody() override;
+        RigidBodyRef CreateRigidBody(const RigidBodyDesc& desc) override;
 
     private:
         struct Impl;

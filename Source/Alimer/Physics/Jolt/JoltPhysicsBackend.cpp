@@ -19,7 +19,7 @@ JPH_SUPPRESS_WARNINGS
 #include "Jolt/Physics/PhysicsSystem.h"
 #include "Jolt/Physics/Body/BodyCreationSettings.h"
 #include "Jolt/Physics/Body/BodyActivationListener.h"
-#include "Jolt/Physics/Collision/Shape/PlaneShape.h"
+#include "Jolt/Physics/Collision/Shape/EmptyShape.h"
 #include "Jolt/Physics/Collision/Shape/BoxShape.h"
 #include "Jolt/Physics/Collision/Shape/SphereShape.h"
 #include "Jolt/Physics/Collision/Shape/CapsuleShape.h"
@@ -27,6 +27,7 @@ JPH_SUPPRESS_WARNINGS
 #include "Jolt/Physics/Collision/Shape/HeightFieldShape.h"
 #include "Jolt/Physics/Collision/Shape/MeshShape.h"
 #include "Jolt/Physics/Collision/Shape/MutableCompoundShape.h"
+//#include "Jolt/Physics/Collision/Shape/PlaneShape.h"
 
 #ifdef JPH_DEBUG_RENDERER
 //#include "Alimer/Renderer/DebugRenderer.h"
@@ -68,7 +69,23 @@ namespace
     }
 #endif /* defined(JPH_ENABLE_ASSERTS) && ALIMER_ENABLE_ASSERT */
 
-    inline JPH::Vec3 ToJoltVec3(const Vector3& v)
+    static_assert(sizeof(JPH::Mat44) == sizeof(Matrix4x4));
+
+    constexpr JPH::EMotionType ToJolt(RigidBodyType value)
+    {
+        switch (value)
+        {
+            case RigidBodyType::Kinematic:
+                return JPH::EMotionType::Kinematic;
+            case RigidBodyType::Dynamic:
+                return JPH::EMotionType::Dynamic;
+            case RigidBodyType::Static:
+            default:
+                return JPH::EMotionType::Static;
+        }
+    }
+
+    inline JPH::Vec3 ToJolt(const Vector3& v)
     {
         return JPH::Vec3(v.x, v.y, v.z);
     }
@@ -88,6 +105,21 @@ namespace
         return JPH::Quat(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
     }
 
+    static constexpr RigidBodyType FromJolt(JPH::EMotionType value)
+    {
+        switch (value)
+        {
+            case JPH::EMotionType::Kinematic:
+                return RigidBodyType::Kinematic;
+            case JPH::EMotionType::Dynamic:
+                return RigidBodyType::Dynamic;
+
+            case JPH::EMotionType::Static:
+            default:
+                return RigidBodyType::Static;
+        }
+    }
+
     inline Vector3 FromJolt(const JPH::Vec3& value)
     {
         return Vector3(value.GetX(), value.GetY(), value.GetZ());
@@ -96,6 +128,15 @@ namespace
     inline Vector3 FromJolt(const JPH::Float3& value)
     {
         return Vector3(value.x, value.y, value.z);
+    }
+
+    inline Matrix4x4 FromJolt(const JPH::Mat44& value)
+    {
+        // Jolt is column-major, so we need to transpose the matrix
+        JPH::Mat44 temp = value.Transposed();
+        Matrix4x4 result;
+        memcpy(&result, &temp, sizeof(Matrix4x4));
+        return result;
     }
 
 #ifdef JPH_DOUBLE_PRECISION
@@ -208,26 +249,6 @@ namespace
             }
         }
     };
-
-#ifdef JPH_DEBUG_RENDERER
-    class JoltDebugRenderer final : public JPH::DebugRendererSimple
-    {
-    public:
-        JoltDebugRenderer()
-        {
-            Initialize();
-        }
-
-        void DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor) override
-        {
-            // TODO
-        }
-
-        // DebugRendererSimple already provides DrawTriangle as 3 line calls,
-        // and DrawText3D is a no-op below.
-        void DrawText3D(JPH::RVec3Arg, const std::string_view&, JPH::ColorArg, float) override {}
-    };
-#endif
 }
 
 // Static filter objects (one per process)
@@ -287,16 +308,225 @@ public:
 class JoltRigidBody final : public RigidBody
 {
 public:
+    JoltRigidBody(JPH::BodyID bodyID, JPH::BodyInterface* bodyInterface);
+    ~JoltRigidBody() override;
+
+    uint32_t GetID() const override;
+
+    RigidBodyType GetType() const override;
+    void SetType(RigidBodyType type) override;
+
+    RigidBodyTransform GetTransform() const override;
+    void SetTransform(const RigidBodyTransform& transform) override;
+    Matrix4x4 GetWorldTransform() const override;
+
+    bool ApplyBuoyancyImpulse(const Vector3& surfacePosition, const Vector3& surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vector3& fluidVelocity, const Vector3& gravity, float deltaTime) override;
+
+private:
+    JPH::BodyID _bodyID;
+    JPH::BodyInterface* _bodyInterface;
 };
 
 /* JoltPhysicsWorld */
+class JoltBodyActivationListener final : public JPH::BodyActivationListener
+{
+public:
+    void OnBodyActivated([[maybe_unused]] const JPH::BodyID& inBodyID, [[maybe_unused]] JPH::uint64 inBodyUserData) override
+    {
+        //ALIMER_PROFILE_SCOPE();
+
+        /* Body Activated */
+    }
+
+    void OnBodyDeactivated([[maybe_unused]] const JPH::BodyID& inBodyID, [[maybe_unused]] JPH::uint64 inBodyUserData) override
+    {
+        //ALIMER_PROFILE_SCOPE();
+
+        /* Body Deactivated */
+    }
+};
+
+class JoltContactListener final : public JPH::ContactListener
+{
+private:
+    static void	GetFrictionAndRestitution(const JPH::Body& inBody, const JPH::SubShapeID& inSubShapeID, float& outFriction, float& outRestitution)
+    {
+        //ALIMER_PROFILE_SCOPE();
+
+        // Get the material that corresponds to the sub shape ID
+        const JPH::PhysicsMaterial* material = inBody.GetShape()->GetMaterial(inSubShapeID);
+        if (material == JPH::PhysicsMaterial::sDefault)
+        {
+            outFriction = inBody.GetFriction();
+            outRestitution = inBody.GetRestitution();
+        }
+        else
+        {
+            //const auto* engineMaterial = static_cast<const AlimerPhysicsMaterial*>(material);
+            //outFriction = engineMaterial->friction;
+            //outRestitution = engineMaterial->restitution;
+        }
+    }
+
+    static void	OverrideContactSettings(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings)
+    {
+        //ALIMER_PROFILE_SCOPE();
+
+        // Get the custom friction and restitution for both bodies
+        float friction1, friction2, restitution1, restitution2;
+        GetFrictionAndRestitution(inBody1, inManifold.mSubShapeID1, friction1, restitution1);
+        GetFrictionAndRestitution(inBody2, inManifold.mSubShapeID2, friction2, restitution2);
+
+        // Use the default formulas for combining friction and restitution
+        ioSettings.mCombinedFriction = JPH::sqrt(friction1 * friction2);
+        ioSettings.mCombinedRestitution = std::max(restitution1, restitution2);
+    }
+
+public:
+    void OnContactAdded(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
+    {
+        // TODO: Triggers
+
+        OverrideContactSettings(inBody1, inBody2, inManifold, ioSettings);
+    }
+
+    void OnContactPersisted(const JPH::Body& inBody1, const JPH::Body& inBody2, const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override
+    {
+        //ALIMER_PROFILE_SCOPE();
+
+        OverrideContactSettings(inBody1, inBody2, inManifold, ioSettings);
+    }
+
+    void OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override
+    {
+        //ALIMER_PROFILE_SCOPE();
+
+        /* On Collision Exit */
+    }
+};
+
+#ifdef JPH_DEBUG_RENDERER
+class JoltDebugRenderer final : public JPH::DebugRendererSimple
+{
+public:
+    JoltDebugRenderer()
+    {
+        Initialize();
+    }
+
+    void DrawLine(JPH::RVec3Arg inFrom, JPH::RVec3Arg inTo, JPH::ColorArg inColor) override
+    {
+        // TODO
+    }
+
+    // DebugRendererSimple already provides DrawTriangle as 3 line calls,
+    // and DrawText3D is a no-op below.
+    void DrawText3D(JPH::RVec3Arg, const std::string_view&, JPH::ColorArg, float) override {}
+};
+#endif
+
+/* JoltRigidBody */
+JoltRigidBody::JoltRigidBody(JPH::BodyID bodyID, JPH::BodyInterface* bodyInterface)
+    : _bodyID(bodyID), _bodyInterface(bodyInterface)
+{}
+
+JoltRigidBody::~JoltRigidBody()
+{
+    if (_bodyID.IsInvalid())
+        return;
+
+    bool added = _bodyInterface->IsAdded(_bodyID);
+    if (added)
+    {
+        _bodyInterface->RemoveBody(_bodyID);
+    }
+
+    _bodyInterface->DestroyBody(_bodyID);
+    _bodyID = JPH::BodyID{ JPH::BodyID::cInvalidBodyID };
+}
+
+uint32_t JoltRigidBody::GetID() const
+{
+    return _bodyID.GetIndexAndSequenceNumber();
+}
+
+
+RigidBodyType JoltRigidBody::GetType() const
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    return FromJolt(_bodyInterface->GetMotionType(_bodyID));
+}
+
+void JoltRigidBody::SetType(RigidBodyType type)
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    _bodyInterface->SetMotionType(_bodyID, ToJolt(type), JPH::EActivation::Activate);
+}
+
+RigidBodyTransform JoltRigidBody::GetTransform() const
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    JPH::RVec3 position{};
+    JPH::Quat rotation{};
+    _bodyInterface->GetPositionAndRotation(_bodyID, position, rotation);
+
+    RigidBodyTransform transform{};
+    transform.position = FromJolt(position);
+    transform.rotation = FromJolt(rotation);
+    return transform;
+}
+
+void JoltRigidBody::SetTransform(const RigidBodyTransform& transform)
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    // Update the transform iff it has changed significantly
+    JPH::RVec3 position = ToJolt(transform.position);
+    JPH::Quat rotation = ToJolt(transform.rotation);
+
+    _bodyInterface->SetPositionAndRotationWhenChanged(_bodyID, position, rotation, JPH::EActivation::Activate);
+}
+
+Matrix4x4 JoltRigidBody::GetWorldTransform() const
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    JPH::RMat44 joltTransform = _bodyInterface->GetWorldTransform(_bodyID);
+    Matrix4x4 transform = FromJolt(joltTransform);
+    return transform    ;
+}
+
+bool JoltRigidBody::ApplyBuoyancyImpulse(const Vector3& surfacePosition, const Vector3& surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vector3& fluidVelocity, const Vector3& gravity, float deltaTime)
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    return _bodyInterface->ApplyBuoyancyImpulse(
+        _bodyID,
+        ToJolt(surfacePosition),
+        ToJolt(surfaceNormal),
+        buoyancy,
+        linearDrag,
+        angularDrag,
+        ToJolt(fluidVelocity),
+        ToJolt(gravity),
+        deltaTime
+    );
+
+}
+
 struct JoltPhysicsWorld::Impl
 {
     JPH::TempAllocatorMalloc* tempAllocator = nullptr;
-    JPH::PhysicsSystem system;
+    JPH::PhysicsSystem          system;
     JPH::BodyInterface* bodyInterface = nullptr;
     JPH::BodyInterface* bodyInterfaceNoLock = nullptr;
-    bool debugDrawEnabled = false;
+    JoltBodyActivationListener  bodyActivationListener;
+    JoltContactListener         contactListener;
+    JPH::ShapeRefC              emptyShape;
+    bool                        debugDrawEnabled = false;
 };
 
 JoltPhysicsWorld::JoltPhysicsWorld()
@@ -312,6 +542,19 @@ JoltPhysicsWorld::JoltPhysicsWorld()
 
     _impl->system.Init(maxBodies, numBodyMutexes, maxBodyPairs, maxContactConstraints, s_BPLayerInterface, s_ObjVsBP, s_ObjPairFilter);
     _impl->system.SetGravity(JPH::Vec3(0.0f, -9.81f, 0.0f));
+    _impl->system.SetBodyActivationListener(&_impl->bodyActivationListener);
+    _impl->system.SetContactListener(&_impl->contactListener);
+
+    JPH::EmptyShapeSettings settings(JPH::Vec3::sZero());
+    JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
+    if (!shapeResult.IsValid())
+    {
+        LOGE("Jolt: CreateBox failed with {}", shapeResult.GetError().c_str());
+        return;
+    }
+
+    _impl->emptyShape = shapeResult.Get();
+
     _impl->bodyInterface = &_impl->system.GetBodyInterface();
     _impl->bodyInterfaceNoLock = &_impl->system.GetBodyInterfaceNoLock();
 }
@@ -336,9 +579,75 @@ JPH::BodyInterface& JoltPhysicsWorld::GetBodyInterfaceNoLock()
     return *_impl->bodyInterfaceNoLock;
 }
 
-RigidBodyRef JoltPhysicsWorld::CreateRigidBody()
+RigidBodyRef JoltPhysicsWorld::CreateRigidBody(const RigidBodyDesc& desc)
 {
-    SharedPtr<JoltRigidBody> rigidBody = MakeShared<JoltRigidBody>();
+    const uint32_t count = _impl->system.GetNumBodies();
+    const uint32_t limit = _impl->system.GetMaxBodies();
+    if (count >= limit)
+    {
+        LOGE("Too many bodies, limit {} reached!", limit);
+        return nullptr;
+    }
+
+    JPH::BodyCreationSettings bodySettings{};
+    bodySettings.mPosition = ToJoltRVec3(desc.initialTransform.position);
+    bodySettings.mRotation = ToJolt(desc.initialTransform.rotation);
+
+    switch (desc.type)
+    {
+        case RigidBodyType::Static:
+            bodySettings.mMotionType = JPH::EMotionType::Static;
+            break;
+        case RigidBodyType::Kinematic:
+            bodySettings.mMotionType = JPH::EMotionType::Kinematic;
+            break;
+        case RigidBodyType::Dynamic:
+            bodySettings.mMotionType = JPH::EMotionType::Dynamic;
+            break;
+    }
+    bodySettings.mObjectLayer = desc.isTrigger ? PhysicsLayers::TRIGGER : (desc.type == RigidBodyType::Static ? PhysicsLayers::NON_MOVING : PhysicsLayers::MOVING);
+
+    JPH::MutableCompoundShapeSettings compoundShapeSettings;
+    bool useCompoundShape = desc.shapes.size() > 1;
+    if (useCompoundShape)
+    {
+        for (size_t i = 0; i < desc.shapes.size(); i++)
+        {
+            JoltCollisionShape* shape = static_cast<JoltCollisionShape*>(desc.shapes[i]);
+            compoundShapeSettings.AddShape(JPH::Vec3::sZero(), JPH::Quat::sIdentity(), shape->handle);
+        }
+
+        bodySettings.SetShapeSettings(&compoundShapeSettings);
+    }
+    else
+    {
+        bodySettings.SetShape((desc.shapes.size() == 0) ? _impl->emptyShape : static_cast<JoltCollisionShape*>(desc.shapes[0])->handle);
+    }
+
+    bodySettings.mAllowedDOFs = JPH::EAllowedDOFs::All;
+    // Allow dynamic bodies to become kinematic during, e.g., user interaction
+    bodySettings.mAllowDynamicOrKinematic = (desc.type == RigidBodyType::Dynamic);
+    bodySettings.mIsSensor = desc.isTrigger;
+    //bodySettings.mFriction = desc.friction;
+    //bodySettings.mRestitution = desc.restitution;
+    bodySettings.mLinearDamping = desc.linearDamping;
+    bodySettings.mAngularDamping = desc.angularDamping;
+    bodySettings.mGravityFactor = desc.gravityScale;
+    bodySettings.mAllowSleeping = desc.allowSleeping;
+    bodySettings.mMotionQuality = desc.continuous ? JPH::EMotionQuality::LinearCast : JPH::EMotionQuality::Discrete;
+    if (desc.type == RigidBodyType::Dynamic && (desc.mass != 0.0f))
+    {
+        bodySettings.mMassPropertiesOverride.mMass = desc.mass;
+        bodySettings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
+    }
+    JPH::Body* body = _impl->bodyInterface->CreateBody(bodySettings);
+    _impl->bodyInterface->AddBody(body->GetID(), JPH::EActivation::Activate);
+
+    //_physicsSystem.OptimizeBroadPhase();
+
+    SharedPtr<JoltRigidBody> rigidBody = MakeShared<JoltRigidBody>(body->GetID(), _impl->bodyInterface);
+    _impl->bodyInterface->SetUserData(body->GetID(), reinterpret_cast<uint64_t>(rigidBody.Get()));
+
     return rigidBody;
 }
 
@@ -386,7 +695,7 @@ PhysicsWorldRef JoltPhysicsBackend::CreatePhysicsWorld()
 
 CollisionShape* JoltPhysicsBackend::CreateBoxShape(const Vector3& size) const
 {
-    JPH::BoxShapeSettings shapeSettings(ToJoltVec3(size * 0.5f));
+    JPH::BoxShapeSettings shapeSettings(ToJolt(size * 0.5f));
     shapeSettings.SetEmbedded();
     //shapeSettings.SetDensity(glm::max(0.001f, bc.Density));
     JPH::ShapeSettings::ShapeResult shapeResult = shapeSettings.Create();
@@ -399,7 +708,7 @@ CollisionShape* JoltPhysicsBackend::CreateBoxShape(const Vector3& size) const
     JoltCollisionShape* shape = new JoltCollisionShape();
     shape->handle = shapeResult.Get();
     shape->type = CollisionShapeType::Box;
-    shapeResult.Get()->SetUserData((JPH::uint64)shape);
+    shapeResult.Get()->SetUserData(reinterpret_cast<JPH::uint64>(shape));
     return shape;
 }
 
@@ -417,7 +726,7 @@ CollisionShape* JoltPhysicsBackend::CreateSphereShape(float radius) const
     JoltCollisionShape* shape = new JoltCollisionShape();
     shape->handle = shapeResult.Get();
     shape->type = CollisionShapeType::Sphere;
-    shapeResult.Get()->SetUserData((JPH::uint64)shape);
+    shapeResult.Get()->SetUserData(reinterpret_cast<JPH::uint64>(shape));
     return shape;
 }
 

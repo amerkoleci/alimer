@@ -5,7 +5,6 @@
 #include "Alimer/Scene/Scene.h"
 #include "Alimer/Scene/Entity.h"
 //#include "Alimer/Scene/Prefab.h"
-#include "Alimer/Renderer/Components/LightComponent.h"
 #include "Alimer/Physics/Physics.h"
 #include "Alimer/Core/JobSystem.h"
 #include <cgltf.h>
@@ -21,7 +20,6 @@ void Scene::Register()
 
     RegisterFactory<Scene>();
     Entity::Register();
-    LightComponent::Register();
 }
 
 Scene::Scene(StringView name)

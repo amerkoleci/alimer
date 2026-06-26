@@ -3,11 +3,19 @@
 
 #pragma once
 
+#include "Alimer/Core/Vector.h"
 #include "Alimer/Core/RefCounted.h"
 #include "Alimer/Math/Quaternion.h"
 
 namespace Alimer
 {
+    /* Foward declaration */
+    class CollisionShape;
+    class RigidBody;
+    class PhysicsWorld;
+
+    static constexpr uint32_t kInvalidBodyID = 0xFFFFFFFF;
+
     enum class RigidBodyType 
     {
         Static = 0,
@@ -30,15 +38,25 @@ namespace Alimer
         Count
     };
 
-    struct ALIMER_API RigidBodyTransform final
+    struct RigidBodyTransform final
     {
         Vector3 position = Vector3::Zero;
         Quaternion rotation = Quaternion::Identity;
     };
 
-    class CollisionShape;
-    class RigidBody;
-    class PhysicsWorld;
+    struct RigidBodyDesc
+    {
+        RigidBodyType type = RigidBodyType::Dynamic;
+        RigidBodyTransform initialTransform = {};
+        float mass = 1.0f;
+        float linearDamping = 0.05f;
+        float angularDamping = 0.05f;
+        float gravityScale = 1.0f;
+        bool isTrigger = false;
+        bool allowSleeping = true;
+        bool continuous = false;
+        Vector<CollisionShape*> shapes;
+    };
 
     using RigidBodyRef = SharedPtr<RigidBody>;
     using PhysicsWorldRef = SharedPtr<PhysicsWorld>;

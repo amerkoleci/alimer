@@ -4,6 +4,7 @@
 #pragma once
 
 #include "Alimer/Physics/Types.h"
+#include "Alimer/Math/Matrix4x4.h"
 #include "Alimer/Math/BoundingBox.h"
 
 namespace Alimer
@@ -20,12 +21,24 @@ namespace Alimer
     };
 
     class ALIMER_API RigidBody : public RefCounted
-    {};
+    {
+    public:
+        [[nodiscard]] virtual uint32_t GetID() const = 0;
+
+        [[nodiscard]] virtual RigidBodyType GetType() const = 0;
+        virtual void SetType(RigidBodyType type) = 0;
+
+        [[nodiscard]] virtual RigidBodyTransform GetTransform() const = 0;
+        virtual void SetTransform(const RigidBodyTransform& transform) = 0;
+        [[nodiscard]] virtual Matrix4x4 GetWorldTransform() const = 0;
+
+        virtual bool ApplyBuoyancyImpulse(const Vector3& surfacePosition, const Vector3& surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vector3& fluidVelocity, const Vector3& gravity, float deltaTime) = 0;
+    };
 
     class ALIMER_API PhysicsWorld : public RefCounted
     {
     public:
-        [[nodiscard]] virtual RigidBodyRef CreateRigidBody() = 0;
+        [[nodiscard]] virtual RigidBodyRef CreateRigidBody(const RigidBodyDesc& desc) = 0;
     };
 
     class PhysicsBackend
