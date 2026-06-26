@@ -16,7 +16,8 @@ void RigidBodyComponent::Register()
     reflection->SetDisplayName("Rigid Body Component");
 }
 
-RigidBodyComponent::RigidBodyComponent()
+RigidBodyComponent::RigidBodyComponent(RigidBodyType type)
+    : _bodyType(type)
 {
 }
 

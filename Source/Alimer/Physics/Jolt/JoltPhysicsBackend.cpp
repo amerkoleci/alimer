@@ -68,6 +68,53 @@ namespace
     }
 #endif /* defined(JPH_ENABLE_ASSERTS) && ALIMER_ENABLE_ASSERT */
 
+    inline JPH::Vec3 ToJoltVec3(const Vector3& v)
+    {
+        return JPH::Vec3(v.x, v.y, v.z);
+    }
+
+    inline JPH::RVec3 ToJoltRVec3(const Vector3& v)
+    {
+        return JPH::RVec3(v.x, v.y, v.z);
+    }
+
+    inline JPH::Vec4 ToJolt(const Vector4& vec)
+    {
+        return JPH::Vec4(vec.x, vec.y, vec.z, vec.w);
+    }
+
+    inline JPH::Quat ToJolt(const Quaternion& quaternion)
+    {
+        return JPH::Quat(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
+    }
+
+    inline Vector3 FromJolt(const JPH::Vec3& value)
+    {
+        return Vector3(value.GetX(), value.GetY(), value.GetZ());
+    }
+
+    inline Vector3 FromJolt(const JPH::Float3& value)
+    {
+        return Vector3(value.x, value.y, value.z);
+    }
+
+#ifdef JPH_DOUBLE_PRECISION
+    inline Vector3 FromJolt(const JPH::RVec3& value)
+    {
+        return Vector3(static_cast<float>(value.GetX()), static_cast<float>(value.GetY()), static_cast<float>(value.GetZ()));
+    }
+#endif
+
+    inline Quaternion FromJolt(const JPH::Quat& value)
+    {
+        return Quaternion(value.GetX(), value.GetY(), value.GetZ(), value.GetW());
+    }
+
+    inline BoundingBox FromJolt(const JPH::AABox& aabb)
+    {
+        return BoundingBox(FromJolt(aabb.mMin), FromJolt(aabb.mMax));
+    }
+
     // -----------------------------------------------------------------------
     // Broad-phase layer interface
     // -----------------------------------------------------------------------
@@ -188,6 +235,60 @@ static BPLayerInterfaceImpl              s_BPLayerInterface;
 static ObjectVsBroadPhaseLayerFilterImpl s_ObjVsBP;
 static ObjectLayerPairFilterImpl         s_ObjPairFilter;
 
+
+class JoltCollisionShape final : public CollisionShape
+{
+public:
+    JPH::ShapeRefC handle;
+    CollisionShapeType type = CollisionShapeType::Count;
+
+    CollisionShapeType GetType() const override
+    {
+        return type;
+    }
+
+    float GetVolume() const override
+    {
+        return handle->GetVolume();
+    }
+
+    float GetDensity() const override
+    {
+        if (type == CollisionShapeType::Mesh || type == CollisionShapeType::Terrain)
+        {
+            return 0.f;
+        }
+
+        return JPH::StaticCast<JPH::ConvexShape>(handle)->GetDensity();
+    }
+
+    float GetMass() const override
+    {
+        if (type == CollisionShapeType::Mesh || type == CollisionShapeType::Terrain)
+        {
+            return 0.0f;
+        }
+
+        JPH::MassProperties properties = handle->GetMassProperties();
+        return properties.mMass;
+    }
+
+    BoundingBox GetLocalBounds() const override
+    {
+        return FromJolt(handle->GetLocalBounds());
+    }
+
+    Vector3 GetCenterOfMass() const override
+    {
+        return FromJolt(handle->GetCenterOfMass());
+    }
+};
+
+class JoltRigidBody final : public RigidBody
+{
+public:
+};
+
 /* JoltPhysicsWorld */
 struct JoltPhysicsWorld::Impl
 {
@@ -199,7 +300,7 @@ struct JoltPhysicsWorld::Impl
 };
 
 JoltPhysicsWorld::JoltPhysicsWorld()
-    : _impl(std::make_unique<Impl>())
+    : _impl(new Impl())
 {
     _impl->tempAllocator = new JPH::TempAllocatorMalloc();
 
@@ -216,7 +317,9 @@ JoltPhysicsWorld::JoltPhysicsWorld()
 }
 
 JoltPhysicsWorld::~JoltPhysicsWorld()
-{}
+{
+    SafeDelete(_impl);
+}
 
 JPH::PhysicsSystem& JoltPhysicsWorld::GetPhysicsSystem()
 {
@@ -231,6 +334,12 @@ JPH::BodyInterface& JoltPhysicsWorld::GetBodyInterface()
 JPH::BodyInterface& JoltPhysicsWorld::GetBodyInterfaceNoLock()
 {
     return *_impl->bodyInterfaceNoLock;
+}
+
+RigidBodyRef JoltPhysicsWorld::CreateRigidBody()
+{
+    SharedPtr<JoltRigidBody> rigidBody = MakeShared<JoltRigidBody>();
+    return rigidBody;
 }
 
 /* JoltPhysicsBackend */
@@ -273,6 +382,74 @@ JoltPhysicsBackend::~JoltPhysicsBackend()
 PhysicsWorldRef JoltPhysicsBackend::CreatePhysicsWorld()
 {
     return MakeShared<JoltPhysicsWorld>();
+}
+
+CollisionShape* JoltPhysicsBackend::CreateBoxShape(const Vector3& size) const
+{
+    JPH::BoxShapeSettings shapeSettings(ToJoltVec3(size * 0.5f));
+    shapeSettings.SetEmbedded();
+    //shapeSettings.SetDensity(glm::max(0.001f, bc.Density));
+    JPH::ShapeSettings::ShapeResult shapeResult = shapeSettings.Create();
+    if (!shapeResult.IsValid())
+    {
+        LOGE("Jolt: CreateBox failed with {}", shapeResult.GetError());
+        return nullptr;
+    }
+
+    JoltCollisionShape* shape = new JoltCollisionShape();
+    shape->handle = shapeResult.Get();
+    shape->type = CollisionShapeType::Box;
+    shapeResult.Get()->SetUserData((JPH::uint64)shape);
+    return shape;
+}
+
+CollisionShape* JoltPhysicsBackend::CreateSphereShape(float radius) const
+{
+    JPH::SphereShapeSettings shapeSettings(radius);
+    shapeSettings.SetEmbedded();
+    JPH::ShapeSettings::ShapeResult shapeResult = shapeSettings.Create();
+    if (!shapeResult.IsValid())
+    {
+        LOGE("Jolt: CreateSphere failed with {}", shapeResult.GetError());
+        return nullptr;
+    }
+
+    JoltCollisionShape* shape = new JoltCollisionShape();
+    shape->handle = shapeResult.Get();
+    shape->type = CollisionShapeType::Sphere;
+    shapeResult.Get()->SetUserData((JPH::uint64)shape);
+    return shape;
+}
+
+CollisionShape* JoltPhysicsBackend::CreateCapsuleShape(float height, float radius) const
+{
+    JPH::CapsuleShapeSettings shapeSettings(
+        std::max(0.01f, height) * 0.5f,
+        std::max(0.01f, radius),
+        /*material != nullptr ? material->handle : */ nullptr
+    );
+    shapeSettings.SetEmbedded();
+    JPH::ShapeSettings::ShapeResult shapeResult = shapeSettings.Create();
+    if (!shapeResult.IsValid())
+    {
+        LOGE("Jolt: CreateCapsule failed with {}", shapeResult.GetError());
+        return nullptr;
+    }
+
+    JoltCollisionShape* shape = new JoltCollisionShape();
+    shape->handle = shapeResult.Get();
+    shape->type = CollisionShapeType::Capsule;
+    shapeResult.Get()->SetUserData((JPH::uint64)shape);
+    return shape;
+}
+
+void JoltPhysicsBackend::DestroyShape(CollisionShape* shape)
+{
+    if (shape)
+    {
+        JoltCollisionShape* joltShape = static_cast<JoltCollisionShape*>(shape);
+        delete joltShape;
+    }
 }
 
 JPH::JobSystem& JoltPhysicsBackend::GetThreadPool()

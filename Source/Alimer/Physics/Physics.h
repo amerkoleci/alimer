@@ -4,11 +4,20 @@
 #pragma once
 
 #include "Alimer/Physics/Types.h"
+#include "Alimer/Math/BoundingBox.h"
 
 namespace Alimer
 {
-    class ALIMER_API CollisionShape : public RefCounted
-    {};
+    class ALIMER_API CollisionShape 
+    {
+    public:
+        [[nodiscard]] virtual CollisionShapeType GetType() const = 0;
+        [[nodiscard]] virtual float GetVolume() const = 0;
+        [[nodiscard]] virtual float GetDensity() const = 0;
+        [[nodiscard]] virtual float GetMass() const = 0;
+        [[nodiscard]] virtual BoundingBox GetLocalBounds() const = 0;
+        [[nodiscard]] virtual Vector3 GetCenterOfMass() const = 0;
+    };
 
     class ALIMER_API RigidBody : public RefCounted
     {};
@@ -16,7 +25,7 @@ namespace Alimer
     class ALIMER_API PhysicsWorld : public RefCounted
     {
     public:
-        //[[nodiscard]] virtual RigidBodyRef CreateRigidBody() = 0;
+        [[nodiscard]] virtual RigidBodyRef CreateRigidBody() = 0;
     };
 
     class PhysicsBackend
@@ -35,6 +44,12 @@ namespace Alimer
 
         /// Create a new physics world.
         [[nodiscard]] virtual PhysicsWorldRef CreatePhysicsWorld() = 0;
+
+        /* CollisionShape */
+        [[nodiscard]] virtual CollisionShape* CreateBoxShape(const Vector3& size) const = 0;
+        [[nodiscard]] virtual CollisionShape* CreateSphereShape(float radius) const = 0;
+        [[nodiscard]] virtual CollisionShape* CreateCapsuleShape(float height, float radius) const = 0;
+        virtual void DestroyShape(CollisionShape* shape) = 0;
     };
 
     class Physics final

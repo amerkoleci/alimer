@@ -4,6 +4,7 @@
 #pragma once
 
 #include "Alimer/Core/RefCounted.h"
+#include "Alimer/Math/Quaternion.h"
 
 namespace Alimer
 {
@@ -11,7 +12,9 @@ namespace Alimer
     {
         Static = 0,
         Kinematic,
-        Dynamic
+        Dynamic,
+
+        Count
     };
 
     enum class CollisionShapeType
@@ -19,11 +22,18 @@ namespace Alimer
         Box,
         Sphere,
         Capsule,
-        Cylinder,
         ConvexHull,
         Mesh,
         Compound,
         Terrain,
+
+        Count
+    };
+
+    struct ALIMER_API RigidBodyTransform final
+    {
+        Vector3 position = Vector3::Zero;
+        Quaternion rotation = Quaternion::Identity;
     };
 
     class CollisionShape;

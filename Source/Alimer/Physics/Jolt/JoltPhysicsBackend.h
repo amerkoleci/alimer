@@ -34,10 +34,12 @@ namespace Alimer
         [[nodiscard]] JPH::BodyInterface& GetBodyInterface();
         [[nodiscard]] JPH::BodyInterface& GetBodyInterfaceNoLock();
 
+        RigidBodyRef CreateRigidBody() override;
+
     private:
         struct Impl;
 
-        std::unique_ptr<Impl> _impl = nullptr;
+        Impl* _impl = nullptr;
     };
 
     class JoltPhysicsBackend final : public PhysicsBackend
@@ -46,10 +48,15 @@ namespace Alimer
         JoltPhysicsBackend();
         ~JoltPhysicsBackend() override;
 
-        const char* GetName() const override { return "Jolt"; }
-        PhysicsWorldRef CreatePhysicsWorld() override;
 
         [[nodiscard]] JPH::JobSystem& GetThreadPool();
+        PhysicsWorldRef CreatePhysicsWorld() override;
+        CollisionShape* CreateBoxShape(const Vector3& halfExtents) const override;
+        CollisionShape* CreateSphereShape(float radius) const override;
+        CollisionShape* CreateCapsuleShape(float height, float radius) const override;
+        void DestroyShape(CollisionShape* shape) override;
+
+        const char* GetName() const override { return "Jolt"; }
 
     private:
         JPH::JobSystem* _threadPool = nullptr;

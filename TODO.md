@@ -5,6 +5,7 @@
 * Scene System: Entity, Transform, Components with EntitySystem
 * Audio support
 * Platform layer complete (Game/Window/Input)
+* Physics support (with Jolt backend)
 * Sprite Batch (2D rendering) and Font rendering (stb_truetype, MSDF or Slug?)
 * Mesh rendering (with support for animated meshes)
 * GLTF support (using cgltf or tinygltf)
