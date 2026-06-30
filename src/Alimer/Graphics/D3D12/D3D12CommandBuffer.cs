@@ -440,7 +440,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
             _bindingTable.ConstantBuffer[slot] = buffer;
             _bindingTable.ConstantBufferOffset[slot] = offset;
 
-            if (slot < DynamicContantBufferCount)
+            if (slot < DynamicConstantBufferCount)
             {
                 D3D12Buffer backendBuffer = buffer.ToD3D12();
                 if (graphics)

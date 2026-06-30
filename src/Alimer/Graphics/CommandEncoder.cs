@@ -36,7 +36,7 @@ public abstract unsafe class CommandEncoder
     {
         ValidateConstantBuffer(buffer);
 #if VALIDATE_USAGE
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(slot, (uint)DynamicContantBufferCount, nameof(slot));
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(slot, (uint)DynamicConstantBufferCount, nameof(slot));
 #endif
         SetConstantBufferCore(slot, buffer, offset);
     }
@@ -175,8 +175,8 @@ public abstract unsafe class CommandEncoder
 
 public readonly struct DescriptorBindingTable
 {
-    public GraphicsBuffer?[] ConstantBuffer { get; } = new GraphicsBuffer?[DynamicContantBufferCount];
-    public ulong[] ConstantBufferOffset { get; } = new ulong[DynamicContantBufferCount];
+    public GraphicsBuffer?[] ConstantBuffer { get; } = new GraphicsBuffer?[DynamicConstantBufferCount];
+    public ulong[] ConstantBufferOffset { get; } = new ulong[DynamicConstantBufferCount];
 
     public DescriptorBindingTable()
     {

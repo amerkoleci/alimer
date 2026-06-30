@@ -440,7 +440,7 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
             Bindless = true;
         }
 
-        Debug.Assert(properties2.properties.limits.maxDescriptorSetUniformBuffersDynamic >= DynamicContantBufferCount);
+        Debug.Assert(properties2.properties.limits.maxDescriptorSetUniformBuffersDynamic >= DynamicConstantBufferCount);
 
         void AddToFeatureChain(void* next)
         {

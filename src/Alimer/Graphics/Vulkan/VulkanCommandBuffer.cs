@@ -67,7 +67,7 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
 
         _renderPassEncoder = new VulkanRenderPassEncoder(this, _deviceApi);
         _computePassEncoder = new VulkanComputePassEncoder(this, _deviceApi);
-        DynamicContantBufferCount = Math.Min(Constants.DynamicContantBufferCount, queue.VkDevice.VkAdapter.Properties2.properties.limits.maxDescriptorSetUniformBuffersDynamic);
+        DynamicContantBufferCount = Math.Min(Constants.DynamicConstantBufferCount, queue.VkDevice.VkAdapter.Properties2.properties.limits.maxDescriptorSetUniformBuffersDynamic);
     }
 
     /// <inheritdoc />

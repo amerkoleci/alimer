@@ -56,13 +56,13 @@ internal unsafe class VulkanBindlessManager : IDisposable
             StorageTexelBuffers = new VulkanBindlessDescriptorHeap(this, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, Math.Min(BindlessResourceCapacity, properties12.maxDescriptorSetUpdateAfterBindStorageImages / 2));
 
             // First set (space0)
-            int totalLayoutBindingsWithoutStaticSamplers = DynamicContantBufferCount;
+            int totalLayoutBindingsWithoutStaticSamplers = DynamicConstantBufferCount;
             int totalLayoutBindings = totalLayoutBindingsWithoutStaticSamplers + StaticSamplerCount;
             VkDescriptorSetLayoutBinding* layoutBindings = stackalloc VkDescriptorSetLayoutBinding[totalLayoutBindings];
             VkDescriptorBindingFlags* layoutBindingsFlags = stackalloc VkDescriptorBindingFlags[totalLayoutBindings];
 
             int bindingIndex = 0;
-            for (uint i = 0; i < DynamicContantBufferCount; ++i)
+            for (uint i = 0; i < DynamicConstantBufferCount; ++i)
             {
                 ref VkDescriptorSetLayoutBinding binding = ref layoutBindings[bindingIndex++];
                 binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;

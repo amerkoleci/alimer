@@ -66,12 +66,12 @@ internal unsafe class D3D12BindlessManager : IDisposable
 
         // Create universal root signature with bindless descriptor tables
         {
-            uint rootParameterCount = 1 + DynamicContantBufferCount;
+            uint rootParameterCount = 1 + DynamicConstantBufferCount;
             D3D12_ROOT_PARAMETER1* rootParameters = stackalloc D3D12_ROOT_PARAMETER1[(int)rootParameterCount];
             rootParameters[PushConstantsIndex].InitAsConstants(PushConstantsSize / 4, PushConstantsShaderRegister);
             DynamicConstantBufferStartIndex = PushConstantsIndex + 1;
             // Dynamic Constant buffers
-            for (uint i = 0; i < DynamicContantBufferCount; ++i)
+            for (uint i = 0; i < DynamicConstantBufferCount; ++i)
             {
                 rootParameters[DynamicConstantBufferStartIndex + i].InitAsConstantBufferView(i, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_ALL);
             }
