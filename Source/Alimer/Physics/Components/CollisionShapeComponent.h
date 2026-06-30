@@ -3,12 +3,14 @@
 
 #pragma once
 
-#include "Alimer/Physics/Types.h"
+#include "Alimer/Physics/PhysicsTypes.h"
 #include "Alimer/Math/Vector3.h"
 #include "Alimer/Scene/Component.h"
 
 namespace Alimer
 {
+    class RigidBodyComponent;
+
     static constexpr CollisionShapeType kDefaultCollisionShapeType = CollisionShapeType::Box;
 
     class ALIMER_API CollisionShapeComponent : public Component
@@ -30,5 +32,6 @@ namespace Alimer
 
     private:
         CollisionShapeType _shapeType = kDefaultCollisionShapeType;
+        CollisionShape* _shape = nullptr;
     };
 }

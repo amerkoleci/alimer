@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "AlimerConfig.h"
+#include "Alimer/AlimerConfig.h"
 #include <winapifamily.h>
 
 #ifndef UNICODE

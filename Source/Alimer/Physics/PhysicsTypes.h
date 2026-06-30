@@ -30,6 +30,7 @@ namespace Alimer
         Box,
         Sphere,
         Capsule,
+        Plane,
         ConvexHull,
         Mesh,
         Compound,

@@ -316,9 +316,31 @@ public:
     RigidBodyType GetType() const override;
     void SetType(RigidBodyType type) override;
 
+    bool IsActive() const override;
+    void Activate() override;
+    void Deactivate()  override;
+
+    Vector3 GetPosition() const override;
+    Quaternion GetRotation() const override;
     RigidBodyTransform GetTransform() const override;
     void SetTransform(const RigidBodyTransform& transform) override;
     Matrix4x4 GetWorldTransform() const override;
+
+    Vector3 GetCenterOfMass() const override;
+
+    Vector3 GetLinearVelocity() const override;
+    void SetLinearVelocity(const Vector3& velocity) override;
+    Vector3 GetAngularVelocity() const override;
+    void SetAngularVelocity(const Vector3& velocity) override;
+
+    void AddForce(const Vector3& force) override;
+    void AddForce(const Vector3& force, const Vector3& position) override;
+    void AddTorque(const Vector3& torque) override;
+    void AddForceAndTorque(const Vector3& force, const Vector3& torque) override;
+
+    void AddImpulse(const Vector3& impulse) override;
+    void AddImpulse(const Vector3& impulse, const Vector3& position) override;
+    void AddAngularImpulse(const Vector3& angularImpulse) override;
 
     bool ApplyBuoyancyImpulse(const Vector3& surfacePosition, const Vector3& surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vector3& fluidVelocity, const Vector3& gravity, float deltaTime) override;
 
@@ -425,6 +447,37 @@ public:
 };
 #endif
 
+class JoltPhysicsWorld final : public PhysicsWorld
+{
+public:
+    JoltPhysicsWorld();
+    ~JoltPhysicsWorld() override;
+
+    Vector3 GetGravity() const override;
+    void SetGravity(const Vector3& gravity) override;
+
+    uint32_t GetBodyCount() const override;
+    uint32_t GetActiveBodyCount() const override;
+
+    RigidBodyRef CreateRigidBody(const RigidBodyDesc& desc) override;
+
+    void OptimizeBroadPhase() override;
+
+    [[nodiscard]] JPH::PhysicsSystem& GetPhysicsSystem();
+    [[nodiscard]] JPH::BodyInterface& GetBodyInterface();
+    [[nodiscard]] JPH::BodyInterface& GetBodyInterfaceNoLock();
+
+private:
+    JPH::TempAllocatorMalloc* _tempAllocator = nullptr;
+    JPH::PhysicsSystem  _system;
+    JPH::BodyInterface* _bodyInterface = nullptr;
+    JPH::BodyInterface* _bodyInterfaceNoLock = nullptr;
+    JoltBodyActivationListener  _bodyActivationListener;
+    JoltContactListener _contactListener;
+    JPH::ShapeRefC _emptyShape;
+    bool _debugDrawEnabled = false;
+};
+
 /* JoltRigidBody */
 JoltRigidBody::JoltRigidBody(JPH::BodyID bodyID, JPH::BodyInterface* bodyInterface)
     : _bodyID(bodyID), _bodyInterface(bodyInterface)
@@ -465,6 +518,41 @@ void JoltRigidBody::SetType(RigidBodyType type)
     _bodyInterface->SetMotionType(_bodyID, ToJolt(type), JPH::EActivation::Activate);
 }
 
+bool JoltRigidBody::IsActive() const
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    return _bodyInterface->IsActive(_bodyID);
+}
+
+void JoltRigidBody::Activate()
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    _bodyInterface->ActivateBody(_bodyID);
+}
+
+void JoltRigidBody::Deactivate()
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    _bodyInterface->DeactivateBody(_bodyID);
+}
+
+Vector3 JoltRigidBody::GetPosition() const
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    return FromJolt(_bodyInterface->GetPosition(_bodyID));
+}
+
+Quaternion JoltRigidBody::GetRotation() const
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    return FromJolt(_bodyInterface->GetRotation(_bodyID));
+}
+
 RigidBodyTransform JoltRigidBody::GetTransform() const
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
@@ -496,7 +584,92 @@ Matrix4x4 JoltRigidBody::GetWorldTransform() const
 
     JPH::RMat44 joltTransform = _bodyInterface->GetWorldTransform(_bodyID);
     Matrix4x4 transform = FromJolt(joltTransform);
-    return transform    ;
+    return transform;
+}
+
+Vector3 JoltRigidBody::GetCenterOfMass() const
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    return FromJolt(_bodyInterface->GetCenterOfMassPosition(_bodyID));
+}
+
+Vector3 JoltRigidBody::GetLinearVelocity() const
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    JPH::Vec3 velocity = _bodyInterface->GetLinearVelocity(_bodyID);
+    return FromJolt(velocity);
+}
+
+void JoltRigidBody::SetLinearVelocity(const Vector3& velocity)
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    _bodyInterface->SetLinearVelocity(_bodyID, ToJolt(velocity));
+}
+
+Vector3 JoltRigidBody::GetAngularVelocity() const
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    JPH::Vec3 velocity = _bodyInterface->GetAngularVelocity(_bodyID);
+    return FromJolt(velocity);
+}
+
+void JoltRigidBody::SetAngularVelocity(const Vector3& velocity)
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    _bodyInterface->SetAngularVelocity(_bodyID, ToJolt(velocity));
+}
+
+void JoltRigidBody::AddForce(const Vector3& force)
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    _bodyInterface->AddForce(_bodyID, ToJolt(force));
+}
+
+void JoltRigidBody::AddForce(const Vector3& force, const Vector3& position)
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    _bodyInterface->AddForce(_bodyID, ToJolt(force), ToJolt(position));
+}
+
+void JoltRigidBody::AddTorque(const Vector3& torque)
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    _bodyInterface->AddTorque(_bodyID, ToJolt(torque));
+}
+
+void JoltRigidBody::AddForceAndTorque(const Vector3& force, const Vector3& torque)
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    _bodyInterface->AddForceAndTorque(_bodyID, ToJolt(force), ToJolt(torque));
+}
+
+void JoltRigidBody::AddImpulse(const Vector3& impulse)
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    _bodyInterface->AddImpulse(_bodyID, ToJolt(impulse));
+}
+
+void JoltRigidBody::AddImpulse(const Vector3& impulse, const Vector3& position)
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    _bodyInterface->AddImpulse(_bodyID, ToJolt(impulse), ToJolt(position));
+}
+void JoltRigidBody::AddAngularImpulse(const Vector3& angularImpulse)
+{
+    JPH_ASSERT(!_bodyID.IsInvalid());
+
+    _bodyInterface->AddAngularImpulse(_bodyID, ToJolt(angularImpulse));
 }
 
 bool JoltRigidBody::ApplyBuoyancyImpulse(const Vector3& surfacePosition, const Vector3& surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vector3& fluidVelocity, const Vector3& gravity, float deltaTime)
@@ -517,22 +690,9 @@ bool JoltRigidBody::ApplyBuoyancyImpulse(const Vector3& surfacePosition, const V
 
 }
 
-struct JoltPhysicsWorld::Impl
-{
-    JPH::TempAllocatorMalloc* tempAllocator = nullptr;
-    JPH::PhysicsSystem          system;
-    JPH::BodyInterface* bodyInterface = nullptr;
-    JPH::BodyInterface* bodyInterfaceNoLock = nullptr;
-    JoltBodyActivationListener  bodyActivationListener;
-    JoltContactListener         contactListener;
-    JPH::ShapeRefC              emptyShape;
-    bool                        debugDrawEnabled = false;
-};
-
 JoltPhysicsWorld::JoltPhysicsWorld()
-    : _impl(new Impl())
 {
-    _impl->tempAllocator = new JPH::TempAllocatorMalloc();
+    _tempAllocator = new JPH::TempAllocatorMalloc();
 
     // Init the physics system
     const uint32_t maxBodies = /*config.maxBodies ? config.maxBodies :*/ 65536;
@@ -540,10 +700,10 @@ JoltPhysicsWorld::JoltPhysicsWorld()
     const uint32_t maxBodyPairs = /*config.maxBodyPairs ? config.maxBodyPairs :*/ 65536;
     const uint32_t maxContactConstraints = maxBodies;
 
-    _impl->system.Init(maxBodies, numBodyMutexes, maxBodyPairs, maxContactConstraints, s_BPLayerInterface, s_ObjVsBP, s_ObjPairFilter);
-    _impl->system.SetGravity(JPH::Vec3(0.0f, -9.81f, 0.0f));
-    _impl->system.SetBodyActivationListener(&_impl->bodyActivationListener);
-    _impl->system.SetContactListener(&_impl->contactListener);
+    _system.Init(maxBodies, numBodyMutexes, maxBodyPairs, maxContactConstraints, s_BPLayerInterface, s_ObjVsBP, s_ObjPairFilter);
+    _system.SetGravity(JPH::Vec3(0.0f, -9.81f, 0.0f));
+    _system.SetBodyActivationListener(&_bodyActivationListener);
+    _system.SetContactListener(&_contactListener);
 
     JPH::EmptyShapeSettings settings(JPH::Vec3::sZero());
     JPH::ShapeSettings::ShapeResult shapeResult = settings.Create();
@@ -553,36 +713,53 @@ JoltPhysicsWorld::JoltPhysicsWorld()
         return;
     }
 
-    _impl->emptyShape = shapeResult.Get();
-
-    _impl->bodyInterface = &_impl->system.GetBodyInterface();
-    _impl->bodyInterfaceNoLock = &_impl->system.GetBodyInterfaceNoLock();
+    _emptyShape = shapeResult.Get();
+    _bodyInterface = &_system.GetBodyInterface();
+    _bodyInterfaceNoLock = &_system.GetBodyInterfaceNoLock();
 }
 
 JoltPhysicsWorld::~JoltPhysicsWorld()
-{
-    SafeDelete(_impl);
-}
+{}
 
 JPH::PhysicsSystem& JoltPhysicsWorld::GetPhysicsSystem()
 {
-    return _impl->system;
+    return _system;
 }
 
 JPH::BodyInterface& JoltPhysicsWorld::GetBodyInterface()
 {
-    return *_impl->bodyInterface;
+    return *_bodyInterface;
 }
 
 JPH::BodyInterface& JoltPhysicsWorld::GetBodyInterfaceNoLock()
 {
-    return *_impl->bodyInterfaceNoLock;
+    return *_bodyInterfaceNoLock;
+}
+
+Vector3 JoltPhysicsWorld::GetGravity() const
+{
+    return FromJolt(_system.GetGravity());
+}
+
+void JoltPhysicsWorld::SetGravity(const Vector3& gravity)
+{
+    _system.SetGravity(ToJolt(gravity));
+}
+
+uint32_t JoltPhysicsWorld::GetBodyCount() const
+{
+    return _system.GetNumBodies();
+}
+
+uint32_t JoltPhysicsWorld::GetActiveBodyCount() const
+{
+    return _system.GetNumActiveBodies(JPH::EBodyType::RigidBody);
 }
 
 RigidBodyRef JoltPhysicsWorld::CreateRigidBody(const RigidBodyDesc& desc)
 {
-    const uint32_t count = _impl->system.GetNumBodies();
-    const uint32_t limit = _impl->system.GetMaxBodies();
+    const uint32_t count = _system.GetNumBodies();
+    const uint32_t limit = _system.GetMaxBodies();
     if (count >= limit)
     {
         LOGE("Too many bodies, limit {} reached!", limit);
@@ -621,7 +798,7 @@ RigidBodyRef JoltPhysicsWorld::CreateRigidBody(const RigidBodyDesc& desc)
     }
     else
     {
-        bodySettings.SetShape((desc.shapes.size() == 0) ? _impl->emptyShape : static_cast<JoltCollisionShape*>(desc.shapes[0])->handle);
+        bodySettings.SetShape((desc.shapes.size() == 0) ? _emptyShape : static_cast<JoltCollisionShape*>(desc.shapes[0])->handle);
     }
 
     bodySettings.mAllowedDOFs = JPH::EAllowedDOFs::All;
@@ -640,15 +817,20 @@ RigidBodyRef JoltPhysicsWorld::CreateRigidBody(const RigidBodyDesc& desc)
         bodySettings.mMassPropertiesOverride.mMass = desc.mass;
         bodySettings.mOverrideMassProperties = JPH::EOverrideMassProperties::CalculateInertia;
     }
-    JPH::Body* body = _impl->bodyInterface->CreateBody(bodySettings);
-    _impl->bodyInterface->AddBody(body->GetID(), JPH::EActivation::Activate);
+    JPH::Body* body = _bodyInterface->CreateBody(bodySettings);
+    _bodyInterface->AddBody(body->GetID(), JPH::EActivation::Activate);
 
     //_physicsSystem.OptimizeBroadPhase();
 
-    SharedPtr<JoltRigidBody> rigidBody = MakeShared<JoltRigidBody>(body->GetID(), _impl->bodyInterface);
-    _impl->bodyInterface->SetUserData(body->GetID(), reinterpret_cast<uint64_t>(rigidBody.Get()));
+    SharedPtr<JoltRigidBody> rigidBody = MakeShared<JoltRigidBody>(body->GetID(), _bodyInterface);
+    _bodyInterface->SetUserData(body->GetID(), reinterpret_cast<uint64_t>(rigidBody.Get()));
 
     return rigidBody;
+}
+
+void JoltPhysicsWorld::OptimizeBroadPhase()
+{
+    _system.OptimizeBroadPhase();
 }
 
 /* JoltPhysicsBackend */

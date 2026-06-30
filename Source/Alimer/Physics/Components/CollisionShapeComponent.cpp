@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 #include "Alimer/Physics/Components/CollisionShapeComponent.h"
+#include "Alimer/Physics/Components/RigidBodyComponent.h"
 #include "Alimer/Scene/Entity.h"
 #include "Alimer/Scene/Scene.h"
 #include "Alimer/Physics/Physics.h"

@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "Alimer/Physics/Types.h"
+#include "Alimer/Physics/PhysicsTypes.h"
 #include "Alimer/Scene/Component.h"
 
 namespace Alimer

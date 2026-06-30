@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "Alimer/Scene/Types.h"
+#include "Alimer/Scene/SceneTypes.h"
 #include "Alimer/Serialization/Serializable.h"
 
 namespace Alimer

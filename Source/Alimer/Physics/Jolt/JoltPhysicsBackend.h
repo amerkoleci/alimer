@@ -24,24 +24,6 @@ namespace Alimer
         static constexpr uint8_t NUM_LAYERS = 5;
     };
 
-    class JoltPhysicsWorld final : public PhysicsWorld
-    {
-    public:
-        JoltPhysicsWorld();
-        ~JoltPhysicsWorld() override;
-        
-        [[nodiscard]] JPH::PhysicsSystem& GetPhysicsSystem();
-        [[nodiscard]] JPH::BodyInterface& GetBodyInterface();
-        [[nodiscard]] JPH::BodyInterface& GetBodyInterfaceNoLock();
-
-        RigidBodyRef CreateRigidBody(const RigidBodyDesc& desc) override;
-
-    private:
-        struct Impl;
-
-        Impl* _impl = nullptr;
-    };
-
     class JoltPhysicsBackend final : public PhysicsBackend
     {
     public:

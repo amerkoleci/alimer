@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "Alimer/Physics/Types.h"
+#include "Alimer/Physics/PhysicsTypes.h"
 #include "Alimer/Math/Matrix4x4.h"
 #include "Alimer/Math/BoundingBox.h"
 
@@ -28,9 +28,40 @@ namespace Alimer
         [[nodiscard]] virtual RigidBodyType GetType() const = 0;
         virtual void SetType(RigidBodyType type) = 0;
 
+        [[nodiscard]] virtual bool IsActive() const = 0;
+        virtual void Activate() = 0;
+        virtual void Deactivate() = 0;
+
+        [[nodiscard]] virtual Vector3 GetPosition() const = 0;
+        [[nodiscard]] virtual Quaternion GetRotation() const = 0;
+
         [[nodiscard]] virtual RigidBodyTransform GetTransform() const = 0;
         virtual void SetTransform(const RigidBodyTransform& transform) = 0;
         [[nodiscard]] virtual Matrix4x4 GetWorldTransform() const = 0;
+
+        [[nodiscard]] virtual Vector3 GetCenterOfMass() const = 0;
+
+        [[nodiscard]] virtual Vector3 GetLinearVelocity() const = 0;
+        virtual void SetLinearVelocity(const Vector3& velocity) = 0;
+
+        [[nodiscard]] virtual Vector3 GetAngularVelocity() const = 0;
+        virtual void SetAngularVelocity(const Vector3& velocity) = 0;
+
+        /// Add force at center of mass.
+        virtual void AddForce(const Vector3& force) = 0;
+        /// Add force at world space position.
+        virtual void AddForce(const Vector3& force, const Vector3& position) = 0;
+        /// Add torque.
+        virtual void AddTorque(const Vector3& torque) = 0;
+        /// Add force and torque.
+        virtual void AddForceAndTorque(const Vector3& force, const Vector3& torque) = 0;
+
+        /// Add impulse to center of mass (unit: kg m/s).
+        virtual void AddImpulse(const Vector3& impulse) = 0;
+        /// Add impulse at world space position.
+        virtual void AddImpulse(const Vector3& impulse, const Vector3& position) = 0;
+        /// Add angular impulse in world space
+        virtual void AddAngularImpulse(const Vector3& angularImpulse) = 0;
 
         virtual bool ApplyBuoyancyImpulse(const Vector3& surfacePosition, const Vector3& surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vector3& fluidVelocity, const Vector3& gravity, float deltaTime) = 0;
     };
@@ -38,7 +69,15 @@ namespace Alimer
     class ALIMER_API PhysicsWorld : public RefCounted
     {
     public:
+        [[nodiscard]] virtual Vector3 GetGravity() const = 0;
+        virtual void SetGravity(const Vector3& gravity) = 0;
+
+        [[nodiscard]] virtual uint32_t GetBodyCount() const = 0;
+        [[nodiscard]] virtual uint32_t GetActiveBodyCount() const = 0;
+
         [[nodiscard]] virtual RigidBodyRef CreateRigidBody(const RigidBodyDesc& desc) = 0;
+
+        virtual void OptimizeBroadPhase() = 0;
     };
 
     class PhysicsBackend

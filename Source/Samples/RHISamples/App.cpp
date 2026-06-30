@@ -5,6 +5,7 @@
 #include "DrawTriangle.h"
 #include "DrawIndexedQuad.h"
 #include "DrawSpinningCube.h"
+#include "DrawTexturedCubeSample.h"
 #include <Alimer/EntryPoint.h>
 
 class RHISamplesApp final : public Application
@@ -41,7 +42,8 @@ void RHISamplesApp::Initialize()
 
     //runningSample = new DrawTriangle();
     //runningSample = new DrawIndexedQuad();
-    _runningSample = new DrawSpinningCube();
+    //_runningSample = new DrawSpinningCube();
+    _runningSample = new DrawTexturedCubeSample();
 
     _runningSample->Initialize(_rhiDevice, GetMainWindow()->GetSizeInPixels(), GetMainWindow()->GetColorFormat(), depthStencilFormat);
 
