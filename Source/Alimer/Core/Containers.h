@@ -16,9 +16,13 @@
 #include <ankerl/unordered_dense.h>
 #include <span>
 #endif
+#include <type_traits>
+#include <algorithm>
 
 namespace Alimer
 {
+    static constexpr uint32_t kInvalidIndex = -1;
+
     template <typename T, size_t Size> using Array = std::array<T, Size>;
 
 #if defined(ALIMER_STD_CONTAINERS)
@@ -89,14 +93,62 @@ namespace Alimer
 
     // Usage: VectorContains( vector, value, [] ( T const& typeRef, V const& valueRef ) { ... } );
     template<typename T, typename V, typename Predicate>
-    inline bool VectorContains(Vector<T> const& vector, V const& value, Predicate predicate)
+    inline bool VectorContains(const Vector<T>& vector, V const& value, Predicate predicate)
     {
         return std::find(vector.begin(), vector.end(), value, std::forward<Predicate>(predicate)) != vector.end();
     }
 
     template<typename T, typename V, typename Predicate>
-    inline bool VectorContains(Vector<T> const& vector, Predicate predicate)
+    inline bool VectorContains(const Vector<T>& vector, Predicate predicate)
     {
         return std::find_if(vector.begin(), vector.end(), std::forward<Predicate>(predicate)) != vector.end();
+    }
+
+    template<typename T>
+    inline void VectorRemoveAtIndex(Vector<T>& vector, uint32_t index)
+    {
+        vector.erase(vector.begin() + index);
+    }
+
+    template<typename T>
+    inline int32_t VectorFindIndex(const Vector<T>& vector, T const& value)
+    {
+        auto iter = std::find(vector.begin(), vector.end(), value);
+        if (iter == vector.end())
+        {
+            return kInvalidIndex;
+        }
+        else
+        {
+            return (int32_t)(iter - vector.begin());
+        }
+    }
+
+    template<typename T, typename V, typename Predicate>
+    inline int32_t VectorFindIndex(const Vector<T>& vector, const V& value, Predicate predicate)
+    {
+        auto iter = std::find(vector.begin(), vector.end(), value, predicate);
+        if (iter == vector.end())
+        {
+            return kInvalidIndex;
+        }
+        else
+        {
+            return (int32_t)(iter - vector.begin());
+        }
+    }
+
+    template<typename T, typename V, typename Predicate>
+    inline int32_t VectorFindIndex(const Vector<T>& vector, Predicate predicate)
+    {
+        auto iter = std::find_if(vector.begin(), vector.end(), predicate);
+        if (iter == vector.end())
+        {
+            return kInvalidIndex;
+        }
+        else
+        {
+            return (int32_t)(iter - vector.begin());
+        }
     }
 }

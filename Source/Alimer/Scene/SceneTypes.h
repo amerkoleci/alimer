@@ -11,6 +11,7 @@ namespace Alimer
     class Entity;
     class Scene;
 
+    using ComponentRef = SharedPtr<Component>;
     using EntityRef = SharedPtr<Entity>;
     using SceneRef = SharedPtr<Scene>;
 }

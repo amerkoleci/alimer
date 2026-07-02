@@ -38,3 +38,40 @@ void Entity::SetName(StringView name)
 {
     _name = name;
 }
+
+bool Entity::IsRoot() const
+{
+    return _parent == nullptr;
+}
+
+void Entity::OnTransformChanged()
+{
+}
+
+void Entity::MarkDirty(bool markLocalDirty)
+{
+    if (markLocalDirty)
+        _localMatrixDirty = true;
+
+    OnTransformChanged();
+    if (_worldMatrixDirty)
+        return;
+
+    _worldMatrixDirty = true;
+    for (auto& child : _children)
+    {
+        child->MarkDirty(false);
+    }
+}
+
+void Entity::SetLocalPosition(float x, float y, float z)
+{
+    _localPosition.Set(x, y, z);
+    MarkDirty();
+}
+
+void Entity::SetLocalPosition(const Vector3& position)
+{
+    _localPosition = position;
+    MarkDirty();
+}

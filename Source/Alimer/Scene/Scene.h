@@ -29,6 +29,13 @@ namespace Alimer
         void SetName(const String& name);
         void SetName(StringView name);
 
+        void Load(const SerializeValue& source, ObjectResolver& resolver) override;
+        void Save(SerializeValue& dest) override;
+
+        /// Load from binary stream. Store node references to be resolved later.
+        void Load(Stream& source, ObjectResolver& resolver) override;
+        void Save(Stream& dest) override;
+
         [[nodiscard]] bool LoadGLTF(const String& path);
 
         [[nodiscard]] PhysicsWorld* GetPhysicsWorld() const { return _physicsWorld.Get(); }

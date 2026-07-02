@@ -42,7 +42,6 @@ define_engine_source_files(
     Platform
     Math
     IO
-    Serialization
     Assets
     Scene
     RHI

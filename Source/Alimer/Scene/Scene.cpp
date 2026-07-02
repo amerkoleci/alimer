@@ -4,6 +4,7 @@
 #include "Alimer/Core/Log.h"
 #include "Alimer/Scene/Scene.h"
 #include "Alimer/Scene/Entity.h"
+#include "Alimer/Core/ObjectResolver.h"
 //#include "Alimer/Scene/Prefab.h"
 #include "Alimer/Physics/Physics.h"
 #include "Alimer/Core/JobSystem.h"
@@ -42,6 +43,31 @@ void Scene::SetName(StringView name)
 {
     _name = name;
 }
+
+void Scene::Load(const SerializeValue& source, ObjectResolver& resolver)
+{
+    // TODO: Implement scene loading from serialized data
+}
+
+void Scene::Save(SerializeValue& dest)
+{
+    // TODO: Implement scene saving to serialized data
+}
+
+void Scene::Load(Stream& source, ObjectResolver& resolver)
+{
+    bool isSceneFile = source.ReadFileID() == "ASCN";
+}
+
+void Scene::Save(Stream& dest)
+{
+    //ALIMER_PROFILE_CPU("SaveScene");
+
+    dest.WriteFileID("ASCN");
+
+    Serializable::Save(dest);
+}
+
 
 bool Scene::LoadGLTF(const String& path)
 {
@@ -89,3 +115,4 @@ bool Scene::LoadGLTF(const String& path)
 
     return true;
 }
+

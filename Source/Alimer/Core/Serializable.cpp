@@ -4,7 +4,7 @@
 #include "Alimer/Core/Log.h"
 #include "Alimer/IO/Stream.h"
 #include "Alimer/Core/ObjectResolver.h"
-#include "Alimer/Serialization/Serializable.h"
+#include "Alimer/Core/Serializable.h"
 
 using namespace Alimer;
 
