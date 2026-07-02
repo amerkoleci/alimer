@@ -9,8 +9,7 @@
 
 namespace Alimer
 {
-    //class Serializer;
-    //class IDeserializer;
+    class SerializeValue;
     class PropertyInfo;
     class Object;
 
@@ -180,11 +179,11 @@ namespace Alimer
         /// Return property type.
         [[nodiscard]] virtual VariantType GetPropertyType() const = 0;
 
-        /// Serialize.
-        //virtual void Serialize(Object* instance, Serializer& serializer) = 0;
+        /// Serialize from serialize value.
+        virtual void ToSerializeValue(Object* instance, SerializeValue& dest) = 0;
 
-        /// Deserialize.
-        //virtual void Deserialize(Object* instance, IDeserializer& deserializer) = 0;
+        /// Deserialize from a serialize value.
+        virtual void FromSerializeValue(Object* instance, const SerializeValue& source) = 0;
 
         /// Deserialize from a binary stream.
         virtual void FromBinary(Object* instance, Stream& source) = 0;
@@ -195,10 +194,10 @@ namespace Alimer
         static void Skip(VariantType type, Stream& source);
 
         /// Serialize property value.
-        //static void Serialize(Serializer& serializer, const std::string& propertyName, VariantType type, const void* source);
+        static void ToSerializeValue(VariantType type, SerializeValue& dest, const void* source);
 
         /// Deserialize property value.
-        //static bool Deserialize(IDeserializer& deserializer, const std::string& propertyName, VariantType type, void* dest);
+        static void FromSerializeValue(VariantType type, void* dest, const SerializeValue& source);
 
     protected:
         /// Variable name.
@@ -243,23 +242,19 @@ namespace Alimer
             return GetVariantType<T>();
         }
 
-#if TODO_SERIALIAZION
-        void Serialize(Object* instance, Serializer& serializer) override
+        void ToSerializeValue(Object* instance, SerializeValue& dest) override
         {
             T value;
             _accessor->Get(instance, &value);
-            PropertyInfo::Serialize(serializer, _name, GetPropertyType(), &value);
+            PropertyInfo::ToSerializeValue(GetPropertyType(), dest, &value);
         }
 
-        void Deserialize(Serializable* instance, IDeserializer& deserializer) override
+        void FromSerializeValue(Object* instance, const SerializeValue& source) override
         {
             T value;
-            if (PropertyInfo::Deserialize(deserializer, _name, GetPropertyType(), &value))
-            {
-                _accessor->Set(instance, &value);
-            }
+            PropertyInfo::FromSerializeValue(GetPropertyType(), &value, source);
+            _accessor->Set(instance, &value);
         }
-#endif // TODO_SERIALIAZION
 
         /// Deserialize from a binary stream.
         void FromBinary(Object* instance, Stream& source) override
@@ -317,23 +312,19 @@ namespace Alimer
             return VariantType::Enum;
         }
 
-#if TODO_SERIALIAZION
-        void Serialize(Object* instance, Serializer& serializer) override
+        void ToSerializeValue(Object* instance, SerializeValue& dest) override
         {
             T value;
             _accessor->Get(instance, &value);
-            PropertyInfo::Serialize(serializer, _name, GetPropertyType(), &value);
+            PropertyInfo::ToSerializeValue(GetPropertyType(), dest, &value);
         }
 
-        void Deserialize(Serializable* instance, IDeserializer& deserializer) override
+        void FromSerializeValue(Object* instance, const SerializeValue& source) override
         {
             T value;
-            if (PropertyInfo::Deserialize(deserializer, _name, GetPropertyType(), &value))
-            {
-                _accessor->Set(instance, &value);
-            }
+            PropertyInfo::FromSerializeValue(GetPropertyType(), &value, source);
+            _accessor->Set(instance, &value);
         }
-#endif // TODO_SERIALIAZION
 
         /// Deserialize from a binary stream.
         void FromBinary(Object* instance, Stream& source) override

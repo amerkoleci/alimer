@@ -6,8 +6,7 @@
 #if defined(ALIMER_RHI_D3D12)
 #include "Core/Log.h"
 #include "Core/BitOperations.h"
-#include "Core/Vector.h"
-#include "Core/UnorderedMap.h"
+#include "Core/Containers.h"
 #include "Core/Hash.h"
 #include "RHI/RHI.h"
 #include "Platform/Win32/WindowsPlatform.h"

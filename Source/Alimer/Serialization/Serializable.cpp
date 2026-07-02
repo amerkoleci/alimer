@@ -3,43 +3,12 @@
 
 #include "Alimer/Core/Log.h"
 #include "Alimer/IO/Stream.h"
+#include "Alimer/Core/ObjectResolver.h"
 #include "Alimer/Serialization/Serializable.h"
-#include "Alimer/Serialization/Serializer.h"
 
 using namespace Alimer;
 
-#if TODO_SERIALIAZION
-void Serializable::Serialize(ISerializer& serializer)
-{
-    const PropertyVector* properties = GetProperties();
-    if (properties == nullptr || properties->empty())
-        return;
-    
-    for (size_t i = 0, count = properties->size(); i < count; ++i)
-    {
-        PropertyInfo* property = properties->at(i).Get();
-        if (property->IsDefault(this))
-            continue;
-
-        property->Serialize(this, serializer);
-    }
-}
-
-void Serializable::Deserialize(IDeserializer& deserializer)
-{
-    const PropertyVector* properties = GetProperties();
-    if (properties == nullptr || properties->empty())
-        return;
-
-    for (size_t i = 0, count = properties->size(); i < count; ++i)
-    {
-        PropertyInfo* property = properties->at(i).Get();
-        property->Deserialize(this, deserializer);
-    }
-}
-#endif
-
-void Serializable::Load(Stream& source/*, ObjectResolver& resolver*/)
+void Serializable::Load(Stream& source, ObjectResolver& resolver)
 {
     const PropertyVector& properties = GetProperties();
     if (properties.empty())
@@ -59,10 +28,14 @@ void Serializable::Load(Stream& source/*, ObjectResolver& resolver*/)
             if (property->GetPropertyType() == type)
             {
                 // Store object refs to the resolver instead of immediately setting
-                //if (type != VariantType::ObjectRef)
-                property->FromBinary(this, source);
-                //else
-                //    resolver.StoreObjectRef(this, property, source.Read<ObjectRef>());
+                if (type != VariantType::ObjectRef)
+                {
+                    property->FromBinary(this, source);
+                }
+                else
+                {
+                    resolver.StoreObjectRef(this, property, source.ReadObjectRef());
+                }
 
                 skip = false;
             }
@@ -87,5 +60,49 @@ void Serializable::Save(Stream& dest)
 
         dest.Write(property->GetPropertyType());
         property->ToBinary(this, dest);
+    }
+}
+
+void Serializable::Load(const SerializeValue& source, ObjectResolver& resolver)
+{
+    const PropertyVector& properties = GetProperties();
+    if (properties.empty() || !source.IsObject() || !source.Size())
+        return;
+
+    const SerializeValueObject& object = source.GetObject();
+
+    for (auto it = properties.begin(); it != properties.end(); ++it)
+    {
+        PropertyInfo* property = *it;
+        auto jsonIt = object.find(property->GetName());
+        if (jsonIt != object.end())
+        {
+            // Store object refs to the resolver instead of immediately setting
+            if (property->GetPropertyType() != VariantType::ObjectRef)
+            {
+                property->FromSerializeValue(this, jsonIt->second);
+            }
+            else
+            {
+                resolver.StoreObjectRef(this, property, ObjectRef(jsonIt->second.GetUInt32()));
+            }
+        }
+    }
+}
+
+void Serializable::Save(SerializeValue& dest)
+{
+    const PropertyVector& properties = GetProperties();
+    if (properties.empty())
+        return;
+
+    for (size_t i = 0, count = properties.size(); i < count; ++i)
+    {
+        PropertyInfo* property = properties[i].Get();
+        // For better readability, do not save default-valued attributes to serialize value.
+        if (!property->IsDefault(this))
+        {
+            property->ToSerializeValue(this, dest[property->GetName()]);
+        }
     }
 }

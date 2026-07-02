@@ -53,37 +53,18 @@ void RHISamplesApp::Initialize()
     //AudioSource* source = new AudioSource(clip.Get());
     //source->Play();
 
-    {
-        JsonSerializer serializer;
-        float x = 3.0f;
-        float y = -4.55f;
-        Vector2 vec2{ 1.0f, 2.0f };
-        std::string hello = "Hello";
-        serializer.BeginObject("TestArray", true);
-        serializer.Serialize(nullptr, x);
-        serializer.Serialize(nullptr, y);
-        //serializer.Serialize("Hello", "World");
-        serializer.Serialize(nullptr, hello);
-        serializer.Serialize(nullptr, vec2);
-        serializer.EndObject();
-#if 0
-        std::string str = serializer.ToString();
-        LOGI("Serialized JSON: {}", str);
+    Vector3 position(145580.256f, 128.0f, -256.2f);
 
-        JsonSerializer deserializer(str);
-        deserializer.BeginObject("TestArray", true);
-        deserializer.Serialize(nullptr, x);
-        deserializer.Serialize(nullptr, y);
-        //serializer.Serialize("Hello", "World");
-        //deserializer.Serialize(nullptr, hello);
-        //deserializer.Serialize(nullptr, vec2);
-        deserializer.EndObject();
+    SerializeValue value;
+    value.PushFixedFloatArray(&position.x, 3);
+    String jsonValue = value.ToJson();
 
-        //deserializer.BeginObject("TestArrayNone", false);
-       // deserializer.EndObject();  
-#endif // 0
-
-    }
+    //SerializeValue readValue = SerializeValue::ParseJson(jsonValue);
+    //ALIMER_ASSERT(readValue.IsArray());
+    //ALIMER_ASSERT(readValue.Size() == 3);
+    //float x = readValue[0].GetFloat();
+    //float y = readValue[1].GetFloat();
+    //float z = readValue[2].GetFloat();
 }
 
 void RHISamplesApp::Draw([[maybe_unused]] RHICommandBuffer* commandBuffer, [[maybe_unused]] RHITexture* outputTexture)

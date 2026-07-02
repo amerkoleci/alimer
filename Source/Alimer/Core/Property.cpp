@@ -4,7 +4,6 @@
 #include "Alimer/Core/Log.h"
 #include "Alimer/Core/Object.h"
 #include "Alimer/Core/SerializeValue.h"
-//#include "Alimer/Serialization/Serializer.h"
 
 using namespace Alimer;
 
@@ -51,140 +50,89 @@ void PropertyInfo::Skip(VariantType type, Stream& source)
     }
 }
 
-#if TODO_SERIALIAZION
-void PropertyInfo::Serialize(ISerializer& serializer, const std::string& propertyName, VariantType type, const void* source)
+void PropertyInfo::ToSerializeValue(VariantType type, SerializeValue& dest, const void* source)
 {
     switch (type)
     {
         case VariantType::Bool:
-            serializer.Write(propertyName, *(reinterpret_cast<const bool*>(source)));
+            dest = *(reinterpret_cast<const bool*>(source));
             break;
 
         case VariantType::Int8:
-            serializer.Write(propertyName, *(reinterpret_cast<const int8_t*>(source)));
+            dest = *(reinterpret_cast<const int8_t*>(source));
             break;
 
         case VariantType::UInt8:
-            serializer.Write(propertyName, *(reinterpret_cast<const uint8_t*>(source)));
+            dest = *(reinterpret_cast<const uint8_t*>(source));
             break;
 
         case VariantType::Int16:
-            serializer.Write(propertyName, *(reinterpret_cast<const int16_t*>(source)));
+            dest = *(reinterpret_cast<const int16_t*>(source));
             break;
 
         case VariantType::UInt16:
-            serializer.Write(propertyName, *(reinterpret_cast<const uint16_t*>(source)));
+            dest = *(reinterpret_cast<const uint16_t*>(source));
             break;
 
         case VariantType::Int32:
-            serializer.Write(propertyName, *(reinterpret_cast<const int32_t*>(source)));
+            dest = *(reinterpret_cast<const int32_t*>(source));
             break;
 
         case VariantType::UInt32:
-            serializer.Write(propertyName, *(reinterpret_cast<const uint32_t*>(source)));
+            dest = *(reinterpret_cast<const uint32_t*>(source));
             break;
 
         case VariantType::Int64:
-            serializer.Write(propertyName, *(reinterpret_cast<const int64_t*>(source)));
+            dest = *(reinterpret_cast<const int64_t*>(source));
             break;
 
         case VariantType::UInt64:
-            serializer.Write(propertyName, *(reinterpret_cast<const uint64_t*>(source)));
+            dest = *(reinterpret_cast<const uint64_t*>(source));
             break;
 
         case VariantType::Float:
-            serializer.Write(propertyName, *(reinterpret_cast<const float*>(source)));
+            dest = *(reinterpret_cast<const float*>(source));
             break;
 
         case VariantType::Double:
-            serializer.Write(propertyName, *(reinterpret_cast<const double*>(source)));
+            dest = *(reinterpret_cast<const double*>(source));
             break;
 
         case VariantType::Enum:
-            serializer.Write(propertyName, *(reinterpret_cast<const uint64_t*>(source)));
+            dest = *(reinterpret_cast<const uint64_t*>(source));
             break;
 
         case VariantType::String:
-            serializer.Write(propertyName, *(reinterpret_cast<const std::string*>(source)));
+            dest = *(reinterpret_cast<const String*>(source));
             break;
 
         case VariantType::AssetRef:
-            serializer.Write(propertyName, (reinterpret_cast<const AssetRef*>(source)->ToString()));
+            dest = reinterpret_cast<const AssetRef*>(source)->ToString();
             break;
 
         case VariantType::AssetRefList:
-            serializer.Write(propertyName, (reinterpret_cast<const AssetRefList*>(source)->ToString()));
+            dest = reinterpret_cast<const AssetRefList*>(source)->ToString();
             break;
 
         case VariantType::Vector2:
-            serializer.Write(propertyName, *(reinterpret_cast<const Vector2*>(source)));
+            dest.PushFixedFloatArray(reinterpret_cast<const Vector2*>(source)->data, 2);
             break;
 
         case VariantType::Vector3:
-            serializer.Write(propertyName, *(reinterpret_cast<const Vector3*>(source)));
+            dest.PushFixedFloatArray(reinterpret_cast<const Vector3*>(source)->data, 3);
             break;
 
         case VariantType::Vector4:
-            serializer.Write(propertyName, *(reinterpret_cast<const Vector4*>(source)));
+            dest.PushFixedFloatArray(reinterpret_cast<const Vector4*>(source)->data, 4);
             break;
 
         case VariantType::Quaternion:
-            serializer.Write(propertyName, *(reinterpret_cast<const Quaternion*>(source)));
+            dest.PushFixedFloatArray(reinterpret_cast<const Quaternion*>(source)->data, 4);
             break;
 
-#if TODO
-        case ATTR_INTVECTOR2:
-            reinterpret_cast<IntVector2*>(dest)->FromString(source.GetString());
+        case VariantType::Color:
+            dest.PushFixedFloatArray(&reinterpret_cast<const Color*>(source)->r, 4);
             break;
-
-        case ATTR_INTVECTOR3:
-            reinterpret_cast<IntVector3*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_INTRECT:
-            reinterpret_cast<IntRect*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_INTBOX:
-            reinterpret_cast<IntBox*>(dest)->FromString(source.GetString());
-            break;
-        case ATTR_QUATERNION:
-            reinterpret_cast<Quaternion*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_COLOR:
-            reinterpret_cast<Color*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_RECT:
-            reinterpret_cast<Rect*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_BOUNDINGBOX:
-            reinterpret_cast<BoundingBox*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_MATRIX3:
-            reinterpret_cast<Matrix3*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_MATRIX3X4:
-            reinterpret_cast<Matrix3x4*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_MATRIX4:
-            reinterpret_cast<Matrix4*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_OBJECTREF:
-            reinterpret_cast<ObjectRef*>(dest)->id = (unsigned)source.GetNumber();
-            break;
-
-        case ATTR_JSONVALUE:
-            *(reinterpret_cast<SerializeValue*>(dest)) = source;
-            break;
-#endif // TODO
-
 
         default:
             ALIMER_ASSERT(false);
@@ -192,130 +140,62 @@ void PropertyInfo::Serialize(ISerializer& serializer, const std::string& propert
     }
 }
 
-bool PropertyInfo::Deserialize(IDeserializer& deserializer, const std::string& propertyName, VariantType type, void* dest)
+void PropertyInfo::FromSerializeValue(VariantType type, void* dest, const SerializeValue& source)
 {
     switch (type)
     {
         case VariantType::Bool:
-            return deserializer.Read(propertyName, *(reinterpret_cast<bool*>(dest)));
+            *(reinterpret_cast<bool*>(dest)) = source.GetBool();
+            break;
 
         case VariantType::Int8:
-            return deserializer.Read(propertyName, *(reinterpret_cast<int8_t*>(dest)));
+            *(reinterpret_cast<int8_t*>(dest)) = static_cast<int8_t>(source.GetInt8());
+            break;
 
         case VariantType::UInt8:
-            return deserializer.Read(propertyName, *(reinterpret_cast<uint8_t*>(dest)));
+            *(reinterpret_cast<uint8_t*>(dest)) = static_cast<uint8_t>(source.GetUInt8());
+            break;
 
         case VariantType::Int16:
-            return deserializer.Read(propertyName, *(reinterpret_cast<int16_t*>(dest)));
+            *(reinterpret_cast<int16_t*>(dest)) = static_cast<int16_t>(source.GetInt16());
+            break;
 
         case VariantType::UInt16:
-            return deserializer.Read(propertyName, *(reinterpret_cast<uint16_t*>(dest)));
+            *(reinterpret_cast<uint16_t*>(dest)) = static_cast<uint16_t>(source.GetUInt16());
+            break;
 
         case VariantType::Int32:
-            return deserializer.Read(propertyName, *(reinterpret_cast<int32_t*>(dest)));
+            *(reinterpret_cast<int32_t*>(dest)) = static_cast<int32_t>(source.GetInt32());
+            break;
 
         case VariantType::UInt32:
-            return deserializer.Read(propertyName, *(reinterpret_cast<uint32_t*>(dest)));
+            *(reinterpret_cast<uint32_t*>(dest)) = static_cast<uint32_t>(source.GetUInt32());
+            break;
 
         case VariantType::Int64:
-            return deserializer.Read(propertyName, *(reinterpret_cast<int64_t*>(dest)));
+            *(reinterpret_cast<int64_t*>(dest)) = static_cast<int64_t>(source.GetInt64());
+            break;
 
         case VariantType::UInt64:
-            return deserializer.Read(propertyName, *(reinterpret_cast<uint64_t*>(dest)));
+            *(reinterpret_cast<uint64_t*>(dest)) = static_cast<uint64_t>(source.GetUInt64());
+            break;
 
         case VariantType::Float:
-            return deserializer.Read(propertyName, *(reinterpret_cast<float*>(dest)));
+            *(reinterpret_cast<float*>(dest)) = static_cast<float>(source.GetFloat());
+            break;
 
         case VariantType::Double:
-            return deserializer.Read(propertyName, *(reinterpret_cast<double*>(dest)));
+            *(reinterpret_cast<double*>(dest)) = static_cast<double>(source.GetDouble());
+            break;
 
         case VariantType::String:
-            return deserializer.Read(propertyName, *(reinterpret_cast<std::string*>(dest)));
+            *(reinterpret_cast<String*>(dest)) = source.GetString();
             break;
-
-#if TODO_NEW
-        case VariantType::Vector2:
-            return deserializer.Read(propertyName, *(reinterpret_cast<Vector2*>(dest)));
-
-        case VariantType::Vector3:
-            return deserializer.Read(propertyName, *(reinterpret_cast<Vector3*>(dest)));
-
-        case VariantType::Vector4:
-            return deserializer.Read(propertyName, *(reinterpret_cast<Vector4*>(dest)));
-
-        case VariantType::AssetRef:
-            return deserializer.Read(propertyName, *(reinterpret_cast<AssetRef*>(dest)));
-
-        case VariantType::AssetRefList:
-            return deserializer.Read(propertyName, *(reinterpret_cast<AssetRefList*>(dest)));
-#endif // TODO_NEW
-
-
-#if TODO
-        case ATTR_INTVECTOR2:
-            reinterpret_cast<IntVector2*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_INTVECTOR3:
-            reinterpret_cast<IntVector3*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_INTRECT:
-            reinterpret_cast<IntRect*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_INTBOX:
-            reinterpret_cast<IntBox*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_QUATERNION:
-            reinterpret_cast<Quaternion*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_COLOR:
-            reinterpret_cast<Color*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_RECT:
-            reinterpret_cast<Rect*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_BOUNDINGBOX:
-            reinterpret_cast<BoundingBox*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_MATRIX3:
-            reinterpret_cast<Matrix3*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_MATRIX3X4:
-            reinterpret_cast<Matrix3x4*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_MATRIX4:
-            reinterpret_cast<Matrix4*>(dest)->FromString(source.GetString());
-            break;
-
-        case ATTR_STRING:
-            *(reinterpret_cast<std::string*>(dest)) = source.GetString();
-            break;
-
-        case ATTR_OBJECTREF:
-            reinterpret_cast<ObjectRef*>(dest)->id = (unsigned)source.GetNumber();
-            break;
-
-        case ATTR_JSONVALUE:
-            *(reinterpret_cast<SerializeValue*>(dest)) = source;
-            break;
-#endif // TODO
-
 
         default:
-            ALIMER_ASSERT(false);
-            return false;
+            break;
     }
 }
-#endif
 
 void PropertyInfo::GetValue(const Object* instance, void* dest) const
 {

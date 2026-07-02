@@ -4,7 +4,6 @@
 #pragma once
 
 #include "Alimer/Core/String.h"
-#include "Alimer/Core/Vector.h"
 #include "Alimer/Core/UUID.h"
 #include "Alimer/IO/Types.h"
 

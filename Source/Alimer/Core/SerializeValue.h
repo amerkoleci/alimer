@@ -4,9 +4,8 @@
 #pragma once
 
 #include "Alimer/Core/Assert.h"
+#include "Alimer/Core/Containers.h"
 #include "Alimer/Core/String.h"
-#include "Alimer/Core/Vector.h"
-#include "Alimer/Core/UnorderedMap.h"
 
 namespace Alimer
 {
@@ -41,6 +40,10 @@ namespace Alimer
     {
         /// Not a number.
         NaN = 0,
+        /// 8-bit signed integer.
+        Int8,
+        /// 8-bit unsigned integer.
+        UInt8,
         /// 16-bit signed integer.
         Int16,
         /// 16-bit unsigned integer.
@@ -86,37 +89,49 @@ namespace Alimer
             *this = value;
         }
 
-        /// Construct from an integer number.
+        /// Construct from a 8-bit signed integer number number.
+        SerializeValue(int8_t value)
+        {
+            *this = value;
+        }
+
+        /// Construct from an   signed integer number.
+        SerializeValue(uint8_t value)
+        {
+            *this = value;
+        }
+
+        /// Construct from a 16-bit signed integer number.
         SerializeValue(int16_t value)
         {
             *this = value;
         }
 
-        /// Construct from an unsigned integer number.
+        /// Construct from a 16-bit unsigned integer number.
         SerializeValue(uint16_t value)
         {
             *this = value;
         }
 
-        /// Construct from an integer number.
+        /// Construct from a 32-bit signed integer number.
         SerializeValue(int32_t value)
         {
             *this = value;
         }
 
-        /// Construct from an unsigned integer number.
+        /// Construct from a 32-bit unsigned integer number.
         SerializeValue(uint32_t value)
         {
             *this = value;
         }
 
-        /// Construct from an int64_t number.
+        /// Construct from a 64-bit signed integer number.
         SerializeValue(int64_t value)
         {
             *this = value;
         }
 
-        /// Construct from an uint64_t number.
+        /// Construct from a 64-bit unsigned integer number.
         SerializeValue(uint64_t value)
         {
             *this = value;
@@ -181,6 +196,10 @@ namespace Alimer
         SerializeValue& operator =(SerializeValue&& rhs);
         /// Assign a boolean.
         SerializeValue& operator = (bool rhs);
+        /// Assign an 8-bit signed integer number.
+        SerializeValue& operator = (int8_t rhs);
+        /// Assign an 8-bit unsigned integer number.
+        SerializeValue& operator = (uint8_t rhs);
         /// Assign an 16-bit signed integer number.
         SerializeValue& operator = (int16_t rhs);
         /// Assign a 16-bit unsigned integer number.
@@ -215,6 +234,8 @@ namespace Alimer
         const SerializeValue& operator [] (size_t index) const;
         /// Push a value at the end. Becomes an array if was not before.
         void Push(SerializeValue value);
+        /// Push a value at the end. Becomes an array if was not before.
+        void PushFixedFloatArray(const float* data, size_t count);
         /// Remove the last value. No-op if not an array.
         void Pop();
         /// Insert a value at position. Becomes an array if was not before.
@@ -241,6 +262,9 @@ namespace Alimer
         /// Return serialize value with key.
         const SerializeValue& Get(const String& key) const;
 
+        /// Insert an associative value. Becomes an object if was not before.
+        void Insert(const String& key, SerializeValue value);
+
         /// Test for equality with another serialize value.
         bool operator == (const SerializeValue& rhs) const;
         /// Test for inequality.
@@ -260,18 +284,15 @@ namespace Alimer
         /// Serialize to a binary stream.
         void ToBinary(Stream& dest) const;
 
-        /// Insert an associative value. Becomes an object if was not before.
-        void Insert(const std::pair<String, SerializeValue>& pair);
-
         /// Remove an associative value. No-op if not an object.
         bool Erase(const String& key);
         /// Clear array or object. No-op otherwise.
         void Clear();
-        /// Set to an empty array.
-        void SetEmptyArray();
-        /// Set to an empty object.
-        void SetEmptyObject();
-        /// Set to null value.
+        /// Set this value as an empty array.
+        void SetArray();
+        /// Set this value as an empty object.
+        void SetObject();
+        /// Set this value as null.
         void SetNull();
 
         /// Return number of values for objects or arrays, or 0 otherwise.
@@ -307,16 +328,20 @@ namespace Alimer
         /// Return whether is a number and 32-bit unsigned integer.
         bool IsUInt32()   const { return GetValueType() == SerializeValueType::Number && GetNumberType() == SerializeValueNumberType::UInt32; }
         /// Return whether is a number and 64-bit signed integer.
-        bool IsInt64()  const { return GetValueType() == SerializeValueType::Number && GetNumberType() == SerializeValueNumberType::Int64; }
+        bool IsInt64()    const { return GetValueType() == SerializeValueType::Number && GetNumberType() == SerializeValueNumberType::Int64; }
         /// Return whether is a number and 64-bit unsigned integer.
-        bool IsUInt64() const { return GetValueType() == SerializeValueType::Number && GetNumberType() == SerializeValueNumberType::UInt64; }
+        bool IsUInt64()   const { return GetValueType() == SerializeValueType::Number && GetNumberType() == SerializeValueNumberType::UInt64; }
         /// Return whether is a double precision number.
-        bool IsDouble() const { return GetValueType() == SerializeValueType::Number && GetNumberType() == SerializeValueNumberType::Double; }
+        bool IsDouble()   const { return GetValueType() == SerializeValueType::Number && GetNumberType() == SerializeValueNumberType::Double; }
         /// Return whether is a single precision number.
-        bool IsFloat() const { return GetValueType() == SerializeValueType::Number && GetNumberType() == SerializeValueNumberType::Double; }
+        bool IsFloat()    const { return GetValueType() == SerializeValueType::Number && GetNumberType() == SerializeValueNumberType::Double; }
 
         /// Return value as a bool, or false on type mismatch.
         bool GetBool(bool defaultValue = false) const { return IsBool() ? _boolValue : defaultValue; }
+        /// Return 8-bit signed integer value.
+        int8_t GetInt8(int8_t defaultValue = 0) const { return IsNumber() ? (int8_t)_numberValue : defaultValue; }
+        /// Return 8-bit unsigned integer value.
+        uint8_t GetUInt8(uint8_t defaultValue = 0) const { return IsNumber() ? (uint8_t)_numberValue : defaultValue; }
         /// Return 16-bit signed integer value.
         int16_t GetInt16(int16_t defaultValue = 0) const { return IsNumber() ? (int16_t)_numberValue : defaultValue; }
         /// Return 16-bit unsigned integer value.

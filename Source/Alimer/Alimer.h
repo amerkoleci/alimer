@@ -70,9 +70,6 @@
 #include "Alimer/Animations/AnimationClip.h"
 #endif
 
-// Serialization
-#include <Alimer/Serialization/Serializer.h>
-
 // Platform
 #include <Alimer/Platform/Platform.h>
 #include <Alimer/Platform/DynamicLibrary.h>

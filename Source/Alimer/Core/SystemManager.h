@@ -5,8 +5,7 @@
 
 #include "Alimer/Core/System.h"
 #include "Alimer/Core/StringId.h"
-#include "Alimer/Core/Vector.h"
-#include "Alimer/Core/UnorderedMap.h"
+#include "Alimer/Core/Containers.h"
 #include <mutex>
 
 namespace Alimer

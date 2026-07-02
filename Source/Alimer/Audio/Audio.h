@@ -4,24 +4,23 @@
 #pragma once
 
 #include "Alimer/Core/Object.h"
-#include "Alimer/Core/Vector.h"
+#include "Alimer/Core/Containers.h"
 #include "Alimer/Math/Vector3.h"
 #include "Alimer/Audio/Types.h"
-#include <array>
 struct ma_engine;
 
 namespace Alimer
 {
     struct AudioDeviceId
     {
-        alignas(8) std::array<char, 256> data;
+        alignas(8) Array<char, 256> data;
     };
 
     struct AudioDevice final
     {
         AudioDeviceId deviceId;
         AudioDeviceType deviceType;
-        std::array<char, 256> deviceName;
+        Array<char, 256> deviceName;
         bool isDefault;
     };
 

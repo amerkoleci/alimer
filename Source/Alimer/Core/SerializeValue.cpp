@@ -59,7 +59,7 @@ namespace
 
             case kObjectType:
             {
-                jsonValue.SetEmptyObject();
+                jsonValue.SetObject();
                 for (rapidjson::Value::ConstMemberIterator i = rapidjsonValue.MemberBegin(); i != rapidjsonValue.MemberEnd(); ++i)
                 {
                     SerializeValue& value = jsonValue[String(i->name.GetString())];
@@ -125,7 +125,7 @@ namespace
                 rapidjsonValue.SetArray();
                 rapidjsonValue.Reserve((rapidjson::SizeType)jsonArray.size(), allocator);
 
-                for (unsigned i = 0; i < jsonArray.size(); ++i)
+                for (size_t i = 0; i < jsonArray.size(); ++i)
                 {
                     rapidjson::Value value;
                     ToRapidjsonValue(value, jsonArray[i], allocator);
@@ -246,6 +246,21 @@ SerializeValue& SerializeValue::operator = (bool rhs)
     SetType(SerializeValueType::Bool);
     _boolValue = rhs;
 
+    return *this;
+}
+
+SerializeValue& SerializeValue::operator = (int8_t rhs)
+{
+    SetType(SerializeValueType::Number, SerializeValueNumberType::Int8);
+    _numberValue = (double)rhs;
+
+    return *this;
+}
+
+SerializeValue& SerializeValue::operator = (uint8_t rhs)
+{
+    SetType(SerializeValueType::Number, SerializeValueNumberType::UInt8);
+    _numberValue = (double)rhs;
     return *this;
 }
 
@@ -370,9 +385,19 @@ void SerializeValue::Push(SerializeValue value)
     _arrayValue->push_back(std::move(value));
 }
 
+void SerializeValue::PushFixedFloatArray(const float* data, size_t count)
+{
+    Resize(count);
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        (*_arrayValue)[i] = data[i];
+    }
+}
+
 void SerializeValue::Pop()
 {
-    if (GetValueType() != SerializeValueType::Array)
+    if (!IsArray())
         return;
 
     _arrayValue->pop_back();
@@ -380,7 +405,7 @@ void SerializeValue::Pop()
 
 void SerializeValue::Insert(size_t pos, SerializeValue value)
 {
-    if (GetValueType() != SerializeValueType::Array)
+    if (!IsArray())
         return;
 
     _arrayValue->insert(_arrayValue->begin() + pos, std::move(value));
@@ -388,7 +413,7 @@ void SerializeValue::Insert(size_t pos, SerializeValue value)
 
 void SerializeValue::Erase(size_t pos, size_t length)
 {
-    if (GetValueType() != SerializeValueType::Array)
+    if (!IsArray())
         return;
 
     _arrayValue->erase(_arrayValue->begin() + pos, _arrayValue->begin() + pos + length);
@@ -436,7 +461,7 @@ SerializeValue& SerializeValue::operator [] (const String& key)
 
 const SerializeValue& SerializeValue::operator [] (const String& key) const
 {
-    if (GetValueType() != SerializeValueType::Object)
+    if (!IsObject())
         return Empty;
 
     auto it = _objectValue->find(key);
@@ -541,9 +566,9 @@ void SerializeValue::ToJson(String& dest, const String& indendation) const
 
 String SerializeValue::ToJson(const String& indendation) const
 {
-    String ret;
-    ToJson(ret, indendation);
-    return ret;
+    String result;
+    ToJson(result, indendation);
+    return result;
 }
 
 void SerializeValue::FromBinary(Stream& source)
@@ -570,7 +595,7 @@ void SerializeValue::FromBinary(Stream& source)
 
         case SerializeValueType::Array:
         {
-            SetEmptyArray();
+            SetArray();
             size_t num = source.ReadVLE();
             for (size_t i = 0; i < num && !source.IsEof(); ++i)
                 Push(source.ReadSerializeValue());
@@ -579,7 +604,7 @@ void SerializeValue::FromBinary(Stream& source)
 
         case SerializeValueType::Object:
         {
-            SetEmptyObject();
+            SetObject();
             size_t num = source.ReadVLE();
             for (size_t i = 0; i < num && !source.IsEof(); ++i)
             {
@@ -639,16 +664,16 @@ void SerializeValue::ToBinary(Stream& dest) const
     }
 }
 
-void SerializeValue::Insert(const std::pair<String, SerializeValue>& pair)
+void SerializeValue::Insert(const String& key, SerializeValue value)
 {
     SetType(SerializeValueType::Object);
 
-    _objectValue->insert(pair);
+    _objectValue->insert(std::make_pair(key, std::move(value)));
 }
 
 bool SerializeValue::Erase(const String& key)
 {
-    if (GetValueType() != SerializeValueType::Object)
+    if (!IsObject())
         return false;
 
     return _objectValue->erase(key);
@@ -656,20 +681,20 @@ bool SerializeValue::Erase(const String& key)
 
 void SerializeValue::Clear()
 {
-    if (GetValueType() == SerializeValueType::Array)
+    if (IsArray())
         _arrayValue->clear();
-    else if (GetValueType() == SerializeValueType::Object)
+    else if (IsObject())
         _objectValue->clear();
 }
 
-void SerializeValue::SetEmptyArray()
+void SerializeValue::SetArray()
 {
     SetType(SerializeValueType::Array);
 
     Clear();
 }
 
-void SerializeValue::SetEmptyObject()
+void SerializeValue::SetObject()
 {
     SetType(SerializeValueType::Object);
 
@@ -683,9 +708,9 @@ void SerializeValue::SetNull()
 
 size_t SerializeValue::Size() const
 {
-    if (GetValueType() == SerializeValueType::Array)
+    if (IsArray())
         return _arrayValue->size();
-    else if (GetValueType() == SerializeValueType::Object)
+    else if (IsObject())
         return _objectValue->size();
     else
         return 0;
@@ -693,9 +718,9 @@ size_t SerializeValue::Size() const
 
 bool SerializeValue::IsEmpty() const
 {
-    if (GetValueType() == SerializeValueType::Array)
+    if (IsArray())
         return _arrayValue->empty();
-    else if (GetValueType() == SerializeValueType::Object)
+    else if (IsObject())
         return _objectValue->empty();
     else
         return false;
@@ -703,7 +728,7 @@ bool SerializeValue::IsEmpty() const
 
 bool SerializeValue::Contains(const String& key) const
 {
-    if (GetValueType() != SerializeValueType::Object)
+    if (!IsObject())
         return false;
 
     return _objectValue->find(key) != _objectValue->end();
@@ -758,14 +783,14 @@ void SerializeValue::SetType(SerializeValueType valueType, SerializeValueNumberT
 SerializeValueObjectIterator Alimer::begin(SerializeValue& value)
 {
     // Convert to object type.
-    value.SetEmptyObject();
+    value.SetObject();
 
     return value._objectValue->begin();
 }
 
 ConstSerializeValueObjectIterator Alimer::begin(const SerializeValue& value)
 {
-    if (value.GetValueType() != SerializeValueType::Object)
+    if (!value.IsObject())
         return SerializeValue::EmptyObject.begin();
 
     return value._objectValue->begin();
@@ -781,7 +806,7 @@ SerializeValueObjectIterator Alimer::end(SerializeValue& value)
 
 ConstSerializeValueObjectIterator Alimer::end(const SerializeValue& value)
 {
-    if (value.GetValueType() != SerializeValueType::Object)
+    if (!value.IsObject())
         return SerializeValue::EmptyObject.end();
 
     return value._objectValue->end();

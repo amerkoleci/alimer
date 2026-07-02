@@ -3,8 +3,7 @@
 
 #pragma once
 
-#include "Alimer/Core/Base.h"
-#include "Alimer/Core/Vector.h"
+#include "Alimer/Core/Containers.h"
 #include <algorithm>
 #include <atomic>
 #include <mutex>

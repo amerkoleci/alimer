@@ -24,7 +24,6 @@ namespace Alimer
         virtual const std::string& GetTypeName() const = 0;
         /// Return type info.
         virtual const TypeInfo* GetTypeInfo() const = 0;
-
         /// Return type info static.
         static const TypeInfo* GetTypeInfoStatic() { return nullptr; }
 
@@ -41,6 +40,9 @@ namespace Alimer
         {
             return IsInstanceOf<T>() ? static_cast<const T*>(this) : nullptr;
         }
+
+        /// Return id for referring to the object in serialization.
+        virtual uint32_t GetId() const { return 0; }
 
         /// Return properties descriptions, or null if none defined.
         const PropertyVector& GetProperties() const;

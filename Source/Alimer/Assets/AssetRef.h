@@ -4,7 +4,7 @@
 #pragma once
 
 #include "Alimer/Core/StringId.h"
-#include "Alimer/Core/Vector.h"
+#include "Alimer/Core/Containers.h"
 
 namespace Alimer
 {

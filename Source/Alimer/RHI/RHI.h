@@ -3,10 +3,9 @@
 
 #pragma once
 
-#include "Alimer/Core/Vector.h"
+#include "Alimer/Core/Containers.h"
 #include "Alimer/Core/RefCounted.h"
 #include "Alimer/Core/PixelFormat.h"
-#include "Alimer/Core/UnorderedMap.h"
 #include "Alimer/Math/Color.h"
 //#include "Alimer/Math/Matrix4x4.h"
 #include "Alimer/Shaders/ShaderDefinitions.h"

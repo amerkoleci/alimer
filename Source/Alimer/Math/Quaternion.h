@@ -13,14 +13,21 @@ namespace Alimer
     struct ALIMER_API Quaternion final
     {
     public:
-        /// X coordinate.
-        float x;
-        /// Y coordinate.
-        float y;
-        /// Z coordinate.
-        float z;
-        /// W coordinate.
-        float w;
+        union
+        {
+            float data[4];
+            struct
+            {
+                /// X coordinate.
+                float x;
+                /// Y coordinate.
+                float y;
+                /// Z coordinate.
+                float z;
+                /// W coordinate.
+                float w;
+            };
+        };
 
         Quaternion() noexcept
             : x(0.0f)
@@ -210,9 +217,6 @@ namespace Alimer
 
         /// Return whether any component is Inf.
         bool IsInf() const { return Alimer::IsInf(x) || Alimer::IsInf(y) || Alimer::IsInf(z) || Alimer::IsInf(w); }
-
-        /// Return quaternion data.
-        const float* Data() const { return &x; }
 
         /// Parse quaternion from a string. Return identity quanterion on failure.
         static Quaternion Parse(StringView str);

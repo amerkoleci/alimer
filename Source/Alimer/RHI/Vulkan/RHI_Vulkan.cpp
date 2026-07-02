@@ -5,8 +5,7 @@
 
 #if defined(ALIMER_RHI_VULKAN)
 #include "Core/Log.h"
-#include "Core/Vector.h"
-#include "Core/UnorderedMap.h"
+#include "Core/Containers.h"
 #include "Core/Hash.h"
 #include "RHI/RHI.h"
 
@@ -2046,12 +2045,12 @@ namespace Alimer
         uint32_t formatCount;
         VK_CHECK(adapter->factory->vkGetPhysicalDeviceSurfaceFormatsKHR(adapter->handle, surface, &formatCount, nullptr));
 
-        std::vector<VkSurfaceFormatKHR> swapchainFormats(formatCount);
+        Vector<VkSurfaceFormatKHR> swapchainFormats(formatCount);
         VK_CHECK(adapter->factory->vkGetPhysicalDeviceSurfaceFormatsKHR(adapter->handle, surface, &formatCount, swapchainFormats.data()));
 
         uint32_t presentModeCount;
         VK_CHECK(adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(adapter->handle, surface, &presentModeCount, nullptr));
-        std::vector<VkPresentModeKHR> swapchainPresentModes(presentModeCount);
+        Vector<VkPresentModeKHR> swapchainPresentModes(presentModeCount);
         VK_CHECK(adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(adapter->handle, surface, &presentModeCount, swapchainPresentModes.data()));
 
         VkSurfaceFormatKHR surfaceFormat = {};
@@ -2123,12 +2122,7 @@ namespace Alimer
         VkPresentModeKHR vkPresentMode = ToVk(presentMode);
 
         {
-
-            auto HasPresentMode = [](const std::vector<VkPresentModeKHR>& modes,
-                VkPresentModeKHR target) -> bool {
-                    return std::find(modes.begin(), modes.end(), target) != modes.end();
-                };
-            const std::array<VkPresentModeKHR, 3> kPresentModeFallbacks = {
+            const Array<VkPresentModeKHR, 3> kPresentModeFallbacks = {
                 VK_PRESENT_MODE_IMMEDIATE_KHR,
                 VK_PRESENT_MODE_MAILBOX_KHR,
                 VK_PRESENT_MODE_FIFO_KHR,
@@ -2141,7 +2135,7 @@ namespace Alimer
             }
 
             // Find the first available fallback.
-            while (!HasPresentMode(swapchainPresentModes, kPresentModeFallbacks[modeIndex]))
+            while (!VectorContains(swapchainPresentModes, kPresentModeFallbacks[modeIndex]))
             {
                 modeIndex++;
             }
