@@ -20,7 +20,7 @@ namespace Alimer
     struct ObjectRef;
     struct AssetRef;
     struct AssetRefList;
-    class JsonValue;
+    class SerializeValue;
 
 	/// Abstract stream for reading and writing.
 	class ALIMER_API Stream
@@ -102,8 +102,8 @@ namespace Alimer
         AssetRef ReadAssetRef();
         /// Read an asset list reference.
         AssetRefList ReadAssetRefList();
-        /// Read a JsonValue.
-        JsonValue ReadJsonValue();
+        /// Read a SerializeValue.
+        SerializeValue ReadSerializeValue();
 
         /// Read enum.
         template<typename TEnum, typename = typename std::enable_if_t<std::is_enum_v<TEnum>>>
@@ -172,8 +172,8 @@ namespace Alimer
         void Write(const AssetRef& value);
         /// Write an asset list reference.
         void Write(const AssetRefList& value);
-        /// Write a JSON value.
-        void Write(const JsonValue& value);
+        /// Write a SerializeValue.
+        void Write(const SerializeValue& value);
         /// Construct from enum.
         template<typename TEnum, typename = typename std::enable_if_t<std::is_enum_v<TEnum>>>
         void Write(const TEnum& value) noexcept

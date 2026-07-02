@@ -11,7 +11,7 @@
 
 namespace Alimer
 {
-    class JsonValue;
+    class SerializeValue;
 
     class ALIMER_API Serializer
     {
@@ -98,8 +98,8 @@ namespace Alimer
 #if TODO
     class ALIMER_API JsonDeserializer final : public IDeserializer
     {
-        JsonValue data;
-        std::stack<JsonValue*> hierarchy;
+        SerializeValue data;
+        std::stack<SerializeValue*> hierarchy;
 
     public:
         JsonDeserializer(std::string_view json);

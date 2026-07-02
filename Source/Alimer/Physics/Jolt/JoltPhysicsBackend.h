@@ -36,6 +36,10 @@ namespace Alimer
         CollisionShape* CreateBoxShape(const Vector3& halfExtents) const override;
         CollisionShape* CreateSphereShape(float radius) const override;
         CollisionShape* CreateCapsuleShape(float height, float radius) const override;
+        CollisionShape* CreateCylinderShape(float height, float radius) const override;
+        CollisionShape* CreatePlaneShape(float halfExtent = 1000.0f) const override;
+        CollisionShape* CreateConvexHullShape(const Vector3* points, uint32_t pointsCount) const override;
+
         void DestroyShape(CollisionShape* shape) override;
 
         const char* GetName() const override { return "Jolt"; }

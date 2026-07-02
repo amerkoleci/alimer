@@ -4,7 +4,7 @@
 #pragma once
 
 #include "Alimer/Core/RefCounted.h"
-#include "Alimer/Core/JsonValue.h"
+#include "Alimer/Core/SerializeValue.h"
 #include "Alimer/IO/Types.h"
 #include "Alimer/Math/Quaternion.h"
 #include "Alimer/Math/Color.h"
@@ -44,7 +44,7 @@ namespace Alimer
         ObjectRef,
         AssetRef,
         AssetRefList,
-        JsonValue,
+        SerializeValue,
 
         Vector2,
         Vector3,
@@ -119,7 +119,7 @@ namespace Alimer
     template <> inline VariantType GetVariantType<ObjectRef>() { return VariantType::ObjectRef; }
     template <> inline VariantType GetVariantType<AssetRef>() { return VariantType::AssetRef; }
     template <> inline VariantType GetVariantType<AssetRefList>() { return VariantType::AssetRefList; }
-    template <> inline VariantType GetVariantType<JsonValue>() { return VariantType::JsonValue; }
+    template <> inline VariantType GetVariantType<SerializeValue>() { return VariantType::SerializeValue; }
 
     template <> inline VariantType GetVariantType<Vector2>() { return VariantType::Vector2; }
     template <> inline VariantType GetVariantType<Vector3>() { return VariantType::Vector3; }
@@ -180,7 +180,7 @@ namespace Alimer
         ObjectRef objectRef;
         AssetRef assetRef;
         AssetRefList assetRefList;
-        JsonValue jsonValue;
+        SerializeValue serializeValue;
 
         Vector2 vector2;
         Vector3 vector3;
@@ -348,8 +348,8 @@ namespace Alimer
             *this = value;
         }
 
-        /// Construct from a json value.
-        Variant(const JsonValue& value) noexcept  // NOLINT(google-explicit-constructor)
+        /// Construct from a serialize value.
+        Variant(const SerializeValue& value) noexcept  // NOLINT(google-explicit-constructor)
         {
             *this = value;
         }
@@ -626,11 +626,11 @@ namespace Alimer
             return *this;
         }
 
-        /// Assign from a json value.
-        Variant& operator =(const JsonValue& rhs)
+        /// Assign from a serialize value.
+        Variant& operator =(const SerializeValue& rhs)
         {
-            SetType(VariantType::JsonValue);
-            value.jsonValue = rhs;
+            SetType(VariantType::SerializeValue);
+            value.serializeValue = rhs;
             return *this;
         }
 
@@ -861,10 +861,10 @@ namespace Alimer
             return type == VariantType::AssetRefList ? value.assetRefList == rhs : false;
         }
 
-        /// Test for equality with a json value. To return true, both the type and value must match.
-        bool operator ==(const JsonValue& rhs) const
+        /// Test for equality with a serialize value. To return true, both the type and value must match.
+        bool operator ==(const SerializeValue& rhs) const
         {
-            return type == VariantType::JsonValue ? value.jsonValue == rhs : false;
+            return type == VariantType::SerializeValue ? value.serializeValue == rhs : false;
         }
 
         /// Test for equality with a Vector2. To return true, both the type and value must match.
@@ -996,8 +996,8 @@ namespace Alimer
         /// Test for inequality with a asset reference list.
         bool operator !=(const AssetRefList& rhs) const { return !(*this == rhs); }
 
-        /// Test for inequality with a json value.
-        bool operator !=(const JsonValue& rhs) const { return !(*this == rhs); }
+        /// Test for inequality with a serialize value.
+        bool operator !=(const SerializeValue& rhs) const { return !(*this == rhs); }
 
         /// Test for inequality with a Vector2.
         bool operator !=(const Vector2& rhs) const { return !(*this == rhs); }
@@ -1107,8 +1107,8 @@ namespace Alimer
         /// Return a asset reference list or empty on type mismatch.
         const AssetRefList& GetAssetRefList() const noexcept;
 
-        /// Return a json value or empty on type mismatch.
-        const JsonValue& GetJsonValue() const noexcept;
+        /// Return a serialize value or empty on type mismatch.
+        const SerializeValue& GetSerializeValue() const noexcept;
 
         /// Return Vector2 or zero on type mismatch.
         const Vector2& GetVector2() const noexcept;
@@ -1201,7 +1201,7 @@ namespace Alimer
     template <> ALIMER_API ObjectRef Variant::Get<ObjectRef>() const;
     template <> ALIMER_API AssetRef Variant::Get<AssetRef>() const;
     template <> ALIMER_API AssetRefList Variant::Get<AssetRefList>() const;
-    template <> ALIMER_API JsonValue Variant::Get<JsonValue>() const;
+    template <> ALIMER_API SerializeValue Variant::Get<SerializeValue>() const;
 
     template <> ALIMER_API const Vector2& Variant::Get<const Vector2&>() const;
     template <> ALIMER_API Vector2 Variant::Get<Vector2>() const;

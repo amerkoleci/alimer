@@ -3,7 +3,7 @@
 
 #include "Alimer/IO/Stream.h"
 #include "Alimer/Core/StringId.h"
-#include "Alimer/Core/JsonValue.h"
+#include "Alimer/Core/SerializeValue.h"
 #include "Alimer/Math/Vector4.h"
 #include "Alimer/Math/Quaternion.h"
 //#include "Alimer/Math/Rect.h"
@@ -276,9 +276,9 @@ AssetRefList Stream::ReadAssetRefList()
     return ret;
 }
 
-JsonValue Stream::ReadJsonValue()
+SerializeValue Stream::ReadSerializeValue()
 {
-    JsonValue ret;
+    SerializeValue ret;
     ret.FromBinary(*this);
     return ret;
 }
@@ -481,7 +481,7 @@ void Stream::Write(const AssetRefList& value)
     value.ToBinary(*this);
 }
 
-void Stream::Write(const JsonValue& value)
+void Stream::Write(const SerializeValue& value)
 {
     value.ToBinary(*this);
 }

@@ -1,7 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#include "Alimer/Core/JsonValue.h"
+#include "Alimer/Core/SerializeValue.h"
 #include "Alimer/IO/Stream.h"
 #include "Alimer/Private/rapidjson_wrapper.h"
 #include <cctype>
@@ -14,10 +14,10 @@ using namespace rapidjson;
 
 namespace
 {
-    static_assert(sizeof(JsonValueType) == sizeof(uint8_t), "Unexpected JsonValueType size.");
+    static_assert(sizeof(SerializeValueType) == sizeof(uint8_t), "Unexpected SerializeValueType size.");
 
     // Convert rapidjson value to JSON value.
-    static void FromRapidjsonValue(JsonValue& jsonValue, const rapidjson::Value& rapidjsonValue)
+    static void FromRapidjsonValue(SerializeValue& jsonValue, const rapidjson::Value& rapidjsonValue)
     {
         switch (rapidjsonValue.GetType())
         {
@@ -62,7 +62,7 @@ namespace
                 jsonValue.SetEmptyObject();
                 for (rapidjson::Value::ConstMemberIterator i = rapidjsonValue.MemberBegin(); i != rapidjsonValue.MemberEnd(); ++i)
                 {
-                    JsonValue& value = jsonValue[String(i->name.GetString())];
+                    SerializeValue& value = jsonValue[String(i->name.GetString())];
                     FromRapidjsonValue(value, i->value);
                 }
             }
@@ -73,35 +73,37 @@ namespace
         }
     }
 
-    static void ToRapidjsonValue(rapidjson::Value& rapidjsonValue, const JsonValue& jsonValue, rapidjson::MemoryPoolAllocator<>& allocator)
+    static void ToRapidjsonValue(rapidjson::Value& rapidjsonValue, const SerializeValue& jsonValue, rapidjson::MemoryPoolAllocator<>& allocator)
     {
         switch (jsonValue.GetValueType())
         {
-            case JsonValueType::Null:
+            case SerializeValueType::Null:
                 rapidjsonValue.SetNull();
                 break;
 
-            case JsonValueType::Bool:
+            case SerializeValueType::Bool:
                 rapidjsonValue.SetBool(jsonValue.GetBool());
                 break;
 
-            case JsonValueType::Number:
+            case SerializeValueType::Number:
             {
                 switch (jsonValue.GetNumberType())
                 {
-                    case JSONNumberType::Int:
-                        rapidjsonValue.SetInt(jsonValue.GetInt());
+                    case SerializeValueNumberType::Int16:
+                    case SerializeValueNumberType::Int32:
+                        rapidjsonValue.SetInt(jsonValue.GetInt32());
                         break;
 
-                    case JSONNumberType::Uint:
-                        rapidjsonValue.SetUint(jsonValue.GetUInt());
+                    case SerializeValueNumberType::UInt16:
+                    case SerializeValueNumberType::UInt32:
+                        rapidjsonValue.SetUint(jsonValue.GetUInt32());
                         break;
 
-                    case JSONNumberType::Int64:
+                    case SerializeValueNumberType::Int64:
                         rapidjsonValue.SetInt64(jsonValue.GetInt64());
                         break;
 
-                    case JSONNumberType::Uint64:
+                    case SerializeValueNumberType::UInt64:
                         rapidjsonValue.SetUint64(jsonValue.GetUInt64());
                         break;
 
@@ -112,13 +114,13 @@ namespace
             }
             break;
 
-            case JsonValueType::String:
+            case SerializeValueType::String:
                 rapidjsonValue.SetString(jsonValue.GetCString(), allocator);
                 break;
 
-            case JsonValueType::Array:
+            case SerializeValueType::Array:
             {
-                const JsonArray& jsonArray = jsonValue.GetArray();
+                const SerializeValueArray& jsonArray = jsonValue.GetArray();
 
                 rapidjsonValue.SetArray();
                 rapidjsonValue.Reserve((rapidjson::SizeType)jsonArray.size(), allocator);
@@ -132,9 +134,9 @@ namespace
             }
             break;
 
-            case JsonValueType::Object:
+            case SerializeValueType::Object:
             {
-                const JsonObject& jsonObject = jsonValue.GetObject();
+                const SerializeValueObject& jsonObject = jsonValue.GetObject();
 
                 rapidjsonValue.SetObject();
                 for (auto i = jsonObject.begin(); i != jsonObject.end(); ++i)
@@ -153,21 +155,21 @@ namespace
     }
 }
 
-const JsonValue JsonValue::Empty;
-const JsonArray JsonValue::EmptyJsonArray;
-const JsonObject JsonValue::EmptyJsonObject;
+const SerializeValue SerializeValue::Empty;
+const SerializeValueArray SerializeValue::EmptyArray;
+const SerializeValueObject SerializeValue::EmptyObject;
 
-JsonValueType JsonValue::GetValueType() const
+SerializeValueType SerializeValue::GetValueType() const
 {
-    return (JsonValueType)(_type >> 16u);
+    return (SerializeValueType)(_type >> 16u);
 }
 
-JSONNumberType JsonValue::GetNumberType() const
+SerializeValueNumberType SerializeValue::GetNumberType() const
 {
-    return (JSONNumberType)(_type & 0xffffu);
+    return (SerializeValueNumberType)(_type & 0xffffu);
 }
 
-JsonValue& JsonValue::operator = (const JsonValue& rhs)
+SerializeValue& SerializeValue::operator = (const SerializeValue& rhs)
 {
     if (this == &rhs)
         return *this;
@@ -176,23 +178,23 @@ JsonValue& JsonValue::operator = (const JsonValue& rhs)
 
     switch (GetValueType())
     {
-        case JsonValueType::Bool:
+        case SerializeValueType::Bool:
             _boolValue = rhs._boolValue;
             break;
 
-        case JsonValueType::Number:
+        case SerializeValueType::Number:
             _numberValue = rhs._numberValue;
             break;
 
-        case JsonValueType::String:
+        case SerializeValueType::String:
             *_stringValue = *rhs._stringValue;
             break;
 
-        case JsonValueType::Array:
+        case SerializeValueType::Array:
             *_arrayValue = *rhs._arrayValue;
             break;
 
-        case JsonValueType::Object:
+        case SerializeValueType::Object:
             *_objectValue = *rhs._objectValue;
             break;
 
@@ -203,8 +205,7 @@ JsonValue& JsonValue::operator = (const JsonValue& rhs)
     return *this;
 }
 
-
-JsonValue& JsonValue::operator=(JsonValue&& rhs)
+SerializeValue& SerializeValue::operator=(SerializeValue&& rhs) 
 {
     ALIMER_ASSERT(this != &rhs);
 
@@ -212,24 +213,25 @@ JsonValue& JsonValue::operator=(JsonValue&& rhs)
 
     switch (GetValueType())
     {
-        case JsonValueType::Bool:
+        case SerializeValueType::Bool:
             _boolValue = rhs._boolValue;
             break;
 
-        case JsonValueType::Number:
+        case SerializeValueType::Number:
             _numberValue = rhs._numberValue;
             break;
 
-        case JsonValueType::String:
+        case SerializeValueType::String:
             *_stringValue = std::move(*rhs._stringValue);
             break;
 
-        case JsonValueType::Array:
+        case SerializeValueType::Array:
             *_arrayValue = std::move(*rhs._arrayValue);
             break;
 
-        case JsonValueType::Object:
+        case SerializeValueType::Object:
             *_objectValue = std::move(*rhs._objectValue);
+            break;
 
         default:
             break;
@@ -239,169 +241,184 @@ JsonValue& JsonValue::operator=(JsonValue&& rhs)
 }
 
 
-JsonValue& JsonValue::operator = (bool rhs)
+SerializeValue& SerializeValue::operator = (bool rhs)
 {
-    SetType(JsonValueType::Bool);
+    SetType(SerializeValueType::Bool);
     _boolValue = rhs;
 
     return *this;
 }
 
-JsonValue& JsonValue::operator = (int32_t rhs)
+SerializeValue& SerializeValue::operator = (int16_t rhs)
 {
-    SetType(JsonValueType::Number, JSONNumberType::Int);
+    SetType(SerializeValueType::Number, SerializeValueNumberType::Int16);
     _numberValue = (double)rhs;
 
     return *this;
 }
 
-JsonValue& JsonValue::operator = (uint32_t rhs)
+SerializeValue& SerializeValue::operator = (uint16_t rhs)
 {
-    SetType(JsonValueType::Number, JSONNumberType::Uint);
+    SetType(SerializeValueType::Number, SerializeValueNumberType::UInt16);
     _numberValue = (double)rhs;
     return *this;
 }
 
-JsonValue& JsonValue::operator = (int64_t rhs)
+SerializeValue& SerializeValue::operator = (int32_t rhs)
 {
-    SetType(JsonValueType::Number, JSONNumberType::Int64);
+    SetType(SerializeValueType::Number, SerializeValueNumberType::Int32);
     _numberValue = (double)rhs;
 
     return *this;
 }
 
-JsonValue& JsonValue::operator = (uint64_t rhs)
+SerializeValue& SerializeValue::operator = (uint32_t rhs)
 {
-    SetType(JsonValueType::Number, JSONNumberType::Uint64);
+    SetType(SerializeValueType::Number, SerializeValueNumberType::UInt32);
     _numberValue = (double)rhs;
     return *this;
 }
 
-JsonValue& JsonValue::operator = (float rhs)
+SerializeValue& SerializeValue::operator = (int64_t rhs)
 {
-    SetType(JsonValueType::Number, JSONNumberType::Double);
+    SetType(SerializeValueType::Number, SerializeValueNumberType::Int64);
+    _numberValue = (double)rhs;
+
+    return *this;
+}
+
+SerializeValue& SerializeValue::operator = (uint64_t rhs)
+{
+    SetType(SerializeValueType::Number, SerializeValueNumberType::UInt64);
     _numberValue = (double)rhs;
     return *this;
 }
 
-JsonValue& JsonValue::operator = (double rhs)
+SerializeValue& SerializeValue::operator = (float rhs)
 {
-    SetType(JsonValueType::Number, JSONNumberType::Double);
+    SetType(SerializeValueType::Number, SerializeValueNumberType::Double);
+    _numberValue = (double)rhs;
+    return *this;
+}
+
+SerializeValue& SerializeValue::operator = (double rhs)
+{
+    SetType(SerializeValueType::Number, SerializeValueNumberType::Double);
     _numberValue = rhs;
     return *this;
 }
 
-JsonValue& JsonValue::operator = (StringView value)
+SerializeValue& SerializeValue::operator = (StringView value)
 {
-    SetType(JsonValueType::String);
+    SetType(SerializeValueType::String);
     *_stringValue = value;
 
     return *this;
 }
 
-JsonValue& JsonValue::operator = (const String& value)
+SerializeValue& SerializeValue::operator = (const String& value)
 {
-    SetType(JsonValueType::String);
+    SetType(SerializeValueType::String);
     *_stringValue = value;
 
     return *this;
 }
 
-JsonValue& JsonValue::operator = (const char* value)
+SerializeValue& SerializeValue::operator = (const char* value)
 {
-    SetType(JsonValueType::String);
+    SetType(SerializeValueType::String);
     *_stringValue = value;
 
     return *this;
 }
 
-JsonValue& JsonValue::operator = (const JsonArray& value)
+SerializeValue& SerializeValue::operator = (const SerializeValueArray& value)
 {
-    SetType(JsonValueType::Array);
+    SetType(SerializeValueType::Array);
     *_arrayValue = value;
 
     return *this;
 }
 
-JsonValue& JsonValue::operator = (const JsonObject& value)
+SerializeValue& SerializeValue::operator = (const SerializeValueObject& value)
 {
-    SetType(JsonValueType::Object);
+    SetType(SerializeValueType::Object);
     *_objectValue = value;
 
     return *this;
 }
 
-JsonValue& JsonValue::operator [] (size_t index)
+SerializeValue& SerializeValue::operator [] (size_t index)
 {
-    SetType(JsonValueType::Array);
+    SetType(SerializeValueType::Array);
 
     return (*_arrayValue)[index];
 }
 
-const JsonValue& JsonValue::operator [] (size_t index) const
+const SerializeValue& SerializeValue::operator [] (size_t index) const
 {
-    if (GetValueType() != JsonValueType::Array)
+    if (GetValueType() != SerializeValueType::Array)
         return Empty;
 
     return (*_arrayValue)[index];
 }
 
-void JsonValue::Push(JsonValue value)
+void SerializeValue::Push(SerializeValue value)
 {
-    SetType(JsonValueType::Array);
+    SetType(SerializeValueType::Array);
 
     _arrayValue->push_back(std::move(value));
 }
 
-void JsonValue::Pop()
+void SerializeValue::Pop()
 {
-    if (GetValueType() != JsonValueType::Array)
+    if (GetValueType() != SerializeValueType::Array)
         return;
 
     _arrayValue->pop_back();
 }
 
-void JsonValue::Insert(size_t pos, JsonValue value)
+void SerializeValue::Insert(size_t pos, SerializeValue value)
 {
-    if (GetValueType() != JsonValueType::Array)
+    if (GetValueType() != SerializeValueType::Array)
         return;
 
     _arrayValue->insert(_arrayValue->begin() + pos, std::move(value));
 }
 
-void JsonValue::Erase(size_t pos, size_t length)
+void SerializeValue::Erase(size_t pos, size_t length)
 {
-    if (GetValueType() != JsonValueType::Array)
+    if (GetValueType() != SerializeValueType::Array)
         return;
 
     _arrayValue->erase(_arrayValue->begin() + pos, _arrayValue->begin() + pos + length);
 }
 
-void JsonValue::Resize(size_t newSize)
+void SerializeValue::Resize(size_t newSize)
 {
-    SetType(JsonValueType::Array);
+    SetType(SerializeValueType::Array);
 
     _arrayValue->resize(newSize);
 }
 
-JsonValue& JsonValue::Back()
+SerializeValue& SerializeValue::Back()
 {
-    SetType(JsonValueType::Array);
+    SetType(SerializeValueType::Array);
 
     return (*_arrayValue)[_arrayValue->size() - 1];
 }
 
-const JsonValue& JsonValue::Back() const
+const SerializeValue& SerializeValue::Back() const
 {
-    if (GetValueType() != JsonValueType::Array)
+    if (GetValueType() != SerializeValueType::Array)
         return Empty;
 
     return (*_arrayValue)[_arrayValue->size() - 1];
 }
 
-const JsonValue& JsonValue::Get(size_t index) const
+const SerializeValue& SerializeValue::Get(size_t index) const
 {
-    if (GetValueType() != JsonValueType::Array)
+    if (GetValueType() != SerializeValueType::Array)
         return Empty;
 
     if (index < 0 || index >= _arrayValue->size())
@@ -410,41 +427,41 @@ const JsonValue& JsonValue::Get(size_t index) const
     return _arrayValue->at(index);
 }
 
-JsonValue& JsonValue::operator [] (const String& key)
+SerializeValue& SerializeValue::operator [] (const String& key)
 {
-    SetType(JsonValueType::Object);
+    SetType(SerializeValueType::Object);
 
     return (*_objectValue)[key];
 }
 
-const JsonValue& JsonValue::operator [] (const String& key) const
+const SerializeValue& SerializeValue::operator [] (const String& key) const
 {
-    if (GetValueType() != JsonValueType::Object)
+    if (GetValueType() != SerializeValueType::Object)
         return Empty;
 
     auto it = _objectValue->find(key);
     return it != _objectValue->end() ? it->second : Empty;
 }
 
-void JsonValue::Set(StringView key, JsonValue value)
+void SerializeValue::Set(StringView key, SerializeValue value)
 {
     // Convert to object type
-    SetType(JsonValueType::Object);
+    SetType(SerializeValueType::Object);
 
     (*_objectValue)[key.data()] = std::move(value);
 }
 
-void JsonValue::Set(const String& key, JsonValue value)
+void SerializeValue::Set(const String& key, SerializeValue value)
 {
     // Convert to object type
-    SetType(JsonValueType::Object);
+    SetType(SerializeValueType::Object);
 
     (*_objectValue)[key] = std::move(value);
 }
 
-const JsonValue& JsonValue::Get(const String& key) const
+const SerializeValue& SerializeValue::Get(const String& key) const
 {
-    if (GetValueType() != JsonValueType::Object)
+    if (GetValueType() != SerializeValueType::Object)
         return Empty;
 
     auto i = _objectValue->find(key);
@@ -454,7 +471,7 @@ const JsonValue& JsonValue::Get(const String& key) const
     return i->second;
 }
 
-bool JsonValue::operator == (const JsonValue& rhs) const
+bool SerializeValue::operator == (const SerializeValue& rhs) const
 {
     // Value type without number type is checked. JSON does not make a distinction between number types. It is possible
     // that we serialized number (for example `1`) as unsigned integer. It will not necessarily be unserialized as same
@@ -464,19 +481,19 @@ bool JsonValue::operator == (const JsonValue& rhs) const
 
     switch (GetValueType())
     {
-        case JsonValueType::Bool:
+        case SerializeValueType::Bool:
             return _boolValue == rhs._boolValue;
 
-        case JsonValueType::Number:
+        case SerializeValueType::Number:
             return _numberValue == rhs._numberValue;
 
-        case JsonValueType::String:
+        case SerializeValueType::String:
             return *_stringValue == *rhs._stringValue;
 
-        case JsonValueType::Array:
+        case SerializeValueType::Array:
             return *_arrayValue == *rhs._arrayValue;
 
-        case JsonValueType::Object:
+        case SerializeValueType::Object:
             return *_objectValue == *rhs._objectValue;
 
         default:
@@ -484,14 +501,14 @@ bool JsonValue::operator == (const JsonValue& rhs) const
     }
 }
 
-JsonValue JsonValue::Parse(StringView str, bool reportError)
+SerializeValue SerializeValue::ParseJson(StringView str, bool reportError)
 {
-    JsonValue result;
-    result.FromString(str, reportError);
+    SerializeValue result;
+    result.FromJson(str, reportError);
     return result;
 }
 
-bool JsonValue::FromString(StringView str, bool reportError)
+bool SerializeValue::FromJson(StringView str, bool reportError)
 {
     Document document;
     document.Parse(str.data());
@@ -509,55 +526,7 @@ bool JsonValue::FromString(StringView str, bool reportError)
     return true;
 }
 
-void JsonValue::FromBinary(Stream& source)
-{
-    JsonValueType newType = (JsonValueType)source.ReadUInt8();
-
-    switch (newType)
-    {
-        case JsonValueType::Null:
-            Clear();
-            break;
-
-        case JsonValueType::Bool:
-            *this = source.ReadBool();
-            break;
-
-        case JsonValueType::Number:
-            *this = source.ReadDouble();
-            break;
-
-        case JsonValueType::String:
-            *this = source.ReadString();
-            break;
-
-        case JsonValueType::Array:
-        {
-            SetEmptyArray();
-            size_t num = source.ReadVLE();
-            for (size_t i = 0; i < num && !source.IsEof(); ++i)
-                Push(source.ReadJsonValue());
-        }
-        break;
-
-        case JsonValueType::Object:
-        {
-            SetEmptyObject();
-            size_t num = source.ReadVLE();
-            for (size_t i = 0; i < num && !source.IsEof(); ++i)
-            {
-                String key = source.ReadString();
-                (*this)[key] = source.ReadJsonValue();
-            }
-        }
-        break;
-
-        default:
-            break;
-    }
-}
-
-void JsonValue::ToString(String& dest, const String& indendation) const
+void SerializeValue::ToJson(String& dest, const String& indendation) const
 {
     rapidjson::Document document;
     ToRapidjsonValue(document, *this, document.GetAllocator());
@@ -570,43 +539,92 @@ void JsonValue::ToString(String& dest, const String& indendation) const
     dest = buffer.GetString();
 }
 
-String JsonValue::ToString(const String& indendation) const
+String SerializeValue::ToJson(const String& indendation) const
 {
     String ret;
-    ToString(ret, indendation);
+    ToJson(ret, indendation);
     return ret;
 }
 
-void JsonValue::ToBinary(Stream& dest) const
+void SerializeValue::FromBinary(Stream& source)
+{
+    SerializeValueType newType = (SerializeValueType)source.ReadUInt8();
+
+    switch (newType)
+    {
+        case SerializeValueType::Null:
+            Clear();
+            break;
+
+        case SerializeValueType::Bool:
+            *this = source.ReadBool();
+            break;
+
+        case SerializeValueType::Number:
+            *this = source.ReadDouble();
+            break;
+
+        case SerializeValueType::String:
+            *this = source.ReadString();
+            break;
+
+        case SerializeValueType::Array:
+        {
+            SetEmptyArray();
+            size_t num = source.ReadVLE();
+            for (size_t i = 0; i < num && !source.IsEof(); ++i)
+                Push(source.ReadSerializeValue());
+        }
+        break;
+
+        case SerializeValueType::Object:
+        {
+            SetEmptyObject();
+            size_t num = source.ReadVLE();
+            for (size_t i = 0; i < num && !source.IsEof(); ++i)
+            {
+                String key = source.ReadString();
+                (*this)[key] = source.ReadSerializeValue();
+            }
+        }
+        break;
+
+        default:
+            break;
+    }
+}
+
+
+void SerializeValue::ToBinary(Stream& dest) const
 {
     dest.Write((uint32_t)_type);
 
     switch (GetValueType())
     {
-        case JsonValueType::Bool:
+        case SerializeValueType::Bool:
             dest.Write(_boolValue);
             break;
 
-        case JsonValueType::Number:
+        case SerializeValueType::Number:
             dest.Write(_numberValue);
             break;
 
-        case JsonValueType::String:
+        case SerializeValueType::String:
             dest.Write(GetString());
             break;
 
-        case JsonValueType::Array:
+        case SerializeValueType::Array:
         {
-            const JsonArray& array = GetArray();
+            const SerializeValueArray& array = GetArray();
             dest.WriteVLE(array.size());
             for (auto it = array.begin(); it != array.end(); ++it)
                 it->ToBinary(dest);
         }
         break;
 
-        case JsonValueType::Object:
+        case SerializeValueType::Object:
         {
-            const JsonObject& object = GetObject();
+            const SerializeValueObject& object = GetObject();
             dest.WriteVLE(object.size());
             for (auto it = object.begin(); it != object.end(); ++it)
             {
@@ -621,77 +639,77 @@ void JsonValue::ToBinary(Stream& dest) const
     }
 }
 
-void JsonValue::Insert(const std::pair<String, JsonValue>& pair)
+void SerializeValue::Insert(const std::pair<String, SerializeValue>& pair)
 {
-    SetType(JsonValueType::Object);
+    SetType(SerializeValueType::Object);
 
     _objectValue->insert(pair);
 }
 
-bool JsonValue::Erase(const String& key)
+bool SerializeValue::Erase(const String& key)
 {
-    if (GetValueType() != JsonValueType::Object)
+    if (GetValueType() != SerializeValueType::Object)
         return false;
 
     return _objectValue->erase(key);
 }
 
-void JsonValue::Clear()
+void SerializeValue::Clear()
 {
-    if (GetValueType() == JsonValueType::Array)
+    if (GetValueType() == SerializeValueType::Array)
         _arrayValue->clear();
-    else if (GetValueType() == JsonValueType::Object)
+    else if (GetValueType() == SerializeValueType::Object)
         _objectValue->clear();
 }
 
-void JsonValue::SetEmptyArray()
+void SerializeValue::SetEmptyArray()
 {
-    SetType(JsonValueType::Array);
+    SetType(SerializeValueType::Array);
 
     Clear();
 }
 
-void JsonValue::SetEmptyObject()
+void SerializeValue::SetEmptyObject()
 {
-    SetType(JsonValueType::Object);
+    SetType(SerializeValueType::Object);
 
     Clear();
 }
 
-void JsonValue::SetNull()
+void SerializeValue::SetNull()
 {
-    SetType(JsonValueType::Null);
+    SetType(SerializeValueType::Null);
 }
 
-size_t JsonValue::Size() const
+size_t SerializeValue::Size() const
 {
-    if (GetValueType() == JsonValueType::Array)
+    if (GetValueType() == SerializeValueType::Array)
         return _arrayValue->size();
-    else if (GetValueType() == JsonValueType::Object)
+    else if (GetValueType() == SerializeValueType::Object)
         return _objectValue->size();
     else
         return 0;
 }
 
-bool JsonValue::IsEmpty() const
+bool SerializeValue::IsEmpty() const
 {
-    if (GetValueType() == JsonValueType::Array)
+    if (GetValueType() == SerializeValueType::Array)
         return _arrayValue->empty();
-    else if (GetValueType() == JsonValueType::Object)
+    else if (GetValueType() == SerializeValueType::Object)
         return _objectValue->empty();
     else
         return false;
 }
 
-bool JsonValue::Contains(const String& key) const
+bool SerializeValue::Contains(const String& key) const
 {
-    if (GetValueType() != JsonValueType::Object)
+    if (GetValueType() != SerializeValueType::Object)
         return false;
 
     return _objectValue->find(key) != _objectValue->end();
 }
 
-void JsonValue::SetType(JsonValueType valueType, JSONNumberType numberType)
+void SerializeValue::SetType(SerializeValueType valueType, SerializeValueNumberType numberType)
 {
     uint32_t newType = (uint8_t)valueType << 16u | (uint8_t)numberType;
     if (newType == _type)
@@ -699,15 +717,15 @@ void JsonValue::SetType(JsonValueType valueType, JSONNumberType numberType)
 
     switch (GetValueType())
     {
-        case JsonValueType::String:
+        case SerializeValueType::String:
             delete _stringValue;
             break;
 
-        case JsonValueType::Array:
+        case SerializeValueType::Array:
             delete _arrayValue;
             break;
 
-        case JsonValueType::Object:
+        case SerializeValueType::Object:
             delete _objectValue;
             break;
 
@@ -719,16 +737,16 @@ void JsonValue::SetType(JsonValueType valueType, JSONNumberType numberType)
 
     switch (GetValueType())
     {
-        case JsonValueType::String:
+        case SerializeValueType::String:
             _stringValue = new String();
             break;
 
-        case JsonValueType::Array:
-            _arrayValue = new JsonArray();
+        case SerializeValueType::Array:
+            _arrayValue = new SerializeValueArray();
             break;
 
-        case JsonValueType::Object:
-            _objectValue = new JsonObject();
+        case SerializeValueType::Object:
+            _objectValue = new SerializeValueObject();
             break;
 
         default:
@@ -737,7 +755,7 @@ void JsonValue::SetType(JsonValueType valueType, JSONNumberType numberType)
 }
 
 
-JsonObjectIterator Alimer::begin(JsonValue& value)
+SerializeValueObjectIterator Alimer::begin(SerializeValue& value)
 {
     // Convert to object type.
     value.SetEmptyObject();
@@ -745,26 +763,26 @@ JsonObjectIterator Alimer::begin(JsonValue& value)
     return value._objectValue->begin();
 }
 
-ConstJsonObjectIterator Alimer::begin(const JsonValue& value)
+ConstSerializeValueObjectIterator Alimer::begin(const SerializeValue& value)
 {
-    if (value.GetValueType() != JsonValueType::Object)
-        return JsonValue::EmptyJsonObject.begin();
+    if (value.GetValueType() != SerializeValueType::Object)
+        return SerializeValue::EmptyObject.begin();
 
     return value._objectValue->begin();
 }
 
-JsonObjectIterator Alimer::end(JsonValue& value)
+SerializeValueObjectIterator Alimer::end(SerializeValue& value)
 {
     // Convert to object type.
-    value.SetType(JsonValueType::Object);
+    value.SetType(SerializeValueType::Object);
 
     return value._objectValue->end();
 }
 
-ConstJsonObjectIterator Alimer::end(const JsonValue& value)
+ConstSerializeValueObjectIterator Alimer::end(const SerializeValue& value)
 {
-    if (value.GetValueType() != JsonValueType::Object)
-        return JsonValue::EmptyJsonObject.end();
+    if (value.GetValueType() != SerializeValueType::Object)
+        return SerializeValue::EmptyObject.end();
 
     return value._objectValue->end();
 }

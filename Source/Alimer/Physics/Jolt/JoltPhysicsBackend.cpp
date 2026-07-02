@@ -26,8 +26,9 @@ JPH_SUPPRESS_WARNINGS
 #include "Jolt/Physics/Collision/Shape/CylinderShape.h"
 #include "Jolt/Physics/Collision/Shape/HeightFieldShape.h"
 #include "Jolt/Physics/Collision/Shape/MeshShape.h"
+#include "Jolt/Physics/Collision/Shape/PlaneShape.h"
+#include "Jolt/Physics/Collision/Shape/ConvexHullShape.h"
 #include "Jolt/Physics/Collision/Shape/MutableCompoundShape.h"
-//#include "Jolt/Physics/Collision/Shape/PlaneShape.h"
 
 #ifdef JPH_DEBUG_RENDERER
 //#include "Alimer/Renderer/DebugRenderer.h"
@@ -308,7 +309,7 @@ public:
 class JoltRigidBody final : public RigidBody
 {
 public:
-    JoltRigidBody(JPH::BodyID bodyID, JPH::BodyInterface* bodyInterface);
+    JoltRigidBody(JPH::BodyID bodyID, JPH::PhysicsSystem* system);
     ~JoltRigidBody() override;
 
     uint32_t GetID() const override;
@@ -342,11 +343,11 @@ public:
     void AddImpulse(const Vector3& impulse, const Vector3& position) override;
     void AddAngularImpulse(const Vector3& angularImpulse) override;
 
-    bool ApplyBuoyancyImpulse(const Vector3& surfacePosition, const Vector3& surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vector3& fluidVelocity, const Vector3& gravity, float deltaTime) override;
+    bool ApplyBuoyancyImpulse(const Vector3& surfacePosition, const Vector3& surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vector3& fluidVelocity, float deltaTime) override;
 
 private:
     JPH::BodyID _bodyID;
-    JPH::BodyInterface* _bodyInterface;
+    JPH::PhysicsSystem* _system;
 };
 
 /* JoltPhysicsWorld */
@@ -479,22 +480,25 @@ private:
 };
 
 /* JoltRigidBody */
-JoltRigidBody::JoltRigidBody(JPH::BodyID bodyID, JPH::BodyInterface* bodyInterface)
-    : _bodyID(bodyID), _bodyInterface(bodyInterface)
-{}
+JoltRigidBody::JoltRigidBody(JPH::BodyID bodyID, JPH::PhysicsSystem* system)
+    : _bodyID(bodyID)
+    , _system(system)
+{
+}
 
 JoltRigidBody::~JoltRigidBody()
 {
     if (_bodyID.IsInvalid())
         return;
 
-    bool added = _bodyInterface->IsAdded(_bodyID);
+    JPH::BodyInterface& bodyInterface = _system->GetBodyInterface();
+    bool added = bodyInterface.IsAdded(_bodyID);
     if (added)
     {
-        _bodyInterface->RemoveBody(_bodyID);
+        bodyInterface.RemoveBody(_bodyID);
     }
 
-    _bodyInterface->DestroyBody(_bodyID);
+    bodyInterface.DestroyBody(_bodyID);
     _bodyID = JPH::BodyID{ JPH::BodyID::cInvalidBodyID };
 }
 
@@ -508,49 +512,49 @@ RigidBodyType JoltRigidBody::GetType() const
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    return FromJolt(_bodyInterface->GetMotionType(_bodyID));
+    return FromJolt(_system->GetBodyInterface().GetMotionType(_bodyID));
 }
 
 void JoltRigidBody::SetType(RigidBodyType type)
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    _bodyInterface->SetMotionType(_bodyID, ToJolt(type), JPH::EActivation::Activate);
+    _system->GetBodyInterface().SetMotionType(_bodyID, ToJolt(type), JPH::EActivation::Activate);
 }
 
 bool JoltRigidBody::IsActive() const
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    return _bodyInterface->IsActive(_bodyID);
+    return _system->GetBodyInterface().IsActive(_bodyID);
 }
 
 void JoltRigidBody::Activate()
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    _bodyInterface->ActivateBody(_bodyID);
+    _system->GetBodyInterface().ActivateBody(_bodyID);
 }
 
 void JoltRigidBody::Deactivate()
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    _bodyInterface->DeactivateBody(_bodyID);
+    _system->GetBodyInterface().DeactivateBody(_bodyID);
 }
 
 Vector3 JoltRigidBody::GetPosition() const
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    return FromJolt(_bodyInterface->GetPosition(_bodyID));
+    return FromJolt(_system->GetBodyInterface().GetPosition(_bodyID));
 }
 
 Quaternion JoltRigidBody::GetRotation() const
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    return FromJolt(_bodyInterface->GetRotation(_bodyID));
+    return FromJolt(_system->GetBodyInterface().GetRotation(_bodyID));
 }
 
 RigidBodyTransform JoltRigidBody::GetTransform() const
@@ -559,7 +563,7 @@ RigidBodyTransform JoltRigidBody::GetTransform() const
 
     JPH::RVec3 position{};
     JPH::Quat rotation{};
-    _bodyInterface->GetPositionAndRotation(_bodyID, position, rotation);
+    _system->GetBodyInterface().GetPositionAndRotation(_bodyID, position, rotation);
 
     RigidBodyTransform transform{};
     transform.position = FromJolt(position);
@@ -575,14 +579,14 @@ void JoltRigidBody::SetTransform(const RigidBodyTransform& transform)
     JPH::RVec3 position = ToJolt(transform.position);
     JPH::Quat rotation = ToJolt(transform.rotation);
 
-    _bodyInterface->SetPositionAndRotationWhenChanged(_bodyID, position, rotation, JPH::EActivation::Activate);
+    _system->GetBodyInterface().SetPositionAndRotationWhenChanged(_bodyID, position, rotation, JPH::EActivation::Activate);
 }
 
 Matrix4x4 JoltRigidBody::GetWorldTransform() const
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    JPH::RMat44 joltTransform = _bodyInterface->GetWorldTransform(_bodyID);
+    JPH::RMat44 joltTransform = _system->GetBodyInterface().GetWorldTransform(_bodyID);
     Matrix4x4 transform = FromJolt(joltTransform);
     return transform;
 }
@@ -591,14 +595,14 @@ Vector3 JoltRigidBody::GetCenterOfMass() const
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    return FromJolt(_bodyInterface->GetCenterOfMassPosition(_bodyID));
+    return FromJolt(_system->GetBodyInterface().GetCenterOfMassPosition(_bodyID));
 }
 
 Vector3 JoltRigidBody::GetLinearVelocity() const
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    JPH::Vec3 velocity = _bodyInterface->GetLinearVelocity(_bodyID);
+    JPH::Vec3 velocity = _system->GetBodyInterface().GetLinearVelocity(_bodyID);
     return FromJolt(velocity);
 }
 
@@ -606,14 +610,14 @@ void JoltRigidBody::SetLinearVelocity(const Vector3& velocity)
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    _bodyInterface->SetLinearVelocity(_bodyID, ToJolt(velocity));
+    _system->GetBodyInterface().SetLinearVelocity(_bodyID, ToJolt(velocity));
 }
 
 Vector3 JoltRigidBody::GetAngularVelocity() const
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    JPH::Vec3 velocity = _bodyInterface->GetAngularVelocity(_bodyID);
+    JPH::Vec3 velocity = _system->GetBodyInterface().GetAngularVelocity(_bodyID);
     return FromJolt(velocity);
 }
 
@@ -621,62 +625,62 @@ void JoltRigidBody::SetAngularVelocity(const Vector3& velocity)
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    _bodyInterface->SetAngularVelocity(_bodyID, ToJolt(velocity));
+    _system->GetBodyInterface().SetAngularVelocity(_bodyID, ToJolt(velocity));
 }
 
 void JoltRigidBody::AddForce(const Vector3& force)
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    _bodyInterface->AddForce(_bodyID, ToJolt(force));
+    _system->GetBodyInterface().AddForce(_bodyID, ToJolt(force));
 }
 
 void JoltRigidBody::AddForce(const Vector3& force, const Vector3& position)
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    _bodyInterface->AddForce(_bodyID, ToJolt(force), ToJolt(position));
+    _system->GetBodyInterface().AddForce(_bodyID, ToJolt(force), ToJolt(position));
 }
 
 void JoltRigidBody::AddTorque(const Vector3& torque)
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    _bodyInterface->AddTorque(_bodyID, ToJolt(torque));
+    _system->GetBodyInterface().AddTorque(_bodyID, ToJolt(torque));
 }
 
 void JoltRigidBody::AddForceAndTorque(const Vector3& force, const Vector3& torque)
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    _bodyInterface->AddForceAndTorque(_bodyID, ToJolt(force), ToJolt(torque));
+    _system->GetBodyInterface().AddForceAndTorque(_bodyID, ToJolt(force), ToJolt(torque));
 }
 
 void JoltRigidBody::AddImpulse(const Vector3& impulse)
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    _bodyInterface->AddImpulse(_bodyID, ToJolt(impulse));
+    _system->GetBodyInterface().AddImpulse(_bodyID, ToJolt(impulse));
 }
 
 void JoltRigidBody::AddImpulse(const Vector3& impulse, const Vector3& position)
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    _bodyInterface->AddImpulse(_bodyID, ToJolt(impulse), ToJolt(position));
+    _system->GetBodyInterface().AddImpulse(_bodyID, ToJolt(impulse), ToJolt(position));
 }
 void JoltRigidBody::AddAngularImpulse(const Vector3& angularImpulse)
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    _bodyInterface->AddAngularImpulse(_bodyID, ToJolt(angularImpulse));
+    _system->GetBodyInterface().AddAngularImpulse(_bodyID, ToJolt(angularImpulse));
 }
 
-bool JoltRigidBody::ApplyBuoyancyImpulse(const Vector3& surfacePosition, const Vector3& surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vector3& fluidVelocity, const Vector3& gravity, float deltaTime)
+bool JoltRigidBody::ApplyBuoyancyImpulse(const Vector3& surfacePosition, const Vector3& surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vector3& fluidVelocity, float deltaTime)
 {
     JPH_ASSERT(!_bodyID.IsInvalid());
 
-    return _bodyInterface->ApplyBuoyancyImpulse(
+    return _system->GetBodyInterface().ApplyBuoyancyImpulse(
         _bodyID,
         ToJolt(surfacePosition),
         ToJolt(surfaceNormal),
@@ -684,7 +688,7 @@ bool JoltRigidBody::ApplyBuoyancyImpulse(const Vector3& surfacePosition, const V
         linearDrag,
         angularDrag,
         ToJolt(fluidVelocity),
-        ToJolt(gravity),
+        _system->GetGravity(),
         deltaTime
     );
 
@@ -821,8 +825,7 @@ RigidBodyRef JoltPhysicsWorld::CreateRigidBody(const RigidBodyDesc& desc)
     _bodyInterface->AddBody(body->GetID(), JPH::EActivation::Activate);
 
     //_physicsSystem.OptimizeBroadPhase();
-
-    SharedPtr<JoltRigidBody> rigidBody = MakeShared<JoltRigidBody>(body->GetID(), _bodyInterface);
+    SharedPtr<JoltRigidBody> rigidBody = MakeShared<JoltRigidBody>(body->GetID(), &_system);
     _bodyInterface->SetUserData(body->GetID(), reinterpret_cast<uint64_t>(rigidBody.Get()));
 
     return rigidBody;
@@ -883,7 +886,7 @@ CollisionShape* JoltPhysicsBackend::CreateBoxShape(const Vector3& size) const
     JPH::ShapeSettings::ShapeResult shapeResult = shapeSettings.Create();
     if (!shapeResult.IsValid())
     {
-        LOGE("Jolt: CreateBox failed with {}", shapeResult.GetError());
+        LOGE("Jolt: CreateBoxShape failed with {}", shapeResult.GetError());
         return nullptr;
     }
 
@@ -901,7 +904,7 @@ CollisionShape* JoltPhysicsBackend::CreateSphereShape(float radius) const
     JPH::ShapeSettings::ShapeResult shapeResult = shapeSettings.Create();
     if (!shapeResult.IsValid())
     {
-        LOGE("Jolt: CreateSphere failed with {}", shapeResult.GetError());
+        LOGE("Jolt: CreateSphereShape failed with {}", shapeResult.GetError());
         return nullptr;
     }
 
@@ -923,13 +926,89 @@ CollisionShape* JoltPhysicsBackend::CreateCapsuleShape(float height, float radiu
     JPH::ShapeSettings::ShapeResult shapeResult = shapeSettings.Create();
     if (!shapeResult.IsValid())
     {
-        LOGE("Jolt: CreateCapsule failed with {}", shapeResult.GetError());
+        LOGE("Jolt: CreateCapsuleShape failed with {}", shapeResult.GetError());
         return nullptr;
     }
 
     JoltCollisionShape* shape = new JoltCollisionShape();
     shape->handle = shapeResult.Get();
     shape->type = CollisionShapeType::Capsule;
+    shapeResult.Get()->SetUserData((JPH::uint64)shape);
+    return shape;
+}
+
+CollisionShape* JoltPhysicsBackend::CreateCylinderShape(float height, float radius) const
+{
+    JPH::CylinderShapeSettings shapeSettings(
+        std::max(0.01f, height) * 0.5f,
+        std::max(0.01f, radius),
+        JPH::cDefaultConvexRadius,
+        /*material != nullptr ? material->handle : */ nullptr
+    );
+    shapeSettings.SetEmbedded();
+    JPH::ShapeSettings::ShapeResult shapeResult = shapeSettings.Create();
+    if (!shapeResult.IsValid())
+    {
+        LOGE("Jolt: CreateCylinderShape failed with {}", shapeResult.GetError());
+        return nullptr;
+    }
+
+    JoltCollisionShape* shape = new JoltCollisionShape();
+    shape->handle = shapeResult.Get();
+    shape->type = CollisionShapeType::Cylinder;
+    shapeResult.Get()->SetUserData((JPH::uint64)shape);
+    return shape;
+}
+
+CollisionShape* JoltPhysicsBackend::CreatePlaneShape(float halfExtent) const
+{
+    JPH::PlaneShapeSettings  shapeSettings(
+        JPH::Plane::sFromPointAndNormal(JPH::Vec3::sZero(), JPH::Vec3::sAxisY()),
+        /*material != nullptr ? material->handle : */ nullptr,
+        Alimer::Max(halfExtent, 1.0f)
+    );
+    shapeSettings.SetEmbedded();
+    JPH::ShapeSettings::ShapeResult shapeResult = shapeSettings.Create();
+    if (!shapeResult.IsValid())
+    {
+        LOGE("Jolt: CreatePlaneShape failed with {}", shapeResult.GetError());
+        return nullptr;
+    }
+
+    JoltCollisionShape* shape = new JoltCollisionShape();
+    shape->handle = shapeResult.Get();
+    shape->type = CollisionShapeType::Plane;
+    shapeResult.Get()->SetUserData((JPH::uint64)shape);
+    return shape;
+
+}
+
+CollisionShape* JoltPhysicsBackend::CreateConvexHullShape(const Vector3* points, uint32_t pointsCount) const
+{
+    JPH::Array<JPH::Vec3> joltPoints;
+    joltPoints.reserve(pointsCount);
+
+    for (uint32_t i = 0; i < pointsCount; i++)
+    {
+        joltPoints.push_back(ToJolt(points[i]));
+    }
+
+    JPH::ConvexHullShapeSettings shapeSettings(
+        joltPoints,
+        JPH::cDefaultConvexRadius,
+        /*material != nullptr ? material->handle : */ nullptr
+    );
+    shapeSettings.SetEmbedded();
+    JPH::ShapeSettings::ShapeResult shapeResult = shapeSettings.Create();
+    if (!shapeResult.IsValid())
+    {
+        LOGE("Jolt: CreateConvexHull failed with {}", shapeResult.GetError());
+        return nullptr;
+    }
+
+    JoltCollisionShape* shape = new JoltCollisionShape();
+    shape->handle = shapeResult.Get();
+    shape->type = CollisionShapeType::ConvexHull;
     shapeResult.Get()->SetUserData((JPH::uint64)shape);
     return shape;
 }

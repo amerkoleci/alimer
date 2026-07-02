@@ -63,7 +63,7 @@ namespace Alimer
         /// Add angular impulse in world space
         virtual void AddAngularImpulse(const Vector3& angularImpulse) = 0;
 
-        virtual bool ApplyBuoyancyImpulse(const Vector3& surfacePosition, const Vector3& surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vector3& fluidVelocity, const Vector3& gravity, float deltaTime) = 0;
+        virtual bool ApplyBuoyancyImpulse(const Vector3& surfacePosition, const Vector3& surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vector3& fluidVelocity, float deltaTime) = 0;
     };
 
     class ALIMER_API PhysicsWorld : public RefCounted
@@ -101,6 +101,9 @@ namespace Alimer
         [[nodiscard]] virtual CollisionShape* CreateBoxShape(const Vector3& size) const = 0;
         [[nodiscard]] virtual CollisionShape* CreateSphereShape(float radius) const = 0;
         [[nodiscard]] virtual CollisionShape* CreateCapsuleShape(float height, float radius) const = 0;
+        [[nodiscard]] virtual CollisionShape* CreateCylinderShape(float height, float radius) const = 0;
+        [[nodiscard]] virtual CollisionShape* CreatePlaneShape(float halfExtent = 1000.0f) const = 0;
+        [[nodiscard]] virtual CollisionShape* CreateConvexHullShape(const Vector3* points, uint32_t pointsCount) const = 0;
         virtual void DestroyShape(CollisionShape* shape) = 0;
     };
 

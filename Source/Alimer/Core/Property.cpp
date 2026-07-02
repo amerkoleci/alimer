@@ -3,7 +3,7 @@
 
 #include "Alimer/Core/Log.h"
 #include "Alimer/Core/Object.h"
-#include "Alimer/Core/JsonValue.h"
+#include "Alimer/Core/SerializeValue.h"
 //#include "Alimer/Serialization/Serializer.h"
 
 using namespace Alimer;
@@ -42,8 +42,8 @@ void PropertyInfo::Skip(VariantType type, Stream& source)
             source.ReadAssetRefList();
             break;
 
-        case VariantType::JsonValue:
-            source.ReadJsonValue();
+        case VariantType::SerializeValue:
+            source.ReadSerializeValue();
             break;
 
         default:
@@ -181,7 +181,7 @@ void PropertyInfo::Serialize(ISerializer& serializer, const std::string& propert
             break;
 
         case ATTR_JSONVALUE:
-            *(reinterpret_cast<JsonValue*>(dest)) = source;
+            *(reinterpret_cast<SerializeValue*>(dest)) = source;
             break;
 #endif // TODO
 
@@ -305,7 +305,7 @@ bool PropertyInfo::Deserialize(IDeserializer& deserializer, const std::string& p
             break;
 
         case ATTR_JSONVALUE:
-            *(reinterpret_cast<JsonValue*>(dest)) = source;
+            *(reinterpret_cast<SerializeValue*>(dest)) = source;
             break;
 #endif // TODO
 

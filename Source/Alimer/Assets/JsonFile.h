@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "Alimer/Core/JsonValue.h"
+#include "Alimer/Core/SerializeValue.h"
 #include "Alimer/Assets/Asset.h"
 
 namespace Alimer
@@ -31,12 +31,12 @@ namespace Alimer
         bool Save(Stream& stream) const override;
 
         /// Return root value.
-        JsonValue& GetRoot() { return root; }
+        SerializeValue& GetRoot() { return root; }
         /// Return root value.
-        const JsonValue& GetRoot() const { return root; }
+        const SerializeValue& GetRoot() const { return root; }
 
     private:
         /// Root value.
-        JsonValue root;
+        SerializeValue root;
     };
 }

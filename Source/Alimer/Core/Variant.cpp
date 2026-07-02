@@ -37,7 +37,7 @@ namespace
         "ObjectRef",
         "AssetRef",
         "AssetRefList",
-        "JsonValue",
+        "SerializeValue",
 
         "Vector2",
         "Vector3",
@@ -97,7 +97,7 @@ namespace
         sizeof(ObjectRef),
         0, // AssetRef
         0, // AssetRefList
-        0, // JsonValue
+        0, // SerializeValue
 
         sizeof(Vector2),
         sizeof(Vector3),
@@ -285,7 +285,7 @@ Variant::Variant(VariantType type)
         case VariantType::ObjectRef:
         case VariantType::AssetRef:
         case VariantType::AssetRefList:
-        case VariantType::JsonValue:
+        case VariantType::SerializeValue:
             SetType(type);
             break;
 
@@ -330,8 +330,8 @@ void Variant::SetType(VariantType newType)
             value.assetRefList.~AssetRefList();
             break;
 
-        case VariantType::JsonValue:
-            value.jsonValue.~JsonValue();
+        case VariantType::SerializeValue:
+            value.serializeValue.~SerializeValue();
             break;
 
         default:
@@ -370,8 +370,8 @@ void Variant::SetType(VariantType newType)
             new(&value.assetRefList) AssetRefList();
             break;
 
-        case VariantType::JsonValue:
-            new(&value.jsonValue) JsonValue();
+        case VariantType::SerializeValue:
+            new(&value.serializeValue) SerializeValue();
             break;
 
         default:
@@ -414,8 +414,8 @@ Variant& Variant::operator =(const Variant& other)
             value.assetRefList = other.value.assetRefList;
             break;
 
-        case VariantType::JsonValue:
-            value.jsonValue = other.value.jsonValue;
+        case VariantType::SerializeValue:
+            value.serializeValue = other.value.serializeValue;
             break;
 
         case VariantType::Vector2:
@@ -492,8 +492,8 @@ Variant& Variant::operator =(Variant&& rhs)
             moveConstruct(value.assetRefList, rhs.value.assetRefList);
             break;
 
-        case VariantType::JsonValue:
-            moveConstruct(value.jsonValue, rhs.value.jsonValue);
+        case VariantType::SerializeValue:
+            moveConstruct(value.serializeValue, rhs.value.serializeValue);
             break;
 
         case VariantType::StringVector:
@@ -823,9 +823,9 @@ const AssetRefList& Variant::GetAssetRefList() const noexcept
     return type == VariantType::AssetRefList ? value.assetRefList : AssetRefList::Empty;
 }
 
-const JsonValue& Variant::GetJsonValue() const noexcept
+const SerializeValue& Variant::GetSerializeValue() const noexcept
 {
-    return type == VariantType::JsonValue ? value.jsonValue : JsonValue::Empty;
+    return type == VariantType::SerializeValue ? value.serializeValue : SerializeValue::Empty;
 }
 
 const Vector2& Variant::GetVector2() const noexcept
@@ -928,8 +928,8 @@ bool Variant::operator ==(const Variant& rhs) const
         case VariantType::AssetRefList:
             return value.assetRefList == rhs.value.assetRefList;
 
-        case VariantType::JsonValue:
-            return value.jsonValue == rhs.value.jsonValue;
+        case VariantType::SerializeValue:
+            return value.serializeValue == rhs.value.serializeValue;
 
         case VariantType::Vector2:
             return value.vector2 == rhs.value.vector2;
@@ -1087,9 +1087,9 @@ template <> AssetRefList Variant::Get<AssetRefList>() const
     return GetAssetRefList();
 }
 
-template <> JsonValue Variant::Get<JsonValue>() const
+template <> SerializeValue Variant::Get<SerializeValue>() const
 {
-    return GetJsonValue();
+    return GetSerializeValue();
 }
 
 template <> const Vector2& Variant::Get<const Vector2&>() const

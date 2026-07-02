@@ -22,12 +22,12 @@ bool JsonFile::FromString(const std::string& source)
     if (source.empty())
         return false;
 
-    return root.FromString(source);
+    return root.FromJson(source);
 }
 
 std::string JsonFile::ToString(const std::string& indendation) const
 {
-    return root.ToString(indendation);
+    return root.ToJson(indendation);
 }
 
 bool JsonFile::BeginLoad(Stream& source)
@@ -37,7 +37,7 @@ bool JsonFile::BeginLoad(Stream& source)
     if (source.Read(buffer.get(), dataSize) != dataSize)
         return false;
 
-    if (!root.FromString(buffer.get(), true))
+    if (!root.FromJson(buffer.get(), true))
     {
         return false;
     }
@@ -48,7 +48,7 @@ bool JsonFile::BeginLoad(Stream& source)
 bool JsonFile::Save(Stream& stream) const
 {
     std::string buffer;
-    root.ToString(buffer);
+    root.ToJson(buffer);
     if (buffer.length())
     {
         return stream.Write(&buffer[0], buffer.length()) == buffer.length();
