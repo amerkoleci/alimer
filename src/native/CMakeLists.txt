@@ -183,8 +183,12 @@ option(ALIMER_INSTALL "Generate the install target" ${ALIMER_MASTER_PROJECT})
 option(ALIMER_SAMPLES "Build samples" ${ALIMER_MASTER_PROJECT})
 
 option(ALIMER_AUDIO "Enable Audio support" ON)
-option(ALIMER_PHYSICS "Enable Physics support (using Jolt)" ON)
+option(ALIMER_PHYSICS "Enable Physics support (using Jolt or Box3D)" "Jolt")
 option(ALIMER_IMAGE_KTX "Enable ktx support in image module" ON)
+
+if (NOT ALIMER_PHYSICS)
+    set(ALIMER_PHYSICS "Jolt" CACHE BOOL "Enable Physics support (using Jolt)" FORCE)
+endif()
 
 # Set general compiler flags
 if (MSVC)

@@ -11,10 +11,18 @@ macro(group_sources)
 endmacro()
 
 # Setup library
+if (${ALIMER_PHYSICS} MATCHES "Jolt")
+    set(SRC_FILE src/alimer_physics.cpp)
+elseif (${ALIMER_PHYSICS} MATCHES "Box3D")
+    set(SRC_FILE src/alimer_physics_box3d.cpp)
+else()
+    message(FATAL_ERROR "Unknown physics engine: ${ALIMER_PHYSICS}")
+endif()
+
 set(TARGET_NAME alimer_physics)
 add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
 	include/alimer_physics.h
-    src/alimer_physics.cpp
+    ${SRC_FILE}
 )
 
 group_sources()
@@ -56,7 +64,12 @@ elseif(ANDROID)
     target_link_options(${TARGET_NAME} PRIVATE "-Wl,-z,max-page-size=16384")
 endif ()
 
-target_link_libraries(${TARGET_NAME} PRIVATE Jolt)
+if (${ALIMER_PHYSICS} MATCHES "Jolt")
+    target_link_libraries(${TARGET_NAME} PRIVATE Jolt)
+elseif (${ALIMER_PHYSICS} MATCHES "Box3D")
+    target_link_libraries(${TARGET_NAME} PRIVATE box3d)
+endif()
+
 
 # Install
 if (ALIMER_INSTALL)

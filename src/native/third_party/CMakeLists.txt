@@ -102,7 +102,7 @@ if (NOT (EMSCRIPTEN OR WINDOWS_STORE))
     CPMAddPackage(
         NAME SDL
         GITHUB_REPOSITORY libsdl-org/SDL
-        GIT_TAG release-3.4.8
+        GIT_TAG release-3.4.12
         OPTIONS
             "SDL_SHARED ON"
             "SDL_STATIC OFF"
@@ -169,37 +169,51 @@ target_sources(DirectX-Headers INTERFACE
 target_include_directories(DirectX-Headers INTERFACE ${DIRECTX_HEADERS_INCLUDE_DIR})
 
 if(ALIMER_PHYSICS)
-    CPMAddPackage(
-        NAME JoltPhysics
-        GITHUB_REPOSITORY jrouwe/JoltPhysics
-        GIT_TAG 9bc7080346639d8511cba090dd10aeb5154e18cf
-        SOURCE_SUBDIR Build
-        OPTIONS
-            "DOUBLE_PRECISION OFF"
-            "JPH_BUILD_SHARED_LIBS OFF"
-            "GENERATE_DEBUG_SYMBOLS OFF"
-            "CROSS_PLATFORM_DETERMINISTIC OFF"
-            "ENABLE_INSTALL OFF"
-            "ENABLE_ALL_WARNINGS OFF"
-            "FLOATING_POINT_EXCEPTIONS_ENABLED ON"
-            "CPP_EXCEPTIONS_ENABLED OFF"
-            "CPP_RTTI_ENABLED OFF"
-            "OBJECT_LAYER_BITS 32" # 16 
-            "USE_STATIC_MSVC_RUNTIME_LIBRARY OFF"
-            "USE_STD_VECTOR OFF"
-            "ENABLE_OBJECT_STREAM OFF"
-            # Option to compile with DirectX 12 compute
-            "JPH_USE_DX12 ON"
-            # Option to compile with Vulkan compute
-            "JPH_USE_VK ON"
-            # Option to compile with Metal compute
-            "JPH_USE_MTL ON"
-            # Option to compile with CPU fallback compute
-            "JPH_USE_CPU_COMPUTE ON"
-            # Option to enable shader debug symbols
-            "JPH_SHADER_DEBUG_SYMBOLS OFF"
-            # Option to enable shader optimizations. When this is on, the shaders will be optimized for performance, otherwise they're suitable for debugging.
-            "JPH_SHADER_OPTIMIZATION ON"
-    )
-    set_property(TARGET Jolt PROPERTY FOLDER "ThirdParty")
+    if (${ALIMER_PHYSICS} MATCHES "Jolt")
+        CPMAddPackage(
+            NAME JoltPhysics
+            GITHUB_REPOSITORY jrouwe/JoltPhysics
+            GIT_TAG 9bc7080346639d8511cba090dd10aeb5154e18cf
+            SOURCE_SUBDIR Build
+            OPTIONS
+                "DOUBLE_PRECISION OFF"
+                "JPH_BUILD_SHARED_LIBS OFF"
+                "GENERATE_DEBUG_SYMBOLS OFF"
+                "CROSS_PLATFORM_DETERMINISTIC OFF"
+                "ENABLE_INSTALL OFF"
+                "ENABLE_ALL_WARNINGS OFF"
+                "FLOATING_POINT_EXCEPTIONS_ENABLED ON"
+                "CPP_EXCEPTIONS_ENABLED OFF"
+                "CPP_RTTI_ENABLED OFF"
+                "OBJECT_LAYER_BITS 32" # 16 
+                "USE_STATIC_MSVC_RUNTIME_LIBRARY OFF"
+                "USE_STD_VECTOR OFF"
+                "ENABLE_OBJECT_STREAM OFF"
+                # Option to compile with DirectX 12 compute
+                "JPH_USE_DX12 ON"
+                # Option to compile with Vulkan compute
+                "JPH_USE_VK ON"
+                # Option to compile with Metal compute
+                "JPH_USE_MTL ON"
+                # Option to compile with CPU fallback compute
+                "JPH_USE_CPU_COMPUTE ON"
+                # Option to enable shader debug symbols
+                "JPH_SHADER_DEBUG_SYMBOLS OFF"
+                # Option to enable shader optimizations. When this is on, the shaders will be optimized for performance, otherwise they're suitable for debugging.
+                "JPH_SHADER_OPTIMIZATION ON"
+        )
+        set_property(TARGET Jolt PROPERTY FOLDER "ThirdParty")
+    endif()
+
+    if (${ALIMER_PHYSICS} MATCHES "Box3D")
+        # box3d
+        CPMAddPackage(
+            NAME box3d
+            GITHUB_REPOSITORY erincatto/box3d
+            GIT_TAG main
+            OPTIONS
+                "BOX3D_DOUBLE_PRECISION OFF"
+        )
+        set_property(TARGET box3d PROPERTY FOLDER "ThirdParty")
+    endif()
 endif()
