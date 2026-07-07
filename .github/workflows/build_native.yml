@@ -17,7 +17,7 @@ jobs:
     runs-on: windows-2025-vs2026
     steps:
     - name: Checkout
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Get CMake and Ninja
       uses: lukka/get-cmake@latest
@@ -26,19 +26,29 @@ jobs:
         ninjaVersion: latest
       
     - name: Configure win-x64
-      run: cmake -S "src/native" -B "build_win_64" -G "Visual Studio 18 2026" -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="win-x64-sdk" -DALIMER_SAMPLES=OFF
+      run: cmake -S "src/native" -B "build_win_64" -G "Visual Studio 18 2026" -A x64 -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX="win-x64-sdk" -DALIMER_SAMPLES=OFF
     - name: Build win-x64
-      run: cmake --build build_win_64 --target install --config Release
+      run: cmake --build build_win_64 --target install --config Distribution
 
     - uses: actions/upload-artifact@v7
       with:
         name: win-x64-sdk
         path: win-x64-sdk
 
+    - name: Configure win-arm64
+      run: cmake -S "src/native" -B "build_win_arm64" -G "Visual Studio 18 2026" -A ARM64 -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX="win-arm64-sdk" -DALIMER_SAMPLES=OFF
+    - name: Build win-arm64
+      run: cmake --build build_win_arm64 --target install --config Distribution        
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: win-arm64-sdk
+        path: win-arm64-sdk
+
   linux:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
     - name: Get CMake and Ninja
       uses: lukka/get-cmake@latest
@@ -70,7 +80,7 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
     - name: Get CMake and Ninja
       uses: lukka/get-cmake@latest
