@@ -3,6 +3,9 @@
 
 namespace Alimer.Engine;
 
+/// <summary>
+/// Enum defining the transform space for a transform component.
+/// </summary>
 public enum TransformSpace
 {
     Local = 0,

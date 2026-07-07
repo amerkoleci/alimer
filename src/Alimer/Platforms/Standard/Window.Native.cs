@@ -85,7 +85,7 @@ unsafe partial class Window
         // https://github.com/eliemichel/glfw3webgpu/blob/main/glfw3webgpu.c
 
         // Native handle
-        var props = SDL_GetWindowProperties(_handle);
+        SDL_PropertiesID props = SDL_GetWindowProperties(_handle);
         if (OperatingSystem.IsWindows())
         {
             nint hwnd = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_WIN32_HWND_POINTER);

@@ -78,7 +78,7 @@ public sealed unsafe class FontImporter : AssetImporter<FontAsset, FontMetadata>
 
                 foreach (char c in metadata.Characters)
                 {
-                    ushort glyphId = typeface.GetGlyph(c);
+                    ushort glyphId = font.GetGlyph(c);
                     float widthGlyph = font.MeasureText(new string(c, 1), out SKRect bounds);
                     glyphSizes.Add(new SKSize(widthGlyph, lineHeight));
                 }
@@ -118,7 +118,7 @@ public sealed unsafe class FontImporter : AssetImporter<FontAsset, FontMetadata>
                                         SKShaderTileMode.Clamp
                                     );
                                     gradientPaint.Shader = gradient;
-                                    atlasCanvas.DrawText(c.ToString(), packedRect.Left, packedRect.Bottom, font, gradientPaint);
+                                    atlasCanvas.DrawText(c.ToString(), packedRect.Left, packedRect.Bottom, SKTextAlign.Center, font, gradientPaint);
                                 }
                             }
 
