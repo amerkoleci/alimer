@@ -386,14 +386,6 @@ _ALIMER_EXTERN char* Win32_CreateUTF8FromWideString(const WCHAR* source);
 #define ALIMER_ALLOCN(type, n)      ((type*)alimerCalloc(n, sizeof(type)))
 _ALIMER_EXTERN char* _alimer_strdup(const char* source);
 
-#define SAFE_RELEASE(obj) do \
-{ \
-  if ((obj)) { \
-    (obj)->Release(); \
-    (obj) = nullptr; \
-  } \
-} while(0)
-
 #ifdef __cplusplus
 #include <functional>
 
