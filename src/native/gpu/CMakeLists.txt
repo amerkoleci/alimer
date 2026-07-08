@@ -45,6 +45,19 @@ elseif(ANDROID)
     target_link_options(${TARGET_NAME} PRIVATE "-Wl,-z,max-page-size=16384")
 endif ()
 
+if (ALIMER_GPU_VULKAN)
+    target_sources(${TARGET_NAME} PRIVATE
+        src/vulkan/alimer_gpu_vulkan.cpp
+        src/vulkan/vk_mem_alloc.h
+        src/vulkan/alimer_gpu_vulkan_funcs.h
+    )
+
+    target_link_libraries(${TARGET_NAME} PRIVATE vulkan)
+    #target_link_libraries(${TARGET_NAME} PRIVATE spirv_reflect)
+        
+    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_GPU_VULKAN)
+endif()
+
 if (ALIMER_GPU_D3D12)
     target_sources(${TARGET_NAME} PRIVATE
         src/d3d12/alimer_gpu_d3d12.cpp

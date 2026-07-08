@@ -6,6 +6,7 @@
 
 //#include "alimer_internal.h"
 #include "alimer_gpu.h"
+#include <string.h>         /* for memset, memcpy */
 #include <algorithm>
 #include <atomic>
 #include <functional>
@@ -77,14 +78,6 @@
 #else
 #   define ALIMER_ASSERT(...) ((void)0)
 #endif
-
-#define SAFE_RELEASE(obj) do \
-{ \
-  if ((obj)) { \
-    (obj)->Release(); \
-    (obj) = nullptr; \
-  } \
-} while(0)
 
 // Forward declaration for native handle
 typedef struct HINSTANCE__* HINSTANCE;
@@ -181,7 +174,12 @@ struct GPUPipelineLayoutImpl : public GPUResource
 
 };
 
-struct GPUComputePipeline : public GPUResource
+struct GPUShaderModuleImpl : public GPUResource
+{
+
+};
+
+struct GPUComputePipelineImpl : public GPUResource
 {
 
 };
@@ -201,7 +199,7 @@ struct GPUCommandEncoder : public GPUResource
 
 struct GPUComputePassEncoder : public GPUCommandEncoder
 {
-    virtual void SetPipeline(GPUComputePipeline* pipeline) = 0;
+    virtual void SetPipeline(GPUComputePipeline pipeline) = 0;
     virtual void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) = 0;
 
     virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
@@ -239,7 +237,7 @@ struct GPUCommandBuffer : public GPUResource
     virtual void PopDebugGroup() const = 0;
     virtual void InsertDebugMarker(const char* markerLabel) const = 0;
 
-    virtual GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface* surface, GPUTexture** surfaceTexture) = 0;
+    virtual GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) = 0;
     virtual GPUComputePassEncoder* BeginComputePass(const GPUComputePassDesc& desc) = 0;
     virtual GPURenderPassEncoder* BeginRenderPass(const GPURenderPassDesc& desc) = 0;
 };
@@ -268,7 +266,9 @@ struct GPUDevice : public GPUResource
     virtual GPUSampler* CreateSampler(const GPUSamplerDesc& desc) = 0;
     virtual GPUBindGroupLayoutImpl* CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) = 0;
     virtual GPUPipelineLayoutImpl* CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) = 0;
-    virtual GPUComputePipeline* CreateComputePipeline(const GPUComputePipelineDesc& desc) = 0;
+
+    virtual GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) = 0;
+    virtual GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) = 0;
     virtual GPURenderPipelineImpl* CreateRenderPipeline(const GPURenderPipelineDesc& desc) = 0;
     virtual GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) = 0;
 
@@ -310,16 +310,16 @@ struct GPUSurfaceHandle
     void* surfaceHandle = nullptr;
 };
 
-struct GPUSurface : public GPUResource
+struct GPUSurfaceImpl : public GPUResource
 {
-    virtual void GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const = 0;
+    virtual void GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const = 0;
     virtual bool Configure(const GPUSurfaceConfig* config_) = 0;
     virtual void Unconfigure() = 0;
 
     GPUSurfaceConfig config;
 };
 
-struct GPUAdapter : public GPUResource
+struct GPUAdapterImpl : public GPUResource
 {
     virtual GPUAdapterType GetType() const = 0;
     virtual void GetInfo(GPUAdapterInfo* info) const = 0;
@@ -335,8 +335,8 @@ public:
 
     virtual GPUBackendType GetBackend() const = 0;
     virtual uint32_t GetAdapterCount() const = 0;
-    virtual GPUAdapter* GetAdapter(uint32_t index) const = 0;
-    virtual GPUSurface* CreateSurface(GPUSurfaceHandle* surfaceHandle) = 0;
+    virtual GPUAdapter GetAdapter(uint32_t index) const = 0;
+    virtual GPUSurface CreateSurface(GPUSurfaceHandle* surfaceHandle) = 0;
 };
 
 
@@ -345,8 +345,47 @@ _ALIMER_EXTERN void agpuLogInfo(const char* format, ...);
 _ALIMER_EXTERN void agpuLogWarn(const char* format, ...);
 _ALIMER_EXTERN void agpuLogError(const char* format, ...);
 
+typedef enum GPUPixelFormatKind {
+    /// Unsigned normalized formats
+    GPUPixelFormatKind_Unorm,
+    /// Unsigned normalized sRGB formats
+    GPUPixelFormatKind_UnormSrgb,
+    /// Signed normalized formats
+    GPUPixelFormatKind_Snorm,
+    /// Unsigned integer formats
+    GPUPixelFormatKind_Uint,
+    /// Unsigned integer formats
+    GPUPixelFormatKind_Sint,
+    /// Floating-point formats
+    GPUPixelFormatKind_Float,
+
+    _GPUPixelFormatKind_Count,
+    _GPUPixelFormatKind_Force32 = 0x7FFFFFFF
+} GPUPixelFormatKind;
+
+typedef struct GPUPixelFormatInfo {
+    GPUPixelFormat format;
+    const char* name;
+    uint8_t bytesPerBlock;
+    uint8_t blockWidth;
+    uint8_t blockHeight;
+    GPUPixelFormatKind kind;
+} GPUPixelFormatInfo;
+
+_ALIMER_EXTERN GPUPixelFormatInfo agpuPixelFormatGetInfo(GPUPixelFormat format);
+
 namespace
 {
+    template <typename T>
+    void SafeRelease(T& resource)
+    {
+        if (resource)
+        {
+            resource->Release();
+            resource = nullptr;
+        }
+    }
+
     /// Check if inV is a power of 2
     template <typename T>
     constexpr bool IsPowerOf2(T value)
@@ -439,6 +478,18 @@ namespace
         }
     }
 
+    constexpr bool alimerPixelFormatIsDepthOnly(GPUPixelFormat format)
+    {
+        switch (format)
+        {
+            case GPUPixelFormat_Depth16Unorm:
+            case GPUPixelFormat_Depth32Float:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     constexpr uint32_t CalculateSubresource(uint32_t mipLevel, uint32_t arrayLayer, uint32_t mipLevelCount) noexcept
     {
         return mipLevel + arrayLayer * mipLevelCount;
@@ -520,7 +571,7 @@ _ALIMER_EXTERN GPUFactory Null_CreateFactory(const GPUFactoryDesc* desc);
 
 #if defined(ALIMER_GPU_VULKAN)
 _ALIMER_EXTERN bool Vulkan_IsSupported(void);
-_ALIMER_EXTERN GPUFactory Vulkan_CreateInstance(const GPUFactoryDesc* desc);
+_ALIMER_EXTERN GPUFactory Vulkan_CreateFactory(const GPUFactoryDesc* desc);
 #endif
 
 #if defined(ALIMER_GPU_D3D12)

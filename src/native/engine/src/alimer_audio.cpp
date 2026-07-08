@@ -489,7 +489,7 @@ void alimerAudioEngineListenerSetEnabled(AudioEngine* engine, uint32_t listenerI
 
 static bool alimerAudioClipInitFromDecoder(AudioClip* clip)
 {
-    ma_format format;
+    ma_format format = ma_format_unknown;
     ma_decoder_get_data_format(clip->decoder, &format, &clip->channels, &clip->sampleRate, nullptr, 0);
     clip->format = FromMiniaudio(format);
 

@@ -4,7 +4,7 @@
 #include "alimer_gpu_internal.h"
 #include <string>
 
-struct NullAdapter final : public GPUAdapter
+struct NullAdapter final : public GPUAdapterImpl
 {
     GPUAdapterLimits limits{};
 
@@ -43,7 +43,10 @@ struct NullBindGroupLayout final : public GPUBindGroupLayoutImpl
 struct NullPipelineLayout final : public GPUPipelineLayoutImpl
 {};
 
-struct NullComputePipeline final : public GPUComputePipeline
+struct NullShaderModule final : public GPUShaderModuleImpl
+{};
+
+struct NullComputePipeline final : public GPUComputePipelineImpl
 {};
 
 struct NullRenderPipeline final : public GPURenderPipelineImpl
@@ -63,7 +66,7 @@ struct NullComputePassEncoder final : public GPUComputePassEncoder
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
 
-    void SetPipeline(GPUComputePipeline* pipeline) override;
+    void SetPipeline(GPUComputePipeline pipeline) override;
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
     void DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
@@ -111,7 +114,7 @@ struct NullCommandBuffer final : public GPUCommandBuffer
     NullComputePassEncoder* computePassEncoder = nullptr;
     NullRenderPassEncoder* renderPassEncoder = nullptr;
 
-    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface* surface, GPUTexture** surfaceTexture) override;
+    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
@@ -152,17 +155,18 @@ struct NullDevice final : public GPUDevice
     GPUSampler* CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
-    GPUComputePipeline* CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
+    GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) override;
+    GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
     GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
 };
 
-struct NullSurface final : public GPUSurface
+struct NullSurface final : public GPUSurfaceImpl
 {
     NullTexture* backbufferTexture = nullptr;
 
     ~NullSurface() override;
-    void GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
+    void GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const override;
     bool Configure(const GPUSurfaceConfig* config_) override;
     void Unconfigure() override;
 };
@@ -173,8 +177,8 @@ struct NullGPUFactory final : public GPUFactoryImpl
 
     GPUBackendType GetBackend() const override { return GPUBackendType_Null; }
     uint32_t GetAdapterCount() const override { return (uint32_t)adapters.size(); }
-    GPUAdapter* GetAdapter(uint32_t index) const override;
-    GPUSurface* CreateSurface(GPUSurfaceHandle* surfaceHandle) override;
+    GPUAdapter GetAdapter(uint32_t index) const override;
+    GPUSurface CreateSurface(GPUSurfaceHandle* surfaceHandle) override;
 };
 
 
@@ -197,7 +201,7 @@ void NullComputePassEncoder::InsertDebugMarker(const char* markerLabel) const
     ALIMER_UNUSED(markerLabel);
 }
 
-void NullComputePassEncoder::SetPipeline(GPUComputePipeline* pipeline)
+void NullComputePassEncoder::SetPipeline(GPUComputePipeline pipeline)
 {
     //currentPipeline->AddRef(); 
     ALIMER_UNUSED(pipeline);
@@ -354,7 +358,7 @@ void NullRenderPassEncoder::SetShadingRate(GPUShadingRate rate)
 }
 
 /* NullCommandBuffer */
-GPUAcquireSurfaceResult NullCommandBuffer::AcquireSurfaceTexture(GPUSurface* surface, GPUTexture** surfaceTexture)
+GPUAcquireSurfaceResult NullCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
 {
     NullSurface* backendSurface = static_cast<NullSurface*>(surface);
 
@@ -478,23 +482,35 @@ GPUPipelineLayout NullDevice::CreatePipelineLayout(const GPUPipelineLayoutDesc& 
     return layout;
 }
 
-GPUComputePipeline* NullDevice::CreateComputePipeline(const GPUComputePipelineDesc& desc)
+GPUShaderModule NullDevice::CreateShaderModule(const GPUShaderModuleDesc* desc)
 {
-    NullComputePipeline* pipeline = new NullComputePipeline();
+    ALIMER_UNUSED(desc);
 
+    NullShaderModule* shaderModule = new NullShaderModule();
+    return shaderModule;
+}
+
+GPUComputePipeline NullDevice::CreateComputePipeline(const GPUComputePipelineDesc& desc)
+{
+    ALIMER_UNUSED(desc);
+
+    NullComputePipeline* pipeline = new NullComputePipeline();
     return pipeline;
 }
 
 GPURenderPipeline NullDevice::CreateRenderPipeline(const GPURenderPipelineDesc& desc)
 {
+    ALIMER_UNUSED(desc);
+
     NullRenderPipeline* pipeline = new NullRenderPipeline();
     return pipeline;
 }
 
 GPUQueryHeap* NullDevice::CreateQueryHeap(const GPUQueryHeapDesc& desc)
 {
-    NullQueryHeap* queryHeap = new NullQueryHeap();
+    ALIMER_UNUSED(desc);
 
+    NullQueryHeap* queryHeap = new NullQueryHeap();
     return queryHeap;
 }
 
@@ -504,7 +520,7 @@ NullSurface::~NullSurface()
     Unconfigure();
 }
 
-void NullSurface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
+void NullSurface::GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const
 {
     capabilities->preferredFormat = GPUPixelFormat_BGRA8Unorm;
     capabilities->supportedUsage = GPUTextureUsage_RenderTarget;
@@ -563,7 +579,7 @@ GPUDevice* NullAdapter::CreateDevice(const GPUDeviceDesc& desc)
 }
 
 /* NullGPUFactory */
-GPUAdapter* NullGPUFactory::GetAdapter(uint32_t index) const
+GPUAdapter NullGPUFactory::GetAdapter(uint32_t index) const
 {
     if (index >= adapters.size())
         return nullptr;
@@ -571,7 +587,7 @@ GPUAdapter* NullGPUFactory::GetAdapter(uint32_t index) const
     return adapters[index];
 }
 
-GPUSurface* NullGPUFactory::CreateSurface(GPUSurfaceHandle* surfaceHandle)
+GPUSurface NullGPUFactory::CreateSurface(GPUSurfaceHandle* surfaceHandle)
 {
     NullSurface* surface = new NullSurface();
 

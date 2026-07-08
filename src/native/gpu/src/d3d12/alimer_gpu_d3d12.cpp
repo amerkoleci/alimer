@@ -16,33 +16,33 @@
 #   include <d3d12_x.h>
 #   pragma warning(pop)
 #else
-#ifndef UNICODE
-#define UNICODE
-#endif
+#   ifndef UNICODE
+#   define UNICODE
+#   endif
 
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
+#   ifndef NOMINMAX
+#   define NOMINMAX
+#   endif
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
+#   ifndef WIN32_LEAN_AND_MEAN
+#   define WIN32_LEAN_AND_MEAN
+#   endif
 
 // We don't need GDI
-#define NODRAWTEXT
-#define NOGDI
-#define NOBITMAP
+#   define NODRAWTEXT
+#   define NOGDI
+#   define NOBITMAP
 
 // We dont' need <mcx.h>
-#define NOMCX
+#   define NOMCX
 
 // We dont' need <winsvc.h>
-#define NOSERVICE
+#   define NOSERVICE
 
 // WinHelp is deprecated
-#define NOHELP
+#   define NOHELP
 
-#include <Windows.h>
+#   include <Windows.h>
 #   include <directx/d3d12.h>
 #   include <directx/d3d12video.h>
 //#   include <directx/d3dx12_resource_helpers.h>
@@ -445,7 +445,7 @@ namespace
         }
     }
 
-    [[nodiscard]] constexpr D3D_PRIMITIVE_TOPOLOGY ToD3DPrimitiveTopology(GPUPrimitiveTopology type, uint32_t patchControlPoints = 1u)
+    [[nodiscard]] constexpr D3D_PRIMITIVE_TOPOLOGY ToD3DPrimitiveTopology(GPUPrimitiveTopology type)
     {
         switch (type)
         {
@@ -459,13 +459,6 @@ namespace
                 return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
             case GPUPrimitiveTopology_TriangleStrip:
                 return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-            case GPUPrimitiveTopology_PatchList:
-                if (patchControlPoints == 0 || patchControlPoints > 32)
-                {
-                    return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
-                }
-
-                return D3D_PRIMITIVE_TOPOLOGY(D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST + (patchControlPoints - 1));
 
             default:
                 return D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
@@ -1167,7 +1160,15 @@ struct D3D12PipelineLayout final : public GPUPipelineLayoutImpl
     void SetLabel(const char* label) override;
 };
 
-struct D3D12ComputePipeline final : public GPUComputePipeline
+struct D3D12ShaderModule final : public GPUShaderModuleImpl
+{
+    uint8_t* pByteCode = nullptr;
+    D3D12_SHADER_BYTECODE bytecode = {};
+
+    ~D3D12ShaderModule() override;
+};
+
+struct D3D12ComputePipeline final : public GPUComputePipelineImpl
 {
     D3D12Device* device = nullptr;
     D3D12PipelineLayout* layout = nullptr;
@@ -1215,7 +1216,7 @@ struct D3D12ComputePassEncoder final : public GPUComputePassEncoder
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
 
-    void SetPipeline(GPUComputePipeline* pipeline) override;
+    void SetPipeline(GPUComputePipeline pipeline) override;
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
     void PrepareDispatch();
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
@@ -1301,7 +1302,7 @@ struct D3D12CommandBuffer final : public GPUCommandBuffer
 
     void SetPipelineLayout(D3D12PipelineLayout* newPipelineLayout, bool isGraphicsPipelineLayout);
 
-    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface* surface, GPUTexture** surfaceTexture) override;
+    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
@@ -1627,12 +1628,13 @@ struct D3D12Device final : public GPUDevice
     GPUSampler* CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
-    GPUComputePipeline* CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
+    GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) override;
+    GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
     GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
 };
 
-struct D3D12Surface final : public GPUSurface
+struct D3D12Surface final : public GPUSurfaceImpl
 {
     D3D12GPUFactory* factory = nullptr;
     D3D12Device* device = nullptr;
@@ -1650,13 +1652,13 @@ struct D3D12Surface final : public GPUSurface
     std::vector<D3D12Texture*> backbufferTextures;
 
     ~D3D12Surface() override;
-    void GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
+    void GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const override;
     bool Configure(const GPUSurfaceConfig* config_) override;
     void Unconfigure() override;
     void Present();
 };
 
-struct D3D12Adapter final : public GPUAdapter
+struct D3D12Adapter final : public GPUAdapterImpl
 {
     D3D12GPUFactory* factory = nullptr;
     ComPtr<IDXGIAdapter1> handle;
@@ -1700,8 +1702,8 @@ struct D3D12GPUFactory final : public GPUFactoryImpl
 
     GPUBackendType GetBackend() const override { return GPUBackendType_D3D12; }
     uint32_t GetAdapterCount() const override { return (uint32_t)adapters.size(); }
-    GPUAdapter* GetAdapter(uint32_t index) const override;
-    GPUSurface* CreateSurface(GPUSurfaceHandle* surfaceHandle) override;
+    GPUAdapter GetAdapter(uint32_t index) const override;
+    GPUSurface CreateSurface(GPUSurfaceHandle* surfaceHandle) override;
 };
 
 /* D3D12Buffer */
@@ -1967,10 +1969,22 @@ void D3D12PipelineLayout::SetLabel(const char* label)
     }
 }
 
+/* D3D12ShaderModule */
+D3D12ShaderModule::~D3D12ShaderModule()
+{
+    if (pByteCode)
+    {
+        free(pByteCode);
+        pByteCode = nullptr;
+    }
+
+    bytecode = {};
+}
+
 /* D3D12ComputePipeline */
 D3D12ComputePipeline::~D3D12ComputePipeline()
 {
-    SAFE_RELEASE(layout);
+    SafeRelease(layout);
 
     device->DeferDestroy(handle);
     handle = nullptr;
@@ -1988,7 +2002,7 @@ void D3D12ComputePipeline::SetLabel(const char* label)
 /* D3D12RenderPipeline */
 D3D12RenderPipeline::~D3D12RenderPipeline()
 {
-    SAFE_RELEASE(layout);
+    SafeRelease(layout);
 
     device->DeferDestroy(handle);
     handle = nullptr;
@@ -2022,7 +2036,7 @@ void D3D12QueryHeap::SetLabel(const char* label)
 /* D3D12ComputePassEncoder */
 void D3D12ComputePassEncoder::Clear()
 {
-    SAFE_RELEASE(currentPipeline);
+    SafeRelease(currentPipeline);
 }
 
 void D3D12ComputePassEncoder::Begin(const GPUComputePassDesc& desc)
@@ -2061,7 +2075,7 @@ void D3D12ComputePassEncoder::InsertDebugMarker(const char* markerLabel) const
     commandBuffer->InsertDebugMarker(markerLabel);
 }
 
-void D3D12ComputePassEncoder::SetPipeline(GPUComputePipeline* pipeline)
+void D3D12ComputePassEncoder::SetPipeline(GPUComputePipeline pipeline)
 {
     if (currentPipeline == pipeline)
         return;
@@ -2121,7 +2135,7 @@ void D3D12RenderPassEncoder::Clear()
         vboViews[i] = {};
     }
 
-    SAFE_RELEASE(currentPipeline);
+    SafeRelease(currentPipeline);
     hasShadingRateAttachment = false;
     currentShadingRate = _GPUShadingRate_Count;
 }
@@ -2564,11 +2578,11 @@ D3D12CommandBuffer::~D3D12CommandBuffer()
 
     for (uint32_t i = 0; i < queue->device->maxFramesInFlight; ++i)
     {
-        SAFE_RELEASE(commandAllocators[i]);
+        SafeRelease(commandAllocators[i]);
     }
 
-    SAFE_RELEASE(commandList7);
-    SAFE_RELEASE(commandList);
+    SafeRelease(commandList7);
+    SafeRelease(commandList);
 
     delete computePassEncoder;
     delete renderPassEncoder;
@@ -2580,7 +2594,8 @@ void D3D12CommandBuffer::Clear()
     {
         surface->Release();
     }
-    SAFE_RELEASE(currentPipelineLayout);
+
+    SafeRelease(currentPipelineLayout);
     currentPipelineLayoutIsGraphics = false;
     presentSurfaces.clear();
     globalBarriers.clear();
@@ -2832,7 +2847,7 @@ void D3D12CommandBuffer::SetPipelineLayout(D3D12PipelineLayout* newPipelineLayou
     }
 }
 
-GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface* surface, GPUTexture** surfaceTexture)
+GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
 {
     D3D12Surface* backendSurface = static_cast<D3D12Surface*>(surface);
 
@@ -3075,15 +3090,15 @@ void D3D12CopyAllocator::Shutdown()
 {
     for (auto& context : freeList)
     {
-        SAFE_RELEASE(context.commandAllocator);
-        SAFE_RELEASE(context.commandList);
-        SAFE_RELEASE(context.fence);
-        SAFE_RELEASE(context.uploadBuffer);
-        SAFE_RELEASE(context.uploadBufferAllocation);
+        SafeRelease(context.commandAllocator);
+        SafeRelease(context.commandList);
+        SafeRelease(context.fence);
+        SafeRelease(context.uploadBuffer);
+        SafeRelease(context.uploadBufferAllocation);
         context.uploadBufferData = nullptr;
     }
 
-    SAFE_RELEASE(queue);
+    SafeRelease(queue);
 }
 
 D3D12UploadContext D3D12CopyAllocator::Allocate(uint64_t size)
@@ -3118,8 +3133,8 @@ D3D12UploadContext D3D12CopyAllocator::Allocate(uint64_t size)
         VHR(context.commandList->Close());
 
         VHR(device->handle->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&context.fence)));
-        SAFE_RELEASE(context.uploadBuffer);
-        SAFE_RELEASE(context.uploadBufferAllocation);
+        SafeRelease(context.uploadBuffer);
+        SafeRelease(context.uploadBufferAllocation);
 
         D3D12MA::ALLOCATION_DESC allocationDesc = {};
         allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
@@ -3196,9 +3211,9 @@ D3D12Device::~D3D12Device()
     samplerHeap.Shutdown();
 
     // Destroy indirect command signatures
-    SAFE_RELEASE(dispatchCommandSignature);
-    SAFE_RELEASE(drawIndirectCommandSignature);
-    SAFE_RELEASE(drawIndexedIndirectCommandSignature);
+    SafeRelease(dispatchCommandSignature);
+    SafeRelease(drawIndirectCommandSignature);
+    SafeRelease(drawIndexedIndirectCommandSignature);
 
     // Destory pending objects.
     ProcessDeletionQueue(true);
@@ -3210,12 +3225,12 @@ D3D12Device::~D3D12Device()
         if (!queue.handle)
             continue;
 
-        SAFE_RELEASE(queue.handle);
-        SAFE_RELEASE(queue.fence);
+        SafeRelease(queue.handle);
+        SafeRelease(queue.fence);
 
         for (uint32_t frameIndex = 0; frameIndex < maxFramesInFlight; ++frameIndex)
         {
-            SAFE_RELEASE(queue.frameFences[frameIndex]);
+            SafeRelease(queue.frameFences[frameIndex]);
         }
 
         // Destroy command buffers
@@ -3253,10 +3268,10 @@ D3D12Device::~D3D12Device()
         callbackCookie = 0;
     }
 
-    SAFE_RELEASE(videoDevice);
+    SafeRelease(videoDevice);
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-    SAFE_RELEASE(deviceConfiguration);
+    SafeRelease(deviceConfiguration);
 #endif
 
     //deviceConfiguration.Reset();
@@ -3277,7 +3292,7 @@ D3D12Device::~D3D12Device()
     (void)refCount; // avoid warning
 #endif
 
-    SAFE_RELEASE(adapter);
+    SafeRelease(adapter);
 }
 
 void D3D12Device::OnDeviceRemoved()
@@ -3399,7 +3414,7 @@ void D3D12Device::DeferDestroy(ID3D12DeviceChild* resource, D3D12MA::Allocation*
     if (shuttingDown)
     {
         resource->Release();
-        SAFE_RELEASE(allocation);
+        SafeRelease(allocation);
         return;
     }
 
@@ -3881,6 +3896,17 @@ GPUPipelineLayout D3D12Device::CreatePipelineLayout(const GPUPipelineLayoutDesc&
     return layout;
 }
 
+GPUShaderModule D3D12Device::CreateShaderModule(const GPUShaderModuleDesc* desc)
+{
+    D3D12ShaderModule* shaderModule = new D3D12ShaderModule();
+    shaderModule->pByteCode = (uint8_t*)malloc(desc->byteCodeSize);
+    memcpy(shaderModule->pByteCode, desc->byteCode, desc->byteCodeSize);
+    shaderModule->bytecode.BytecodeLength = desc->byteCodeSize;
+    shaderModule->bytecode.pShaderBytecode = shaderModule->pByteCode;
+
+    return shaderModule;
+}
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4324)
@@ -3905,7 +3931,7 @@ struct alignas(void*) PipelineDescComponent final
 using PipelineRootSignature = PipelineDescComponent<ID3D12RootSignature*, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE>;
 using PipelineComputeShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS>;
 
-GPUComputePipeline* D3D12Device::CreateComputePipeline(const GPUComputePipelineDesc& desc)
+GPUComputePipeline D3D12Device::CreateComputePipeline(const GPUComputePipelineDesc& desc)
 {
     D3D12ComputePipeline* pipeline = new D3D12ComputePipeline();
     pipeline->device = this;
@@ -3919,7 +3945,7 @@ GPUComputePipeline* D3D12Device::CreateComputePipeline(const GPUComputePipelineD
     } stream;
 
     stream.pRootSignature = pipeline->layout->handle;
-    stream.CS = { desc.shader.bytecode, desc.shader.bytecodeSize };
+    stream.CS = static_cast<D3D12ShaderModule*>(desc.shader)->bytecode;
 
     D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
     streamDesc.pPipelineStateSubobjectStream = &stream;
@@ -3944,8 +3970,6 @@ using PipelineInputLayout = PipelineDescComponent<D3D12_INPUT_LAYOUT_DESC, D3D12
 using PipelineIndexBufferStripCutValue = PipelineDescComponent<D3D12_INDEX_BUFFER_STRIP_CUT_VALUE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_IB_STRIP_CUT_VALUE>;
 using PipelinePrimitiveTopology = PipelineDescComponent<D3D12_PRIMITIVE_TOPOLOGY_TYPE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY>;
 using PipelineVertexShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS>;
-using PipelineHullShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS>;
-using PipelineDomainShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS>;
 using PipelinePixelShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS>;
 using PipelineBlend = PipelineDescComponent<D3D12_BLEND_DESC, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND>;
 using PipelineDepthStencil = PipelineDescComponent<D3D12_DEPTH_STENCIL_DESC1, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1>;
@@ -3972,9 +3996,6 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
             PipelineIndexBufferStripCutValue    IBStripCutValue;
             PipelinePrimitiveTopology           PrimitiveTopologyType;
             PipelineVertexShader                vertexShader;
-            PipelineHullShader                  hullShader;
-            PipelineDomainShader                domainShader;
-            //CD3DX12_PIPELINE_STATE_STREAM_GS  geometryShader;
             PipelinePixelShader                 pixelShader;
             PipelineBlend                       BlendState;
             PipelineDepthStencil                depthStencilState;
@@ -4069,9 +4090,6 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
         case GPUPrimitiveTopology_TriangleStrip:
             stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
             break;
-        case GPUPrimitiveTopology_PatchList:
-            stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
-            break;
 
         default:
             stream.stream1.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED;
@@ -4084,14 +4102,6 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
         if (shaderDesc.stage == GPUShaderStage_Vertex)
         {
             stream.stream1.vertexShader = { shaderDesc.bytecode, shaderDesc.bytecodeSize };
-        }
-        else if (shaderDesc.stage == GPUShaderStage_Hull)
-        {
-            stream.stream1.hullShader = { shaderDesc.bytecode, shaderDesc.bytecodeSize };
-        }
-        else if (shaderDesc.stage == GPUShaderStage_Domain)
-        {
-            stream.stream1.domainShader = { shaderDesc.bytecode, shaderDesc.bytecodeSize };
         }
         else if (shaderDesc.stage == GPUShaderStage_Fragment)
         {
@@ -4221,7 +4231,7 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
         pipeline->SetLabel(desc.label);
     }
 
-    pipeline->primitiveTopology = ToD3DPrimitiveTopology(desc.primitiveTopology, desc.patchControlPoints);
+    pipeline->primitiveTopology = ToD3DPrimitiveTopology(desc.primitiveTopology);
 
     return pipeline;
 }
@@ -4260,7 +4270,7 @@ D3D12Surface::~D3D12Surface()
     Unconfigure();
 }
 
-void D3D12Surface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
+void D3D12Surface::GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const
 {
     capabilities->preferredFormat = GPUPixelFormat_BGRA8UnormSrgb;
     capabilities->supportedUsage = GPUTextureUsage_ShaderRead | GPUTextureUsage_RenderTarget;
@@ -4417,8 +4427,8 @@ void D3D12Surface::Unconfigure()
         frameLatencyWaitableObject = INVALID_HANDLE_VALUE;
     }
 
-    SAFE_RELEASE(swapChain3);
-    SAFE_RELEASE(device);
+    SafeRelease(swapChain3);
+    SafeRelease(device);
 }
 
 void D3D12Surface::Present()
@@ -4578,7 +4588,7 @@ bool D3D12Adapter::Init(ID3D12Device* device)
     limits.conservativeRasterizationTier = static_cast<GPUConservativeRasterizationTier>(features.ConservativeRasterizationTier());
 
     // VariableRateShading
-    limits.variableShadingRateTier = static_cast<GPUVariableRateShadingTier>(features.VariableShadingRateTier());
+    limits.variableShadingRateTier = static_cast<GPUVariableShadingRateTier>(features.VariableShadingRateTier());
     if (features.VariableShadingRateTier() != D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED)
     {
         limits.variableShadingRateImageTileSize = features.ShadingRateImageTileSize();
@@ -4953,7 +4963,7 @@ GPUDevice* D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
 D3D12GPUFactory::~D3D12GPUFactory()
 {}
 
-GPUAdapter* D3D12GPUFactory::GetAdapter(uint32_t index) const
+GPUAdapter D3D12GPUFactory::GetAdapter(uint32_t index) const
 {
     if (index >= adapters.size())
         return nullptr;
@@ -4961,7 +4971,7 @@ GPUAdapter* D3D12GPUFactory::GetAdapter(uint32_t index) const
     return adapters[index];
 }
 
-GPUSurface* D3D12GPUFactory::CreateSurface(GPUSurfaceHandle* surfaceHandle)
+GPUSurface D3D12GPUFactory::CreateSurface(GPUSurfaceHandle* surfaceHandle)
 {
     D3D12Surface* surface = new D3D12Surface();
     surface->factory = this;

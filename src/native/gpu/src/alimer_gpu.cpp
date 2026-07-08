@@ -78,6 +78,158 @@ void agpuLogError(const char* format, ...)
     s_LogFunc(GPULogLevel_Error, msg, s_userData);
 }
 
+
+
+/* PixelFormat */
+// Format mapping table. The rows must be in the exactly same order as Format enum members are defined.
+static const GPUPixelFormatInfo kPixelFormatInfo[] = {
+    //        format                   name             bytes blk         kind               red   green   blue  alpha  depth  stencl signed  srgb
+    { GPUPixelFormat_Undefined,        "Undefined",          0,   0, 0,  _GPUPixelFormatKind_Force32 },
+    // 8-bit formats
+    { GPUPixelFormat_R8Unorm,          "R8Unorm",            1,   1, 1, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_R8Snorm,          "R8Snorm",            1,   1, 1, GPUPixelFormatKind_Snorm },
+    { GPUPixelFormat_R8Uint,           "R8Uint",             1,   1, 1, GPUPixelFormatKind_Uint },
+    { GPUPixelFormat_R8Sint,           "R8Sint",             1,   1, 1, GPUPixelFormatKind_Sint },
+    // 16-bit formats
+    { GPUPixelFormat_R16Unorm,         "R16Unorm",         2,   1, 1, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_R16Snorm,         "R16Snorm",         2,   1, 1, GPUPixelFormatKind_Snorm },
+    { GPUPixelFormat_R16Uint,          "R16Uint",          2,   1, 1, GPUPixelFormatKind_Uint },
+    { GPUPixelFormat_R16Sint,          "R16Sint",          2,   1, 1, GPUPixelFormatKind_Sint },
+    { GPUPixelFormat_R16Float,         "R16Float",         2,   1, 1, GPUPixelFormatKind_Float },
+    { GPUPixelFormat_RG8Unorm,         "RG8Unorm",         2,   1, 1, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_RG8Snorm,         "RG8Snorm",         2,   1, 1, GPUPixelFormatKind_Snorm },
+    { GPUPixelFormat_RG8Uint,          "RG8Uint",          2,   1, 1, GPUPixelFormatKind_Uint },
+    { GPUPixelFormat_RG8Sint,          "RG8Sint",          2,   1, 1, GPUPixelFormatKind_Sint },
+    // Packed 16-Bit formats
+    { GPUPixelFormat_B5G6R5Unorm,      "B5G6R5Unorm",      2,   1, 1, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_BGR5A1Unorm,      "BGR5A1Unorm",      2,   1, 1, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_BGRA4Unorm,       "BGRA4Unorm",       2,   1, 1, GPUPixelFormatKind_Unorm },
+    // 32-bit formats
+    { GPUPixelFormat_R32Uint,          "R32Uint",          4,   1, 1, GPUPixelFormatKind_Uint },
+    { GPUPixelFormat_R32Sint,          "R32Sint",          4,   1, 1, GPUPixelFormatKind_Sint },
+    { GPUPixelFormat_R32Float,         "R32Float",         4,   1, 1, GPUPixelFormatKind_Float },
+    { GPUPixelFormat_RG16Unorm,        "RG16Unorm",        4,   1, 1, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_RG16Snorm,        "RG16Snorm",        4,   1, 1, GPUPixelFormatKind_Snorm },
+    { GPUPixelFormat_RG16Uint,         "RG16Uint",         4,   1, 1, GPUPixelFormatKind_Uint },
+    { GPUPixelFormat_RG16Sint,         "RG16Sint",         4,   1, 1, GPUPixelFormatKind_Sint },
+    { GPUPixelFormat_RG16Float,        "RG16Float",        4,   1, 1, GPUPixelFormatKind_Float },
+    { GPUPixelFormat_RGBA8Unorm,       "RGBA8Unorm",       4,   1, 1, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_RGBA8UnormSrgb,   "RGBA8UnormSrgb",   4,   1, 1, GPUPixelFormatKind_UnormSrgb  },
+    { GPUPixelFormat_RGBA8Snorm,       "RGBA8Snorm",       4,   1, 1, GPUPixelFormatKind_Snorm },
+    { GPUPixelFormat_RGBA8Uint,        "RGBA8Uint",        4,   1, 1, GPUPixelFormatKind_Uint },
+    { GPUPixelFormat_RGBA8Sint,        "RGBA8Sint",        4,   1, 1, GPUPixelFormatKind_Sint },
+    { GPUPixelFormat_BGRA8Unorm,       "BGRA8Unorm",       4,   1, 1, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_BGRA8UnormSrgb,   "BGRA8UnormSrgb",   4,   1, 1, GPUPixelFormatKind_UnormSrgb },
+    // Packed 32-Bit Pixel Formats
+    { GPUPixelFormat_RGB10A2Unorm,    "RGB10A2Unorm",      4,   1, 1, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_RGB10A2Uint,     "RGB10A2Uint",       4,   1, 1, GPUPixelFormatKind_Uint },
+    { GPUPixelFormat_RG11B10Ufloat,   "RG11B10Ufloat",     4,   1, 1, GPUPixelFormatKind_Float },
+    { GPUPixelFormat_RGB9E5Ufloat,    "RGB9E5Ufloat",      4,   1, 1, GPUPixelFormatKind_Float },
+    // 64-bit formats
+    { GPUPixelFormat_RG32Uint,         "RG32Uint",         8,   1, 1, GPUPixelFormatKind_Uint },
+    { GPUPixelFormat_RG32Sint,         "RG32Sint",         8,   1, 1, GPUPixelFormatKind_Sint },
+    { GPUPixelFormat_RG32Float,        "RG32Float",        8,   1, 1, GPUPixelFormatKind_Float },
+    { GPUPixelFormat_RGBA16Unorm,      "RGBA16Unorm",      8,   1, 1, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_RGBA16Snorm,      "RGBA16Snorm",      8,   1, 1, GPUPixelFormatKind_Snorm },
+    { GPUPixelFormat_RGBA16Uint,       "RGBA16Uint",       8,   1, 1, GPUPixelFormatKind_Uint },
+    { GPUPixelFormat_RGBA16Sint,       "RGBA16Sint",       8,   1, 1, GPUPixelFormatKind_Sint },
+    { GPUPixelFormat_RGBA16Float,      "RGBA16Float",      8,   1, 1, GPUPixelFormatKind_Float },
+    // 128-bit formats
+    { GPUPixelFormat_RGBA32Uint,       "RGBA32Uint",       16,  1, 1, GPUPixelFormatKind_Uint },
+    { GPUPixelFormat_RGBA32Sint,       "RGBA32Sint",       16,  1, 1, GPUPixelFormatKind_Sint },
+    { GPUPixelFormat_RGBA32Float,      "RGBA32Float",      16,  1, 1, GPUPixelFormatKind_Float },
+    // Depth-stencil formats
+    //{ GPUPixelFormat_Stencil8,               "Stencil8",                 4,   1, 1, GPUPixelFormatKind_Float },
+    { GPUPixelFormat_Depth16Unorm,           "Depth16Unorm",             2,   1, 1, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_Depth24UnormStencil8,   "Depth24UnormStencil8",     4,   1, 1, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_Depth32Float,           "Depth32Float",             4,   1, 1, GPUPixelFormatKind_Float },
+    { GPUPixelFormat_Depth32FloatStencil8,   "Depth32FloatStencil8",     8,   1, 1, GPUPixelFormatKind_Float },
+    // BC compressed formats
+    { GPUPixelFormat_BC1RGBAUnorm,       "BC1RGBAUnorm",         8,   4, 4, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_BC1RGBAUnormSrgb,   "BC1RGBAUnormSrgb",     8,   4, 4, GPUPixelFormatKind_UnormSrgb  },
+    { GPUPixelFormat_BC2RGBAUnorm,       "BC2RGBAUnorm",         16,  4, 4, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_BC2RGBAUnormSrgb,   "BC2RGBAUnormSrgb",     16,  4, 4, GPUPixelFormatKind_UnormSrgb  },
+    { GPUPixelFormat_BC3RGBAUnorm,       "BC3RGBAUnorm",         16,  4, 4, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_BC3RGBAUnormSrgb,   "BC3RGBAUnormSrgb",     16,  4, 4, GPUPixelFormatKind_UnormSrgb  },
+    { GPUPixelFormat_BC4RUnorm,          "BC4RUnorm",            8,   4, 4, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_BC4RSnorm,          "BC4RSnorm",            8,   4, 4, GPUPixelFormatKind_Snorm },
+    { GPUPixelFormat_BC5RGUnorm,         "BC5Unorm",             16,  4, 4, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_BC5RGSnorm,         "BC5Snorm",             16,  4, 4, GPUPixelFormatKind_Snorm },
+    { GPUPixelFormat_BC6HRGBUfloat,      "BC6HRGBUfloat",        16,  4, 4, GPUPixelFormatKind_Float },
+    { GPUPixelFormat_BC6HRGBFloat,       "BC6HRGBFloat",         16,  4, 4, GPUPixelFormatKind_Float },
+    { GPUPixelFormat_BC7RGBAUnorm,       "BC7RGBAUnorm",         16,  4, 4, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_BC7RGBAUnormSrgb,   "BC7RGBAUnormSrgb",     16,  4, 4, GPUPixelFormatKind_UnormSrgb },
+    // ETC2/EAC compressed formats
+    { GPUPixelFormat_ETC2RGBA8Unorm,      "ETC2RGBA8Unorm",       8,   4, 4, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ETC2RGBA8UnormSrgb,  "ETC2RGBA8UnormSrgb",   8,   4, 4, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ETC2RGB8A1Unorm,     "ETC2RGB8A1Unorm,",     16,   4, 4, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ETC2RGB8A1UnormSrgb, "ETC2RGB8A1UnormSrgb",  16,   4, 4, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ETC2RGBA8Unorm,      "ETC2RGBA8Unorm",       16,   4, 4, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ETC2RGBA8UnormSrgb,  "ETC2RGBA8UnormSrgb",   16,   4, 4, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_EACR11Unorm,         "EACR11Unorm",          8,    4, 4, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_EACR11Snorm,         "EACR11Snorm",          8,    4, 4, GPUPixelFormatKind_Snorm },
+    { GPUPixelFormat_EACRG11Unorm,        "EACRG11Unorm",         16,   4, 4, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_EACRG11Snorm,        "EACRG11Snorm",         16,   4, 4, GPUPixelFormatKind_Snorm },
+    // ASTC compressed formats
+    { GPUPixelFormat_ASTC4x4Unorm,        "ASTC4x4Unorm",         16,   4,   4, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ASTC4x4UnormSrgb,    "ASTC4x4UnormSrgb",     16,   4,   4, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ASTC5x4Unorm,        "ASTC5x4Unorm",         16,   5,   4, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ASTC5x4UnormSrgb,    "ASTC5x4UnormSrgb",     16,   5,   4, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ASTC5x5Unorm,        "ASTC5x5UnormSrgb",     16,   5,   5, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ASTC5x5UnormSrgb,    "ASTC5x5UnormSrgb",     16,   5,   5, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ASTC6x5Unorm,        "ASTC6x5Unorm",         16,   6,   5, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ASTC6x5UnormSrgb,    "ASTC6x5UnormSrgb",     16,   6,   5, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ASTC6x6Unorm,        "ASTC6x6Unorm",         16,   6,   6, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ASTC6x6UnormSrgb,    "ASTC6x6UnormSrgb",     16,   6,   6, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ASTC8x5Unorm,        "ASTC8x5Unorm",         16,   8,   5, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ASTC8x5UnormSrgb,    "ASTC8x5UnormSrgb",     16,   8,   5, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ASTC8x6Unorm,        "ASTC8x6Unorm",         16,   8,   6, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ASTC8x6UnormSrgb,    "ASTC8x6UnormSrgb",     16,   8,   6, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ASTC8x8Unorm,        "ASTC8x8Unorm",         16,   8,   8, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ASTC8x8UnormSrgb,    "ASTC8x8UnormSrgb",     16,   8,   8, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ASTC10x5Unorm,       "ASTC10x5Unorm",        16,   10,  5, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ASTC10x5UnormSrgb,   "ASTC10x5UnormSrgb",    16,   10,  5, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ASTC10x6Unorm,       "ASTC10x6Unorm",        16,   10,  6, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ASTC10x6UnormSrgb,   "ASTC10x6UnormSrgb",    16,   10,  6, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ASTC10x8Unorm,       "ASTC10x8Unorm",        16,   10,  8, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ASTC10x8UnormSrgb,   "ASTC10x8UnormSrgb",    16,   10,  8, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ASTC10x10Unorm,      "ASTC10x10Unorm",       16,   10,  10, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ASTC10x10UnormSrgb,  "ASTC10x10UnormSrgb",   16,   10,  10, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ASTC12x10Unorm,      "ASTC12x10Unorm",       16,   12,  10, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ASTC12x10UnormSrgb,  "ASTC12x10UnormSrgb",   16,   12,  10, GPUPixelFormatKind_UnormSrgb },
+    { GPUPixelFormat_ASTC12x12Unorm,      "ASTC12x12Unorm",       16,   12,  12, GPUPixelFormatKind_Unorm },
+    { GPUPixelFormat_ASTC12x12UnormSrgb,  "ASTC12x12UnormSrgb",   16,   12,  12, GPUPixelFormatKind_UnormSrgb },
+    // ASTC HDR compressed formats
+    { GPUPixelFormat_ASTC4x4HDR,          "ASTC4x4HDR",           16,   4, 4,    GPUPixelFormatKind_Float },
+    { GPUPixelFormat_ASTC5x4HDR,          "ASTC5x4HDR",           16,   5, 4,    GPUPixelFormatKind_Float },
+    { GPUPixelFormat_ASTC5x5HDR,          "ASTC5x5HDR",           16,   5, 5,    GPUPixelFormatKind_Float },
+    { GPUPixelFormat_ASTC6x5HDR,          "ASTC6x5HDR",           16,   6, 5,    GPUPixelFormatKind_Float },
+    { GPUPixelFormat_ASTC6x6HDR,          "ASTC6x6HDR",           16,   6, 6,    GPUPixelFormatKind_Float },
+    { GPUPixelFormat_ASTC8x5HDR,          "ASTC8x5HDR",           16,   8, 5,    GPUPixelFormatKind_Float },
+    { GPUPixelFormat_ASTC8x6HDR,          "ASTC8x6HDR",           16,   8, 6,    GPUPixelFormatKind_Float },
+    { GPUPixelFormat_ASTC8x8HDR,          "ASTC8x8HDR",           16,   8, 8,    GPUPixelFormatKind_Float },
+    { GPUPixelFormat_ASTC10x5HDR,         "ASTC10x5HDR",          16,   10, 5,   GPUPixelFormatKind_Float },
+    { GPUPixelFormat_ASTC10x6HDR,         "ASTC10x6HDR",          16,   10, 6,   GPUPixelFormatKind_Float },
+    { GPUPixelFormat_ASTC10x8HDR,         "ASTC10x8HDR",          16,   10, 8,   GPUPixelFormatKind_Float },
+    { GPUPixelFormat_ASTC10x10HDR,        "ASTC10x10HDR",         16,   10, 10,  GPUPixelFormatKind_Float },
+    { GPUPixelFormat_ASTC12x10HDR,        "ASTC12x10HDR",         16,   12, 10,  GPUPixelFormatKind_Float },
+    { GPUPixelFormat_ASTC12x12HDR,        "ASTC12x12HDR",         16,   12, 12,  GPUPixelFormatKind_Float },
+};
+
+static_assert(
+    sizeof(kPixelFormatInfo) / sizeof(GPUPixelFormatInfo) == size_t(_GPUPixelFormat_Count),
+    "The format info table doesn't have the right number of elements"
+    );
+
+
+GPUPixelFormatInfo agpuPixelFormatGetInfo(GPUPixelFormat format)
+{
+    ALIMER_ASSERT(size_t(format) < size_t(_GPUPixelFormat_Count));
+    ALIMER_ASSERT(kPixelFormatInfo[size_t(format)].format == format);
+
+    return kPixelFormatInfo[size_t(format)];
+}
+
 bool agpuIsBackendSupport(GPUBackendType backend)
 {
     switch (backend)
@@ -148,7 +300,7 @@ GPUFactory agpuCreateFactory(const GPUFactoryDesc* desc)
 #if defined(ALIMER_GPU_VULKAN)
             if (Vulkan_IsSupported())
             {
-                factory = Vulkan_CreateInstance(desc);
+                factory = Vulkan_CreateFactory(desc);
             }
             break;
 #else
@@ -207,19 +359,19 @@ uint32_t agpuFactoryGetAdapterCount(GPUFactory factory)
     return factory->GetAdapterCount();
 }
 
-GPUAdapter* agpuFactoryGetAdapter(GPUFactory factory, uint32_t index)
+GPUAdapter agpuFactoryGetAdapter(GPUFactory factory, uint32_t index)
 {
     return factory->GetAdapter(index);
 }
 
-GPUAdapter* agpuFactoryGetBestAdapter(GPUFactory factory)
+GPUAdapter agpuFactoryGetBestAdapter(GPUFactory factory)
 {
-    GPUAdapter* result = nullptr;
+    GPUAdapter result = nullptr;
     uint32_t kind = (uint32_t)GPUAdapterType_Other + 1;
 
     for (uint32_t i = 0, count = factory->GetAdapterCount(); i < count; ++i)
     {
-        GPUAdapter* adapter = factory->GetAdapter(i);
+        GPUAdapter adapter = factory->GetAdapter(i);
         GPUAdapterType adapterType = adapter->GetType();
         if ((uint32_t)adapterType < kind)
         {
@@ -232,7 +384,7 @@ GPUAdapter* agpuFactoryGetBestAdapter(GPUFactory factory)
 }
 
 /* Adapter */
-void agpuAdapterGetInfo(GPUAdapter* adapter, GPUAdapterInfo* info)
+void agpuAdapterGetInfo(GPUAdapter adapter, GPUAdapterInfo* info)
 {
     if (!info)
         return;
@@ -240,7 +392,7 @@ void agpuAdapterGetInfo(GPUAdapter* adapter, GPUAdapterInfo* info)
     adapter->GetInfo(info);
 }
 
-void agpuAdapterGetLimits(GPUAdapter* adapter, GPUAdapterLimits* limits)
+void agpuAdapterGetLimits(GPUAdapter adapter, GPUAdapterLimits* limits)
 {
     if (!limits)
         return;
@@ -248,7 +400,7 @@ void agpuAdapterGetLimits(GPUAdapter* adapter, GPUAdapterLimits* limits)
     adapter->GetLimits(limits);
 }
 
-bool agpuAdapterHasFeature(GPUAdapter* adapter, GPUFeature feature)
+bool agpuAdapterHasFeature(GPUAdapter adapter, GPUFeature feature)
 {
     return adapter->HasFeature(feature);
 }
@@ -276,7 +428,7 @@ void agpuSurfaceHandleDestroy(GPUSurfaceHandle* surfaceHandle)
 }
 
 /* Surface */
-GPUSurface* agpuCreateSurface(GPUFactory factory, GPUSurfaceHandle* handle)
+GPUSurface agpuCreateSurface(GPUFactory factory, GPUSurfaceHandle* handle)
 {
     ALIMER_ASSERT(factory);
     ALIMER_ASSERT(handle);
@@ -284,7 +436,7 @@ GPUSurface* agpuCreateSurface(GPUFactory factory, GPUSurfaceHandle* handle)
     return factory->CreateSurface(handle);
 }
 
-void agpuSurfaceGetCapabilities(GPUSurface* surface, GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities)
+void agpuSurfaceGetCapabilities(GPUSurface surface, GPUAdapter adapter, GPUSurfaceCapabilities* capabilities)
 {
     if (!surface || !adapter || !capabilities)
         return;
@@ -300,7 +452,7 @@ static GPUSurfaceConfig _GPUSurfaceConfig_Defaults(const GPUSurfaceConfig* confi
     return def;
 }
 
-bool agpuSurfaceConfigure(GPUSurface* surface, const GPUSurfaceConfig* config)
+bool agpuSurfaceConfigure(GPUSurface surface, const GPUSurfaceConfig* config)
 {
     if (!config)
         return false;
@@ -315,17 +467,17 @@ bool agpuSurfaceConfigure(GPUSurface* surface, const GPUSurfaceConfig* config)
     return surface->Configure(&configDef);
 }
 
-void agpuSurfaceUnconfigure(GPUSurface* surface)
+void agpuSurfaceUnconfigure(GPUSurface surface)
 {
     surface->Unconfigure();
 }
 
-uint32_t agpuSurfaceAddRef(GPUSurface* surface)
+uint32_t agpuSurfaceAddRef(GPUSurface surface)
 {
     return surface->AddRef();
 }
 
-uint32_t agpuSurfaceRelease(GPUSurface* surface)
+uint32_t agpuSurfaceRelease(GPUSurface surface)
 {
     return surface->Release();
 }
@@ -342,7 +494,7 @@ static GPUDeviceDesc _GPUDeviceDesc_Defaults(const GPUDeviceDesc* desc)
     return def;
 }
 
-GPUDevice* agpuCreateDevice(GPUAdapter* adapter, const GPUDeviceDesc* desc)
+GPUDevice* agpuCreateDevice(GPUAdapter adapter, const GPUDeviceDesc* desc)
 {
     GPUDeviceDesc descDef = _GPUDeviceDesc_Defaults(desc);
     return adapter->CreateDevice(descDef);
@@ -425,7 +577,7 @@ void agpuCommandBufferInsertDebugMarker(GPUCommandBuffer* commandBuffer, const c
     commandBuffer->InsertDebugMarker(markerLabel);
 }
 
-GPUAcquireSurfaceResult agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer* commandBuffer, GPUSurface* surface, GPUTexture** surfaceTexture)
+GPUAcquireSurfaceResult agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer* commandBuffer, GPUSurface surface, GPUTexture** surfaceTexture)
 {
     return commandBuffer->AcquireSurfaceTexture(surface, surfaceTexture);
 }
@@ -451,7 +603,7 @@ GPURenderPassEncoder* agpuCommandBufferBeginRenderPass(GPUCommandBuffer* command
 }
 
 /* ComputePassEncoder */
-void agpuComputePassEncoderSetPipeline(GPUComputePassEncoder* computePassEncoder, GPUComputePipeline* pipeline)
+void agpuComputePassEncoderSetPipeline(GPUComputePassEncoder* computePassEncoder, GPUComputePipeline pipeline)
 {
     computePassEncoder->SetPipeline(pipeline);
 }
@@ -835,32 +987,84 @@ uint32_t agpuPipelineLayoutRelease(GPUPipelineLayout pipelineLayout)
     return pipelineLayout->Release();
 }
 
+/* ShaderModule */
+GPUShaderModule agpuCreateShaderModule(GPUDevice* device, const GPUShaderModuleDesc* desc)
+{
+    if (!desc)
+    {
+        return nullptr;
+    }
+
+    if (desc->stage == GPUShaderStage_Undefined)
+    {
+        agpuLogError("Invalid shader module stage");
+        return nullptr;
+    }
+
+    if (desc->byteCodeSize == 0 || desc->byteCode == nullptr)
+    {
+        agpuLogError("Invalid shader module byteCode");
+        return nullptr;
+    }
+
+    if (!desc->entryPoint || strlen(desc->entryPoint) == 0)
+    {
+        agpuLogError("Invalid shader module entryPoint");
+        return nullptr;
+    }
+
+    return device->CreateShaderModule(desc);
+}
+
+void agpuShaderModuleSetLabel(GPUShaderModule shaderModule, const char* label)
+{
+    shaderModule->SetLabel(label);
+}
+
+uint32_t agpuShaderModuleAddRef(GPUShaderModule shaderModule)
+{
+    return shaderModule->AddRef();
+}
+
+uint32_t agpuShaderModuleRelease(GPUShaderModule shaderModule)
+{
+    return shaderModule->Release();
+}
+
 /* ComputePipeline */
 static GPUComputePipelineDesc _GPUComputePipelineDesc_Defaults(const GPUComputePipelineDesc* desc) {
     GPUComputePipelineDesc def = *desc;
     return def;
 }
 
-GPUComputePipeline* agpuCreateComputePipeline(GPUDevice* device, const GPUComputePipelineDesc* desc)
+GPUComputePipeline agpuCreateComputePipeline(GPUDevice* device, const GPUComputePipelineDesc* desc)
 {
     if (!desc)
         return nullptr;
+
+    if (!desc->shader)
+    {
+        agpuLogError("CreateComputePipeline: Invalid shader module");
+        return nullptr;
+    }
+
+    // ArgumentException.ThrowIfFalse(descriptor.ComputeShader.Stage == ShaderStages.Compute, nameof(ComputePipelineDescriptor.ComputeShader));
 
     GPUComputePipelineDesc descDef = _GPUComputePipelineDesc_Defaults(desc);
     return device->CreateComputePipeline(descDef);
 }
 
-void agpuComputePipelineSetLabel(GPUComputePipeline* computePipeline, const char* label)
+void agpuComputePipelineSetLabel(GPUComputePipeline computePipeline, const char* label)
 {
     computePipeline->SetLabel(label);
 }
 
-uint32_t agpuComputePipelineAddRef(GPUComputePipeline* computePipeline)
+uint32_t agpuComputePipelineAddRef(GPUComputePipeline computePipeline)
 {
     return computePipeline->AddRef();
 }
 
-uint32_t agpuComputePipelineRelease(GPUComputePipeline* computePipeline)
+uint32_t agpuComputePipelineRelease(GPUComputePipeline computePipeline)
 {
     return computePipeline->Release();
 }
@@ -889,7 +1093,6 @@ static GPURenderPipelineDesc _GPURenderPipelineDesc_Defaults(const GPURenderPipe
     def.depthStencilState.backFace.passOperation = _ALIMER_DEF(def.depthStencilState.backFace.passOperation, GPUStencilOperation_Keep);
 
     def.primitiveTopology = _ALIMER_DEF(def.primitiveTopology, GPUPrimitiveTopology_TriangleList);
-    def.patchControlPoints = _ALIMER_DEF(def.patchControlPoints, 1u);
     def.multisample.count = _ALIMER_DEF(def.multisample.count, 1u);
     def.multisample.mask = _ALIMER_DEF(def.multisample.mask, UINT32_MAX);
 
