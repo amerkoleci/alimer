@@ -149,12 +149,12 @@ struct GPUTexture : public GPUResource
     GPUTextureDesc desc;
 };
 
-struct GPUSampler : public GPUResource
+struct GPUSamplerImpl : public GPUResource
 {
 
 };
 
-struct GPUQueryHeap : public GPUResource
+struct GPUQueryHeapImpl : public GPUResource
 {
 
 };
@@ -242,7 +242,7 @@ struct GPUCommandBuffer : public GPUResource
     virtual GPURenderPassEncoder* BeginRenderPass(const GPURenderPassDesc& desc) = 0;
 };
 
-struct GPUCommandQueue : public GPUResource
+struct GPUCommandQueueImpl : public GPUResource
 {
     virtual GPUCommandQueueType GetType() const = 0;
 
@@ -254,7 +254,7 @@ struct GPUCommandQueue : public GPUResource
 struct GPUDevice : public GPUResource
 {
     virtual bool HasFeature(GPUFeature feature) const = 0;
-    virtual GPUCommandQueue* GetQueue(GPUCommandQueueType type) = 0;
+    virtual GPUCommandQueue GetQueue(GPUCommandQueueType type) = 0;
     virtual void WaitIdle() = 0;
     virtual uint64_t CommitFrame() = 0;
 
@@ -263,14 +263,14 @@ struct GPUDevice : public GPUResource
     /* Resource creation */
     virtual GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) = 0;
     virtual GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) = 0;
-    virtual GPUSampler* CreateSampler(const GPUSamplerDesc& desc) = 0;
-    virtual GPUBindGroupLayoutImpl* CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) = 0;
-    virtual GPUPipelineLayoutImpl* CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) = 0;
+    virtual GPUSampler CreateSampler(const GPUSamplerDesc& desc) = 0;
+    virtual GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) = 0;
+    virtual GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) = 0;
 
     virtual GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) = 0;
     virtual GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) = 0;
-    virtual GPURenderPipelineImpl* CreateRenderPipeline(const GPURenderPipelineDesc& desc) = 0;
-    virtual GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) = 0;
+    virtual GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) = 0;
+    virtual GPUQueryHeap CreateQueryHeap(const GPUQueryHeapDesc& desc) = 0;
 
 };
 

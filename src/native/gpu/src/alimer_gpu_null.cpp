@@ -34,7 +34,7 @@ struct NullBuffer final : public GPUBuffer
 struct NullTexture final : public GPUTexture
 {};
 
-struct NullSampler final : public GPUSampler
+struct NullSampler final : public GPUSamplerImpl
 {};
 
 struct NullBindGroupLayout final : public GPUBindGroupLayoutImpl
@@ -52,7 +52,7 @@ struct NullComputePipeline final : public GPUComputePipelineImpl
 struct NullRenderPipeline final : public GPURenderPipelineImpl
 {};
 
-struct NullQueryHeap final : public GPUQueryHeap
+struct NullQueryHeap final : public GPUQueryHeapImpl
 {};
 
 struct NullCommandBuffer;
@@ -123,7 +123,7 @@ struct NullCommandBuffer final : public GPUCommandBuffer
     GPURenderPassEncoder* BeginRenderPass(const GPURenderPassDesc& desc) override;
 };
 
-struct NullCommandQueue final : public GPUCommandQueue
+struct NullCommandQueue final : public GPUCommandQueueImpl
 {
     GPUCommandQueueType queueType = _GPUCommandQueueType_Count;
 
@@ -143,7 +143,7 @@ struct NullDevice final : public GPUDevice
     uint64_t timestampFrequency = 0;
 
     bool HasFeature(GPUFeature feature) const override;
-    GPUCommandQueue* GetQueue(GPUCommandQueueType type) override;
+    GPUCommandQueue GetQueue(GPUCommandQueueType type) override;
     void WaitIdle() override;
     uint64_t CommitFrame() override;
 
@@ -152,13 +152,13 @@ struct NullDevice final : public GPUDevice
     /* Resource creation */
     GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
     GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
-    GPUSampler* CreateSampler(const GPUSamplerDesc& desc) override;
+    GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
     GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) override;
     GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
-    GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
+    GPUQueryHeap CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
 };
 
 struct NullSurface final : public GPUSurfaceImpl
@@ -429,7 +429,7 @@ bool NullDevice::HasFeature(GPUFeature feature) const
     return false;
 }
 
-GPUCommandQueue* NullDevice::GetQueue(GPUCommandQueueType type)
+GPUCommandQueue NullDevice::GetQueue(GPUCommandQueueType type)
 {
     return &queues[type];
 }
@@ -462,7 +462,7 @@ GPUTexture* NullDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextu
     return texture;
 }
 
-GPUSampler* NullDevice::CreateSampler(const GPUSamplerDesc& desc)
+GPUSampler NullDevice::CreateSampler(const GPUSamplerDesc& desc)
 {
     ALIMER_UNUSED(desc);
 
@@ -506,7 +506,7 @@ GPURenderPipeline NullDevice::CreateRenderPipeline(const GPURenderPipelineDesc& 
     return pipeline;
 }
 
-GPUQueryHeap* NullDevice::CreateQueryHeap(const GPUQueryHeapDesc& desc)
+GPUQueryHeap NullDevice::CreateQueryHeap(const GPUQueryHeapDesc& desc)
 {
     ALIMER_UNUSED(desc);
 

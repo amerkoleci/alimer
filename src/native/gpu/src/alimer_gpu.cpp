@@ -520,7 +520,7 @@ bool agpuDeviceHasFeature(GPUDevice* device, GPUFeature feature)
     return device->HasFeature(feature);
 }
 
-GPUCommandQueue* agpuDeviceGetCommandQueue(GPUDevice* device, GPUCommandQueueType type)
+GPUCommandQueue agpuDeviceGetCommandQueue(GPUDevice* device, GPUCommandQueueType type)
 {
     return device->GetQueue(type);
 }
@@ -541,22 +541,22 @@ uint64_t agpuDeviceCommitFrame(GPUDevice* device)
 }
 
 /* CommandQueue */
-GPUCommandQueueType agpuCommandQueueGetType(GPUCommandQueue* queue)
+GPUCommandQueueType agpuCommandQueueGetType(GPUCommandQueue queue)
 {
     return queue->GetType();
 }
 
-void agpuCommandQueueWaitIdle(GPUCommandQueue* queue)
+void agpuCommandQueueWaitIdle(GPUCommandQueue queue)
 {
     queue->WaitIdle();
 }
 
-GPUCommandBuffer* agpuCommandQueueAcquireCommandBuffer(GPUCommandQueue* queue, const GPUCommandBufferDesc* desc)
+GPUCommandBuffer* agpuCommandQueueAcquireCommandBuffer(GPUCommandQueue queue, const GPUCommandBufferDesc* desc)
 {
     return queue->AcquireCommandBuffer(desc);
 }
 
-void agpuCommandQueueSubmit(GPUCommandQueue* queue, uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers)
+void agpuCommandQueueSubmit(GPUCommandQueue queue, uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers)
 {
     queue->Submit(numCommandBuffers, commandBuffers);
 }
@@ -936,23 +936,23 @@ static GPUSamplerDesc _GPUSamplerDesc_Defaults(const GPUSamplerDesc* desc) {
 }
 
 
-GPUSampler* agpuCreateSampler(GPUDevice* device, const GPUSamplerDesc* desc)
+GPUSampler agpuCreateSampler(GPUDevice* device, const GPUSamplerDesc* desc)
 {
     GPUSamplerDesc descDef = _GPUSamplerDesc_Defaults(desc);
     return device->CreateSampler(descDef);
 }
 
-void agpuSamplerSetLabel(GPUSampler* sampler, const char* label)
+void agpuSamplerSetLabel(GPUSampler sampler, const char* label)
 {
     sampler->SetLabel(label);
 }
 
-uint32_t agpuSamplerAddRef(GPUSampler* sampler)
+uint32_t agpuSamplerAddRef(GPUSampler sampler)
 {
     return sampler->AddRef();
 }
 
-uint32_t agpuSamplerRelease(GPUSampler* sampler)
+uint32_t agpuSamplerRelease(GPUSampler sampler)
 {
     return sampler->Release();
 }
@@ -1146,7 +1146,7 @@ static GPUQueryHeapDesc _GPUQueryHeapDesc_Defaults(const GPUQueryHeapDesc* desc)
     return def;
 }
 
-GPUQueryHeap* agpuCreateQueryHeap(GPUDevice* device, const GPUQueryHeapDesc* desc)
+GPUQueryHeap agpuCreateQueryHeap(GPUDevice* device, const GPUQueryHeapDesc* desc)
 {
     if (!desc)
         return nullptr;
@@ -1155,17 +1155,17 @@ GPUQueryHeap* agpuCreateQueryHeap(GPUDevice* device, const GPUQueryHeapDesc* des
     return device->CreateQueryHeap(descDef);
 }
 
-void agpuQueryHeapSetLabel(GPUQueryHeap* queryHeap, const char* label)
+void agpuQueryHeapSetLabel(GPUQueryHeap queryHeap, const char* label)
 {
     queryHeap->SetLabel(label);
 }
 
-uint32_t agpuQueryHeapAddRef(GPUQueryHeap* queryHeap)
+uint32_t agpuQueryHeapAddRef(GPUQueryHeap queryHeap)
 {
     return queryHeap->AddRef();
 }
 
-uint32_t agpuQueryHeapRelease(GPUQueryHeap* queryHeap)
+uint32_t agpuQueryHeapRelease(GPUQueryHeap queryHeap)
 {
     return queryHeap->Release();
 }

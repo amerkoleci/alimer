@@ -72,6 +72,7 @@ ALIMER_ENABLE_WARNINGS()
 #endif
 
 #include <inttypes.h>
+#include <string>
 #include <algorithm>
 #include <vector>
 #include <deque>
@@ -1181,7 +1182,7 @@ struct VulkanTexture final : public GPUTexture
     VkImageView GetView(uint32_t mipLevel) const;
 };
 
-struct VulkanSampler final : public GPUSampler
+struct VulkanSampler final : public GPUSamplerImpl
 {
     VulkanDevice* device = nullptr;
     VkSampler handle = VK_NULL_HANDLE;
@@ -1239,7 +1240,7 @@ struct VulkanRenderPipeline final : public GPURenderPipelineImpl
     void SetLabel(const char* label) override;
 };
 
-struct VulkanQueryHeap final : public GPUQueryHeap
+struct VulkanQueryHeap final : public GPUQueryHeapImpl
 {
     VulkanDevice* device = nullptr;
     GPUQueryHeapDesc desc;
@@ -1348,7 +1349,7 @@ struct VulkanCommandBuffer final : public GPUCommandBuffer
     GPURenderPassEncoder* BeginRenderPass(const GPURenderPassDesc& desc) override;
 };
 
-struct VulkanQueue final : public GPUCommandQueue
+struct VulkanQueue final : public GPUCommandQueueImpl
 {
     VulkanDevice* device = nullptr;
     GPUCommandQueueType queueType = _GPUCommandQueueType_Count;
@@ -1436,7 +1437,7 @@ struct VulkanDevice final : public GPUDevice
     void SetLabel(const char* label) override;
 
     bool HasFeature(GPUFeature feature) const override;
-    GPUCommandQueue* GetQueue(GPUCommandQueueType type) override;
+    GPUCommandQueue GetQueue(GPUCommandQueueType type) override;
     void WaitIdle() override;
     uint64_t CommitFrame() override;
     void ProcessDeletionQueue(bool force);
@@ -1446,14 +1447,14 @@ struct VulkanDevice final : public GPUDevice
     /* Resource creation */
     GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
     GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
-    GPUSampler* CreateSampler(const GPUSamplerDesc& desc) override;
+    GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
     bool SetupShaderStage(const GPUShaderDesc& desc, VkPipelineShaderStageCreateInfo& pipelineStage);
     GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) override;
     GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
-    GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
+    GPUQueryHeap CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
 
     void SetObjectName(VkObjectType type, uint64_t handle_, const char* label) const;
     void FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices) const;
@@ -3190,7 +3191,7 @@ bool VulkanDevice::HasFeature(GPUFeature feature) const
     return adapter->HasFeature(feature);
 }
 
-GPUCommandQueue* VulkanDevice::GetQueue(GPUCommandQueueType type)
+GPUCommandQueue VulkanDevice::GetQueue(GPUCommandQueueType type)
 {
     return &queues[type];
 }
@@ -3818,7 +3819,7 @@ GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTex
     return texture;
 }
 
-GPUSampler* VulkanDevice::CreateSampler(const GPUSamplerDesc& desc)
+GPUSampler VulkanDevice::CreateSampler(const GPUSamplerDesc& desc)
 {
     VulkanSampler* sampler = new VulkanSampler();
     sampler->device = this;
@@ -4287,7 +4288,7 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
     return pipeline;
 }
 
-GPUQueryHeap* VulkanDevice::CreateQueryHeap(const GPUQueryHeapDesc& desc)
+GPUQueryHeap VulkanDevice::CreateQueryHeap(const GPUQueryHeapDesc& desc)
 {
     VkQueryPoolCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;

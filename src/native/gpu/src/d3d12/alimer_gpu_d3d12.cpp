@@ -1138,7 +1138,7 @@ struct D3D12Texture final : public GPUTexture, public D3D12Resource
     D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(DXGI_FORMAT dsvFormat, uint32_t mipLevel, bool readOnly) const;
 };
 
-struct D3D12Sampler final : public GPUSampler
+struct D3D12Sampler final : public GPUSamplerImpl
 {
     D3D12_SAMPLER_DESC samplerDesc{};
 };
@@ -1193,7 +1193,7 @@ struct D3D12RenderPipeline final : public GPURenderPipelineImpl
     void SetLabel(const char* label) override;
 };
 
-struct D3D12QueryHeap final : public GPUQueryHeap
+struct D3D12QueryHeap final : public GPUQueryHeapImpl
 {
     D3D12Device* device = nullptr;
     GPUQueryHeapDesc desc;
@@ -1312,7 +1312,7 @@ struct D3D12CommandBuffer final : public GPUCommandBuffer
     void FlushBindGroups(bool graphics);
 };
 
-struct D3D12Queue final : public GPUCommandQueue
+struct D3D12Queue final : public GPUCommandQueueImpl
 {
     D3D12Device* device = nullptr;
     GPUCommandQueueType queueType = _GPUCommandQueueType_Count;
@@ -1611,7 +1611,7 @@ struct D3D12Device final : public GPUDevice
     void OnDeviceRemoved();
     void SetLabel(const char* label) override;
     bool HasFeature(GPUFeature feature) const override;
-    GPUCommandQueue* GetQueue(GPUCommandQueueType type) override;
+    GPUCommandQueue GetQueue(GPUCommandQueueType type) override;
     void WaitIdle() override;
     uint64_t CommitFrame() override;
 
@@ -1625,13 +1625,13 @@ struct D3D12Device final : public GPUDevice
     /* Resource creation */
     GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
     GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
-    GPUSampler* CreateSampler(const GPUSamplerDesc& desc) override;
+    GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
     GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) override;
     GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
-    GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
+    GPUQueryHeap CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
 };
 
 struct D3D12Surface final : public GPUSurfaceImpl
@@ -3314,7 +3314,7 @@ bool D3D12Device::HasFeature(GPUFeature feature) const
     return adapter->HasFeature(feature);
 }
 
-GPUCommandQueue* D3D12Device::GetQueue(GPUCommandQueueType type)
+GPUCommandQueue D3D12Device::GetQueue(GPUCommandQueueType type)
 {
     return &queues[type];
 }
@@ -3805,7 +3805,7 @@ GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUText
     return texture;
 }
 
-GPUSampler* D3D12Device::CreateSampler(const GPUSamplerDesc& desc)
+GPUSampler D3D12Device::CreateSampler(const GPUSamplerDesc& desc)
 {
     D3D12Sampler* sampler = new D3D12Sampler();
     sampler->samplerDesc = ToD3D12SamplerDesc(desc);
@@ -4236,7 +4236,7 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
     return pipeline;
 }
 
-GPUQueryHeap* D3D12Device::CreateQueryHeap(const GPUQueryHeapDesc& desc)
+GPUQueryHeap D3D12Device::CreateQueryHeap(const GPUQueryHeapDesc& desc)
 {
     D3D12_QUERY_HEAP_DESC d3dDesc = {};
     d3dDesc.Type = ToD3D12(desc.queryType);

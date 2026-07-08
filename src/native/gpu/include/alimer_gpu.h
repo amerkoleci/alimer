@@ -51,14 +51,14 @@ typedef struct GPUAdapterImpl*              GPUAdapter;
 typedef struct GPUSurfaceHandle             GPUSurfaceHandle;
 typedef struct GPUSurfaceImpl*              GPUSurface;
 typedef struct GPUDevice                    GPUDevice;
-typedef struct GPUCommandQueue              GPUCommandQueue;
+typedef struct GPUCommandQueueImpl*         GPUCommandQueue;
 typedef struct GPUCommandBuffer             GPUCommandBuffer;
 typedef struct GPUComputePassEncoder        GPUComputePassEncoder;
 typedef struct GPURenderPassEncoder         GPURenderPassEncoder;
 typedef struct GPUBuffer                    GPUBuffer;
 typedef struct GPUTexture                   GPUTexture;
-typedef struct GPUSampler                   GPUSampler;
-typedef struct GPUQueryHeap                 GPUQueryHeap;
+typedef struct GPUSamplerImpl*              GPUSampler;
+typedef struct GPUQueryHeapImpl*            GPUQueryHeap;
 typedef struct GPUBindGroupLayoutImpl*      GPUBindGroupLayout;
 typedef struct GPUBindGroupImpl*            GPUBindGroup;
 typedef struct GPUPipelineLayoutImpl*       GPUPipelineLayout;
@@ -1112,7 +1112,7 @@ ALIMER_GPU_API void agpuDeviceSetLabel(GPUDevice* device, const char* label);
 ALIMER_GPU_API uint32_t agpuDeviceAddRef(GPUDevice* device);
 ALIMER_GPU_API uint32_t agpuDeviceRelease(GPUDevice* device);
 ALIMER_GPU_API bool agpuDeviceHasFeature(GPUDevice* device, GPUFeature feature);
-ALIMER_GPU_API GPUCommandQueue* agpuDeviceGetCommandQueue(GPUDevice* device, GPUCommandQueueType type);
+ALIMER_GPU_API GPUCommandQueue agpuDeviceGetCommandQueue(GPUDevice* device, GPUCommandQueueType type);
 ALIMER_GPU_API void agpuDeviceWaitIdle(GPUDevice* device);
 ALIMER_GPU_API uint64_t agpuDeviceGetTimestampFrequency(GPUDevice* device);
 
@@ -1120,10 +1120,10 @@ ALIMER_GPU_API uint64_t agpuDeviceGetTimestampFrequency(GPUDevice* device);
 ALIMER_GPU_API uint64_t agpuDeviceCommitFrame(GPUDevice* device);
 
 /* CommandQueue */
-ALIMER_GPU_API GPUCommandQueueType agpuCommandQueueGetType(GPUCommandQueue* queue);
-ALIMER_GPU_API void agpuCommandQueueWaitIdle(GPUCommandQueue* queue);
-ALIMER_GPU_API GPUCommandBuffer* agpuCommandQueueAcquireCommandBuffer(GPUCommandQueue* queue, const GPUCommandBufferDesc* desc);
-ALIMER_GPU_API void agpuCommandQueueSubmit(GPUCommandQueue* queue, uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers);
+ALIMER_GPU_API GPUCommandQueueType agpuCommandQueueGetType(GPUCommandQueue queue);
+ALIMER_GPU_API void agpuCommandQueueWaitIdle(GPUCommandQueue queue);
+ALIMER_GPU_API GPUCommandBuffer* agpuCommandQueueAcquireCommandBuffer(GPUCommandQueue queue, const GPUCommandBufferDesc* desc);
+ALIMER_GPU_API void agpuCommandQueueSubmit(GPUCommandQueue queue, uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers);
 
 /* CommandBuffer */
 ALIMER_GPU_API void agpuCommandBufferPushDebugGroup(GPUCommandBuffer* commandBuffer, const char* groupLabel);
@@ -1191,10 +1191,10 @@ ALIMER_GPU_API uint32_t agpuTextureAddRef(GPUTexture* texture);
 ALIMER_GPU_API uint32_t agpuTextureRelease(GPUTexture* texture);
 
 /* Sampler */
-ALIMER_GPU_API GPUSampler* agpuCreateSampler(GPUDevice* device, const GPUSamplerDesc* desc);
-ALIMER_GPU_API void agpuSamplerSetLabel(GPUSampler* sampler, const char* label);
-ALIMER_GPU_API uint32_t agpuSamplerAddRef(GPUSampler* sampler);
-ALIMER_GPU_API uint32_t agpuSamplerRelease(GPUSampler* sampler);
+ALIMER_GPU_API GPUSampler agpuCreateSampler(GPUDevice* device, const GPUSamplerDesc* desc);
+ALIMER_GPU_API void agpuSamplerSetLabel(GPUSampler sampler, const char* label);
+ALIMER_GPU_API uint32_t agpuSamplerAddRef(GPUSampler sampler);
+ALIMER_GPU_API uint32_t agpuSamplerRelease(GPUSampler sampler);
 
 /* PipelineLayout */
 ALIMER_GPU_API GPUPipelineLayout agpuCreatePipelineLayout(GPUDevice* device, const GPUPipelineLayoutDesc* desc);
@@ -1221,10 +1221,10 @@ ALIMER_GPU_API uint32_t agpuRenderPipelineAddRef(GPURenderPipeline renderPipelin
 ALIMER_GPU_API uint32_t agpuRenderPipelineRelease(GPURenderPipeline renderPipeline);
 
 /* QueryHeap */
-ALIMER_GPU_API GPUQueryHeap* agpuCreateQueryHeap(GPUDevice* device, const GPUQueryHeapDesc* desc);
-ALIMER_GPU_API void agpuQueryHeapSetLabel(GPUQueryHeap* queryHeap, const char* label);
-ALIMER_GPU_API uint32_t agpuQueryHeapAddRef(GPUQueryHeap* queryHeap);
-ALIMER_GPU_API uint32_t agpuQueryHeapRelease(GPUQueryHeap* queryHeap);
+ALIMER_GPU_API GPUQueryHeap agpuCreateQueryHeap(GPUDevice* device, const GPUQueryHeapDesc* desc);
+ALIMER_GPU_API void agpuQueryHeapSetLabel(GPUQueryHeap queryHeap, const char* label);
+ALIMER_GPU_API uint32_t agpuQueryHeapAddRef(GPUQueryHeap queryHeap);
+ALIMER_GPU_API uint32_t agpuQueryHeapRelease(GPUQueryHeap queryHeap);
 
 /* Other */
 ALIMER_GPU_API uint32_t agpuGetVertexFormatByteSize(GPUVertexFormat format);
