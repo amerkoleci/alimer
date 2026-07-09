@@ -1096,6 +1096,9 @@ ALIMER_GPU_API bool agpuAdapterHasFeature(GPUAdapter adapter, GPUFeature feature
 /* SurfaceSource */
 ALIMER_GPU_API GPUSurfaceSource agpuSurfaceSourceCreateFromWin32(void* hwnd);
 ALIMER_GPU_API GPUSurfaceSource agpuSurfaceSourceCreateFromAndroid(void* window);
+ALIMER_GPU_API GPUSurfaceSource agpuSurfaceSourceCreateFromMetalLayer(void* metalLayer);
+ALIMER_GPU_API GPUSurfaceSource agpuSurfaceSourceCreateFromWaylandSurface(void* display, void* surface);
+ALIMER_GPU_API GPUSurfaceSource agpuSurfaceSourceCreateFromXlibWindow(void* display, uint64_t window);
 ALIMER_GPU_API void agpuSurfaceSourceDestroy(GPUSurfaceSource surfaceSource);
 
 /* Surface */

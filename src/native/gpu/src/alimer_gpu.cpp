@@ -422,6 +422,32 @@ GPUSurfaceSource agpuSurfaceSourceCreateFromAndroid(void* window)
     return handle;
 }
 
+GPUSurfaceSource agpuSurfaceSourceCreateFromMetalLayer(void* metalLayer)
+{
+    GPUSurfaceSourceImpl* handle = new GPUSurfaceSourceImpl();
+    handle->type = GPUSurfaceSourceImpl::Type::MetalLayer;
+    handle->metalLayer = metalLayer;
+    return handle;
+}
+
+GPUSurfaceSource agpuSurfaceSourceCreateFromWaylandSurface(void* display, void* surface)
+{
+    GPUSurfaceSourceImpl* handle = new GPUSurfaceSourceImpl();
+    handle->type = GPUSurfaceSourceImpl::Type::WaylandSurface;
+    handle->waylandDisplay = display;
+    handle->waylandSurface = surface;
+    return handle;
+}
+
+GPUSurfaceSource agpuSurfaceSourceCreateFromXlibWindow(void* display, uint64_t window)
+{
+    GPUSurfaceSourceImpl* handle = new GPUSurfaceSourceImpl();
+    handle->type = GPUSurfaceSourceImpl::Type::XlibWindow;
+    handle->xlibDisplay = display;
+    handle->xlibWindow = window;
+    return handle;
+}
+
 void agpuSurfaceSourceDestroy(GPUSurfaceSource surfaceSource)
 {
     delete surfaceSource;

@@ -113,10 +113,6 @@ typedef struct IUnknown IUnknown;
 #   define ALIMER_ASSERT(...) ((void)0)
 #endif
 
-// Forward declaration for native handle
-struct wl_display;
-struct wl_surface;
-
 enum class TextureLayout : uint8_t
 {
     Undefined,
@@ -312,7 +308,6 @@ struct GPUSurfaceSourceImpl final
         AndroidWindow,
         MetalLayer,
         WindowsHWND,
-        SurfaceHandle,
         WaylandSurface,
         XlibWindow,
     } type = Type::Invalid;
@@ -323,11 +318,11 @@ struct GPUSurfaceSourceImpl final
     void* androidWindow = nullptr;
 
     // Wayland
-    wl_display* waylandDisplay = nullptr;
-    wl_surface* waylandSurface = nullptr;
+    void* waylandDisplay = nullptr;
+    void* waylandSurface = nullptr;
     // Xlib
-    void* xDisplay = nullptr;
-    uint64_t xWindow = 0;
+    void* xlibDisplay = nullptr;
+    uint64_t xlibWindow = 0;
 
     // WindowsHwnd
     void* hwnd = nullptr;

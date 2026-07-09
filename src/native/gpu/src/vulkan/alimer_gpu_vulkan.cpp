@@ -5698,17 +5698,10 @@ GPUAdapter VulkanGPUFactory::GetAdapter(uint32_t index) const
 
 GPUSurface VulkanGPUFactory::CreateSurface(GPUSurfaceSource source)
 {
-    VkResult result = VK_SUCCESS;
+    VkResult result = VK_ERROR_UNKNOWN;
     VkSurfaceKHR vk_surface = VK_NULL_HANDLE;
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-    //PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHR = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(instance, "vkCreateWin32SurfaceKHR");
-    if (!vkCreateWin32SurfaceKHR)
-    {
-        agpuLogError("%s extension is not enabled in the Vulkan instance.", VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-        return nullptr;
-    }
-
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
@@ -5724,11 +5717,47 @@ GPUSurface VulkanGPUFactory::CreateSurface(GPUSurfaceSource source)
 #elif defined(VK_USE_PLATFORM_METAL_EXT)
     VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
-    surfaceCreateInfo.pLayer = surface->metalLayer;
+    surfaceCreateInfo.pLayer = source->metalLayer;
 
     result = vkCreateMetalSurfaceEXT(handle, &surfaceCreateInfo, nullptr, &vk_surface);
 #else
+
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+    if (source->type == GPUSurfaceSourceImpl::Type::XlibSurface)
+    {
+        if (!xlibDisplay)
+        {
+            agpuLogError("Xlib surface is not supported");
+            return nullptr;
+        }
+
+        VkXlibSurfaceCreateInfoKHR surfaceCreateInfo = {};
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+        surfaceCreateInfo.dpy = static_cast<Display*>(source->xlibDisplay);
+        surfaceCreateInfo.window = static_cast<Window>(source->xlibWindow);
+        result = vkCreateXlibSurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
+    }
 #endif
+
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR)
+    if (source->type == GPUSurfaceSourceImpl::Type::WaylandSurface)
+    {
+        if (!waylandSurface)
+        {
+            agpuLogError("Wayland surface is not supported");
+            return nullptr;
+        }
+
+        VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {};
+        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+        surfaceCreateInfo.display = static_cast<struct wl_display*>(source->waylandDisplay);
+        surfaceCreateInfo.surface = static_cast<struct wl_surface*>(source->waylandSurface);
+        result = vkCreateWaylandSurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
+    }
+#endif
+
+#endif
+
 
     if (result != VK_SUCCESS)
     {
