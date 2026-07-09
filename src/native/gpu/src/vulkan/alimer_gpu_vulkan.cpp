@@ -5712,13 +5712,13 @@ GPUSurface VulkanGPUFactory::CreateSurface(GPUSurfaceSource source)
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
-    surfaceCreateInfo.hwnd = source->hwnd;
+    surfaceCreateInfo.hwnd = static_cast<HWND>(source->hwnd);
 
     result = vkCreateWin32SurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
     VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-    surfaceCreateInfo.window = source->androidNativeWindow;
+    surfaceCreateInfo.window = static_cast<ANativeWindow*>(source->androidWindow);
 
     result = vkCreateAndroidSurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
 #elif defined(VK_USE_PLATFORM_METAL_EXT)

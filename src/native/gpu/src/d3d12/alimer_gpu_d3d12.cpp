@@ -1613,7 +1613,7 @@ struct D3D12Surface final : public GPUSurfaceImpl
     D3D12Device* device = nullptr;
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-    HWND handle = nullptr;
+    HWND hwnd = nullptr;
 #endif
     uint32_t width = 0;
     uint32_t height = 0;
@@ -4302,7 +4302,7 @@ bool D3D12Surface::Configure(const GPUSurfaceConfig* config_)
 
     hr = factory->dxgiFactory4->CreateSwapChainForHwnd(
         device->queues[GPUCommandQueueType_Graphics].handle,
-        handle,
+        hwnd,
         &swapChainDesc,
         &fullscreenDesc,
         nullptr,
@@ -4310,7 +4310,7 @@ bool D3D12Surface::Configure(const GPUSurfaceConfig* config_)
     );
 
     // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
-    VHR(factory->dxgiFactory4->MakeWindowAssociation(handle, DXGI_MWA_NO_WINDOW_CHANGES | DXGI_MWA_NO_ALT_ENTER));
+    VHR(factory->dxgiFactory4->MakeWindowAssociation(hwnd, DXGI_MWA_NO_WINDOW_CHANGES | DXGI_MWA_NO_ALT_ENTER));
 #endif
 
     if (FAILED(hr))
@@ -4950,15 +4950,17 @@ GPUSurface D3D12GPUFactory::CreateSurface(GPUSurfaceSource source)
     surface->factory = this;
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-    if (!IsWindow(source->hwnd))
+    HWND hwnd = static_cast<HWND>(source->hwnd);
+    if (!IsWindow(hwnd))
     {
+        delete surface;
         agpuLogError("Win32: Invalid vulkan hwnd handle");
         return nullptr;
     }
-    surface->handle = source->hwnd;
+    surface->hwnd = hwnd;
 
     RECT windowRect;
-    GetClientRect(source->hwnd, &windowRect);
+    GetClientRect(hwnd, &windowRect);
     surface->width = static_cast<uint32_t>(windowRect.right - windowRect.left);
     surface->height = static_cast<uint32_t>(windowRect.bottom - windowRect.top);
 #endif

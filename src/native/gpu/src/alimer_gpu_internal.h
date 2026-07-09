@@ -114,7 +114,6 @@ typedef struct IUnknown IUnknown;
 #endif
 
 // Forward declaration for native handle
-struct ANativeWindow;
 struct wl_display;
 struct wl_surface;
 
@@ -313,8 +312,6 @@ struct GPUSurfaceSourceImpl final
         AndroidWindow,
         MetalLayer,
         WindowsHWND,
-        IDCompositionVisual,
-        SwapChainPanel,
         SurfaceHandle,
         WaylandSurface,
         XlibWindow,
@@ -323,7 +320,7 @@ struct GPUSurfaceSourceImpl final
     // MetalLayer
     void* metalLayer = nullptr;
     // ANativeWindow
-    ANativeWindow* androidNativeWindow = nullptr;
+    void* androidWindow = nullptr;
 
     // Wayland
     wl_display* waylandDisplay = nullptr;
@@ -333,12 +330,7 @@ struct GPUSurfaceSourceImpl final
     uint64_t xWindow = 0;
 
     // WindowsHwnd
-    HWND hwnd = nullptr;
-
-    // IDCompositionVisual/SwapChainPanel
-    IUnknown* idCompositionVisualOrSwapChainPanel = nullptr;
-    // SurfaceHandle
-    void* surfaceHandle = nullptr;
+    void* hwnd = nullptr;
 };
 
 struct GPUSurfaceImpl : public GPUResource

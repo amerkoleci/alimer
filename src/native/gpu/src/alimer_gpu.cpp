@@ -410,7 +410,7 @@ GPUSurfaceSource agpuSurfaceSourceCreateFromWin32(void* hwnd)
 {
     GPUSurfaceSourceImpl* handle = new GPUSurfaceSourceImpl();
     handle->type = GPUSurfaceSourceImpl::Type::WindowsHWND;
-    handle->hwnd = static_cast<HWND>(hwnd);
+    handle->hwnd = hwnd;
     return handle;
 }
 
@@ -418,7 +418,7 @@ GPUSurfaceSource agpuSurfaceSourceCreateFromAndroid(void* window)
 {
     GPUSurfaceSourceImpl* handle = new GPUSurfaceSourceImpl();
     handle->type = GPUSurfaceSourceImpl::Type::AndroidWindow;
-    handle->androidNativeWindow = static_cast<ANativeWindow*>(window);
+    handle->androidWindow = window;
     return handle;
 }
 
