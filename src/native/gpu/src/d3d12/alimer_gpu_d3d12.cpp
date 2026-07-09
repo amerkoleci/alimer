@@ -16,33 +16,6 @@
 #   include <d3d12_x.h>
 #   pragma warning(pop)
 #else
-#   ifndef UNICODE
-#   define UNICODE
-#   endif
-
-#   ifndef NOMINMAX
-#   define NOMINMAX
-#   endif
-
-#   ifndef WIN32_LEAN_AND_MEAN
-#   define WIN32_LEAN_AND_MEAN
-#   endif
-
-// We don't need GDI
-#   define NODRAWTEXT
-#   define NOGDI
-#   define NOBITMAP
-
-// We dont' need <mcx.h>
-#   define NOMCX
-
-// We dont' need <winsvc.h>
-#   define NOSERVICE
-
-// WinHelp is deprecated
-#   define NOHELP
-
-#   include <Windows.h>
 #   include <directx/d3d12.h>
 #   include <directx/d3d12video.h>
 //#   include <directx/d3dx12_resource_helpers.h>
@@ -1106,7 +1079,7 @@ struct D3D12Resource
     bool immutableState = false;
 };
 
-struct D3D12Buffer final : public GPUBuffer, public D3D12Resource
+struct D3D12Buffer final : public GPUBufferImpl, public D3D12Resource
 {
     uint64_t allocatedSize = 0;
     D3D12_GPU_VIRTUAL_ADDRESS deviceAddress = 0;
@@ -1119,7 +1092,7 @@ struct D3D12Buffer final : public GPUBuffer, public D3D12Resource
     GPUDeviceAddress GetDeviceAddress() const override { return deviceAddress; }
 };
 
-struct D3D12Texture final : public GPUTexture, public D3D12Resource
+struct D3D12Texture final : public GPUTextureImpl, public D3D12Resource
 {
     DXGI_FORMAT dxgiFormat = DXGI_FORMAT_UNKNOWN;
     HANDLE sharedHandle = nullptr;
@@ -1203,7 +1176,7 @@ struct D3D12QueryHeap final : public GPUQueryHeapImpl
     void SetLabel(const char* label) override;
 };
 
-struct D3D12ComputePassEncoder final : public GPUComputePassEncoder
+struct D3D12ComputePassEncoder final : public GPUComputePassEncoderImpl
 {
     D3D12CommandBuffer* commandBuffer = nullptr;
     bool hasLabel = false;
@@ -1220,10 +1193,10 @@ struct D3D12ComputePassEncoder final : public GPUComputePassEncoder
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
     void PrepareDispatch();
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
-    void DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
 };
 
-struct D3D12RenderPassEncoder final : public GPURenderPassEncoder
+struct D3D12RenderPassEncoder final : public GPURenderPassEncoderImpl
 {
     D3D12CommandBuffer* commandBuffer = nullptr;
     D3D12_RENDER_PASS_RENDER_TARGET_DESC RTVs[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
@@ -1249,24 +1222,24 @@ struct D3D12RenderPassEncoder final : public GPURenderPassEncoder
     void SetBlendColor(const GPUColor* color) override;
     void SetStencilReference(uint32_t reference) override;
 
-    void SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset) override;
-    void SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset) override;
+    void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) override;
+    void SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset) override;
     void SetPipeline(GPURenderPipeline pipeline) override;
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
 
     void PrepareDraw();
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
     void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) override;
-    void DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
-    void DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
 
-    void MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
-    void MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+    void MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+    void MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
 
     void SetShadingRate(GPUShadingRate rate) override;
 };
 
-struct D3D12CommandBuffer final : public GPUCommandBuffer
+struct D3D12CommandBuffer final : public GPUCommandBufferImpl
 {
     static constexpr uint32_t kMaxBarrierCount = 16;
 
@@ -1302,13 +1275,13 @@ struct D3D12CommandBuffer final : public GPUCommandBuffer
 
     void SetPipelineLayout(D3D12PipelineLayout* newPipelineLayout, bool isGraphicsPipelineLayout);
 
-    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
+    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
 
-    GPUComputePassEncoder* BeginComputePass(const GPUComputePassDesc& desc) override;
-    GPURenderPassEncoder* BeginRenderPass(const GPURenderPassDesc& desc) override;
+    GPUComputePassEncoder BeginComputePass(const GPUComputePassDesc& desc) override;
+    GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) override;
     void FlushBindGroups(bool graphics);
 };
 
@@ -1328,13 +1301,13 @@ struct D3D12Queue final : public GPUCommandQueueImpl
     std::mutex cmdBuffersLocker;
 
     GPUCommandQueueType GetType() const override { return queueType; }
-    GPUCommandBuffer* AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
+    GPUCommandBuffer AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
 
     uint64_t IncrementFenceValue();
     bool IsFenceComplete(uint64_t fenceValue);
     void WaitForFenceValue(uint64_t fenceValue);
     void WaitIdle() override;
-    void Submit(uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers) override;
+    void Submit(uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers) override;
 };
 
 struct D3D12UploadContext final
@@ -1564,7 +1537,7 @@ private:
     }
 };
 
-struct D3D12Device final : public GPUDevice
+struct D3D12Device final : public GPUDeviceImpl
 {
     D3D12Adapter* adapter = nullptr;
     ID3D12Device5* handle = nullptr;
@@ -1623,8 +1596,8 @@ struct D3D12Device final : public GPUDevice
     uint64_t GetTimestampFrequency() const override { return timestampFrequency; }
 
     /* Resource creation */
-    GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
-    GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
+    GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
+    GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
     GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
@@ -1680,7 +1653,7 @@ struct D3D12Adapter final : public GPUAdapterImpl
     void GetInfo(GPUAdapterInfo* info) const override;
     void GetLimits(GPUAdapterLimits* limits) const override;
     bool HasFeature(GPUFeature feature) const override;
-    GPUDevice* CreateDevice(const GPUDeviceDesc& desc) override;
+    GPUDevice CreateDevice(const GPUDeviceDesc& desc) override;
 
 private:
     std::string deviceName;
@@ -1703,7 +1676,7 @@ struct D3D12GPUFactory final : public GPUFactoryImpl
     GPUBackendType GetBackend() const override { return GPUBackendType_D3D12; }
     uint32_t GetAdapterCount() const override { return (uint32_t)adapters.size(); }
     GPUAdapter GetAdapter(uint32_t index) const override;
-    GPUSurface CreateSurface(GPUSurfaceHandle* surfaceHandle) override;
+    GPUSurface CreateSurface(GPUSurfaceSource source) override;
 };
 
 /* D3D12Buffer */
@@ -2114,7 +2087,7 @@ void D3D12ComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCount
     commandBuffer->commandList->Dispatch(groupCountX, groupCountY, groupCountZ);
 }
 
-void D3D12ComputePassEncoder::DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+void D3D12ComputePassEncoder::DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDispatch();
 
@@ -2410,7 +2383,7 @@ void D3D12RenderPassEncoder::SetStencilReference(uint32_t reference)
     commandBuffer->commandList->OMSetStencilRef(reference);
 }
 
-void D3D12RenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset)
+void D3D12RenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset)
 {
     D3D12Buffer* backendBuffer = static_cast<D3D12Buffer*>(buffer);
 
@@ -2419,7 +2392,7 @@ void D3D12RenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, u
     vboViews[slot].StrideInBytes = 0;
 }
 
-void D3D12RenderPassEncoder::SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset)
+void D3D12RenderPassEncoder::SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset)
 {
     D3D12Buffer* backendBuffer = static_cast<D3D12Buffer*>(buffer);
 
@@ -2487,7 +2460,7 @@ void D3D12RenderPassEncoder::DrawIndexed(uint32_t indexCount, uint32_t instanceC
     commandBuffer->commandList->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
 }
 
-void D3D12RenderPassEncoder::DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+void D3D12RenderPassEncoder::DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDraw();
 
@@ -2501,7 +2474,7 @@ void D3D12RenderPassEncoder::DrawIndirect(GPUBuffer* indirectBuffer, uint64_t in
         0);
 }
 
-void D3D12RenderPassEncoder::DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+void D3D12RenderPassEncoder::DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDraw();
 
@@ -2515,7 +2488,7 @@ void D3D12RenderPassEncoder::DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint
         0);
 }
 
-void D3D12RenderPassEncoder::MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
+void D3D12RenderPassEncoder::MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     PrepareDraw();
 
@@ -2533,7 +2506,7 @@ void D3D12RenderPassEncoder::MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64
     );
 }
 
-void D3D12RenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
+void D3D12RenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     PrepareDraw();
 
@@ -2847,7 +2820,7 @@ void D3D12CommandBuffer::SetPipelineLayout(D3D12PipelineLayout* newPipelineLayou
     }
 }
 
-GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
+GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture)
 {
     D3D12Surface* backendSurface = static_cast<D3D12Surface*>(surface);
 
@@ -2935,7 +2908,7 @@ void D3D12CommandBuffer::InsertDebugMarker(const char* markerLabel) const
     }
 }
 
-GPUComputePassEncoder* D3D12CommandBuffer::BeginComputePass(const GPUComputePassDesc& desc)
+GPUComputePassEncoder D3D12CommandBuffer::BeginComputePass(const GPUComputePassDesc& desc)
 {
     if (encoderActive)
     {
@@ -2948,7 +2921,7 @@ GPUComputePassEncoder* D3D12CommandBuffer::BeginComputePass(const GPUComputePass
     return computePassEncoder;
 }
 
-GPURenderPassEncoder* D3D12CommandBuffer::BeginRenderPass(const GPURenderPassDesc& desc)
+GPURenderPassEncoder D3D12CommandBuffer::BeginRenderPass(const GPURenderPassDesc& desc)
 {
     if (encoderActive)
     {
@@ -2967,7 +2940,7 @@ void D3D12CommandBuffer::FlushBindGroups(bool graphics)
 }
 
 /* D3D12Queue */
-GPUCommandBuffer* D3D12Queue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
+GPUCommandBuffer D3D12Queue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
 {
     cmdBuffersLocker.lock();
     uint32_t index = cmdBuffersCount++;
@@ -3038,7 +3011,7 @@ void D3D12Queue::WaitIdle()
     WaitForFenceValue(IncrementFenceValue());
 }
 
-void D3D12Queue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers)
+void D3D12Queue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers)
 {
     std::vector<ID3D12CommandList*> submitCommandLists;
     for (uint32_t i = 0; i < numCommandBuffers; i++)
@@ -3463,7 +3436,7 @@ void D3D12Device::ProcessDeletionQueue(bool force)
     destroyMutex.unlock();
 }
 
-GPUBuffer* D3D12Device::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
+GPUBuffer D3D12Device::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
 {
     D3D12Buffer* buffer = new D3D12Buffer();
     buffer->device = this;
@@ -3604,7 +3577,7 @@ GPUBuffer* D3D12Device::CreateBuffer(const GPUBufferDesc& desc, const void* pIni
     return buffer;
 }
 
-GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
+GPUTexture D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
 {
     const bool isDepthStencil = alimerPixelFormatIsDepthStencil(desc.format);
 
@@ -4716,7 +4689,7 @@ inline void HandleDeviceRemoved(PVOID context, BOOLEAN)
 }
 #endif
 
-GPUDevice* D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
+GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
 {
     D3D12Device* device = new D3D12Device();
     device->adapter = this;
@@ -4971,21 +4944,21 @@ GPUAdapter D3D12GPUFactory::GetAdapter(uint32_t index) const
     return adapters[index];
 }
 
-GPUSurface D3D12GPUFactory::CreateSurface(GPUSurfaceHandle* surfaceHandle)
+GPUSurface D3D12GPUFactory::CreateSurface(GPUSurfaceSource source)
 {
     D3D12Surface* surface = new D3D12Surface();
     surface->factory = this;
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-    if (!IsWindow(surfaceHandle->hwnd))
+    if (!IsWindow(source->hwnd))
     {
         agpuLogError("Win32: Invalid vulkan hwnd handle");
         return nullptr;
     }
-    surface->handle = surfaceHandle->hwnd;
+    surface->handle = source->hwnd;
 
     RECT windowRect;
-    GetClientRect(surfaceHandle->hwnd, &windowRect);
+    GetClientRect(source->hwnd, &windowRect);
     surface->width = static_cast<uint32_t>(windowRect.right - windowRect.left);
     surface->height = static_cast<uint32_t>(windowRect.bottom - windowRect.top);
 #endif

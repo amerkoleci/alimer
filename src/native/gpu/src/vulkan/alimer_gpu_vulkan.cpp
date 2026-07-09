@@ -6,59 +6,7 @@
 #define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
-#if defined(_WIN32)
-#ifndef UNICODE
-#define UNICODE
-#endif
-
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-// We don't need GDI
-#define NODRAWTEXT
-#define NOGDI
-#define NOBITMAP
-
-// We dont' need <mcx.h>
-#   define NOMCX
-
-// We dont' need <winsvc.h>
-#define NOSERVICE
-
-// WinHelp is deprecated
-#define NOHELP
-#include <windows.h>
-#include <vulkan/vulkan_win32.h>
-#elif defined(__ANDROID__)
-#include <vulkan/vulkan_android.h>
-#elif defined(__APPLE__)
-#include <vulkan/vulkan_metal.h>
-#include <vulkan/vulkan_beta.h>
-#else
-typedef struct xcb_connection_t xcb_connection_t;
-typedef uint32_t xcb_window_t;
-typedef uint32_t xcb_visualid_t;
-
-//#include <vulkan/vulkan_xlib.h>
-#include <vulkan/vulkan_xcb.h>
-
-struct wl_display;
-struct wl_surface;
-#include <vulkan/vulkan_wayland.h>
-#endif
-
 ALIMER_DISABLE_WARNINGS()
-#if defined(_WIN32)
-#   define VMA_CALL_PRE __declspec(dllexport)
-#else
-#   define VMA_CALL_PRE __attribute__((visibility("default")))
-#endif
-
 #define VMA_IMPLEMENTATION
 #define VMA_STATS_STRING_ENABLED 0
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
@@ -1047,7 +995,7 @@ namespace
 }
 
 struct VK_State {
-#if defined(_WIN32)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
     HMODULE vk_module;
 #else
     void* vk_module;
@@ -1057,7 +1005,7 @@ struct VK_State {
     {
         if (vk_module)
         {
-#if defined(_WIN32)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
             FreeLibrary(vk_module);
 #else
             dlclose(vk_module);
@@ -1152,7 +1100,7 @@ struct VulkanSurface;
 struct VulkanAdapter;
 struct VulkanGPUFactory;
 
-struct VulkanBuffer final : public GPUBuffer
+struct VulkanBuffer final : public GPUBufferImpl
 {
     VulkanDevice* device = nullptr;
     VkBuffer handle = VK_NULL_HANDLE;
@@ -1167,7 +1115,7 @@ struct VulkanBuffer final : public GPUBuffer
     GPUDeviceAddress GetDeviceAddress() const override { return deviceAddress; }
 };
 
-struct VulkanTexture final : public GPUTexture
+struct VulkanTexture final : public GPUTextureImpl
 {
     VulkanDevice* device = nullptr;
     VkFormat vkFormat = VK_FORMAT_UNDEFINED;
@@ -1250,7 +1198,7 @@ struct VulkanQueryHeap final : public GPUQueryHeapImpl
     void SetLabel(const char* label) override;
 };
 
-struct VulkanComputePassEncoder final : public GPUComputePassEncoder
+struct VulkanComputePassEncoder final : public GPUComputePassEncoderImpl
 {
     VulkanCommandBuffer* commandBuffer = nullptr;
     bool hasLabel = false;
@@ -1267,10 +1215,10 @@ struct VulkanComputePassEncoder final : public GPUComputePassEncoder
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
     void PrepareDispatch();
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
-    void DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
 };
 
-struct VulkanRenderPassEncoder final : public GPURenderPassEncoder
+struct VulkanRenderPassEncoder final : public GPURenderPassEncoderImpl
 {
     VulkanCommandBuffer* commandBuffer = nullptr;
     bool hasLabel = false;
@@ -1291,24 +1239,24 @@ struct VulkanRenderPassEncoder final : public GPURenderPassEncoder
     void SetBlendColor(const GPUColor* color) override;
     void SetStencilReference(uint32_t reference) override;
 
-    void SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset) override;
-    void SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset) override;
+    void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) override;
+    void SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset) override;
     void SetPipeline(GPURenderPipeline pipeline) override;
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
 
     void PrepareDraw();
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
     void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) override;
-    void DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
-    void DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
 
-    void MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
-    void MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+    void MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+    void MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
 
     void SetShadingRate(GPUShadingRate rate) override;
 };
 
-struct VulkanCommandBuffer final : public GPUCommandBuffer
+struct VulkanCommandBuffer final : public GPUCommandBufferImpl
 {
     static constexpr uint32_t kMaxBarrierCount = 16;
 
@@ -1340,13 +1288,13 @@ struct VulkanCommandBuffer final : public GPUCommandBuffer
     void SetPipelineLayout(VulkanPipelineLayout* newPipelineLayout);
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size);
 
-    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
+    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
 
-    GPUComputePassEncoder* BeginComputePass(const GPUComputePassDesc& desc) override;
-    GPURenderPassEncoder* BeginRenderPass(const GPURenderPassDesc& desc) override;
+    GPUComputePassEncoder BeginComputePass(const GPUComputePassDesc& desc) override;
+    GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) override;
 };
 
 struct VulkanQueue final : public GPUCommandQueueImpl
@@ -1364,8 +1312,8 @@ struct VulkanQueue final : public GPUCommandQueueImpl
     GPUCommandQueueType GetType() const override { return queueType; }
 
     void WaitIdle() override;
-    GPUCommandBuffer* AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
-    void Submit(uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers) override;
+    GPUCommandBuffer AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
+    void Submit(uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers) override;
     void Submit(VkFence fence);
 };
 
@@ -1396,7 +1344,7 @@ struct VulkanCopyAllocator final
     void Submit(VulkanUploadContext context);
 };
 
-struct VulkanDevice final : public GPUDevice
+struct VulkanDevice final : public GPUDeviceImpl
 {
     VulkanAdapter* adapter = nullptr;
     VkDevice handle = VK_NULL_HANDLE;
@@ -1445,8 +1393,8 @@ struct VulkanDevice final : public GPUDevice
     uint64_t GetTimestampFrequency() const override;
 
     /* Resource creation */
-    GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
-    GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
+    GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
+    GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
     GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
@@ -1556,7 +1504,7 @@ struct VulkanAdapter final : public GPUAdapterImpl
     bool HasFeature(GPUFeature feature) const override;
     bool IsDepthStencilFormatSupported(VkFormat format) const;
     VkFormat ToVkFormat(GPUPixelFormat format) const;
-    GPUDevice* CreateDevice(const GPUDeviceDesc& desc) override;
+    GPUDevice CreateDevice(const GPUDeviceDesc& desc) override;
 };
 
 struct VulkanGPUFactory final : public GPUFactoryImpl
@@ -1578,7 +1526,7 @@ struct VulkanGPUFactory final : public GPUFactoryImpl
     GPUBackendType GetBackend() const override { return GPUBackendType_Vulkan; }
     uint32_t GetAdapterCount() const override { return static_cast<uint32_t>(adapters.size()); }
     GPUAdapter GetAdapter(uint32_t index) const override;
-    GPUSurface CreateSurface(GPUSurfaceHandle* surfaceHandle) override;
+    GPUSurface CreateSurface(GPUSurfaceSource source) override;
 
     bool GetPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex) const;
     VulkanPhysicalDeviceExtensions QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice) const;
@@ -1912,7 +1860,7 @@ void VulkanComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCoun
     commandBuffer->device->vkCmdDispatch(commandBuffer->handle, groupCountX, groupCountY, groupCountZ);
 }
 
-void VulkanComputePassEncoder::DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+void VulkanComputePassEncoder::DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDispatch();
 
@@ -2141,7 +2089,7 @@ void VulkanRenderPassEncoder::SetStencilReference(uint32_t reference)
     commandBuffer->device->vkCmdSetStencilReference(commandBuffer->handle, VK_STENCIL_FRONT_AND_BACK, reference);
 }
 
-void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset)
+void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset)
 {
     // TODO: Batch with 1 call
     VulkanBuffer* backendBuffer = static_cast<VulkanBuffer*>(buffer);
@@ -2149,7 +2097,7 @@ void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, 
     commandBuffer->device->vkCmdBindVertexBuffers(commandBuffer->handle, slot, 1, &backendBuffer->handle, &offset);
 }
 
-void VulkanRenderPassEncoder::SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset)
+void VulkanRenderPassEncoder::SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset)
 {
     VulkanBuffer* backendBuffer = static_cast<VulkanBuffer*>(buffer);
     VkIndexType vkIndexType = (type == GPUIndexType_Uint16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
@@ -2194,7 +2142,7 @@ void VulkanRenderPassEncoder::DrawIndexed(uint32_t indexCount, uint32_t instance
     commandBuffer->device->vkCmdDrawIndexed(commandBuffer->handle, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
 }
 
-void VulkanRenderPassEncoder::DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+void VulkanRenderPassEncoder::DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDraw();
 
@@ -2208,7 +2156,7 @@ void VulkanRenderPassEncoder::DrawIndirect(GPUBuffer* indirectBuffer, uint64_t i
     );
 }
 
-void VulkanRenderPassEncoder::DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+void VulkanRenderPassEncoder::DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDraw();
 
@@ -2222,7 +2170,7 @@ void VulkanRenderPassEncoder::DrawIndexedIndirect(GPUBuffer* indirectBuffer, uin
     );
 }
 
-void VulkanRenderPassEncoder::MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
+void VulkanRenderPassEncoder::MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     PrepareDraw();
 
@@ -2254,7 +2202,7 @@ void VulkanRenderPassEncoder::MultiDrawIndirect(GPUBuffer* indirectBuffer, uint6
     }
 }
 
-void VulkanRenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
+void VulkanRenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     PrepareDraw();
 
@@ -2585,7 +2533,7 @@ void VulkanCommandBuffer::SetPushConstants(uint32_t pushConstantIndex, const voi
     );
 }
 
-GPUAcquireSurfaceResult VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
+GPUAcquireSurfaceResult VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture)
 {
     VulkanSurface* backendSurface = static_cast<VulkanSurface*>(surface);
     size_t swapChainAcquireSemaphoreIndex = backendSurface->swapChainAcquireSemaphoreIndex;
@@ -2663,7 +2611,7 @@ void VulkanCommandBuffer::InsertDebugMarker(const char* markerLabel) const
     queue->device->adapter->factory->vkCmdInsertDebugUtilsLabelEXT(handle, &label);
 }
 
-GPUComputePassEncoder* VulkanCommandBuffer::BeginComputePass(const GPUComputePassDesc& desc)
+GPUComputePassEncoder VulkanCommandBuffer::BeginComputePass(const GPUComputePassDesc& desc)
 {
     if (encoderActive)
     {
@@ -2676,7 +2624,7 @@ GPUComputePassEncoder* VulkanCommandBuffer::BeginComputePass(const GPUComputePas
     return computePassEncoder;
 }
 
-GPURenderPassEncoder* VulkanCommandBuffer::BeginRenderPass(const GPURenderPassDesc& desc)
+GPURenderPassEncoder VulkanCommandBuffer::BeginRenderPass(const GPURenderPassDesc& desc)
 {
     if (encoderActive)
     {
@@ -2695,7 +2643,7 @@ void VulkanQueue::WaitIdle()
     VK_CHECK(device->vkQueueWaitIdle(handle));
 }
 
-GPUCommandBuffer* VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
+GPUCommandBuffer VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
 {
     cmdBuffersLocker.lock();
     uint32_t index = cmdBuffersCount++;
@@ -2737,7 +2685,7 @@ GPUCommandBuffer* VulkanQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* 
     return commandBuffers[index];
 }
 
-void VulkanQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers)
+void VulkanQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers)
 {
     VkFence fence = VK_NULL_HANDLE;
     std::vector<VkSemaphoreSubmitInfo> submitWaitSemaphoreInfos;
@@ -3277,7 +3225,7 @@ uint64_t VulkanDevice::GetTimestampFrequency() const
     return timestampFrequency;
 }
 
-GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
+GPUBuffer VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
 {
     VulkanBuffer* buffer = new VulkanBuffer();
     buffer->device = this;
@@ -3510,7 +3458,7 @@ GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pIn
     return buffer;
 }
 
-GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
+GPUTexture VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
 {
     const bool isDepthStencil = alimerPixelFormatIsDepthStencil(desc.format);
 
@@ -5295,7 +5243,7 @@ VkFormat VulkanAdapter::ToVkFormat(GPUPixelFormat format) const
     return vkFormat;
 }
 
-GPUDevice* VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
+GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
 {
     VulkanDevice* device = new VulkanDevice();
     device->adapter = this;
@@ -5402,7 +5350,7 @@ GPUDevice* VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
 
     if (extensions.externalMemory)
     {
-#if defined(_WIN32)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
         enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
 #else
         enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
@@ -5411,7 +5359,7 @@ GPUDevice* VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
 
     if (extensions.externalSemaphore)
     {
-#if defined(_WIN32)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
         enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
 #else
         enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
@@ -5420,7 +5368,7 @@ GPUDevice* VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
 
     if (extensions.externalFence)
     {
-#if defined(_WIN32)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
         enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME);
 #else
         enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME);
@@ -5668,7 +5616,7 @@ GPUDevice* VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
     if (extensions.externalMemory)
     {
         std::vector<VkExternalMemoryHandleTypeFlags> externalMemoryHandleTypes;
-#if defined(_WIN32)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
         externalMemoryHandleTypes.resize(memoryProperties2.memoryProperties.memoryTypeCount, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);
 #else
         externalMemoryHandleTypes.resize(memoryProperties2.memoryProperties.memoryTypeCount, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT);
@@ -5748,12 +5696,12 @@ GPUAdapter VulkanGPUFactory::GetAdapter(uint32_t index) const
     return adapters[index];
 }
 
-GPUSurface VulkanGPUFactory::CreateSurface(GPUSurfaceHandle* surfaceHandle)
+GPUSurface VulkanGPUFactory::CreateSurface(GPUSurfaceSource source)
 {
     VkResult result = VK_SUCCESS;
     VkSurfaceKHR vk_surface = VK_NULL_HANDLE;
 
-#if defined(_WIN32)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
     //PFN_vkCreateWin32SurfaceKHR vkCreateWin32SurfaceKHR = (PFN_vkCreateWin32SurfaceKHR)vkGetInstanceProcAddr(instance, "vkCreateWin32SurfaceKHR");
     if (!vkCreateWin32SurfaceKHR)
     {
@@ -5763,20 +5711,20 @@ GPUSurface VulkanGPUFactory::CreateSurface(GPUSurfaceHandle* surfaceHandle)
 
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    typedef struct GPUSurfaceHandle             GPUSurfaceHandle; surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
-    surfaceCreateInfo.hwnd = surfaceHandle->hwnd;
+    surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
+    surfaceCreateInfo.hwnd = source->hwnd;
 
     result = vkCreateWin32SurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
     VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-    surfaceCreateInfo.window = (ANativeWindow*)alimerWindowGetNativeHandle(window);
+    surfaceCreateInfo.window = source->androidNativeWindow;
 
     result = vkCreateAndroidSurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
-#elif defined(__APPLE__)
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
     VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
-    //surfaceCreateInfo.pLayer = surface->GetMetalLayer();
+    surfaceCreateInfo.pLayer = surface->metalLayer;
 
     result = vkCreateMetalSurfaceEXT(handle, &surfaceCreateInfo, nullptr, &vk_surface);
 #else
@@ -5801,7 +5749,7 @@ GPUSurface VulkanGPUFactory::CreateSurface(GPUSurfaceHandle* surfaceHandle)
 
 bool VulkanGPUFactory::GetPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex) const
 {
-#if defined(_WIN32)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
     //PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR vkGetPhysicalDeviceWin32PresentationSupportKHR = (PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR)vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceWin32PresentationSupportKHR");
     if (!vkGetPhysicalDeviceWin32PresentationSupportKHR)
     {
@@ -5809,9 +5757,9 @@ bool VulkanGPUFactory::GetPresentationSupport(VkPhysicalDevice physicalDevice, u
     }
 
     return vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, queueFamilyIndex) == VK_TRUE;
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
     return true;
-#elif defined(__APPLE__)
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
     return true;
 #else
     return true;
@@ -5966,7 +5914,7 @@ VulkanPhysicalDeviceExtensions VulkanGPUFactory::QueryPhysicalDeviceExtensions(V
             extensions.video.encode_h265 = true;
         }
 
-#if defined(_WIN32)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
         if (strcmp(vk_extensions[i].extensionName, VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME) == 0)
         {
             extensions.externalMemory = true;
@@ -6173,8 +6121,8 @@ bool Vulkan_IsSupported(void)
     }
 
     available_initialized = true;
-#if defined(_WIN32)
-    vk_state.vk_module = LoadLibraryW(L"vulkan-1.dll");
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+    vk_state.vk_module = LoadLibraryA("vulkan-1.dll");
     if (!vk_state.vk_module)
         return false;
 
@@ -6183,6 +6131,10 @@ bool Vulkan_IsSupported(void)
     vk_state.vk_module = dlopen("libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
     if (!vk_state.vk_module)
         vk_state.vk_module = dlopen("libvulkan.1.dylib", RTLD_NOW | RTLD_LOCAL);
+    // modern versions of macOS don't search /usr/local/lib automatically contrary to what man dlopen says
+    // Vulkan SDK uses this as the system-wide installation location, so we're going to fallback to this if all else fails
+    if (!vk_state.vk_module && getenv("DYLD_FALLBACK_LIBRARY_PATH") == NULL)
+        vk_state.vk_module = dlopen("/usr/local/lib/libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
     if (!vk_state.vk_module)
         vk_state.vk_module = dlopen("libMoltenVK.dylib", RTLD_NOW | RTLD_LOCAL);
     // Add support for using Vulkan and MoltenVK in a Framework. App store rules for iOS
@@ -6191,13 +6143,16 @@ bool Vulkan_IsSupported(void)
         vk_state.vk_module = dlopen("vulkan.framework/vulkan", RTLD_NOW | RTLD_LOCAL);
     if (!vk_state.vk_module)
         vk_state.vk_module = dlopen("MoltenVK.framework/MoltenVK", RTLD_NOW | RTLD_LOCAL);
-    // modern versions of macOS don't search /usr/local/lib automatically contrary to what man dlopen says
-    // Vulkan SDK uses this as the system-wide installation location, so we're going to fallback to this if all else fails
-    if (!vk_state.vk_module && getenv("DYLD_FALLBACK_LIBRARY_PATH") == NULL)
-        vk_state.vk_module = dlopen("/usr/local/lib/libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
     if (!vk_state.vk_module)
         return false;
 
+    vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(vk_state.vk_module, "vkGetInstanceProcAddr");
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+    vk_state.vk_module = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
+    if (!vk_state.vk_module)
+        vk_state.vk_module = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
+    if (!vk_state.vk_module)
+        return false;
     vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(vk_state.vk_module, "vkGetInstanceProcAddr");
 #else
     vk_state.vk_module = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
@@ -6290,11 +6245,11 @@ GPUFactory Vulkan_CreateFactory(const GPUFactoryDesc* desc)
     instanceExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 
     // Enable surface extensions depending on os
-#if defined(_WIN32)
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
     instanceExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
     instanceExtensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
-#elif defined(__APPLE__)
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
     instanceExtensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
     instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
     instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
@@ -6310,17 +6265,17 @@ GPUFactory Vulkan_CreateFactory(const GPUFactoryDesc* desc)
         }
     }
 #else
-    if (instance->xcbSurface)
+    if (factory->xcbSurface)
     {
         instanceExtensions.push_back("VK_KHR_xcb_surface");
     }
     else
     {
-        ALIMER_ASSERT(instance->xlibSurface);
+        ALIMER_ASSERT(factory->xlibSurface);
         instanceExtensions.push_back("VK_KHR_xlib_surface");
     }
 
-    if (instance->waylandSurface)
+    if (factory->waylandSurface)
     {
         instanceExtensions.push_back("VK_KHR_wayland_surface");
     }

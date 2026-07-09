@@ -13,7 +13,7 @@ struct NullAdapter final : public GPUAdapterImpl
     void GetInfo(GPUAdapterInfo* info) const override;
     void GetLimits(GPUAdapterLimits* limits) const override;
     bool HasFeature(GPUFeature feature) const override;
-    GPUDevice* CreateDevice(const GPUDeviceDesc& desc) override;
+    GPUDevice CreateDevice(const GPUDeviceDesc& desc) override;
 
 private:
     std::string deviceName;
@@ -24,14 +24,14 @@ private:
     uint32_t deviceID = 0;
 };
 
-struct NullBuffer final : public GPUBuffer
+struct NullBuffer final : public GPUBufferImpl
 {
     GPUDeviceAddress deviceAddress = 0;
 
     GPUDeviceAddress GetDeviceAddress() const override { return deviceAddress; }
 };
 
-struct NullTexture final : public GPUTexture
+struct NullTexture final : public GPUTextureImpl
 {};
 
 struct NullSampler final : public GPUSamplerImpl
@@ -57,7 +57,7 @@ struct NullQueryHeap final : public GPUQueryHeapImpl
 
 struct NullCommandBuffer;
 
-struct NullComputePassEncoder final : public GPUComputePassEncoder
+struct NullComputePassEncoder final : public GPUComputePassEncoderImpl
 {
     NullCommandBuffer* commandBuffer = nullptr;
 
@@ -69,10 +69,10 @@ struct NullComputePassEncoder final : public GPUComputePassEncoder
     void SetPipeline(GPUComputePipeline pipeline) override;
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
-    void DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
 };
 
-struct NullRenderPassEncoder final : public GPURenderPassEncoder
+struct NullRenderPassEncoder final : public GPURenderPassEncoderImpl
 {
     NullCommandBuffer* commandBuffer = nullptr;
 
@@ -88,23 +88,23 @@ struct NullRenderPassEncoder final : public GPURenderPassEncoder
     void SetBlendColor(const GPUColor* color) override;
     void SetStencilReference(uint32_t reference) override;
 
-    void SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset) override;
-    void SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset) override;
+    void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) override;
+    void SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset) override;
     void SetPipeline(GPURenderPipeline pipeline) override;
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
 
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
     void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) override;
-    void DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
-    void DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
 
-    void MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
-    void MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+    void MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+    void MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
 
     void SetShadingRate(GPUShadingRate rate) override;
 };
 
-struct NullCommandBuffer final : public GPUCommandBuffer
+struct NullCommandBuffer final : public GPUCommandBufferImpl
 {
     static constexpr uint32_t kMaxBarrierCount = 16;
 
@@ -114,13 +114,13 @@ struct NullCommandBuffer final : public GPUCommandBuffer
     NullComputePassEncoder* computePassEncoder = nullptr;
     NullRenderPassEncoder* renderPassEncoder = nullptr;
 
-    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
+    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
 
-    GPUComputePassEncoder* BeginComputePass(const GPUComputePassDesc& desc) override;
-    GPURenderPassEncoder* BeginRenderPass(const GPURenderPassDesc& desc) override;
+    GPUComputePassEncoder BeginComputePass(const GPUComputePassDesc& desc) override;
+    GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) override;
 };
 
 struct NullCommandQueue final : public GPUCommandQueueImpl
@@ -128,12 +128,12 @@ struct NullCommandQueue final : public GPUCommandQueueImpl
     GPUCommandQueueType queueType = _GPUCommandQueueType_Count;
 
     GPUCommandQueueType GetType() const override { return queueType; }
-    GPUCommandBuffer* AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
+    GPUCommandBuffer AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
     void WaitIdle() override;
-    void Submit(uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers) override;
+    void Submit(uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers) override;
 };
 
-struct NullDevice final : public GPUDevice
+struct NullDevice final : public GPUDeviceImpl
 {
     NullAdapter* adapter = nullptr;
     NullCommandQueue queues[_GPUCommandQueueType_Count];
@@ -150,8 +150,8 @@ struct NullDevice final : public GPUDevice
     uint64_t GetTimestampFrequency() const override { return timestampFrequency; }
 
     /* Resource creation */
-    GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
-    GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
+    GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
+    GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
     GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
@@ -178,7 +178,7 @@ struct NullGPUFactory final : public GPUFactoryImpl
     GPUBackendType GetBackend() const override { return GPUBackendType_Null; }
     uint32_t GetAdapterCount() const override { return (uint32_t)adapters.size(); }
     GPUAdapter GetAdapter(uint32_t index) const override;
-    GPUSurface CreateSurface(GPUSurfaceHandle* surfaceHandle) override;
+    GPUSurface CreateSurface(GPUSurfaceSource source) override;
 };
 
 
@@ -221,7 +221,7 @@ void NullComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCountY
     ALIMER_UNUSED(groupCountZ);
 }
 
-void NullComputePassEncoder::DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+void NullComputePassEncoder::DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
 {
     ALIMER_UNUSED(indirectBuffer);
     ALIMER_UNUSED(indirectBufferOffset);
@@ -278,14 +278,14 @@ void NullRenderPassEncoder::SetStencilReference(uint32_t reference)
     ALIMER_UNUSED(reference);
 }
 
-void NullRenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset)
+void NullRenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset)
 {
     ALIMER_UNUSED(slot);
     ALIMER_UNUSED(buffer);
     ALIMER_UNUSED(offset);
 }
 
-void NullRenderPassEncoder::SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset)
+void NullRenderPassEncoder::SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset)
 {
     ALIMER_UNUSED(buffer);
     ALIMER_UNUSED(type);
@@ -322,19 +322,19 @@ void NullRenderPassEncoder::DrawIndexed(uint32_t indexCount, uint32_t instanceCo
     ALIMER_UNUSED(firstInstance);
 }
 
-void NullRenderPassEncoder::DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+void NullRenderPassEncoder::DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
 {
     ALIMER_UNUSED(indirectBuffer);
     ALIMER_UNUSED(indirectBufferOffset);
 }
 
-void NullRenderPassEncoder::DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+void NullRenderPassEncoder::DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
 {
     ALIMER_UNUSED(indirectBuffer);
     ALIMER_UNUSED(indirectBufferOffset);
 }
 
-void NullRenderPassEncoder::MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
+void NullRenderPassEncoder::MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     ALIMER_UNUSED(indirectBuffer);
     ALIMER_UNUSED(indirectBufferOffset);
@@ -343,7 +343,7 @@ void NullRenderPassEncoder::MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_
     ALIMER_UNUSED(drawCountBufferOffset);
 }
 
-void NullRenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
+void NullRenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     ALIMER_UNUSED(indirectBuffer);
     ALIMER_UNUSED(indirectBufferOffset);
@@ -358,7 +358,7 @@ void NullRenderPassEncoder::SetShadingRate(GPUShadingRate rate)
 }
 
 /* NullCommandBuffer */
-GPUAcquireSurfaceResult NullCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
+GPUAcquireSurfaceResult NullCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture)
 {
     NullSurface* backendSurface = static_cast<NullSurface*>(surface);
 
@@ -379,7 +379,7 @@ void NullCommandBuffer::InsertDebugMarker(const char* markerLabel) const
     ALIMER_UNUSED(markerLabel);
 }
 
-GPUComputePassEncoder* NullCommandBuffer::BeginComputePass(const GPUComputePassDesc& desc)
+GPUComputePassEncoder NullCommandBuffer::BeginComputePass(const GPUComputePassDesc& desc)
 {
     ALIMER_UNUSED(desc);
 
@@ -393,7 +393,7 @@ GPUComputePassEncoder* NullCommandBuffer::BeginComputePass(const GPUComputePassD
     return computePassEncoder;
 }
 
-GPURenderPassEncoder* NullCommandBuffer::BeginRenderPass(const GPURenderPassDesc& desc)
+GPURenderPassEncoder NullCommandBuffer::BeginRenderPass(const GPURenderPassDesc& desc)
 {
     ALIMER_UNUSED(desc);
 
@@ -408,7 +408,7 @@ GPURenderPassEncoder* NullCommandBuffer::BeginRenderPass(const GPURenderPassDesc
 }
 
 /* D3D12Queue */
-GPUCommandBuffer* NullCommandQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
+GPUCommandBuffer NullCommandQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
 {
     // TODO:
     return nullptr;
@@ -417,7 +417,7 @@ GPUCommandBuffer* NullCommandQueue::AcquireCommandBuffer(const GPUCommandBufferD
 void NullCommandQueue::WaitIdle()
 {}
 
-void NullCommandQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers)
+void NullCommandQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers)
 {
     ALIMER_UNUSED(numCommandBuffers);
     ALIMER_UNUSED(commandBuffers);
@@ -446,7 +446,7 @@ uint64_t NullDevice::CommitFrame()
     return frameCount;
 }
 
-GPUBuffer* NullDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
+GPUBuffer NullDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
 {
     NullBuffer* buffer = new NullBuffer();
     buffer->desc = desc;
@@ -454,7 +454,7 @@ GPUBuffer* NullDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pInit
     return buffer;
 }
 
-GPUTexture* NullDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
+GPUTexture NullDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
 {
     NullTexture* texture = new NullTexture();
     texture->desc = desc;
@@ -569,7 +569,7 @@ bool NullAdapter::HasFeature(GPUFeature feature) const
     return false;
 }
 
-GPUDevice* NullAdapter::CreateDevice(const GPUDeviceDesc& desc)
+GPUDevice NullAdapter::CreateDevice(const GPUDeviceDesc& desc)
 {
     NullDevice* device = new NullDevice();
     device->adapter = this;
@@ -587,8 +587,10 @@ GPUAdapter NullGPUFactory::GetAdapter(uint32_t index) const
     return adapters[index];
 }
 
-GPUSurface NullGPUFactory::CreateSurface(GPUSurfaceHandle* surfaceHandle)
+GPUSurface NullGPUFactory::CreateSurface(GPUSurfaceSource source)
 {
+    ALIMER_UNUSED(source);
+
     NullSurface* surface = new NullSurface();
 
     return surface;

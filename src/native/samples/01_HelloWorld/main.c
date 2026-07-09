@@ -8,6 +8,10 @@
 #include "alimer_audio.h"
 #endif
 
+#if defined(ALIMER_GPU)
+#include "alimer_gpu.h"
+#endif
+
 #if defined(ALIMER_PHYSICS)
 #include "alimer_physics.h"
 #endif
@@ -38,17 +42,6 @@ static void OnAudioDeviceCallback(AudioDevice* device, void* userdata)
 
 int main(void)
 {
-    int n = 5;
-    while (n <= 20)
-    {
-        if (n % 2 == 0)
-        {
-            printf("%d\n", n);
-        }
-
-        n++;
-    }
-
 #if defined(ALIMER_AUDIO) && TODO
     if (!alimerAudioInit())
     {
@@ -77,6 +70,14 @@ int main(void)
     assert(alimerImageGetMipLevelCount(image) == 10);
     alimerImageDestroy(image);
 
+#if defined(ALIMER_GPU)
+    const GPUFactoryDesc factoryDesc = {
+        .preferredBackend = GPUBackendType_Vulkan,
+        .validationMode = GPUValidationMode_Enabled
+    };
+    GPUFactory gpuFactory =  agpuCreateFactory(&factoryDesc);
+#endif
+
 #if defined(ALIMER_PHYSICS)
     // Physics
     PhysicsConfig physicsConfig = { 0 };
@@ -100,6 +101,11 @@ int main(void)
     alimerAudioEngineDestroy(engine);
     alimerAudioShutdown();
 #endif
+
+#if defined(ALIMER_GPU)
+    agpuFactoryDestroy(gpuFactory);
+#endif
+
 
 #if defined(ALIMER_PHYSICS)
     alimerPhysicsWorldDestroy(physicsWorld);

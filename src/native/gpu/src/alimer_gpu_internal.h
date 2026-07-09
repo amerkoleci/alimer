@@ -11,6 +11,40 @@
 #include <atomic>
 #include <functional>
 
+#if defined(_WIN32)
+#ifndef UNICODE
+#define UNICODE
+#endif
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+// We don't need GDI
+#define NODRAWTEXT
+#define NOGDI
+#define NOBITMAP
+
+// We dont' need <mcx.h>
+#define NOMCX
+
+// We dont' need <winsvc.h>
+#define NOSERVICE
+
+// WinHelp is deprecated
+#define NOHELP
+#include <windows.h>
+
+#ifndef __IUnknown_FWD_DEFINED__
+#define __IUnknown_FWD_DEFINED__
+typedef struct IUnknown IUnknown;
+#endif 	/* __IUnknown_FWD_DEFINED__ */
+#endif
+
 /* Compiler defines */
 #if defined(__clang__)
 #define ALIMER_THREADLOCAL _Thread_local
@@ -80,9 +114,6 @@
 #endif
 
 // Forward declaration for native handle
-typedef struct HINSTANCE__* HINSTANCE;
-typedef struct HWND__* HWND;
-struct IUnknown;
 struct ANativeWindow;
 struct wl_display;
 struct wl_surface;
@@ -138,13 +169,13 @@ private:
     std::atomic_uint32_t refCount = 1;
 };
 
-struct GPUBuffer : public GPUResource
+struct GPUBufferImpl : public GPUResource
 {
     GPUBufferDesc desc;
     virtual GPUDeviceAddress GetDeviceAddress() const = 0;
 };
 
-struct GPUTexture : public GPUResource
+struct GPUTextureImpl : public GPUResource
 {
     GPUTextureDesc desc;
 };
@@ -197,16 +228,16 @@ struct GPUCommandEncoder : public GPUResource
     virtual void InsertDebugMarker(const char* markerLabel) const = 0;
 };
 
-struct GPUComputePassEncoder : public GPUCommandEncoder
+struct GPUComputePassEncoderImpl : public GPUCommandEncoder
 {
     virtual void SetPipeline(GPUComputePipeline pipeline) = 0;
     virtual void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) = 0;
 
     virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
-    virtual void DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
+    virtual void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) = 0;
 };
 
-struct GPURenderPassEncoder : public GPUCommandEncoder
+struct GPURenderPassEncoderImpl : public GPUCommandEncoder
 {
     virtual void SetViewport(const GPUViewport* viewport) = 0;
     virtual void SetViewports(uint32_t viewportCount, const GPUViewport* viewports) = 0;
@@ -215,31 +246,31 @@ struct GPURenderPassEncoder : public GPUCommandEncoder
     virtual void SetBlendColor(const GPUColor* color) = 0;
     virtual void SetStencilReference(uint32_t reference) = 0;
 
-    virtual void SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset) = 0;
-    virtual void SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset) = 0;
+    virtual void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) = 0;
+    virtual void SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset) = 0;
     virtual void SetPipeline(GPURenderPipeline pipeline) = 0;
     virtual void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) = 0;
 
     virtual void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
     virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) = 0;
-    virtual void DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
-    virtual void DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
+    virtual void DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) = 0;
+    virtual void DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) = 0;
 
-    virtual void MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
-    virtual void MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
+    virtual void MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
+    virtual void MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
 
     virtual void SetShadingRate(GPUShadingRate rate) = 0;
 };
 
-struct GPUCommandBuffer : public GPUResource
+struct GPUCommandBufferImpl : public GPUResource
 {
     virtual void PushDebugGroup(const char* groupLabel) const = 0;
     virtual void PopDebugGroup() const = 0;
     virtual void InsertDebugMarker(const char* markerLabel) const = 0;
 
-    virtual GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) = 0;
-    virtual GPUComputePassEncoder* BeginComputePass(const GPUComputePassDesc& desc) = 0;
-    virtual GPURenderPassEncoder* BeginRenderPass(const GPURenderPassDesc& desc) = 0;
+    virtual GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) = 0;
+    virtual GPUComputePassEncoder BeginComputePass(const GPUComputePassDesc& desc) = 0;
+    virtual GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) = 0;
 };
 
 struct GPUCommandQueueImpl : public GPUResource
@@ -247,11 +278,11 @@ struct GPUCommandQueueImpl : public GPUResource
     virtual GPUCommandQueueType GetType() const = 0;
 
     virtual void WaitIdle() = 0;
-    virtual GPUCommandBuffer* AcquireCommandBuffer(const GPUCommandBufferDesc* desc) = 0;
-    virtual void Submit(uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers) = 0;
+    virtual GPUCommandBuffer AcquireCommandBuffer(const GPUCommandBufferDesc* desc) = 0;
+    virtual void Submit(uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers) = 0;
 };
 
-struct GPUDevice : public GPUResource
+struct GPUDeviceImpl : public GPUResource
 {
     virtual bool HasFeature(GPUFeature feature) const = 0;
     virtual GPUCommandQueue GetQueue(GPUCommandQueueType type) = 0;
@@ -261,8 +292,8 @@ struct GPUDevice : public GPUResource
     virtual uint64_t GetTimestampFrequency() const = 0;
 
     /* Resource creation */
-    virtual GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) = 0;
-    virtual GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) = 0;
+    virtual GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) = 0;
+    virtual GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) = 0;
     virtual GPUSampler CreateSampler(const GPUSamplerDesc& desc) = 0;
     virtual GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) = 0;
     virtual GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) = 0;
@@ -274,7 +305,7 @@ struct GPUDevice : public GPUResource
 
 };
 
-struct GPUSurfaceHandle
+struct GPUSurfaceSourceImpl final
 {
     enum class Type
     {
@@ -325,7 +356,7 @@ struct GPUAdapterImpl : public GPUResource
     virtual void GetInfo(GPUAdapterInfo* info) const = 0;
     virtual void GetLimits(GPUAdapterLimits* limits) const = 0;
     virtual bool HasFeature(GPUFeature feature) const = 0;
-    virtual GPUDevice* CreateDevice(const GPUDeviceDesc& desc) = 0;
+    virtual GPUDevice CreateDevice(const GPUDeviceDesc& desc) = 0;
 };
 
 struct GPUFactoryImpl : public GPUResource
@@ -336,7 +367,7 @@ public:
     virtual GPUBackendType GetBackend() const = 0;
     virtual uint32_t GetAdapterCount() const = 0;
     virtual GPUAdapter GetAdapter(uint32_t index) const = 0;
-    virtual GPUSurface CreateSurface(GPUSurfaceHandle* surfaceHandle) = 0;
+    virtual GPUSurface CreateSurface(GPUSurfaceSource source) = 0;
 };
 
 

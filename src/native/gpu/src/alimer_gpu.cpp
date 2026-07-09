@@ -405,35 +405,35 @@ bool agpuAdapterHasFeature(GPUAdapter adapter, GPUFeature feature)
     return adapter->HasFeature(feature);
 }
 
-/* SurfaceHandle */
-GPUSurfaceHandle* agpuSurfaceHandleCreateFromWin32(void* hwnd)
+/* SurfaceSource */
+GPUSurfaceSource agpuSurfaceSourceCreateFromWin32(void* hwnd)
 {
-    GPUSurfaceHandle* handle = new GPUSurfaceHandle();
-    handle->type = GPUSurfaceHandle::Type::WindowsHWND;
+    GPUSurfaceSourceImpl* handle = new GPUSurfaceSourceImpl();
+    handle->type = GPUSurfaceSourceImpl::Type::WindowsHWND;
     handle->hwnd = static_cast<HWND>(hwnd);
     return handle;
 }
 
-GPUSurfaceHandle* agpuSurfaceHandleCreateFromAndroid(void* window)
+GPUSurfaceSource agpuSurfaceSourceCreateFromAndroid(void* window)
 {
-    GPUSurfaceHandle* handle = new GPUSurfaceHandle();
-    handle->type = GPUSurfaceHandle::Type::AndroidWindow;
+    GPUSurfaceSourceImpl* handle = new GPUSurfaceSourceImpl();
+    handle->type = GPUSurfaceSourceImpl::Type::AndroidWindow;
     handle->androidNativeWindow = static_cast<ANativeWindow*>(window);
     return handle;
 }
 
-void agpuSurfaceHandleDestroy(GPUSurfaceHandle* surfaceHandle)
+void agpuSurfaceSourceDestroy(GPUSurfaceSource surfaceSource)
 {
-    delete surfaceHandle;
+    delete surfaceSource;
 }
 
 /* Surface */
-GPUSurface agpuCreateSurface(GPUFactory factory, GPUSurfaceHandle* handle)
+GPUSurface agpuCreateSurface(GPUFactory factory, GPUSurfaceSource source)
 {
     ALIMER_ASSERT(factory);
-    ALIMER_ASSERT(handle);
+    ALIMER_ASSERT(source);
 
-    return factory->CreateSurface(handle);
+    return factory->CreateSurface(source);
 }
 
 void agpuSurfaceGetCapabilities(GPUSurface surface, GPUAdapter adapter, GPUSurfaceCapabilities* capabilities)
@@ -494,48 +494,48 @@ static GPUDeviceDesc _GPUDeviceDesc_Defaults(const GPUDeviceDesc* desc)
     return def;
 }
 
-GPUDevice* agpuCreateDevice(GPUAdapter adapter, const GPUDeviceDesc* desc)
+GPUDevice agpuCreateDevice(GPUAdapter adapter, const GPUDeviceDesc* desc)
 {
     GPUDeviceDesc descDef = _GPUDeviceDesc_Defaults(desc);
     return adapter->CreateDevice(descDef);
 }
 
-void agpuDeviceSetLabel(GPUDevice* device, const char* label)
+void agpuDeviceSetLabel(GPUDevice device, const char* label)
 {
     device->SetLabel(label);
 }
 
-uint32_t agpuDeviceAddRef(GPUDevice* device)
+uint32_t agpuDeviceAddRef(GPUDevice device)
 {
     return device->AddRef();
 }
 
-uint32_t agpuDeviceRelease(GPUDevice* device)
+uint32_t agpuDeviceRelease(GPUDevice device)
 {
     return device->Release();
 }
 
-bool agpuDeviceHasFeature(GPUDevice* device, GPUFeature feature)
+bool agpuDeviceHasFeature(GPUDevice device, GPUFeature feature)
 {
     return device->HasFeature(feature);
 }
 
-GPUCommandQueue agpuDeviceGetCommandQueue(GPUDevice* device, GPUCommandQueueType type)
+GPUCommandQueue agpuDeviceGetCommandQueue(GPUDevice device, GPUCommandQueueType type)
 {
     return device->GetQueue(type);
 }
 
-void agpuDeviceWaitIdle(GPUDevice* device)
+void agpuDeviceWaitIdle(GPUDevice device)
 {
     device->WaitIdle();
 }
 
-uint64_t agpuDeviceGetTimestampFrequency(GPUDevice* device)
+uint64_t agpuDeviceGetTimestampFrequency(GPUDevice device)
 {
     return device->GetTimestampFrequency();
 }
 
-uint64_t agpuDeviceCommitFrame(GPUDevice* device)
+uint64_t agpuDeviceCommitFrame(GPUDevice device)
 {
     return device->CommitFrame();
 }
@@ -551,38 +551,38 @@ void agpuCommandQueueWaitIdle(GPUCommandQueue queue)
     queue->WaitIdle();
 }
 
-GPUCommandBuffer* agpuCommandQueueAcquireCommandBuffer(GPUCommandQueue queue, const GPUCommandBufferDesc* desc)
+GPUCommandBuffer agpuCommandQueueAcquireCommandBuffer(GPUCommandQueue queue, const GPUCommandBufferDesc* desc)
 {
     return queue->AcquireCommandBuffer(desc);
 }
 
-void agpuCommandQueueSubmit(GPUCommandQueue queue, uint32_t numCommandBuffers, GPUCommandBuffer** commandBuffers)
+void agpuCommandQueueSubmit(GPUCommandQueue queue, uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers)
 {
     queue->Submit(numCommandBuffers, commandBuffers);
 }
 
 /* CommandBuffer */
-void agpuCommandBufferPushDebugGroup(GPUCommandBuffer* commandBuffer, const char* groupLabel)
+void agpuCommandBufferPushDebugGroup(GPUCommandBuffer commandBuffer, const char* groupLabel)
 {
     commandBuffer->PushDebugGroup(groupLabel);
 }
 
-void agpuCommandBufferPopDebugGroup(GPUCommandBuffer* commandBuffer)
+void agpuCommandBufferPopDebugGroup(GPUCommandBuffer commandBuffer)
 {
     commandBuffer->PopDebugGroup();
 }
 
-void agpuCommandBufferInsertDebugMarker(GPUCommandBuffer* commandBuffer, const char* markerLabel)
+void agpuCommandBufferInsertDebugMarker(GPUCommandBuffer commandBuffer, const char* markerLabel)
 {
     commandBuffer->InsertDebugMarker(markerLabel);
 }
 
-GPUAcquireSurfaceResult agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer* commandBuffer, GPUSurface surface, GPUTexture** surfaceTexture)
+GPUAcquireSurfaceResult agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer commandBuffer, GPUSurface surface, GPUTexture* surfaceTexture)
 {
     return commandBuffer->AcquireSurfaceTexture(surface, surfaceTexture);
 }
 
-GPUComputePassEncoder* agpuCommandBufferBeginComputePass(GPUCommandBuffer* commandBuffer, const GPUComputePassDesc* desc)
+GPUComputePassEncoder agpuCommandBufferBeginComputePass(GPUCommandBuffer commandBuffer, const GPUComputePassDesc* desc)
 {
     GPUComputePassDesc descDef = {};
     if (desc)
@@ -591,7 +591,7 @@ GPUComputePassEncoder* agpuCommandBufferBeginComputePass(GPUCommandBuffer* comma
     return commandBuffer->BeginComputePass(descDef);
 }
 
-GPURenderPassEncoder* agpuCommandBufferBeginRenderPass(GPUCommandBuffer* commandBuffer, const GPURenderPassDesc* desc)
+GPURenderPassEncoder agpuCommandBufferBeginRenderPass(GPUCommandBuffer commandBuffer, const GPURenderPassDesc* desc)
 {
     if (!desc)
     {
@@ -603,55 +603,55 @@ GPURenderPassEncoder* agpuCommandBufferBeginRenderPass(GPUCommandBuffer* command
 }
 
 /* ComputePassEncoder */
-void agpuComputePassEncoderSetPipeline(GPUComputePassEncoder* computePassEncoder, GPUComputePipeline pipeline)
+void agpuComputePassEncoderSetPipeline(GPUComputePassEncoder computePassEncoder, GPUComputePipeline pipeline)
 {
     computePassEncoder->SetPipeline(pipeline);
 }
 
-void agpuComputePassEncoderSetPushConstants(GPUComputePassEncoder* computePassEncoder, uint32_t pushConstantIndex, const void* data, uint32_t size)
+void agpuComputePassEncoderSetPushConstants(GPUComputePassEncoder computePassEncoder, uint32_t pushConstantIndex, const void* data, uint32_t size)
 {
     computePassEncoder->SetPushConstants(pushConstantIndex, data, size);
 }
 
-void agpuComputePassEncoderDispatch(GPUComputePassEncoder* computePassEncoder, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+void agpuComputePassEncoderDispatch(GPUComputePassEncoder computePassEncoder, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
     computePassEncoder->Dispatch(groupCountX, groupCountY, groupCountZ);
 }
 
-void agpuComputePassEncoderDispatchIndirect(GPUComputePassEncoder* computePassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+void agpuComputePassEncoderDispatchIndirect(GPUComputePassEncoder computePassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
 {
     computePassEncoder->DispatchIndirect(indirectBuffer, indirectBufferOffset);
 }
 
-void agpuComputePassEncoderEnd(GPUComputePassEncoder* computePassEncoder)
+void agpuComputePassEncoderEnd(GPUComputePassEncoder computePassEncoder)
 {
     computePassEncoder->EndEncoding();
 }
 
-void agpuComputePassEncoderPushDebugGroup(GPUComputePassEncoder* computePassEncoder, const char* groupLabel)
+void agpuComputePassEncoderPushDebugGroup(GPUComputePassEncoder computePassEncoder, const char* groupLabel)
 {
     computePassEncoder->PushDebugGroup(groupLabel);
 }
 
-void agpuComputePassEncoderPopDebugGroup(GPUComputePassEncoder* computePassEncoder)
+void agpuComputePassEncoderPopDebugGroup(GPUComputePassEncoder computePassEncoder)
 {
     computePassEncoder->PopDebugGroup();
 }
 
-void agpuComputePassEncoderInsertDebugMarker(GPUComputePassEncoder* computePassEncoder, const char* markerLabel)
+void agpuComputePassEncoderInsertDebugMarker(GPUComputePassEncoder computePassEncoder, const char* markerLabel)
 {
     computePassEncoder->InsertDebugMarker(markerLabel);
 }
 
 /* RenderCommandEncoder */
-void agpuRenderPassEncoderSetViewport(GPURenderPassEncoder* renderPassEncoder, const GPUViewport* viewport)
+void agpuRenderPassEncoderSetViewport(GPURenderPassEncoder renderPassEncoder, const GPUViewport* viewport)
 {
     ALIMER_ASSERT(viewport != nullptr);
 
     renderPassEncoder->SetViewport(viewport);
 }
 
-void agpuRenderPassEncoderSetViewports(GPURenderPassEncoder* renderPassEncoder, uint32_t viewportCount, const GPUViewport* viewports)
+void agpuRenderPassEncoderSetViewports(GPURenderPassEncoder renderPassEncoder, uint32_t viewportCount, const GPUViewport* viewports)
 {
     ALIMER_ASSERT(viewportCount > 0);
     ALIMER_ASSERT(viewports != nullptr);
@@ -659,14 +659,14 @@ void agpuRenderPassEncoderSetViewports(GPURenderPassEncoder* renderPassEncoder, 
     renderPassEncoder->SetViewports(viewportCount, viewports);
 }
 
-void agpuRenderPassEncoderSetScissorRect(GPURenderPassEncoder* renderPassEncoder, const GPUScissorRect* scissorRect)
+void agpuRenderPassEncoderSetScissorRect(GPURenderPassEncoder renderPassEncoder, const GPUScissorRect* scissorRect)
 {
     ALIMER_ASSERT(scissorRect != nullptr);
 
     renderPassEncoder->SetScissorRect(scissorRect);
 }
 
-void agpuRenderPassEncoderSetScissorRects(GPURenderPassEncoder* renderPassEncoder, uint32_t scissorCount, const GPUScissorRect* scissorRects)
+void agpuRenderPassEncoderSetScissorRects(GPURenderPassEncoder renderPassEncoder, uint32_t scissorCount, const GPUScissorRect* scissorRects)
 {
     ALIMER_ASSERT(scissorCount > 0);
     ALIMER_ASSERT(scissorRects != nullptr);
@@ -674,87 +674,87 @@ void agpuRenderPassEncoderSetScissorRects(GPURenderPassEncoder* renderPassEncode
     renderPassEncoder->SetScissorRects(scissorCount, scissorRects);
 }
 
-void agpuRenderPassEncoderSetBlendColor(GPURenderPassEncoder* renderPassEncoder, const GPUColor* color)
+void agpuRenderPassEncoderSetBlendColor(GPURenderPassEncoder renderPassEncoder, const GPUColor* color)
 {
     renderPassEncoder->SetBlendColor(color);
 }
 
-void agpuRenderPassEncoderSetStencilReference(GPURenderPassEncoder* renderPassEncoder, uint32_t reference)
+void agpuRenderPassEncoderSetStencilReference(GPURenderPassEncoder renderPassEncoder, uint32_t reference)
 {
     renderPassEncoder->SetStencilReference(reference);
 }
 
-void agpuRenderPassEncoderSetVertexBuffer(GPURenderPassEncoder* renderPassEncoder, uint32_t slot, GPUBuffer* buffer, uint64_t offset)
+void agpuRenderPassEncoderSetVertexBuffer(GPURenderPassEncoder renderPassEncoder, uint32_t slot, GPUBuffer buffer, uint64_t offset)
 {
     renderPassEncoder->SetVertexBuffer(slot, buffer, offset);
 }
 
-void agpuRenderPassEncoderSetIndexBuffer(GPURenderPassEncoder* renderPassEncoder, GPUBuffer* buffer, GPUIndexType type, uint64_t offset)
+void agpuRenderPassEncoderSetIndexBuffer(GPURenderPassEncoder renderPassEncoder, GPUBuffer buffer, GPUIndexType type, uint64_t offset)
 {
     renderPassEncoder->SetIndexBuffer(buffer, type, offset);
 }
 
-void agpuRenderPassEncoderSetPipeline(GPURenderPassEncoder* renderPassEncoder, GPURenderPipeline pipeline)
+void agpuRenderPassEncoderSetPipeline(GPURenderPassEncoder renderPassEncoder, GPURenderPipeline pipeline)
 {
     renderPassEncoder->SetPipeline(pipeline);
 }
 
-void agpuRenderPassEncoderSetPushConstants(GPURenderPassEncoder* renderPassEncoder, uint32_t pushConstantIndex, const void* data, uint32_t size)
+void agpuRenderPassEncoderSetPushConstants(GPURenderPassEncoder renderPassEncoder, uint32_t pushConstantIndex, const void* data, uint32_t size)
 {
     renderPassEncoder->SetPushConstants(pushConstantIndex, data, size);
 }
 
-void agpuRenderPassEncoderDraw(GPURenderPassEncoder* renderPassEncoder, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+void agpuRenderPassEncoderDraw(GPURenderPassEncoder renderPassEncoder, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
     renderPassEncoder->Draw(vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void agpuRenderPassEncoderDrawIndexed(GPURenderPassEncoder* renderPassEncoder, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
+void agpuRenderPassEncoderDrawIndexed(GPURenderPassEncoder renderPassEncoder, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance)
 {
     renderPassEncoder->DrawIndexed(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
 }
 
-void agpuRenderPassEncoderDrawIndirect(GPURenderPassEncoder* renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+void agpuRenderPassEncoderDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
 {
     renderPassEncoder->DrawIndirect(indirectBuffer, indirectBufferOffset);
 }
 
-void agpuRenderPassEncoderDrawIndexedIndirect(GPURenderPassEncoder* renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
+void agpuRenderPassEncoderDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
 {
     renderPassEncoder->DrawIndexedIndirect(indirectBuffer, indirectBufferOffset);
 }
 
-void agpuRenderPassEncoderMultiDrawIndirect(GPURenderPassEncoder* renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
+void agpuRenderPassEncoderMultiDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     renderPassEncoder->MultiDrawIndirect(indirectBuffer, indirectBufferOffset, maxDrawCount, drawCountBuffer, drawCountBufferOffset);
 }
 
-void agpuRenderPassEncoderMultiDrawIndexedIndirect(GPURenderPassEncoder* renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
+void agpuRenderPassEncoderMultiDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     renderPassEncoder->MultiDrawIndexedIndirect(indirectBuffer, indirectBufferOffset, maxDrawCount, drawCountBuffer, drawCountBufferOffset);
 }
 
-void agpuRenderPassEncoderSetShadingRate(GPURenderPassEncoder* renderPassEncoder, GPUShadingRate rate)
+void agpuRenderPassEncoderSetShadingRate(GPURenderPassEncoder renderPassEncoder, GPUShadingRate rate)
 {
     renderPassEncoder->SetShadingRate(rate);
 }
 
-void agpuRenderPassEncoderEnd(GPURenderPassEncoder* renderPassEncoder)
+void agpuRenderPassEncoderEnd(GPURenderPassEncoder renderPassEncoder)
 {
     renderPassEncoder->EndEncoding();
 }
 
-void agpuRenderPassEncoderPushDebugGroup(GPURenderPassEncoder* renderPassEncoder, const char* groupLabel)
+void agpuRenderPassEncoderPushDebugGroup(GPURenderPassEncoder renderPassEncoder, const char* groupLabel)
 {
     renderPassEncoder->PushDebugGroup(groupLabel);
 }
 
-void agpuRenderPassEncoderPopDebugGroup(GPURenderPassEncoder* renderPassEncoder)
+void agpuRenderPassEncoderPopDebugGroup(GPURenderPassEncoder renderPassEncoder)
 {
     renderPassEncoder->PopDebugGroup();
 }
 
-void agpuRenderPassEncoderInsertDebugMarker(GPURenderPassEncoder* renderPassEncoder, const char* markerLabel)
+void agpuRenderPassEncoderInsertDebugMarker(GPURenderPassEncoder renderPassEncoder, const char* markerLabel)
 {
     renderPassEncoder->InsertDebugMarker(markerLabel);
 }
@@ -765,7 +765,7 @@ static GPUBufferDesc _GPUBufferDesc_Defaults(const GPUBufferDesc* desc) {
     return def;
 }
 
-GPUBuffer* agpuCreateBuffer(GPUDevice* device, const GPUBufferDesc* desc, const void* pInitialData)
+GPUBuffer agpuCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData)
 {
     if (!desc)
         return nullptr;
@@ -782,27 +782,27 @@ GPUBuffer* agpuCreateBuffer(GPUDevice* device, const GPUBufferDesc* desc, const 
     return device->CreateBuffer(descDef, pInitialData);
 }
 
-void agpuBufferSetLabel(GPUBuffer* buffer, const char* label)
+void agpuBufferSetLabel(GPUBuffer buffer, const char* label)
 {
     buffer->SetLabel(label);
 }
 
-uint32_t agpuBufferAddRef(GPUBuffer* buffer)
+uint32_t agpuBufferAddRef(GPUBuffer buffer)
 {
     return buffer->AddRef();
 }
 
-uint32_t agpuBufferRelease(GPUBuffer* buffer)
+uint32_t agpuBufferRelease(GPUBuffer buffer)
 {
     return buffer->Release();
 }
 
-uint64_t agpuBufferGetSize(GPUBuffer* buffer)
+uint64_t agpuBufferGetSize(GPUBuffer buffer)
 {
     return buffer->desc.size;
 }
 
-GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer* buffer)
+GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer buffer)
 {
     return buffer->GetDeviceAddress();
 }
@@ -847,7 +847,7 @@ static bool ValidateTextureDesc(const GPUTextureDesc& desc)
     return true;
 }
 
-GPUTexture* agpuCreateTexture(GPUDevice* device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData)
+GPUTexture agpuCreateTexture(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData)
 {
     if (!desc)
         return nullptr;
@@ -861,67 +861,67 @@ GPUTexture* agpuCreateTexture(GPUDevice* device, const GPUTextureDesc* desc, con
     return device->CreateTexture(descDef, pInitialData);
 }
 
-void agpuTextureSetLabel(GPUTexture* texture, const char* label)
+void agpuTextureSetLabel(GPUTexture texture, const char* label)
 {
     texture->SetLabel(label);
 }
 
-GPUTextureDimension agpuTextureGetDimension(GPUTexture* texture)
+GPUTextureDimension agpuTextureGetDimension(GPUTexture texture)
 {
     return texture->desc.dimension;
 }
 
-GPUPixelFormat agpuTextureGetFormat(GPUTexture* texture)
+GPUPixelFormat agpuTextureGetFormat(GPUTexture texture)
 {
     return texture->desc.format;
 }
 
-GPUTextureUsage agpuTextureGetUsage(GPUTexture* texture)
+GPUTextureUsage agpuTextureGetUsage(GPUTexture texture)
 {
     return texture->desc.usage;
 }
 
-uint32_t agpuTextureGetWidth(GPUTexture* texture)
+uint32_t agpuTextureGetWidth(GPUTexture texture)
 {
     return texture->desc.width;
 }
 
-uint32_t agpuTextureGetHeight(GPUTexture* texture)
+uint32_t agpuTextureGetHeight(GPUTexture texture)
 {
     return texture->desc.height;
 }
 
-uint32_t agpuTextureGetDepthOrArrayLayers(GPUTexture* texture)
+uint32_t agpuTextureGetDepthOrArrayLayers(GPUTexture texture)
 {
     return texture->desc.depthOrArrayLayers;
 }
 
-uint32_t agpuTextureGetMipLevelCount(GPUTexture* texture)
+uint32_t agpuTextureGetMipLevelCount(GPUTexture texture)
 {
     return texture->desc.mipLevelCount;
 }
 
-uint32_t agpuTextureGetSampleCount(GPUTexture* texture)
+uint32_t agpuTextureGetSampleCount(GPUTexture texture)
 {
     return texture->desc.sampleCount;
 }
 
-uint32_t agpuTextureGetLevelWidth(GPUTexture* texture, uint32_t mipLevel)
+uint32_t agpuTextureGetLevelWidth(GPUTexture texture, uint32_t mipLevel)
 {
     return std::max(texture->desc.width >> mipLevel, 1u);
 }
 
-uint32_t agpuTextureGetLevelHeight(GPUTexture* texture, uint32_t mipLevel)
+uint32_t agpuTextureGetLevelHeight(GPUTexture texture, uint32_t mipLevel)
 {
     return std::max(texture->desc.height >> mipLevel, 1u);
 }
 
-uint32_t agpuTextureAddRef(GPUTexture* texture)
+uint32_t agpuTextureAddRef(GPUTexture texture)
 {
     return texture->AddRef();
 }
 
-uint32_t agpuTextureRelease(GPUTexture* texture)
+uint32_t agpuTextureRelease(GPUTexture texture)
 {
     return texture->Release();
 }
@@ -936,7 +936,7 @@ static GPUSamplerDesc _GPUSamplerDesc_Defaults(const GPUSamplerDesc* desc) {
 }
 
 
-GPUSampler agpuCreateSampler(GPUDevice* device, const GPUSamplerDesc* desc)
+GPUSampler agpuCreateSampler(GPUDevice device, const GPUSamplerDesc* desc)
 {
     GPUSamplerDesc descDef = _GPUSamplerDesc_Defaults(desc);
     return device->CreateSampler(descDef);
@@ -963,7 +963,7 @@ static GPUPipelineLayoutDesc _GPUPipelineLayoutDesc_Defaults(const GPUPipelineLa
     return def;
 }
 
-GPUPipelineLayout agpuCreatePipelineLayout(GPUDevice* device, const GPUPipelineLayoutDesc* desc)
+GPUPipelineLayout agpuCreatePipelineLayout(GPUDevice device, const GPUPipelineLayoutDesc* desc)
 {
     if (!desc)
         return nullptr;
@@ -988,7 +988,7 @@ uint32_t agpuPipelineLayoutRelease(GPUPipelineLayout pipelineLayout)
 }
 
 /* ShaderModule */
-GPUShaderModule agpuCreateShaderModule(GPUDevice* device, const GPUShaderModuleDesc* desc)
+GPUShaderModule agpuCreateShaderModule(GPUDevice device, const GPUShaderModuleDesc* desc)
 {
     if (!desc)
     {
@@ -1037,7 +1037,7 @@ static GPUComputePipelineDesc _GPUComputePipelineDesc_Defaults(const GPUComputeP
     return def;
 }
 
-GPUComputePipeline agpuCreateComputePipeline(GPUDevice* device, const GPUComputePipelineDesc* desc)
+GPUComputePipeline agpuCreateComputePipeline(GPUDevice device, const GPUComputePipelineDesc* desc)
 {
     if (!desc)
         return nullptr;
@@ -1113,7 +1113,7 @@ static GPURenderPipelineDesc _GPURenderPipelineDesc_Defaults(const GPURenderPipe
     return def;
 }
 
-GPURenderPipeline agpuCreateRenderPipeline(GPUDevice* device, const GPURenderPipelineDesc* desc)
+GPURenderPipeline agpuCreateRenderPipeline(GPUDevice device, const GPURenderPipelineDesc* desc)
 {
     if (!desc)
         return nullptr;
@@ -1146,7 +1146,7 @@ static GPUQueryHeapDesc _GPUQueryHeapDesc_Defaults(const GPUQueryHeapDesc* desc)
     return def;
 }
 
-GPUQueryHeap agpuCreateQueryHeap(GPUDevice* device, const GPUQueryHeapDesc* desc)
+GPUQueryHeap agpuCreateQueryHeap(GPUDevice device, const GPUQueryHeapDesc* desc)
 {
     if (!desc)
         return nullptr;
