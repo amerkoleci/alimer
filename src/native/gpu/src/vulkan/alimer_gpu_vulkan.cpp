@@ -5723,11 +5723,11 @@ GPUSurface VulkanGPUFactory::CreateSurface(GPUSurfaceSource source)
 #else
 
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
-    if (source->type == GPUSurfaceSourceImpl::Type::XlibSurface)
+    if (source->type == GPUSurfaceSourceImpl::Type::XlibWindow)
     {
         if (!xlibDisplay)
         {
-            agpuLogError("Xlib surface is not supported");
+            agpuLogError("Vulkan: surface creation from xlib window is not supported");
             return nullptr;
         }
 
@@ -5744,7 +5744,7 @@ GPUSurface VulkanGPUFactory::CreateSurface(GPUSurfaceSource source)
     {
         if (!waylandSurface)
         {
-            agpuLogError("Wayland surface is not supported");
+            agpuLogError("Vulkan: surface creation from wayland surface is not supported");
             return nullptr;
         }
 
