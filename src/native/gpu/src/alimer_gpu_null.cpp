@@ -6,13 +6,10 @@
 
 struct NullAdapter final : public GPUAdapterImpl
 {
-    GPUAdapterLimits limits{};
 
     NullAdapter();
     GPUAdapterType GetType() const override { return adapterType; }
     void GetInfo(GPUAdapterInfo* info) const override;
-    void GetLimits(GPUAdapterLimits* limits) const override;
-    bool HasFeature(GPUFeature feature) const override;
     GPUDevice CreateDevice(const GPUDeviceDesc& desc) override;
 
 private:
@@ -136,12 +133,14 @@ struct NullCommandQueue final : public GPUCommandQueueImpl
 struct NullDevice final : public GPUDeviceImpl
 {
     NullAdapter* adapter = nullptr;
+    GPUDeviceLimits limits{};
     NullCommandQueue queues[_GPUCommandQueueType_Count];
     uint64_t frameCount = 0;
     uint32_t frameIndex = 0;
     uint32_t maxFramesInFlight = 0;
     uint64_t timestampFrequency = 0;
 
+    void GetLimits(GPUDeviceLimits* limits) const override;
     bool HasFeature(GPUFeature feature) const override;
     GPUCommandQueue GetQueue(GPUCommandQueueType type) override;
     void WaitIdle() override;
@@ -424,6 +423,11 @@ void NullCommandQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer* comm
 }
 
 /* NullDevice */
+void NullDevice::GetLimits(GPUDeviceLimits* limits) const
+{
+    memcpy(limits, &this->limits, sizeof(GPUDeviceLimits));
+}
+
 bool NullDevice::HasFeature(GPUFeature feature) const
 {
     return false;
@@ -557,16 +561,6 @@ void NullAdapter::GetInfo(GPUAdapterInfo* info) const
     info->vendor = agpuGPUAdapterVendorFromID(vendorID);
     info->vendorID = vendorID;
     info->deviceID = deviceID;
-}
-
-void NullAdapter::GetLimits(GPUAdapterLimits* limits) const
-{
-    memcpy(limits, &this->limits, sizeof(GPUAdapterLimits));
-}
-
-bool NullAdapter::HasFeature(GPUFeature feature) const
-{
-    return false;
 }
 
 GPUDevice NullAdapter::CreateDevice(const GPUDeviceDesc& desc)

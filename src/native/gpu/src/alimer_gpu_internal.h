@@ -279,6 +279,7 @@ struct GPUCommandQueueImpl : public GPUResource
 
 struct GPUDeviceImpl : public GPUResource
 {
+    virtual void GetLimits(GPUDeviceLimits* limits) const = 0;
     virtual bool HasFeature(GPUFeature feature) const = 0;
     virtual GPUCommandQueue GetQueue(GPUCommandQueueType type) = 0;
     virtual void WaitIdle() = 0;
@@ -341,8 +342,6 @@ struct GPUAdapterImpl : public GPUResource
 {
     virtual GPUAdapterType GetType() const = 0;
     virtual void GetInfo(GPUAdapterInfo* info) const = 0;
-    virtual void GetLimits(GPUAdapterLimits* limits) const = 0;
-    virtual bool HasFeature(GPUFeature feature) const = 0;
     virtual GPUDevice CreateDevice(const GPUDeviceDesc& desc) = 0;
 };
 

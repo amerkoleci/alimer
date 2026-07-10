@@ -75,7 +75,9 @@ int main(void)
         .preferredBackend = GPUBackendType_Vulkan,
         .validationMode = GPUValidationMode_Enabled
     };
-    GPUFactory gpuFactory =  agpuCreateFactory(&factoryDesc);
+    GPUFactory gpuFactory = agpuCreateFactory(&factoryDesc);
+    GPUAdapter adapter = agpuFactoryGetBestAdapter(gpuFactory);
+    GPUDevice device = agpuAdapterCreateDevice(adapter, NULL);
 #endif
 
 #if defined(ALIMER_PHYSICS)
@@ -103,6 +105,7 @@ int main(void)
 #endif
 
 #if defined(ALIMER_GPU)
+    agpuDeviceRelease(device);
     agpuFactoryDestroy(gpuFactory);
 #endif
 

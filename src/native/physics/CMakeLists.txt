@@ -1,15 +1,3 @@
-# Groups sources into subfolders.d
-macro(group_sources)
-	file (GLOB_RECURSE children LIST_DIRECTORIES true RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/**)
-	foreach (child ${children})
-		if (IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${child})
-		  string(REPLACE "/" "\\" groupname "${child}")
-		  file (GLOB files LIST_DIRECTORIES false ${CMAKE_CURRENT_SOURCE_DIR}/${child}/*)
-		  source_group(${groupname} FILES ${files})
-		endif ()
-	endforeach ()
-endmacro()
-
 # Setup library
 if (${ALIMER_PHYSICS} MATCHES "Jolt")
     set(SRC_FILE src/alimer_physics.cpp)
@@ -24,8 +12,6 @@ add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
 	include/alimer_physics.h
     ${SRC_FILE}
 )
-
-group_sources()
 
 target_include_directories(${TARGET_NAME}
 	PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

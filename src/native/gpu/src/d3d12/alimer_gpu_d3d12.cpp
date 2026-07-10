@@ -18,8 +18,9 @@
 #else
 #   include <directx/d3d12.h>
 #   include <directx/d3d12video.h>
-//#   include <directx/d3dx12_resource_helpers.h>
-//#   include <directx/d3dx12_pipeline_state_stream.h>
+#   include <directx/d3dx12_resource_helpers.h>
+#   include <directx/d3dx12_root_signature.h>
+#   include <directx/d3dx12_pipeline_state_stream.h>
 #   include <directx/d3dx12_check_feature_support.h>
 //#   include <dcomp.h>
 #if defined(_DEBUG) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
@@ -1135,8 +1136,7 @@ struct D3D12PipelineLayout final : public GPUPipelineLayoutImpl
 
 struct D3D12ShaderModule final : public GPUShaderModuleImpl
 {
-    uint8_t* pByteCode = nullptr;
-    D3D12_SHADER_BYTECODE bytecode = {};
+    std::vector<uint8_t> byteCode;
 
     ~D3D12ShaderModule() override;
 };
@@ -1540,6 +1540,7 @@ private:
 struct D3D12Device final : public GPUDeviceImpl
 {
     D3D12Adapter* adapter = nullptr;
+    GPUDeviceLimits limits{};
     ID3D12Device5* handle = nullptr;
     ID3D12VideoDevice* videoDevice = nullptr;
     CD3DX12FeatureSupport features;
@@ -1583,6 +1584,7 @@ struct D3D12Device final : public GPUDeviceImpl
     ~D3D12Device() override;
     void OnDeviceRemoved();
     void SetLabel(const char* label) override;
+    void GetLimits(GPUDeviceLimits* limits) const override;
     bool HasFeature(GPUFeature feature) const override;
     GPUCommandQueue GetQueue(GPUCommandQueueType type) override;
     void WaitIdle() override;
@@ -1636,7 +1638,6 @@ struct D3D12Adapter final : public GPUAdapterImpl
     D3D12GPUFactory* factory = nullptr;
     ComPtr<IDXGIAdapter1> handle;
     CD3DX12FeatureSupport features;
-    GPUAdapterLimits limits{};
 
     bool samplerMinMax = false;
     bool shaderFloat16 = false;
@@ -1651,8 +1652,7 @@ struct D3D12Adapter final : public GPUAdapterImpl
     bool Init(ID3D12Device* device);
     GPUAdapterType GetType() const override { return adapterType; }
     void GetInfo(GPUAdapterInfo* info) const override;
-    void GetLimits(GPUAdapterLimits* limits) const override;
-    bool HasFeature(GPUFeature feature) const override;
+    bool HasFeature(GPUFeature feature) const;
     GPUDevice CreateDevice(const GPUDeviceDesc& desc) override;
 
 private:
@@ -1944,15 +1944,7 @@ void D3D12PipelineLayout::SetLabel(const char* label)
 
 /* D3D12ShaderModule */
 D3D12ShaderModule::~D3D12ShaderModule()
-{
-    if (pByteCode)
-    {
-        free(pByteCode);
-        pByteCode = nullptr;
-    }
-
-    bytecode = {};
-}
+{}
 
 /* D3D12ComputePipeline */
 D3D12ComputePipeline::~D3D12ComputePipeline()
@@ -3282,6 +3274,11 @@ void D3D12Device::SetLabel(const char* label)
     }
 }
 
+void D3D12Device::GetLimits(GPUDeviceLimits* limits) const
+{
+    memcpy(limits, &this->limits, sizeof(GPUDeviceLimits));
+}
+
 bool D3D12Device::HasFeature(GPUFeature feature) const
 {
     return adapter->HasFeature(feature);
@@ -3370,7 +3367,7 @@ ID3D12CommandSignature* D3D12Device::CreateCommandSignature(D3D12_INDIRECT_ARGUM
 void D3D12Device::WriteShadingRateValue(GPUShadingRate rate, void* dest) const
 {
     D3D12_SHADING_RATE d3dRate = ToD3D12(rate);
-    if (!adapter->limits.isAdditionalVariableShadingRatesSupported)
+    if (!limits.isAdditionalVariableShadingRatesSupported)
     {
         d3dRate = std::min(d3dRate, D3D12_SHADING_RATE_2X2);
     }
@@ -3872,37 +3869,11 @@ GPUPipelineLayout D3D12Device::CreatePipelineLayout(const GPUPipelineLayoutDesc&
 GPUShaderModule D3D12Device::CreateShaderModule(const GPUShaderModuleDesc* desc)
 {
     D3D12ShaderModule* shaderModule = new D3D12ShaderModule();
-    shaderModule->pByteCode = (uint8_t*)malloc(desc->byteCodeSize);
-    memcpy(shaderModule->pByteCode, desc->byteCode, desc->byteCodeSize);
-    shaderModule->bytecode.BytecodeLength = desc->byteCodeSize;
-    shaderModule->bytecode.pShaderBytecode = shaderModule->pByteCode;
+    shaderModule->byteCode.resize(desc->byteCodeSize);
+    memcpy(shaderModule->byteCode.data(), desc->byteCode, desc->byteCodeSize);
 
     return shaderModule;
 }
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4324)
-#endif
-template <typename InnerStructType, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE subobjectType>
-struct alignas(void*) PipelineDescComponent final
-{
-    D3D12_PIPELINE_STATE_SUBOBJECT_TYPE type = subobjectType;
-    InnerStructType desc = {};
-
-    PipelineDescComponent() = default;
-
-    inline void operator=(const InnerStructType& rhs)
-    {
-        desc = rhs;
-    }
-};
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-using PipelineRootSignature = PipelineDescComponent<ID3D12RootSignature*, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE>;
-using PipelineComputeShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_CS>;
 
 GPUComputePipeline D3D12Device::CreateComputePipeline(const GPUComputePipelineDesc& desc)
 {
@@ -3911,14 +3882,16 @@ GPUComputePipeline D3D12Device::CreateComputePipeline(const GPUComputePipelineDe
     pipeline->layout = static_cast<D3D12PipelineLayout*>(desc.layout);
     pipeline->layout->AddRef();
 
+    auto backendShader = static_cast<D3D12ShaderModule*>(desc.shader);
+
     struct PSO_STREAM
     {
-        PipelineRootSignature pRootSignature;
-        PipelineComputeShader CS;
+        CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE pRootSignature;
+        CD3DX12_PIPELINE_STATE_STREAM_CS CS;
     } stream;
 
     stream.pRootSignature = pipeline->layout->handle;
-    stream.CS = static_cast<D3D12ShaderModule*>(desc.shader)->bytecode;
+    stream.CS = { backendShader->byteCode.data(), backendShader->byteCode.size() };
 
     D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
     streamDesc.pPipelineStateSubobjectStream = &stream;
@@ -3939,19 +3912,6 @@ GPUComputePipeline D3D12Device::CreateComputePipeline(const GPUComputePipelineDe
     return pipeline;
 }
 
-using PipelineInputLayout = PipelineDescComponent<D3D12_INPUT_LAYOUT_DESC, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT>;
-using PipelineIndexBufferStripCutValue = PipelineDescComponent<D3D12_INDEX_BUFFER_STRIP_CUT_VALUE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_IB_STRIP_CUT_VALUE>;
-using PipelinePrimitiveTopology = PipelineDescComponent<D3D12_PRIMITIVE_TOPOLOGY_TYPE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY>;
-using PipelineVertexShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS>;
-using PipelinePixelShader = PipelineDescComponent<D3D12_SHADER_BYTECODE, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS>;
-using PipelineBlend = PipelineDescComponent<D3D12_BLEND_DESC, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND>;
-using PipelineDepthStencil = PipelineDescComponent<D3D12_DEPTH_STENCIL_DESC1, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1>;
-using PipelineRasterizer = PipelineDescComponent<D3D12_RASTERIZER_DESC1, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER>;
-using PipelineRenderTargetFormats = PipelineDescComponent<D3D12_RT_FORMAT_ARRAY, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS>;
-using PipelineDepthStencilFormat = PipelineDescComponent<DXGI_FORMAT, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT>;
-using PipelineSampleDesc = PipelineDescComponent<DXGI_SAMPLE_DESC, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_DESC>;
-using PipelineSampleMask = PipelineDescComponent<UINT, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_MASK>;
-
 GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc& desc)
 {
     D3D12RenderPipeline* pipeline = new D3D12RenderPipeline();
@@ -3964,29 +3924,32 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
     {
         struct PSO_STREAM1
         {
-            PipelineRootSignature               rootSignature;
-            PipelineInputLayout                 inputLayout;
-            PipelineIndexBufferStripCutValue    IBStripCutValue;
-            PipelinePrimitiveTopology           PrimitiveTopologyType;
-            PipelineVertexShader                vertexShader;
-            PipelinePixelShader                 pixelShader;
-            PipelineBlend                       BlendState;
-            PipelineDepthStencil                depthStencilState;
-            PipelineDepthStencilFormat          DSVFormat;
-            PipelineRasterizer                  RasterizerState;
-            PipelineRenderTargetFormats         RTVFormats;
-            PipelineSampleDesc                  SampleDesc;
-            PipelineSampleMask                  SampleMask;
+            CD3DX12_PIPELINE_STATE_STREAM_ROOT_SIGNATURE        pRootSignature;
+            CD3DX12_PIPELINE_STATE_STREAM_INPUT_LAYOUT          InputLayout;
+            CD3DX12_PIPELINE_STATE_STREAM_IB_STRIP_CUT_VALUE    IBStripCutValue;
+            CD3DX12_PIPELINE_STATE_STREAM_PRIMITIVE_TOPOLOGY    PrimitiveTopologyType;
+            CD3DX12_PIPELINE_STATE_STREAM_VS                    VS;
+            CD3DX12_PIPELINE_STATE_STREAM_HS                    HS;
+            CD3DX12_PIPELINE_STATE_STREAM_DS                    DS;
+            CD3DX12_PIPELINE_STATE_STREAM_GS                    GS;
+            CD3DX12_PIPELINE_STATE_STREAM_PS                    PS;
+            CD3DX12_PIPELINE_STATE_STREAM_BLEND_DESC            BlendState;
+            CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL1        DepthStencilState;
+            CD3DX12_PIPELINE_STATE_STREAM_DEPTH_STENCIL_FORMAT  DSVFormat;
+            CD3DX12_PIPELINE_STATE_STREAM_RASTERIZER1           RasterizerState;
+            CD3DX12_PIPELINE_STATE_STREAM_RENDER_TARGET_FORMATS RTVFormats;
+            CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_DESC           SampleDesc;
+            CD3DX12_PIPELINE_STATE_STREAM_SAMPLE_MASK           SampleMask;
         } stream1 = {};
 
-        //struct PSO_STREAM2
-        //{
-        //    CD3DX12_PIPELINE_STATE_STREAM_AS AS;
-        //    CD3DX12_PIPELINE_STATE_STREAM_MS MS;
-        //} stream2 = {};
+        struct PSO_STREAM2
+        {
+            CD3DX12_PIPELINE_STATE_STREAM_MS MS;
+            CD3DX12_PIPELINE_STATE_STREAM_AS AS;
+        } stream2 = {};
     } stream = {};
 
-    stream.stream1.rootSignature = pipeline->layout->handle;
+    stream.stream1.pRootSignature = pipeline->layout->handle;
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> inputElements;
     D3D12_INPUT_LAYOUT_DESC inputLayout = {};
@@ -4036,7 +3999,7 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
         }
 
         inputLayout.pInputElementDescs = inputElements.data();
-        stream.stream1.inputLayout = inputLayout;
+        stream.stream1.InputLayout = inputLayout;
     }
 
     // Handle index strip
@@ -4069,32 +4032,36 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
             break;
     }
 
-    for (uint32_t i = 0; i < desc.shaderCount; i++)
+    // ShaderStages
+    // Mesh Pipeline (D3DX12_MESH_SHADER_PIPELINE_STATE_DESC)
+    if (desc.meshShader != nullptr)
     {
-        const GPUShaderDesc& shaderDesc = desc.shaders[i];
-        if (shaderDesc.stage == GPUShaderStage_Vertex)
+        auto backendMeshShader = static_cast<D3D12ShaderModule*>(desc.meshShader);
+        stream.stream2.MS = { backendMeshShader->byteCode.data(), backendMeshShader->byteCode.size() };
+
+        if (desc.amplificationShader != nullptr)
         {
-            stream.stream1.vertexShader = { shaderDesc.bytecode, shaderDesc.bytecodeSize };
+            auto backendAmplificationShader = static_cast<D3D12ShaderModule*>(desc.amplificationShader);
+            stream.stream2.AS = { backendAmplificationShader->byteCode.data(), backendAmplificationShader->byteCode.size() };
         }
-        else if (shaderDesc.stage == GPUShaderStage_Fragment)
-        {
-            stream.stream1.pixelShader = { shaderDesc.bytecode, shaderDesc.bytecodeSize };
-        }
-        //else if (shaderDesc.stage == GPUShaderStage_Amplification)
-        //{
-        //    stream.stream2.AS = { shader.pCode, shader.codeSize };
-        //}
-        //else if (shaderDesc.stage == GPUShaderStage_Mesh)
-        //{
-        //    stream.stream2.MS = { shader.pCode, shader.codeSize };
-        //}
+    }
+    else
+    {
+        auto backendVertexShader = static_cast<D3D12ShaderModule*>(desc.vertexShader);
+        stream.stream1.VS = { backendVertexShader->byteCode.data(), backendVertexShader->byteCode.size() };
+    }
+
+    if (desc.fragmentShader != nullptr)
+    {
+        auto backendFragmentShader = static_cast<D3D12ShaderModule*>(desc.fragmentShader);
+        stream.stream1.PS = { backendFragmentShader->byteCode.data(), backendFragmentShader->byteCode.size() };
     }
 
     // Color Attachments + RTV
     D3D12_RT_FORMAT_ARRAY RTVFormats = {};
     RTVFormats.NumRenderTargets = 0;
 
-    D3D12_BLEND_DESC blendState = {};
+    CD3DX12_BLEND_DESC blendState = {};
     blendState.AlphaToCoverageEnable = desc.multisample.alphaToCoverageEnabled ? TRUE : FALSE;
     blendState.IndependentBlendEnable = TRUE;
     for (uint32_t i = 0; i < desc.colorAttachmentCount; ++i)
@@ -4123,7 +4090,7 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
     stream.stream1.BlendState = blendState;
 
     // DepthStencilState + DSVFormat
-    D3D12_DEPTH_STENCIL_DESC1 depthStencilState{};
+    CD3DX12_DEPTH_STENCIL_DESC1 depthStencilState{};
     const D3D12_DEPTH_STENCILOP_DESC defaultStencilOp = { D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS };
     if (desc.depthStencilAttachmentFormat != GPUPixelFormat_Undefined)
     {
@@ -4161,11 +4128,11 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
         depthStencilState.BackFace = defaultStencilOp;
         depthStencilState.DepthBoundsTestEnable = FALSE;
     }
-    stream.stream1.depthStencilState = depthStencilState;
-    stream.stream1.DSVFormat = (DXGI_FORMAT)ToDxgiFormat(desc.depthStencilAttachmentFormat);
+    stream.stream1.DepthStencilState = depthStencilState;
+    stream.stream1.DSVFormat = ToDxgiFormat(desc.depthStencilAttachmentFormat);
 
     // RasterizerState
-    D3D12_RASTERIZER_DESC1 rasterizerState{};
+    CD3DX12_RASTERIZER_DESC1 rasterizerState{};
     rasterizerState.FillMode = ToD3D12(desc.rasterizerState.fillMode);
     rasterizerState.CullMode = ToD3D12(desc.rasterizerState.cullMode);
     rasterizerState.FrontCounterClockwise = (desc.rasterizerState.frontFace == GPUFrontFace_CounterClockwise) ? TRUE : FALSE;
@@ -4177,7 +4144,7 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
     rasterizerState.AntialiasedLineEnable = FALSE;
     rasterizerState.ForcedSampleCount = 0;
     rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-    if (desc.rasterizerState.conservativeRaster &&
+    if (desc.rasterizerState.conservativeRasterEnable &&
         features.ConservativeRasterizationTier() != D3D12_CONSERVATIVE_RASTERIZATION_TIER_NOT_SUPPORTED)
     {
         rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON;
@@ -4491,117 +4458,6 @@ bool D3D12Adapter::Init(ID3D12Device* device)
         adapterType = features.UMA() ? GPUAdapterType_IntegratedGpu : GPUAdapterType_DiscreteGpu;
     }
 
-    // https://docs.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
-    // In DWORDS. Descriptor tables cost 1, Root constants cost 1, Root descriptors cost 2.
-    static constexpr uint32_t kMaxRootSignatureSize = 64u;
-
-    limits.maxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION;
-    limits.maxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
-    limits.maxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION;
-    limits.maxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION;
-    limits.maxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
-    limits.maxBindGroups = kMaxRootSignatureSize;
-    // Max number of "constants" where each constant is a 16-byte float4
-    limits.maxConstantBufferBindingSize = D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16;
-    limits.maxStorageBufferBindingSize = (1 << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1;
-    limits.minConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
-    limits.minStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT;
-    limits.maxPushConstantsSize = sizeof(uint32_t) * kMaxRootSignatureSize / 1;
-    //const uint32_t maxPushDescriptors = kMaxRootSignatureSize / 2;
-
-    limits.maxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ull * 1024ull;
-    limits.maxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
-    limits.maxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
-    limits.viewportBoundsMin = D3D12_VIEWPORT_BOUNDS_MIN;
-    limits.viewportBoundsMax = D3D12_VIEWPORT_BOUNDS_MAX;
-
-    // https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-devices-downlevel-compute-shaders
-    // Thread Group Shared Memory is limited to 16Kb on downlevel hardware. This is less than
-    // the 32Kb that is available to Direct3D 11 hardware. D3D12 is also 32kb.
-    limits.maxComputeWorkgroupStorageSize = 32768;
-    limits.maxComputeInvocationsPerWorkgroup = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP;
-
-    // https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/sm5-attributes-numthreads
-    limits.maxComputeWorkgroupSizeX = D3D12_CS_THREAD_GROUP_MAX_X;
-    limits.maxComputeWorkgroupSizeY = D3D12_CS_THREAD_GROUP_MAX_Y;
-    limits.maxComputeWorkgroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z;
-    // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_dispatch_arguments
-    limits.maxComputeWorkgroupsPerDimension = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
-
-    // ShaderModel
-    //const bool supportsDP4a = d3dFeatures.HighestShaderModel() >= D3D_SHADER_MODEL_6_4;
-    limits.shaderModel = FromD3D12(features.HighestShaderModel());
-
-    uint32_t MaxNonSamplerDescriptors = 0;
-    uint32_t MaxSamplerDescriptors = 0;
-    D3D12_FEATURE_DATA_D3D12_OPTIONS19 options19{};
-    if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, &options19, sizeof(options19))))
-    {
-        if (features.ResourceBindingTier() == D3D12_RESOURCE_BINDING_TIER_1)
-        {
-            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
-        }
-        else if (features.ResourceBindingTier() == D3D12_RESOURCE_BINDING_TIER_2)
-        {
-            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
-        }
-        else
-        {
-            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
-        }
-        MaxSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
-    }
-    else
-    {
-        MaxNonSamplerDescriptors = options19.MaxViewDescriptorHeapSize;
-        MaxSamplerDescriptors = options19.MaxSamplerDescriptorHeapSizeWithStaticSamplers;
-    }
-
-    // ConservativeRasterization
-    limits.conservativeRasterizationTier = static_cast<GPUConservativeRasterizationTier>(features.ConservativeRasterizationTier());
-
-    // VariableRateShading
-    limits.variableShadingRateTier = static_cast<GPUVariableShadingRateTier>(features.VariableShadingRateTier());
-    if (features.VariableShadingRateTier() != D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED)
-    {
-        limits.variableShadingRateImageTileSize = features.ShadingRateImageTileSize();
-        limits.isAdditionalVariableShadingRatesSupported = features.AdditionalShadingRatesSupported() == TRUE;
-    }
-
-    // Raytracing
-    limits.rayTracingTier = FromD3D12(features.RaytracingTier());
-    if (features.RaytracingTier() != D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
-    {
-        limits.rayTracingShaderGroupIdentifierSize = D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT;
-        limits.rayTracingShaderTableAlignment = D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT;
-        limits.rayTracingShaderTableMaxStride = UINT_MAX;
-        limits.rayTracingShaderRecursionMaxDepth = D3D12_RAYTRACING_MAX_DECLARABLE_TRACE_RECURSION_DEPTH;
-        limits.rayTracingMaxGeometryCount = (1 << 24) - 1;
-        limits.rayTracingScratchAlignment = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT;
-    }
-
-    if (features.TiledResourcesTier() >= D3D12_TILED_RESOURCES_TIER_1)
-    {
-        //capabilities |= GraphicsDeviceCapability::SPARSE_BUFFER;
-        //capabilities |= GraphicsDeviceCapability::SPARSE_TEXTURE2D;
-
-        if (features.TiledResourcesTier() >= D3D12_TILED_RESOURCES_TIER_2)
-        {
-            //capabilities |= GraphicsDeviceCapability::SPARSE_NULL_MAPPING;
-
-            // https://docs.microsoft.com/en-us/windows/win32/direct3d11/tiled-resources-texture-sampling-features
-            samplerMinMax = true;
-
-            if (features.TiledResourcesTier() >= D3D12_TILED_RESOURCES_TIER_3)
-            {
-                //capabilities |= GraphicsDeviceCapability::SPARSE_TEXTURE3D;
-            }
-        }
-    }
-
-    // MeshShader
-    limits.meshShaderTier = FromD3D12(features.MeshShaderTier());
-
     shaderFloat16 = features.HighestShaderModel() >= D3D_SHADER_MODEL_6_2 && features.Native16BitShaderOpsSupported();
     depthBoundsTestSupported = features.DepthBoundsTestSupported() == TRUE;
     GPUUploadHeapSupported = features.GPUUploadHeapSupported() == TRUE;
@@ -4623,11 +4479,6 @@ void D3D12Adapter::GetInfo(GPUAdapterInfo* info) const
     info->vendor = agpuGPUAdapterVendorFromID(vendorID);
     info->vendorID = vendorID;
     info->deviceID = deviceID;
-}
-
-void D3D12Adapter::GetLimits(GPUAdapterLimits* limits) const
-{
-    memcpy(limits, &this->limits, sizeof(GPUAdapterLimits));
 }
 
 bool D3D12Adapter::HasFeature(GPUFeature feature) const
@@ -4731,6 +4582,117 @@ GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
 
     // Init feature check (https://devblogs.microsoft.com/directx/introducing-a-new-api-for-checking-feature-support-in-direct3d-12/)
     VHR(device->features.Init(device->handle));
+
+    // https://docs.microsoft.com/en-us/windows/win32/direct3d12/root-signature-limits
+    // In DWORDS. Descriptor tables cost 1, Root constants cost 1, Root descriptors cost 2.
+    static constexpr uint32_t kMaxRootSignatureSize = 64u;
+
+    device->limits.maxTextureDimension1D = D3D12_REQ_TEXTURE1D_U_DIMENSION;
+    device->limits.maxTextureDimension2D = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
+    device->limits.maxTextureDimension3D = D3D12_REQ_TEXTURE3D_U_V_OR_W_DIMENSION;
+    device->limits.maxTextureDimensionCube = D3D12_REQ_TEXTURECUBE_DIMENSION;
+    device->limits.maxTextureArrayLayers = D3D12_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION;
+    device->limits.maxBindGroups = kMaxRootSignatureSize;
+    // Max number of "constants" where each constant is a 16-byte float4
+    device->limits.maxConstantBufferBindingSize = D3D12_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16;
+    device->limits.maxStorageBufferBindingSize = (1 << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1;
+    device->limits.minConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
+    device->limits.minStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT;
+    device->limits.maxPushConstantsSize = sizeof(uint32_t) * kMaxRootSignatureSize / 1;
+    //const uint32_t maxPushDescriptors = kMaxRootSignatureSize / 2;
+
+    device->limits.maxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ull * 1024ull;
+    device->limits.maxColorAttachments = D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT;
+    device->limits.maxViewports = D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE;
+    device->limits.viewportBoundsMin = D3D12_VIEWPORT_BOUNDS_MIN;
+    device->limits.viewportBoundsMax = D3D12_VIEWPORT_BOUNDS_MAX;
+
+    // https://docs.microsoft.com/en-us/windows/win32/direct3d11/overviews-direct3d-11-devices-downlevel-compute-shaders
+    // Thread Group Shared Memory is limited to 16Kb on downlevel hardware. This is less than
+    // the 32Kb that is available to Direct3D 11 hardware. D3D12 is also 32kb.
+    device->limits.maxComputeWorkgroupStorageSize = 32768;
+    device->limits.maxComputeInvocationsPerWorkgroup = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP;
+
+    // https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/sm5-attributes-numthreads
+    device->limits.maxComputeWorkgroupSizeX = D3D12_CS_THREAD_GROUP_MAX_X;
+    device->limits.maxComputeWorkgroupSizeY = D3D12_CS_THREAD_GROUP_MAX_Y;
+    device->limits.maxComputeWorkgroupSizeZ = D3D12_CS_THREAD_GROUP_MAX_Z;
+    // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_dispatch_arguments
+    device->limits.maxComputeWorkgroupsPerDimension = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
+
+    // ShaderModel
+    //const bool supportsDP4a = d3dFeatures.HighestShaderModel() >= D3D_SHADER_MODEL_6_4;
+    device->limits.shaderModel = FromD3D12(features.HighestShaderModel());
+
+    uint32_t MaxNonSamplerDescriptors = 0;
+    uint32_t MaxSamplerDescriptors = 0;
+    D3D12_FEATURE_DATA_D3D12_OPTIONS19 options19{};
+    if (FAILED(device->handle->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, &options19, sizeof(options19))))
+    {
+        if (features.ResourceBindingTier() == D3D12_RESOURCE_BINDING_TIER_1)
+        {
+            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
+        }
+        else if (features.ResourceBindingTier() == D3D12_RESOURCE_BINDING_TIER_2)
+        {
+            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
+        }
+        else
+        {
+            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
+        }
+        MaxSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
+    }
+    else
+    {
+        MaxNonSamplerDescriptors = options19.MaxViewDescriptorHeapSize;
+        MaxSamplerDescriptors = options19.MaxSamplerDescriptorHeapSizeWithStaticSamplers;
+    }
+
+    // ConservativeRasterization
+    device->limits.conservativeRasterizationTier = static_cast<GPUConservativeRasterizationTier>(features.ConservativeRasterizationTier());
+
+    // VariableRateShading
+    device->limits.variableShadingRateTier = static_cast<GPUVariableShadingRateTier>(features.VariableShadingRateTier());
+    if (features.VariableShadingRateTier() != D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED)
+    {
+        device->limits.variableShadingRateImageTileSize = features.ShadingRateImageTileSize();
+        device->limits.isAdditionalVariableShadingRatesSupported = features.AdditionalShadingRatesSupported() == TRUE;
+    }
+
+    // Raytracing
+    device->limits.rayTracingTier = FromD3D12(features.RaytracingTier());
+    if (features.RaytracingTier() != D3D12_RAYTRACING_TIER_NOT_SUPPORTED)
+    {
+        device->limits.rayTracingShaderGroupIdentifierSize = D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT;
+        device->limits.rayTracingShaderTableAlignment = D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT;
+        device->limits.rayTracingShaderTableMaxStride = UINT_MAX;
+        device->limits.rayTracingShaderRecursionMaxDepth = D3D12_RAYTRACING_MAX_DECLARABLE_TRACE_RECURSION_DEPTH;
+        device->limits.rayTracingMaxGeometryCount = (1 << 24) - 1;
+        device->limits.rayTracingScratchAlignment = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT;
+    }
+
+    if (features.TiledResourcesTier() >= D3D12_TILED_RESOURCES_TIER_1)
+    {
+        //capabilities |= GraphicsDeviceCapability::SPARSE_BUFFER;
+        //capabilities |= GraphicsDeviceCapability::SPARSE_TEXTURE2D;
+
+        if (features.TiledResourcesTier() >= D3D12_TILED_RESOURCES_TIER_2)
+        {
+            //capabilities |= GraphicsDeviceCapability::SPARSE_NULL_MAPPING;
+
+            // https://docs.microsoft.com/en-us/windows/win32/direct3d11/tiled-resources-texture-sampling-features
+            samplerMinMax = true;
+
+            if (features.TiledResourcesTier() >= D3D12_TILED_RESOURCES_TIER_3)
+            {
+                //capabilities |= GraphicsDeviceCapability::SPARSE_TEXTURE3D;
+            }
+        }
+    }
+
+    // MeshShader
+    device->limits.meshShaderTier = FromD3D12(features.MeshShaderTier());
 
     if (factory->validationMode != GPUValidationMode_Disabled)
     {

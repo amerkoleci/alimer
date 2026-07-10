@@ -42,11 +42,17 @@ ALIMER_ENABLE_WARNINGS()
 #endif
 #define VK_LOG_ERROR(result, message) agpuLogError("Vulkan: %s, error: %s", message, VkResultToString(result));
 
-    // Declare function pointers
-    static PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = nullptr;
+#define PNEXTCHAIN_DECLARE(next) \
+    const void** _tail = (const void**)&next
 
-#define VULKAN_GLOBAL_FUNCTION(name) static PFN_##name name = nullptr;
-#include "alimer_gpu_vulkan_funcs.h"
+#define PNEXTCHAIN_SET(next) \
+    _tail = (const void**)&next
+
+#define PNEXTCHAIN_APPEND_STRUCT(desc) \
+    do { \
+        *_tail = &(desc); \
+        _tail = (const void**)&(desc).pNext; \
+    } while (0)
 
 namespace
 {
@@ -790,10 +796,11 @@ namespace
         switch (value)
         {
             default:
-            case GPUFrontFace_Clockwise:
-                return VK_FRONT_FACE_CLOCKWISE;
             case GPUFrontFace_CounterClockwise:
                 return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+
+            case GPUFrontFace_Clockwise:
+                return VK_FRONT_FACE_CLOCKWISE;
         }
     }
 
@@ -994,12 +1001,17 @@ namespace
     }
 }
 
+// Declare function pointers
+#define VULKAN_GLOBAL_FUNCTION(name) static PFN_##name name = nullptr;
+#include "alimer_gpu_vulkan_funcs.h"
+
 struct VK_State {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
     HMODULE vk_module;
 #else
     void* vk_module;
 #endif
+    PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = nullptr;
 
     ~VK_State()
     {
@@ -1013,7 +1025,6 @@ struct VK_State {
             vk_module = nullptr;
         }
     }
-
 } vk_state;
 
 struct VulkanPhysicalDeviceExtensions final
@@ -1347,6 +1358,7 @@ struct VulkanCopyAllocator final
 struct VulkanDevice final : public GPUDeviceImpl
 {
     VulkanAdapter* adapter = nullptr;
+    GPUDeviceLimits limits{};
     VkDevice handle = VK_NULL_HANDLE;
     VulkanQueue queues[_GPUCommandQueueType_Count];
     VkPipelineCache pipelineCache = VK_NULL_HANDLE;
@@ -1384,6 +1396,7 @@ struct VulkanDevice final : public GPUDeviceImpl
     ~VulkanDevice() override;
     void SetLabel(const char* label) override;
 
+    void GetLimits(GPUDeviceLimits* limits) const override;
     bool HasFeature(GPUFeature feature) const override;
     GPUCommandQueue GetQueue(GPUCommandQueueType type) override;
     void WaitIdle() override;
@@ -1398,7 +1411,6 @@ struct VulkanDevice final : public GPUDeviceImpl
     GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
-    bool SetupShaderStage(const GPUShaderDesc& desc, VkPipelineShaderStageCreateInfo& pipelineStage);
     GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) override;
     GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
@@ -1445,7 +1457,6 @@ struct VulkanAdapter final : public GPUAdapterImpl
     bool supportsDepth32Stencil8 = false;
     bool supportsDepth24Stencil8 = false;
     bool supportsStencil8 = false;
-    GPUAdapterLimits limits{};
 
 
     // Features
@@ -1500,8 +1511,7 @@ struct VulkanAdapter final : public GPUAdapterImpl
 
     GPUAdapterType GetType() const override { return adapterType; }
     void GetInfo(GPUAdapterInfo* info) const override;
-    void GetLimits(GPUAdapterLimits* limits) const override;
-    bool HasFeature(GPUFeature feature) const override;
+    bool HasFeature(GPUFeature feature) const;
     bool IsDepthStencilFormatSupported(VkFormat format) const;
     VkFormat ToVkFormat(GPUPixelFormat format) const;
     GPUDevice CreateDevice(const GPUDeviceDesc& desc) override;
@@ -1513,6 +1523,7 @@ struct VulkanGPUFactory final : public GPUFactoryImpl
 #include "alimer_gpu_vulkan_funcs.h"
 
     bool debugUtils = false;
+    bool win32Surface = false;
     bool xcbSurface = false;
     bool xlibSurface = false;
     bool waylandSurface = false;
@@ -3134,6 +3145,12 @@ void VulkanDevice::SetLabel(const char* label)
     SetObjectName(VK_OBJECT_TYPE_DEVICE, reinterpret_cast<uint64_t>(handle), label);
 }
 
+
+void VulkanDevice::GetLimits(GPUDeviceLimits* limits) const
+{
+    memcpy(limits, &this->limits, sizeof(GPUDeviceLimits));
+}
+
 bool VulkanDevice::HasFeature(GPUFeature feature) const
 {
     return adapter->HasFeature(feature);
@@ -3892,30 +3909,6 @@ GPUPipelineLayout VulkanDevice::CreatePipelineLayout(const GPUPipelineLayoutDesc
     return layout;
 }
 
-bool VulkanDevice::SetupShaderStage(const GPUShaderDesc& desc, VkPipelineShaderStageCreateInfo& pipelineStage)
-{
-    VkShaderModuleCreateInfo moduleInfo = {};
-    moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    moduleInfo.codeSize = desc.bytecodeSize;
-    moduleInfo.pCode = (const uint32_t*)desc.bytecode;
-
-    const VkResult result = vkCreateShaderModule(handle, &moduleInfo, nullptr, &pipelineStage.module);
-
-    if (result != VK_SUCCESS)
-    {
-        VK_LOG_ERROR(result, "Failed to create a pipeline shader module");
-        return false;
-    }
-
-    pipelineStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    pipelineStage.pNext = nullptr;
-    pipelineStage.flags = 0;
-    pipelineStage.stage = (VkShaderStageFlagBits)ToVkShaderStageFlags(desc.stage);
-    pipelineStage.pName = nullptr;
-    pipelineStage.pSpecializationInfo = nullptr;
-    return true;
-}
-
 GPUShaderModule VulkanDevice::CreateShaderModule(const GPUShaderModuleDesc* desc)
 {
     VkShaderModuleCreateInfo moduleInfo = {};
@@ -3980,16 +3973,28 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
     pipeline->layout->AddRef();
 
     // ShaderStages
-    std::vector<VkPipelineShaderStageCreateInfo> stages(desc.shaderCount);
-    for (uint32_t i = 0; i < desc.shaderCount; i++)
+    std::vector<VkPipelineShaderStageCreateInfo> stages;
+    if (desc.meshShader != nullptr)
     {
-        const GPUShaderDesc& shaderDesc = desc.shaders[i];
-        if (!SetupShaderStage(shaderDesc, stages[i]))
-        {
-            return nullptr;
-        }
+        auto backendMeshShader = static_cast<VulkanShaderModule*>(desc.meshShader);
+        stages.push_back(backendMeshShader->stageInfo);
 
-        stages[i].pName = shaderDesc.entryPoint ? shaderDesc.entryPoint : "main";
+        if (desc.amplificationShader != nullptr)
+        {
+            auto backendAmplificationShader = static_cast<VulkanShaderModule*>(desc.amplificationShader);
+            stages.push_back(backendAmplificationShader->stageInfo);
+        }
+    }
+    else
+    {
+        auto backendVertexShader = static_cast<VulkanShaderModule*>(desc.vertexShader);
+        stages.push_back(backendVertexShader->stageInfo);
+    }
+
+    if (desc.fragmentShader != nullptr)
+    {
+        auto backendFragmentShader = static_cast<VulkanShaderModule*>(desc.fragmentShader);
+        stages.push_back(backendFragmentShader->stageInfo);
     }
 
     // VertexInputState (need always be specified when using VertexShader)
@@ -4063,18 +4068,27 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
 
     // DepthClip
     VkPipelineRasterizationDepthClipStateCreateInfoEXT depthClipStateInfo = {};
-    depthClipStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT;
 
-    const void** tail = &rasterizationState.pNext;
+    PNEXTCHAIN_DECLARE(rasterizationState.pNext);
     if (adapter->depthClipEnableFeatures.depthClipEnable == VK_TRUE)
     {
+        depthClipStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT;
         depthClipStateInfo.depthClipEnable = (desc.rasterizerState.depthClipMode == GPUDepthClipMode_Clip) ? VK_TRUE : VK_FALSE;
 
         rasterizationState.depthClampEnable = VK_TRUE;
         rasterizationState.pNext = &depthClipStateInfo;
 
-        *tail = &depthClipStateInfo;
-        tail = &depthClipStateInfo.pNext;
+        PNEXTCHAIN_APPEND_STRUCT(depthClipStateInfo);
+    }
+
+    VkPipelineRasterizationConservativeStateCreateInfoEXT rasterizationConservativeState = {};
+    if (desc.rasterizerState.conservativeRasterEnable)
+    {
+        rasterizationConservativeState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_CONSERVATIVE_STATE_CREATE_INFO_EXT;
+        rasterizationConservativeState.conservativeRasterizationMode = VK_CONSERVATIVE_RASTERIZATION_MODE_OVERESTIMATE_EXT;
+        rasterizationConservativeState.extraPrimitiveOverestimationSize = 0.0f;
+
+        PNEXTCHAIN_APPEND_STRUCT(rasterizationConservativeState);
     }
 
     rasterizationState.rasterizerDiscardEnable = VK_FALSE;
@@ -4973,117 +4987,6 @@ bool VulkanAdapter::Init(VkPhysicalDevice handle_)
     supportsDepth24Stencil8 = IsDepthStencilFormatSupported(VK_FORMAT_D24_UNORM_S8_UINT);
     supportsStencil8 = IsDepthStencilFormatSupported(VK_FORMAT_S8_UINT);
 
-    // Init limits
-    limits.maxTextureDimension1D = properties2.properties.limits.maxImageDimension1D;
-    limits.maxTextureDimension2D = properties2.properties.limits.maxImageDimension2D;
-    limits.maxTextureDimension3D = properties2.properties.limits.maxImageDimension3D;
-    limits.maxTextureDimensionCube = properties2.properties.limits.maxImageDimensionCube;
-    limits.maxTextureArrayLayers = properties2.properties.limits.maxImageArrayLayers;
-    limits.maxBindGroups = properties2.properties.limits.maxBoundDescriptorSets;
-    limits.maxConstantBufferBindingSize = properties2.properties.limits.maxUniformBufferRange;
-    limits.maxStorageBufferBindingSize = properties2.properties.limits.maxStorageBufferRange;
-    limits.minConstantBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minUniformBufferOffsetAlignment;
-    limits.minStorageBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minStorageBufferOffsetAlignment;
-    limits.maxPushConstantsSize = properties2.properties.limits.maxPushConstantsSize;
-    [[maybe_unused]] const uint32_t maxPushDescriptors = pushDescriptorProps.maxPushDescriptors;
-    limits.maxBufferSize = properties13.maxBufferSize;
-    limits.maxColorAttachments = properties2.properties.limits.maxColorAttachments;
-    limits.maxViewports = properties2.properties.limits.maxViewports;
-    limits.viewportBoundsMin = properties2.properties.limits.viewportBoundsRange[0];
-    limits.viewportBoundsMax = properties2.properties.limits.viewportBoundsRange[1];
-
-    /* Compute */
-    limits.maxComputeWorkgroupStorageSize = properties2.properties.limits.maxComputeSharedMemorySize;
-    limits.maxComputeInvocationsPerWorkgroup = properties2.properties.limits.maxComputeWorkGroupInvocations;
-
-    limits.maxComputeWorkgroupSizeX = properties2.properties.limits.maxComputeWorkGroupSize[0];
-    limits.maxComputeWorkgroupSizeY = properties2.properties.limits.maxComputeWorkGroupSize[1];
-    limits.maxComputeWorkgroupSizeZ = properties2.properties.limits.maxComputeWorkGroupSize[2];
-
-    limits.maxComputeWorkgroupsPerDimension = std::min({
-        properties2.properties.limits.maxComputeWorkGroupCount[0],
-        properties2.properties.limits.maxComputeWorkGroupCount[1],
-        properties2.properties.limits.maxComputeWorkGroupCount[2],
-        }
-        );
-
-    // Based on https://docs.vulkan.org/guide/latest/hlsl.html#_shader_model_coverage
-    limits.shaderModel = GPUShaderModel_6_0;
-    if (features11.multiview)
-        limits.shaderModel = GPUShaderModel_6_1;
-    if (features12.shaderFloat16 || features2.features.shaderInt16)
-        limits.shaderModel = GPUShaderModel_6_2;
-    if (extensions.accelerationStructure)
-        limits.shaderModel = GPUShaderModel_6_3;
-    if (limits.variableShadingRateTier >= GPUVariableShadingRateTier_2)
-        limits.shaderModel = GPUShaderModel_6_4;
-    //if (m_Desc.isMeshShaderSupported || m_Desc.rayTracingTier >= 2)
-    //    m_Desc.shaderModel = 65;
-    //if (m_Desc.isShaderAtomicsI64Supported)
-    //    m_Desc.shaderModel = 66;
-    //if (features.features.shaderStorageImageMultisample)
-    //    m_Desc.shaderModel = 67;
-
-    limits.conservativeRasterizationTier = GPUConservativeRasterizationTier_NotSupported;
-    if (extensions.conservativeRasterization)
-    {
-        limits.conservativeRasterizationTier = GPUConservativeRasterizationTier_1;
-
-        if (conservativeRasterizationProps.primitiveOverestimationSize < 1.0f / 2.0f && conservativeRasterizationProps.degenerateTrianglesRasterized)
-            limits.conservativeRasterizationTier = GPUConservativeRasterizationTier_2;
-        if (conservativeRasterizationProps.primitiveOverestimationSize <= 1.0 / 256.0f && conservativeRasterizationProps.degenerateTrianglesRasterized)
-            limits.conservativeRasterizationTier = GPUConservativeRasterizationTier_3;
-    }
-
-    limits.variableShadingRateTier = GPUVariableShadingRateTier_NotSupported;
-    if (extensions.fragmentShadingRate)
-    {
-        if (fragmentShadingRateFeatures.pipelineFragmentShadingRate == VK_TRUE)
-        {
-            limits.variableShadingRateTier = GPUVariableShadingRateTier_1;
-        }
-
-        if (fragmentShadingRateFeatures.primitiveFragmentShadingRate && fragmentShadingRateFeatures.attachmentFragmentShadingRate)
-        {
-            limits.variableShadingRateTier = GPUVariableShadingRateTier_2;
-        }
-
-        const auto& tileExtent = fragmentShadingRateProperties.minFragmentShadingRateAttachmentTexelSize;
-        limits.variableShadingRateImageTileSize = std::max(tileExtent.width, tileExtent.height);
-        limits.isAdditionalVariableShadingRatesSupported = fragmentShadingRateProperties.maxFragmentSize.height > 2 || fragmentShadingRateProperties.maxFragmentSize.width > 2;
-    }
-
-    // Ray tracing
-    limits.rayTracingTier = GPURayTracingTier_NotSupported;
-    if (features12.bufferDeviceAddress == VK_TRUE
-        && accelerationStructureFeatures.accelerationStructure == VK_TRUE
-        && rayTracingPipelineFeatures.rayTracingPipeline == VK_TRUE)
-    {
-        limits.rayTracingTier = GPURayTracingTier_1;
-
-        if (rayQueryFeatures.rayQuery == VK_TRUE)
-        {
-            limits.rayTracingTier = GPURayTracingTier_2;
-        }
-
-        //if (OpacityMicromapFeatures.micromap)
-        //    m_Desc.tiers.rayTracing++;
-
-        limits.rayTracingShaderGroupIdentifierSize = rayTracingPipelineProperties.shaderGroupHandleSize;
-        limits.rayTracingShaderTableAlignment = rayTracingPipelineProperties.shaderGroupBaseAlignment;
-        limits.rayTracingShaderTableMaxStride = rayTracingPipelineProperties.maxShaderGroupStride;
-        limits.rayTracingShaderRecursionMaxDepth = rayTracingPipelineProperties.maxRayRecursionDepth;
-        limits.rayTracingMaxGeometryCount = (uint32_t)accelerationStructureProperties.maxGeometryCount;
-        limits.rayTracingScratchAlignment = accelerationStructureProperties.minAccelerationStructureScratchOffsetAlignment;
-    }
-
-    // Mesh shader
-    limits.meshShaderTier = GPUMeshShaderTier_NotSupported;
-    if (meshShaderFeatures.meshShader == VK_TRUE && meshShaderFeatures.taskShader == VK_TRUE)
-    {
-        limits.meshShaderTier = GPUMeshShaderTier_1;
-    }
-
     return true;
 }
 
@@ -5126,11 +5029,6 @@ void VulkanAdapter::GetInfo(GPUAdapterInfo* info) const
 
     info->driverDescription = driverDescription.c_str();
     info->adapterType = adapterType;
-}
-
-void VulkanAdapter::GetLimits(GPUAdapterLimits* limits) const
-{
-    memcpy(limits, &this->limits, sizeof(GPUAdapterLimits));
 }
 
 bool VulkanAdapter::HasFeature(GPUFeature feature) const
@@ -5516,6 +5414,117 @@ GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
         device->vkCmdPushDescriptorSet = (PFN_vkCmdPushDescriptorSet)factory->vkGetDeviceProcAddr(device->handle, "vkCmdPushDescriptorSetKHR");
     }
 
+    // Init limits
+    device->limits.maxTextureDimension1D = properties2.properties.limits.maxImageDimension1D;
+    device->limits.maxTextureDimension2D = properties2.properties.limits.maxImageDimension2D;
+    device->limits.maxTextureDimension3D = properties2.properties.limits.maxImageDimension3D;
+    device->limits.maxTextureDimensionCube = properties2.properties.limits.maxImageDimensionCube;
+    device->limits.maxTextureArrayLayers = properties2.properties.limits.maxImageArrayLayers;
+    device->limits.maxBindGroups = properties2.properties.limits.maxBoundDescriptorSets;
+    device->limits.maxConstantBufferBindingSize = properties2.properties.limits.maxUniformBufferRange;
+    device->limits.maxStorageBufferBindingSize = properties2.properties.limits.maxStorageBufferRange;
+    device->limits.minConstantBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minUniformBufferOffsetAlignment;
+    device->limits.minStorageBufferOffsetAlignment = (uint32_t)properties2.properties.limits.minStorageBufferOffsetAlignment;
+    device->limits.maxPushConstantsSize = properties2.properties.limits.maxPushConstantsSize;
+    [[maybe_unused]] const uint32_t maxPushDescriptors = pushDescriptorProps.maxPushDescriptors;
+    device->limits.maxBufferSize = properties13.maxBufferSize;
+    device->limits.maxColorAttachments = properties2.properties.limits.maxColorAttachments;
+    device->limits.maxViewports = properties2.properties.limits.maxViewports;
+    device->limits.viewportBoundsMin = properties2.properties.limits.viewportBoundsRange[0];
+    device->limits.viewportBoundsMax = properties2.properties.limits.viewportBoundsRange[1];
+
+    /* Compute */
+    device->limits.maxComputeWorkgroupStorageSize = properties2.properties.limits.maxComputeSharedMemorySize;
+    device->limits.maxComputeInvocationsPerWorkgroup = properties2.properties.limits.maxComputeWorkGroupInvocations;
+
+    device->limits.maxComputeWorkgroupSizeX = properties2.properties.limits.maxComputeWorkGroupSize[0];
+    device->limits.maxComputeWorkgroupSizeY = properties2.properties.limits.maxComputeWorkGroupSize[1];
+    device->limits.maxComputeWorkgroupSizeZ = properties2.properties.limits.maxComputeWorkGroupSize[2];
+
+    device->limits.maxComputeWorkgroupsPerDimension = std::min({
+        properties2.properties.limits.maxComputeWorkGroupCount[0],
+        properties2.properties.limits.maxComputeWorkGroupCount[1],
+        properties2.properties.limits.maxComputeWorkGroupCount[2],
+        }
+        );
+
+    // Based on https://docs.vulkan.org/guide/latest/hlsl.html#_shader_model_coverage
+    device->limits.shaderModel = GPUShaderModel_6_0;
+    if (features11.multiview)
+        device->limits.shaderModel = GPUShaderModel_6_1;
+    if (features12.shaderFloat16 || features2.features.shaderInt16)
+        device->limits.shaderModel = GPUShaderModel_6_2;
+    if (extensions.accelerationStructure)
+        device->limits.shaderModel = GPUShaderModel_6_3;
+    if (device->limits.variableShadingRateTier >= GPUVariableShadingRateTier_2)
+        device->limits.shaderModel = GPUShaderModel_6_4;
+    //if (m_Desc.isMeshShaderSupported || m_Desc.rayTracingTier >= 2)
+    //    m_Desc.shaderModel = 65;
+    //if (m_Desc.isShaderAtomicsI64Supported)
+    //    m_Desc.shaderModel = 66;
+    //if (features.features.shaderStorageImageMultisample)
+    //    m_Desc.shaderModel = 67;
+
+    device->limits.conservativeRasterizationTier = GPUConservativeRasterizationTier_NotSupported;
+    if (extensions.conservativeRasterization)
+    {
+        device->limits.conservativeRasterizationTier = GPUConservativeRasterizationTier_1;
+
+        if (conservativeRasterizationProps.primitiveOverestimationSize < 1.0f / 2.0f && conservativeRasterizationProps.degenerateTrianglesRasterized)
+            device->limits.conservativeRasterizationTier = GPUConservativeRasterizationTier_2;
+        if (conservativeRasterizationProps.primitiveOverestimationSize <= 1.0 / 256.0f && conservativeRasterizationProps.degenerateTrianglesRasterized)
+            device->limits.conservativeRasterizationTier = GPUConservativeRasterizationTier_3;
+    }
+
+    device->limits.variableShadingRateTier = GPUVariableShadingRateTier_NotSupported;
+    if (extensions.fragmentShadingRate)
+    {
+        if (fragmentShadingRateFeatures.pipelineFragmentShadingRate == VK_TRUE)
+        {
+            device->limits.variableShadingRateTier = GPUVariableShadingRateTier_1;
+        }
+
+        if (fragmentShadingRateFeatures.primitiveFragmentShadingRate && fragmentShadingRateFeatures.attachmentFragmentShadingRate)
+        {
+            device->limits.variableShadingRateTier = GPUVariableShadingRateTier_2;
+        }
+
+        const auto& tileExtent = fragmentShadingRateProperties.minFragmentShadingRateAttachmentTexelSize;
+        device->limits.variableShadingRateImageTileSize = std::max(tileExtent.width, tileExtent.height);
+        device->limits.isAdditionalVariableShadingRatesSupported = fragmentShadingRateProperties.maxFragmentSize.height > 2 || fragmentShadingRateProperties.maxFragmentSize.width > 2;
+    }
+
+    // Ray tracing
+    device->limits.rayTracingTier = GPURayTracingTier_NotSupported;
+    if (features12.bufferDeviceAddress == VK_TRUE
+        && accelerationStructureFeatures.accelerationStructure == VK_TRUE
+        && rayTracingPipelineFeatures.rayTracingPipeline == VK_TRUE)
+    {
+        device->limits.rayTracingTier = GPURayTracingTier_1;
+
+        if (rayQueryFeatures.rayQuery == VK_TRUE)
+        {
+            device->limits.rayTracingTier = GPURayTracingTier_2;
+        }
+
+        //if (OpacityMicromapFeatures.micromap)
+        //    m_Desc.tiers.rayTracing++;
+
+        device->limits.rayTracingShaderGroupIdentifierSize = rayTracingPipelineProperties.shaderGroupHandleSize;
+        device->limits.rayTracingShaderTableAlignment = rayTracingPipelineProperties.shaderGroupBaseAlignment;
+        device->limits.rayTracingShaderTableMaxStride = rayTracingPipelineProperties.maxShaderGroupStride;
+        device->limits.rayTracingShaderRecursionMaxDepth = rayTracingPipelineProperties.maxRayRecursionDepth;
+        device->limits.rayTracingMaxGeometryCount = (uint32_t)accelerationStructureProperties.maxGeometryCount;
+        device->limits.rayTracingScratchAlignment = accelerationStructureProperties.minAccelerationStructureScratchOffsetAlignment;
+    }
+
+    // Mesh shader
+    device->limits.meshShaderTier = GPUMeshShaderTier_NotSupported;
+    if (meshShaderFeatures.meshShader == VK_TRUE && meshShaderFeatures.taskShader == VK_TRUE)
+    {
+        device->limits.meshShaderTier = GPUMeshShaderTier_1;
+    }
+
     // Queues
     VkFenceCreateInfo fenceInfo = {};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -5599,7 +5608,7 @@ GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
 
 #if VMA_DYNAMIC_VULKAN_FUNCTIONS
     static VmaVulkanFunctions vulkanFunctions = {};
-    vulkanFunctions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+    vulkanFunctions.vkGetInstanceProcAddr = vk_state.vkGetInstanceProcAddr;
     vulkanFunctions.vkGetDeviceProcAddr = factory->vkGetDeviceProcAddr;
     allocatorInfo.pVulkanFunctions = &vulkanFunctions;
 #endif
@@ -5702,6 +5711,12 @@ GPUSurface VulkanGPUFactory::CreateSurface(GPUSurfaceSource source)
     VkSurfaceKHR vk_surface = VK_NULL_HANDLE;
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
+    if (!win32Surface)
+    {
+        agpuLogError("Vulkan: surface creation from Win32 window is not supported");
+        return nullptr;
+    }
+
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
@@ -5725,7 +5740,7 @@ GPUSurface VulkanGPUFactory::CreateSurface(GPUSurfaceSource source)
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
     if (source->type == GPUSurfaceSourceImpl::Type::XlibWindow)
     {
-        if (!xlibDisplay)
+        if (!xlibSurface)
         {
             agpuLogError("Vulkan: surface creation from xlib window is not supported");
             return nullptr;
@@ -6155,7 +6170,7 @@ bool Vulkan_IsSupported(void)
     if (!vk_state.vk_module)
         return false;
 
-    vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)GetProcAddress(vk_state.vk_module, "vkGetInstanceProcAddr");
+    vk_state.vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)GetProcAddress(vk_state.vk_module, "vkGetInstanceProcAddr");
 #elif defined(__APPLE__)
     vk_state.vk_module = dlopen("libvulkan.dylib", RTLD_NOW | RTLD_LOCAL);
     if (!vk_state.vk_module)
@@ -6175,14 +6190,15 @@ bool Vulkan_IsSupported(void)
     if (!vk_state.vk_module)
         return false;
 
-    vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(vk_state.vk_module, "vkGetInstanceProcAddr");
+    vk_state.vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(vk_state.vk_module, "vkGetInstanceProcAddr");
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
     vk_state.vk_module = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
     if (!vk_state.vk_module)
         vk_state.vk_module = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
     if (!vk_state.vk_module)
         return false;
-    vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(vk_state.vk_module, "vkGetInstanceProcAddr");
+
+    vk_state.vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(vk_state.vk_module, "vkGetInstanceProcAddr");
 #else
     vk_state.vk_module = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
     if (!vk_state.vk_module) {
@@ -6191,11 +6207,12 @@ bool Vulkan_IsSupported(void)
     if (!vk_state.vk_module) {
         return false;
     }
-    vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(vk_state.vk_module, "vkGetInstanceProcAddr");
+
+    vk_state.vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(vk_state.vk_module, "vkGetInstanceProcAddr");
 #endif
 
 #define VULKAN_GLOBAL_FUNCTION(name) \
-    name = (PFN_##name)vkGetInstanceProcAddr(VK_NULL_HANDLE, #name); \
+    name = (PFN_##name)vk_state.vkGetInstanceProcAddr(VK_NULL_HANDLE, #name); \
     if (name == NULL) { \
         agpuLogWarn("vkGetInstanceProcAddr(VK_NULL_HANDLE, \"" #name "\") failed"); \
         return false; \
@@ -6256,6 +6273,10 @@ GPUFactory Vulkan_CreateFactory(const GPUFactoryDesc* desc)
         else if (strcmp(availableExtension.extensionName, VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME) == 0)
         {
             instanceExtensions.push_back(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
+        }
+        else if (strcmp(availableExtension.extensionName, "VK_KHR_win32_surface") == 0)
+        {
+            factory->win32Surface = true;
         }
         else if (strcmp(availableExtension.extensionName, "VK_KHR_xcb_surface") == 0)
         {
@@ -6401,7 +6422,7 @@ GPUFactory Vulkan_CreateFactory(const GPUFactoryDesc* desc)
         return nullptr;
     }
 
-#define VULKAN_INSTANCE_FUNCTION(name) factory->name = (PFN_##name)vkGetInstanceProcAddr(factory->handle, #name);
+#define VULKAN_INSTANCE_FUNCTION(name) factory->name = (PFN_##name)vk_state.vkGetInstanceProcAddr(factory->handle, #name);
 #include "alimer_gpu_vulkan_funcs.h"
 
     if (validationMode != GPUValidationMode_Disabled && factory->debugUtils)

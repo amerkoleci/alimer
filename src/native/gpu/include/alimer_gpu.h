@@ -490,8 +490,8 @@ typedef enum GPUCullMode {
 
 typedef enum GPUFrontFace {
     _GPUFrontFace_Default = 0,
-    GPUFrontFace_Clockwise,
     GPUFrontFace_CounterClockwise,
+    GPUFrontFace_Clockwise,
 
     _GPUFrontFace_Force32 = 0x7FFFFFFF
 } GPUFrontFace;
@@ -833,13 +833,6 @@ typedef struct GPUShaderModuleDesc
     const char* entryPoint DEFAULT_INITIALIZER("main");
 } GPUShaderModuleDesc;
 
-typedef struct GPUShaderDesc {
-    GPUShaderStage stage;
-    size_t bytecodeSize;
-    const void* bytecode;
-    const char* entryPoint DEFAULT_INITIALIZER("main");
-} GPUShaderDesc;
-
 typedef struct GPUComputePipelineDesc {
     const char* label DEFAULT_INITIALIZER(nullptr);
     GPUPipelineLayout layout;
@@ -867,12 +860,12 @@ typedef struct GPUVertexLayout {
 typedef struct GPURasterizerState {
     GPUFillMode fillMode DEFAULT_INITIALIZER(GPUFillMode_Solid);
     GPUCullMode cullMode DEFAULT_INITIALIZER(GPUCullMode_Back);
-    GPUFrontFace frontFace DEFAULT_INITIALIZER(GPUFrontFace_Clockwise);
+    GPUFrontFace frontFace DEFAULT_INITIALIZER(GPUFrontFace_CounterClockwise);
     float depthBias DEFAULT_INITIALIZER(0.0f);
     float depthBiasSlopeScale DEFAULT_INITIALIZER(0.0f);
     float depthBiasClamp DEFAULT_INITIALIZER(0.0f);
     GPUDepthClipMode depthClipMode DEFAULT_INITIALIZER(GPUDepthClipMode_Clip);
-    GPUBool conservativeRaster DEFAULT_INITIALIZER(false);
+    GPUBool conservativeRasterEnable DEFAULT_INITIALIZER(false);
 } GPURasterizerState;
 
 typedef struct GPUStencilFaceState {
@@ -910,20 +903,22 @@ typedef struct GPURenderPipelineColorAttachmentDesc {
 } GPURenderPipelineColorAttachmentDesc;
 
 typedef struct GPURenderPipelineDesc {
-    const char* label DEFAULT_INITIALIZER(nullptr);
+    const char*                             label DEFAULT_INITIALIZER(nullptr);
     GPUPipelineLayout                       layout;
 
-    uint32_t                                shaderCount;
-    const GPUShaderDesc* shaders;
+    GPUShaderModule                         vertexShader DEFAULT_INITIALIZER(nullptr);
+    GPUShaderModule                         fragmentShader DEFAULT_INITIALIZER(nullptr);
+    GPUShaderModule                         meshShader DEFAULT_INITIALIZER(nullptr);
+    GPUShaderModule                         amplificationShader DEFAULT_INITIALIZER(nullptr);
 
     GPURasterizerState                      rasterizerState;
     GPUDepthStencilState                    depthStencilState;
-    const GPUVertexLayout* vertexLayout DEFAULT_INITIALIZER(nullptr);
+    const GPUVertexLayout*                  vertexLayout DEFAULT_INITIALIZER(nullptr);
     GPUPrimitiveTopology                    primitiveTopology DEFAULT_INITIALIZER(GPUPrimitiveTopology_TriangleList);
     GPUMultisampleState                     multisample;
     uint32_t                                colorAttachmentCount DEFAULT_INITIALIZER(0);
     GPURenderPipelineColorAttachmentDesc    colorAttachments[GPU_MAX_COLOR_ATTACHMENTS];
-    GPUPixelFormat                           depthStencilAttachmentFormat DEFAULT_INITIALIZER(GPUPixelFormat_Undefined);
+    GPUPixelFormat                          depthStencilAttachmentFormat DEFAULT_INITIALIZER(GPUPixelFormat_Undefined);
 } GPURenderPipelineDesc;
 
 typedef struct GPUQueryHeapDesc {
@@ -982,7 +977,7 @@ typedef struct GPUAdapterInfo {
     uint32_t deviceID;
 } GPUAdapterInfo;
 
-typedef struct GPUAdapterLimits {
+typedef struct GPUDeviceLimits {
     uint32_t maxTextureDimension1D;
     uint32_t maxTextureDimension2D;
     uint32_t maxTextureDimension3D;
@@ -1029,7 +1024,7 @@ typedef struct GPUAdapterLimits {
 
     /* Mesh shader */
     GPUMeshShaderTier meshShaderTier;
-} GPUAdapterLimits;
+} GPUDeviceLimits;
 
 typedef struct GPUSurfaceCapabilities {
     GPUPixelFormat preferredFormat;
@@ -1087,11 +1082,11 @@ ALIMER_GPU_API GPUBackendType agpuFactoryGetBackend(GPUFactory factory);
 ALIMER_GPU_API uint32_t agpuFactoryGetAdapterCount(GPUFactory factory);
 ALIMER_GPU_API GPUAdapter agpuFactoryGetAdapter(GPUFactory factory, uint32_t index);
 ALIMER_GPU_API GPUAdapter agpuFactoryGetBestAdapter(GPUFactory factory);
+ALIMER_GPU_API GPUSurface agpuFactoryCreateSurface(GPUFactory factory, GPUSurfaceSource source);
 
 /* Adapter */
 ALIMER_GPU_API void agpuAdapterGetInfo(GPUAdapter adapter, GPUAdapterInfo* info);
-ALIMER_GPU_API void agpuAdapterGetLimits(GPUAdapter adapter, GPUAdapterLimits* limits);
-ALIMER_GPU_API bool agpuAdapterHasFeature(GPUAdapter adapter, GPUFeature feature);
+ALIMER_GPU_API GPUDevice agpuAdapterCreateDevice(GPUAdapter adapter, const GPUDeviceDesc* desc);
 
 /* SurfaceSource */
 ALIMER_GPU_API GPUSurfaceSource agpuSurfaceSourceCreateFromWin32(void* hwnd);
@@ -1102,7 +1097,6 @@ ALIMER_GPU_API GPUSurfaceSource agpuSurfaceSourceCreateFromXlibWindow(void* disp
 ALIMER_GPU_API void agpuSurfaceSourceDestroy(GPUSurfaceSource surfaceSource);
 
 /* Surface */
-ALIMER_GPU_API GPUSurface agpuCreateSurface(GPUFactory factory, GPUSurfaceSource source);
 ALIMER_GPU_API void agpuSurfaceGetCapabilities(GPUSurface surface, GPUAdapter adapter, GPUSurfaceCapabilities* capabilities);
 ALIMER_GPU_API bool agpuSurfaceConfigure(GPUSurface surface, const GPUSurfaceConfig* config);
 ALIMER_GPU_API void agpuSurfaceUnconfigure(GPUSurface surface);
@@ -1110,10 +1104,10 @@ ALIMER_GPU_API uint32_t agpuSurfaceAddRef(GPUSurface surface);
 ALIMER_GPU_API uint32_t agpuSurfaceRelease(GPUSurface surface);
 
 /* Device */
-ALIMER_GPU_API GPUDevice agpuCreateDevice(GPUAdapter adapter, const GPUDeviceDesc* desc);
 ALIMER_GPU_API void agpuDeviceSetLabel(GPUDevice device, const char* label);
 ALIMER_GPU_API uint32_t agpuDeviceAddRef(GPUDevice device);
 ALIMER_GPU_API uint32_t agpuDeviceRelease(GPUDevice device);
+ALIMER_GPU_API void agpuDeviceGetLimits(GPUDevice device, GPUDeviceLimits* limits);
 ALIMER_GPU_API bool agpuDeviceHasFeature(GPUDevice device, GPUFeature feature);
 ALIMER_GPU_API GPUCommandQueue agpuDeviceGetCommandQueue(GPUDevice device, GPUCommandQueueType type);
 ALIMER_GPU_API void agpuDeviceWaitIdle(GPUDevice device);
@@ -1121,6 +1115,10 @@ ALIMER_GPU_API uint64_t agpuDeviceGetTimestampFrequency(GPUDevice device);
 
 /// Commit the current frame and advance to next frame
 ALIMER_GPU_API uint64_t agpuDeviceCommitFrame(GPUDevice device);
+
+/* Device resource creation methods */
+ALIMER_GPU_API GPUBuffer agpuDeviceCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData);
+ALIMER_GPU_API GPUTexture agpuDeviceCreateTexture(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData);
 
 /* CommandQueue */
 ALIMER_GPU_API GPUCommandQueueType agpuCommandQueueGetType(GPUCommandQueue queue);
@@ -1170,7 +1168,6 @@ ALIMER_GPU_API void agpuRenderPassEncoderPopDebugGroup(GPURenderPassEncoder rend
 ALIMER_GPU_API void agpuRenderPassEncoderInsertDebugMarker(GPURenderPassEncoder renderPassEncoder, const char* markerLabel);
 
 /* Buffer */
-ALIMER_GPU_API GPUBuffer agpuCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData);
 ALIMER_GPU_API void agpuBufferSetLabel(GPUBuffer buffer, const char* label);
 ALIMER_GPU_API uint32_t agpuBufferAddRef(GPUBuffer buffer);
 ALIMER_GPU_API uint32_t agpuBufferRelease(GPUBuffer buffer);
@@ -1178,7 +1175,6 @@ ALIMER_GPU_API uint64_t agpuBufferGetSize(GPUBuffer buffer);
 ALIMER_GPU_API GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer buffer);
 
 /* Texture */
-ALIMER_GPU_API GPUTexture agpuCreateTexture(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData);
 ALIMER_GPU_API void agpuTextureSetLabel(GPUTexture texture, const char* label);
 ALIMER_GPU_API GPUTextureDimension agpuTextureGetDimension(GPUTexture texture);
 ALIMER_GPU_API GPUPixelFormat agpuTextureGetFormat(GPUTexture texture);

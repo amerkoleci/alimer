@@ -383,6 +383,14 @@ GPUAdapter agpuFactoryGetBestAdapter(GPUFactory factory)
     return result;
 }
 
+GPUSurface agpuFactoryCreateSurface(GPUFactory factory, GPUSurfaceSource source)
+{
+    ALIMER_ASSERT(factory);
+    ALIMER_ASSERT(source);
+
+    return factory->CreateSurface(source);
+}
+
 /* Adapter */
 void agpuAdapterGetInfo(GPUAdapter adapter, GPUAdapterInfo* info)
 {
@@ -392,17 +400,21 @@ void agpuAdapterGetInfo(GPUAdapter adapter, GPUAdapterInfo* info)
     adapter->GetInfo(info);
 }
 
-void agpuAdapterGetLimits(GPUAdapter adapter, GPUAdapterLimits* limits)
+static GPUDeviceDesc _GPUDeviceDesc_Defaults(const GPUDeviceDesc* desc)
 {
-    if (!limits)
-        return;
+    GPUDeviceDesc def = {};
+    if (desc != nullptr)
+        def = *desc;
 
-    adapter->GetLimits(limits);
+    // 2 or 3
+    def.maxFramesInFlight = std::min(_ALIMER_DEF(def.maxFramesInFlight, 2u), 3u);
+    return def;
 }
 
-bool agpuAdapterHasFeature(GPUAdapter adapter, GPUFeature feature)
+GPUDevice agpuAdapterCreateDevice(GPUAdapter adapter, const GPUDeviceDesc* desc)
 {
-    return adapter->HasFeature(feature);
+    GPUDeviceDesc descDef = _GPUDeviceDesc_Defaults(desc);
+    return adapter->CreateDevice(descDef);
 }
 
 /* SurfaceSource */
@@ -454,14 +466,6 @@ void agpuSurfaceSourceDestroy(GPUSurfaceSource surfaceSource)
 }
 
 /* Surface */
-GPUSurface agpuCreateSurface(GPUFactory factory, GPUSurfaceSource source)
-{
-    ALIMER_ASSERT(factory);
-    ALIMER_ASSERT(source);
-
-    return factory->CreateSurface(source);
-}
-
 void agpuSurfaceGetCapabilities(GPUSurface surface, GPUAdapter adapter, GPUSurfaceCapabilities* capabilities)
 {
     if (!surface || !adapter || !capabilities)
@@ -509,23 +513,6 @@ uint32_t agpuSurfaceRelease(GPUSurface surface)
 }
 
 /* Device */
-static GPUDeviceDesc _GPUDeviceDesc_Defaults(const GPUDeviceDesc* desc)
-{
-    GPUDeviceDesc def = {};
-    if (desc != nullptr)
-        def = *desc;
-
-    // 2 or 3
-    def.maxFramesInFlight = std::min(_ALIMER_DEF(def.maxFramesInFlight, 2u), 3u);
-    return def;
-}
-
-GPUDevice agpuCreateDevice(GPUAdapter adapter, const GPUDeviceDesc* desc)
-{
-    GPUDeviceDesc descDef = _GPUDeviceDesc_Defaults(desc);
-    return adapter->CreateDevice(descDef);
-}
-
 void agpuDeviceSetLabel(GPUDevice device, const char* label)
 {
     device->SetLabel(label);
@@ -539,6 +526,14 @@ uint32_t agpuDeviceAddRef(GPUDevice device)
 uint32_t agpuDeviceRelease(GPUDevice device)
 {
     return device->Release();
+}
+
+void agpuDeviceGetLimits(GPUDevice device, GPUDeviceLimits* limits)
+{
+    if (!limits)
+        return;
+
+    device->GetLimits(limits);
 }
 
 bool agpuDeviceHasFeature(GPUDevice device, GPUFeature feature)
@@ -564,6 +559,83 @@ uint64_t agpuDeviceGetTimestampFrequency(GPUDevice device)
 uint64_t agpuDeviceCommitFrame(GPUDevice device)
 {
     return device->CommitFrame();
+}
+
+static GPUBufferDesc _GPUBufferDesc_Defaults(const GPUBufferDesc* desc)
+{
+    GPUBufferDesc def = *desc;
+    return def;
+}
+
+GPUBuffer agpuDeviceCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData)
+{
+    if (!desc)
+        return nullptr;
+
+    GPUBufferDesc descDef = _GPUBufferDesc_Defaults(desc);
+
+    // TODO: Validation
+    //if (descDef.size > adapterProperties.limits.bufferMaxSize)
+    //{
+    //    alimerLogError("Buffer size too large: {}, limit: {}", desc.size, adapterProperties.limits.bufferMaxSize);
+    //    return nullptr;
+    //}
+
+    return device->CreateBuffer(descDef, pInitialData);
+}
+
+static GPUTextureDesc _GPUTextureDesc_Defaults(const GPUTextureDesc* desc)
+{
+    GPUTextureDesc def = *desc;
+    def.dimension = _ALIMER_DEF(def.dimension, GPUTextureDimension_2D);
+    def.format = _ALIMER_DEF(def.format, GPUPixelFormat_RGBA8Unorm);
+    def.width = _ALIMER_DEF(def.width, 1u);
+    def.height = _ALIMER_DEF(def.height, 1u);
+    def.depthOrArrayLayers = _ALIMER_DEF(def.depthOrArrayLayers, 1u);
+    if (def.mipLevelCount == 0)
+    {
+        def.mipLevelCount = GetMipLevelCount(def.width, def.height, def.depthOrArrayLayers);
+    }
+    def.sampleCount = _ALIMER_DEF(def.sampleCount, 1u);
+    return def;
+}
+
+static bool ValidateTextureDesc(const GPUTextureDesc& desc)
+{
+    if (desc.width < 1 || desc.height < 1 || desc.depthOrArrayLayers < 1)
+    {
+        agpuLogError("Texture width, height and depthOrArrayLayers must be non-zero.");
+        return false;
+    }
+
+    if (desc.format == GPUPixelFormat_Undefined)
+    {
+        agpuLogError("Texture format must be different than Undefined.");
+        return false;
+    }
+
+    if ((desc.dimension == GPUTextureDimension_1D || desc.dimension == GPUTextureDimension_3D)
+        && desc.sampleCount != 1)
+    {
+        agpuLogError("1D and 3D Textures must use TextureSampleCount.Count1.");
+        return false;
+    }
+
+    return true;
+}
+
+GPUTexture agpuDeviceCreateTexture(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData)
+{
+    if (!desc)
+        return nullptr;
+
+    GPUTextureDesc descDef = _GPUTextureDesc_Defaults(desc);
+    if (!ValidateTextureDesc(descDef))
+    {
+        return nullptr;
+    }
+
+    return device->CreateTexture(descDef, pInitialData);
 }
 
 /* CommandQueue */
@@ -786,28 +858,6 @@ void agpuRenderPassEncoderInsertDebugMarker(GPURenderPassEncoder renderPassEncod
 }
 
 /* Buffer */
-static GPUBufferDesc _GPUBufferDesc_Defaults(const GPUBufferDesc* desc) {
-    GPUBufferDesc def = *desc;
-    return def;
-}
-
-GPUBuffer agpuCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData)
-{
-    if (!desc)
-        return nullptr;
-
-    GPUBufferDesc descDef = _GPUBufferDesc_Defaults(desc);
-
-    // TODO: Validation
-    //if (descDef.size > adapterProperties.limits.bufferMaxSize)
-    //{
-    //    alimerLogError("Buffer size too large: {}, limit: {}", desc.size, adapterProperties.limits.bufferMaxSize);
-    //    return nullptr;
-    //}
-
-    return device->CreateBuffer(descDef, pInitialData);
-}
-
 void agpuBufferSetLabel(GPUBuffer buffer, const char* label)
 {
     buffer->SetLabel(label);
@@ -834,59 +884,6 @@ GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer buffer)
 }
 
 /* Texture */
-static GPUTextureDesc _GPUTextureDesc_Defaults(const GPUTextureDesc* desc) {
-    GPUTextureDesc def = *desc;
-    def.dimension = _ALIMER_DEF(def.dimension, GPUTextureDimension_2D);
-    def.format = _ALIMER_DEF(def.format, GPUPixelFormat_RGBA8Unorm);
-    def.width = _ALIMER_DEF(def.width, 1u);
-    def.height = _ALIMER_DEF(def.height, 1u);
-    def.depthOrArrayLayers = _ALIMER_DEF(def.depthOrArrayLayers, 1u);
-    if (def.mipLevelCount == 0)
-    {
-        def.mipLevelCount = GetMipLevelCount(def.width, def.height, def.depthOrArrayLayers);
-    }
-    def.sampleCount = _ALIMER_DEF(def.sampleCount, 1u);
-    return def;
-}
-
-static bool ValidateTextureDesc(const GPUTextureDesc& desc)
-{
-    if (desc.width < 1 || desc.height < 1 || desc.depthOrArrayLayers < 1)
-    {
-        agpuLogError("Texture width, height and depthOrArrayLayers must be non-zero.");
-        return false;
-    }
-
-    if (desc.format == GPUPixelFormat_Undefined)
-    {
-        agpuLogError("Texture format must be different than Undefined.");
-        return false;
-    }
-
-    if ((desc.dimension == GPUTextureDimension_1D || desc.dimension == GPUTextureDimension_3D)
-        && desc.sampleCount != 1)
-    {
-        agpuLogError("1D and 3D Textures must use TextureSampleCount.Count1.");
-        return false;
-    }
-
-    return true;
-}
-
-GPUTexture agpuCreateTexture(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData)
-{
-    if (!desc)
-        return nullptr;
-
-    GPUTextureDesc descDef = _GPUTextureDesc_Defaults(desc);
-    if (!ValidateTextureDesc(descDef))
-    {
-        return nullptr;
-    }
-
-    return device->CreateTexture(descDef, pInitialData);
-}
-
 void agpuTextureSetLabel(GPUTexture texture, const char* label)
 {
     texture->SetLabel(label);
@@ -1102,7 +1099,7 @@ static GPURenderPipelineDesc _GPURenderPipelineDesc_Defaults(const GPURenderPipe
     // RasterizerState
     def.rasterizerState.fillMode = _ALIMER_DEF(def.rasterizerState.fillMode, GPUFillMode_Solid);
     def.rasterizerState.cullMode = _ALIMER_DEF(def.rasterizerState.cullMode, GPUCullMode_Back);
-    def.rasterizerState.frontFace = _ALIMER_DEF(def.rasterizerState.frontFace, GPUFrontFace_Clockwise);
+    def.rasterizerState.frontFace = _ALIMER_DEF(def.rasterizerState.frontFace, GPUFrontFace_CounterClockwise);
     def.rasterizerState.depthClipMode = _ALIMER_DEF(def.rasterizerState.depthClipMode, GPUDepthClipMode_Clip);
 
     // DepthStencilState
