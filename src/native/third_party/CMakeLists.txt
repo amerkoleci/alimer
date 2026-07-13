@@ -173,7 +173,7 @@ if(ALIMER_PHYSICS)
         CPMAddPackage(
             NAME JoltPhysics
             GITHUB_REPOSITORY jrouwe/JoltPhysics
-            GIT_TAG 9bc7080346639d8511cba090dd10aeb5154e18cf
+            GIT_TAG "v5.6.0"
             SOURCE_SUBDIR Build
             OPTIONS
                 "DOUBLE_PRECISION OFF"

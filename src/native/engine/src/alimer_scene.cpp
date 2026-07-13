@@ -23,14 +23,19 @@ static Scene* tryLoadGltfFromMemory(const void* pData, size_t dataSize)
         return nullptr;
     }
 
-#if defined(_DEBUG)
+    // Load buffer data (for external .bin references; GLB has embedded buffers).
+    cgltf_result loadResult = cgltf_load_buffers(&options, data, nullptr);
+    if (loadResult != cgltf_result_success)
+    {
+        return nullptr;
+    }
+
     // Validate the data
-    result = cgltf_validate(data);
-    if (result != cgltf_result_success)
+    cgltf_result validateResult = cgltf_validate(data);
+    if (validateResult != cgltf_result_success)
     {
         // Continue anyway - validation failures might not be critical
     }
-#endif
 
     Scene* scene = ALIMER_ALLOC(Scene);
     ALIMER_ASSERT(scene);

@@ -638,6 +638,21 @@ GPUTexture agpuDeviceCreateTexture(GPUDevice device, const GPUTextureDesc* desc,
     return device->CreateTexture(descDef, pInitialData);
 }
 
+static GPUSamplerDesc _GPUSamplerDesc_Defaults(const GPUSamplerDesc* desc)
+{
+    GPUSamplerDesc def = {};
+    if (desc)
+        def = *desc;
+
+    return def;
+}
+
+GPUSampler agpuDeviceCreateSampler(GPUDevice device, const GPUSamplerDesc* desc)
+{
+    GPUSamplerDesc descDef = _GPUSamplerDesc_Defaults(desc);
+    return device->CreateSampler(descDef);
+}
+
 /* CommandQueue */
 GPUCommandQueueType agpuCommandQueueGetType(GPUCommandQueue queue)
 {
@@ -950,21 +965,6 @@ uint32_t agpuTextureRelease(GPUTexture texture)
 }
 
 /* Sampler */
-static GPUSamplerDesc _GPUSamplerDesc_Defaults(const GPUSamplerDesc* desc) {
-    GPUSamplerDesc def = {};
-    if (desc)
-        def = *desc;
-
-    return def;
-}
-
-
-GPUSampler agpuCreateSampler(GPUDevice device, const GPUSamplerDesc* desc)
-{
-    GPUSamplerDesc descDef = _GPUSamplerDesc_Defaults(desc);
-    return device->CreateSampler(descDef);
-}
-
 void agpuSamplerSetLabel(GPUSampler sampler, const char* label)
 {
     sampler->SetLabel(label);

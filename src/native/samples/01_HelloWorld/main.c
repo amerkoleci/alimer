@@ -78,6 +78,7 @@ int main(void)
     GPUFactory gpuFactory = agpuCreateFactory(&factoryDesc);
     GPUAdapter adapter = agpuFactoryGetBestAdapter(gpuFactory);
     GPUDevice device = agpuAdapterCreateDevice(adapter, NULL);
+    GPUSampler sampler = agpuDeviceCreateSampler(device, NULL);
 #endif
 
 #if defined(ALIMER_PHYSICS)
@@ -105,6 +106,7 @@ int main(void)
 #endif
 
 #if defined(ALIMER_GPU)
+    agpuSamplerRelease(sampler);
     agpuDeviceRelease(device);
     agpuFactoryDestroy(gpuFactory);
 #endif

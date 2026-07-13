@@ -384,6 +384,22 @@ namespace
         }
     }
 
+    [[nodiscard]] constexpr const char* GetSemanticName(GPUVertexAttributeSemantic value)
+    {
+        switch (value)
+        {
+            case GPUVertexAttributeSemantic_Position:       return "POSITION";
+            case GPUVertexAttributeSemantic_Normal:         return "NORMAL";
+            case GPUVertexAttributeSemantic_Tangent:        return "TANGENT";
+            case GPUVertexAttributeSemantic_TexCoord:       return "TEXCOORD";
+            case GPUVertexAttributeSemantic_Color:          return "COLOR";
+            case GPUVertexAttributeSemantic_BlendIndices:   return "BLENDINDICES";
+            case GPUVertexAttributeSemantic_BlendWeight:    return "BLENDWEIGHT";
+            case GPUVertexAttributeSemantic_Custom:         return "CUSTOM";
+            default:                                        return nullptr;
+        }
+    }
+
     [[nodiscard]] constexpr D3D12_COMPARISON_FUNC ToD3D12(GPUCompareFunction value)
     {
         switch (value)
@@ -771,6 +787,24 @@ namespace
             default:
             case D3D_SHADER_MODEL_6_0:
                 return GPUShaderModel_6_0;
+        }
+    }
+
+    [[nodiscard]] constexpr GPUVariableShadingRateTier FromD3D12(D3D12_VARIABLE_SHADING_RATE_TIER value)
+    {
+        switch (value)
+        {
+            case D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED:
+                return GPUVariableShadingRateTier_NotSupported;
+
+            case D3D12_VARIABLE_SHADING_RATE_TIER_1:
+                return GPUVariableShadingRateTier_1;
+
+            case D3D12_VARIABLE_SHADING_RATE_TIER_2:
+                return GPUVariableShadingRateTier_2;
+
+            default:
+                ALIMER_UNREACHABLE();
         }
     }
 
@@ -3953,19 +3987,19 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> inputElements;
     D3D12_INPUT_LAYOUT_DESC inputLayout = {};
-    if (desc.vertexLayout != nullptr && desc.vertexLayout->bufferCount > 0)
+    if (desc.vertexBufferLayoutCount > 0)
     {
-        for (uint32_t bufferIndex = 0; bufferIndex < desc.vertexLayout->bufferCount; ++bufferIndex)
+        for (uint32_t bufferIndex = 0; bufferIndex < desc.vertexBufferLayoutCount; ++bufferIndex)
         {
-            const GPUVertexBufferLayout& layout = desc.vertexLayout->buffers[bufferIndex];
+            const GPUVertexBufferLayout& layout = desc.vertexBufferLayouts[bufferIndex];
 
             for (uint32_t attributeIndex = 0; attributeIndex < layout.attributeCount; ++attributeIndex)
             {
                 const GPUVertexAttribute& attribute = layout.attributes[attributeIndex];
 
                 auto& element = inputElements.emplace_back();
-                element.SemanticName = "ATTRIBUTE";
-                element.SemanticIndex = attribute.shaderLocation;
+                element.SemanticName = GetSemanticName(attribute.semantic);
+                element.SemanticIndex = attribute.semantic;
                 element.Format = ToDxgiFormat(attribute.format);
                 element.InputSlot = bufferIndex;
                 element.AlignedByteOffset = attribute.offset;
@@ -4653,7 +4687,7 @@ GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
     device->limits.conservativeRasterizationTier = static_cast<GPUConservativeRasterizationTier>(features.ConservativeRasterizationTier());
 
     // VariableRateShading
-    device->limits.variableShadingRateTier = static_cast<GPUVariableShadingRateTier>(features.VariableShadingRateTier());
+    device->limits.variableShadingRateTier = FromD3D12(features.VariableShadingRateTier());
     if (features.VariableShadingRateTier() != D3D12_VARIABLE_SHADING_RATE_TIER_NOT_SUPPORTED)
     {
         device->limits.variableShadingRateImageTileSize = features.ShadingRateImageTileSize();
