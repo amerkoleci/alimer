@@ -42,7 +42,7 @@ static void OnAudioDeviceCallback(AudioDevice* device, void* userdata)
 
 int main(void)
 {
-#if defined(ALIMER_AUDIO) && TODO
+#if defined(ALIMER_AUDIO) && defined(TEST_AUDIO)
     if (!alimerAudioInit())
     {
         return EXIT_FAILURE;
@@ -93,8 +93,8 @@ int main(void)
     PhysicsWorld* physicsWorld = alimerPhysicsWorldCreate(&physicsWorldConfig);
 #endif
 
-#if defined(ALIMER_AUDIO) && TODO
-    while (true)
+#if defined(ALIMER_AUDIO) && defined(TEST_AUDIO)
+    while (alimerAudioSourceIsPlaying(source2))
     {
 
     }

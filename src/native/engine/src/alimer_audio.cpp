@@ -610,7 +610,7 @@ AudioSource* alimerAudioSourceCreate(AudioEngine* engine, AudioClip* clip)
     source->handle = (ma_sound*)ma_malloc(sizeof(ma_sound), nullptr);
 
     ma_uint32 soundFlags = 0; // MA_SOUND_FLAG_STREAM
-    ma_result result = ma_sound_init_from_data_source(&engine->handle, &clip->decoder, soundFlags, nullptr, source->handle);
+    ma_result result = ma_sound_init_from_data_source(&engine->handle, clip->decoder, soundFlags, nullptr, source->handle);
     if (result != MA_SUCCESS)
     {
         alimerLogError(LogCategory_Audio, "Failed to initialize audio source!");
@@ -654,6 +654,15 @@ void alimerAudioSourcePlay(AudioSource* source)
     }
 }
 
+void alimerAudioSourcePause(AudioSource* source)
+{
+    ma_result result = ma_sound_stop(source->handle);
+    if (result != MA_SUCCESS)
+    {
+        alimerLogError(LogCategory_Audio, "ma_sound_stop failed: %s", ma_result_description(result));
+    }
+}
+
 void alimerAudioSourceStop(AudioSource* source)
 {
     ma_result result = ma_sound_stop(source->handle);
@@ -661,6 +670,7 @@ void alimerAudioSourceStop(AudioSource* source)
     {
         alimerLogError(LogCategory_Audio, "ma_sound_stop failed: %s", ma_result_description(result));
     }
+    ma_sound_seek_to_pcm_frame(source->handle, 0);
 }
 
 float alimerAudioSourceGetVolume(AudioSource* source, VolumeUnit unit)
@@ -715,6 +725,42 @@ bool alimerAudioSourceIsSpatializationEnabled(const AudioSource* source)
     return ma_sound_is_spatialization_enabled(source->handle) == MA_TRUE;
 }
 
+void alimerAudioSourceSetPosition(AudioSource* source, const Vector3* value)
+{
+    ALIMER_ASSERT(value);
+
+    ma_sound_set_position(source->handle, value->x, value->y, value->z);
+}
+
+void alimerAudioSourceGetPosition(const AudioSource* source, Vector3* result)
+{
+    FromMiniaudio(ma_sound_get_position(source->handle), result);
+}
+
+void alimerAudioSourceSetDirection(AudioSource* source, const Vector3* value)
+{
+    ALIMER_ASSERT(value);
+
+    ma_sound_set_direction(source->handle, value->x, value->y, value->z);
+}
+
+void alimerAudioSourceGetDirection(const AudioSource* source, Vector3* result)
+{
+    FromMiniaudio(ma_sound_get_direction(source->handle), result);
+}
+
+void alimerAudioSourceSetVelocity(AudioSource* source, const Vector3* value)
+{
+    ALIMER_ASSERT(value);
+
+    ma_sound_set_velocity(source->handle, value->x, value->y, value->z);
+}
+
+void alimerAudioSourceGetVelocity(const AudioSource* source, Vector3* result)
+{
+    FromMiniaudio(ma_sound_get_velocity(source->handle), result);
+}
+
 bool alimerAudioSourceIsPlaying(AudioSource* source)
 {
     return ma_sound_is_playing(source->handle) == MA_TRUE;
@@ -743,6 +789,75 @@ bool alimerAudioSourceIsLooping(const AudioSource* source)
 bool alimerAudioSourceIsAtEnd(const AudioSource* source)
 {
     return ma_sound_at_end(source->handle) == MA_TRUE;
+}
+
+void alimerAudioSourceSeekToPCMFrame(const AudioSource* source, uint64_t frameIndex)
+{
+    ma_result result = ma_sound_seek_to_pcm_frame(source->handle, frameIndex);
+    if (result != MA_SUCCESS)
+    {
+        alimerLogError(LogCategory_Audio, "ma_sound_seek_to_pcm_frame failed: %s", ma_result_description(result));
+    }
+}
+
+void alimerAudioSourceSeekToSecond(const AudioSource* source, float seekPointInSeconds)
+{
+    // ma_sound_get_data_format -> frameIndex = (ma_uint64)(seekPointInSeconds * sampleRate) -> ma_sound_seek_to_pcm_frame(frameIndex)
+    ma_result result = ma_sound_seek_to_second(source->handle, seekPointInSeconds);
+    if (result != MA_SUCCESS)
+    {
+        alimerLogError(LogCategory_Audio, "ma_sound_seek_to_second failed: %s", ma_result_description(result));
+    }
+}
+
+uint64_t alimerAudioSourceGetCursorInPCMFrames(const AudioSource* source)
+{
+    ma_uint64 cursor = 0;
+    ma_result result = ma_sound_get_cursor_in_pcm_frames(source->handle, &cursor);
+    if (result != MA_SUCCESS)
+    {
+        alimerLogError(LogCategory_Audio, "ma_sound_get_cursor_in_pcm_frames failed: %s", ma_result_description(result));
+    }
+
+    return (uint64_t)cursor;
+}
+
+uint64_t alimerAudioSourceGetLengthInPCMFrames(const AudioSource* source)
+{
+    ma_uint64 cursor = 0;
+    ma_result result = ma_sound_get_length_in_pcm_frames(source->handle, &cursor);
+    if (result != MA_SUCCESS)
+    {
+        alimerLogError(LogCategory_Audio, "ma_sound_get_length_in_pcm_frames failed: %s", ma_result_description(result));
+    }
+
+    return (uint64_t)cursor;
+}
+
+float alimerAudioSourceGetCursorInSeconds(const AudioSource* source)
+{
+    float cursor = 0.0f;
+    ma_result result = ma_sound_get_cursor_in_seconds(source->handle, &cursor);
+    if (result != MA_SUCCESS)
+    {
+        alimerLogError(LogCategory_Audio, "ma_sound_get_cursor_in_seconds failed: %s", ma_result_description(result));
+        return 0.0f;
+    }
+
+    return cursor;
+}
+
+float alimerAudioSourceGetLengthInSeconds(const AudioSource* source)
+{
+    float length = 0.0f;
+    ma_result result = ma_sound_get_length_in_seconds(source->handle, &length);
+    if (result != MA_SUCCESS)
+    {
+        alimerLogError(LogCategory_Audio, "ma_sound_get_length_in_seconds failed: %s", ma_result_description(result));
+        return 0.0f;
+    }
+
+    return length;
 }
 
 #endif /* defined(ALIMER_AUDIO) */
