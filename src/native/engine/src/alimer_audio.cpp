@@ -103,6 +103,32 @@ namespace
         }
     }
 
+    constexpr AudioAttenuationModel FromMiniaudio(ma_attenuation_model value)
+    {
+        switch (value)
+        {
+            case ma_attenuation_model_none: return AudioAttenuationModel_None;
+            case ma_attenuation_model_inverse: return AudioAttenuationModel_Inverse;
+            case ma_attenuation_model_linear: return AudioAttenuationModel_Linear;
+            case ma_attenuation_model_exponential: return AudioAttenuationModel_Exponential;
+
+            default:
+                ALIMER_UNREACHABLE();
+                return AudioAttenuationModel_None;
+        }
+    }
+
+    constexpr AudioPositioning FromMiniaudio(ma_positioning value)
+    {
+        switch (value)
+        {
+            case ma_positioning_absolute: return AudioPositioning_Absolute;
+            case ma_positioning_relative: return AudioPositioning_Relative;
+            default:
+                ALIMER_UNREACHABLE();
+                return AudioPositioning_Absolute;
+        }
+    }
 
     static void FromMiniaudio(const ma_vec3f& value, Vector3* result)
     {
@@ -128,6 +154,33 @@ namespace
             default:
                 ALIMER_UNREACHABLE();
                 return ma_pan_mode_balance;
+        }
+    }
+
+    constexpr ma_attenuation_model ToMiniaudio(AudioAttenuationModel value)
+    {
+        switch (value)
+        {
+            case AudioAttenuationModel_None: return ma_attenuation_model_none;
+            case AudioAttenuationModel_Inverse: return ma_attenuation_model_inverse;
+            case AudioAttenuationModel_Linear: return ma_attenuation_model_linear;
+            case AudioAttenuationModel_Exponential: return ma_attenuation_model_exponential;
+
+            default:
+                ALIMER_UNREACHABLE();
+                return ma_attenuation_model_none;
+        }
+    }
+
+    constexpr ma_positioning ToMiniaudio(AudioPositioning value)
+    {
+        switch (value)
+        {
+            case AudioPositioning_Relative: return ma_positioning_relative;
+            case AudioPositioning_Absolute: return ma_positioning_absolute;
+            default:
+                ALIMER_UNREACHABLE();
+                return ma_positioning_relative;
         }
     }
 
@@ -685,19 +738,14 @@ void alimerAudioSourceSetVolume(AudioSource* source, float value, VolumeUnit uni
     ma_sound_set_volume(source->handle, volume);
 }
 
-void alimerAudioSourceSetPan(AudioSource* source, float value)
-{
-    ma_sound_set_pan(source->handle, value);
-}
-
 float alimerAudioSourceGetPan(const AudioSource* source)
 {
     return ma_sound_get_pan(source->handle);
 }
 
-void alimerAudioSourceSetPanMode(AudioSource* source, AudioPanMode value)
+void alimerAudioSourceSetPan(AudioSource* source, float value)
 {
-    ma_sound_set_pan_mode(source->handle, ToMiniaudio(value));
+    ma_sound_set_pan(source->handle, value);
 }
 
 AudioPanMode alimerAudioSourceGetPanMode(const AudioSource* source)
@@ -705,9 +753,9 @@ AudioPanMode alimerAudioSourceGetPanMode(const AudioSource* source)
     return FromMiniaudio(ma_sound_get_pan_mode(source->handle));
 }
 
-void alimerAudioSourceSetPitch(AudioSource* source, float value)
+void alimerAudioSourceSetPanMode(AudioSource* source, AudioPanMode value)
 {
-    ma_sound_set_pitch(source->handle, value);
+    ma_sound_set_pan_mode(source->handle, ToMiniaudio(value));
 }
 
 float alimerAudioSourceGetPitch(const AudioSource* source)
@@ -715,14 +763,24 @@ float alimerAudioSourceGetPitch(const AudioSource* source)
     return ma_sound_get_pitch(source->handle);
 }
 
-void alimerAudioSourceSetSpatializationEnabled(AudioSource* source, bool enabled)
+void alimerAudioSourceSetPitch(AudioSource* source, float value)
 {
-    ma_sound_set_spatialization_enabled(source->handle, enabled ? MA_TRUE : MA_FALSE);
+    ma_sound_set_pitch(source->handle, value);
 }
 
 bool alimerAudioSourceIsSpatializationEnabled(const AudioSource* source)
 {
     return ma_sound_is_spatialization_enabled(source->handle) == MA_TRUE;
+}
+
+void alimerAudioSourceSetSpatializationEnabled(AudioSource* source, bool enabled)
+{
+    ma_sound_set_spatialization_enabled(source->handle, enabled ? MA_TRUE : MA_FALSE);
+}
+
+void alimerAudioSourceGetPosition(const AudioSource* source, Vector3* result)
+{
+    FromMiniaudio(ma_sound_get_position(source->handle), result);
 }
 
 void alimerAudioSourceSetPosition(AudioSource* source, const Vector3* value)
@@ -732,9 +790,9 @@ void alimerAudioSourceSetPosition(AudioSource* source, const Vector3* value)
     ma_sound_set_position(source->handle, value->x, value->y, value->z);
 }
 
-void alimerAudioSourceGetPosition(const AudioSource* source, Vector3* result)
+void alimerAudioSourceGetDirection(const AudioSource* source, Vector3* result)
 {
-    FromMiniaudio(ma_sound_get_position(source->handle), result);
+    FromMiniaudio(ma_sound_get_direction(source->handle), result);
 }
 
 void alimerAudioSourceSetDirection(AudioSource* source, const Vector3* value)
@@ -744,9 +802,9 @@ void alimerAudioSourceSetDirection(AudioSource* source, const Vector3* value)
     ma_sound_set_direction(source->handle, value->x, value->y, value->z);
 }
 
-void alimerAudioSourceGetDirection(const AudioSource* source, Vector3* result)
+void alimerAudioSourceGetVelocity(const AudioSource* source, Vector3* result)
 {
-    FromMiniaudio(ma_sound_get_direction(source->handle), result);
+    FromMiniaudio(ma_sound_get_velocity(source->handle), result);
 }
 
 void alimerAudioSourceSetVelocity(AudioSource* source, const Vector3* value)
@@ -756,9 +814,103 @@ void alimerAudioSourceSetVelocity(AudioSource* source, const Vector3* value)
     ma_sound_set_velocity(source->handle, value->x, value->y, value->z);
 }
 
-void alimerAudioSourceGetVelocity(const AudioSource* source, Vector3* result)
+AudioAttenuationModel alimerAudioSourceGetAttenuationModel(const AudioSource* source)
 {
-    FromMiniaudio(ma_sound_get_velocity(source->handle), result);
+    return FromMiniaudio(ma_sound_get_attenuation_model(source->handle));
+}
+
+void alimerAudioSourceSetAttenuationModel(AudioSource* source, AudioAttenuationModel value)
+{
+    ma_sound_set_attenuation_model(source->handle, ToMiniaudio(value));
+}
+
+void alimerAudioSourceSetPositioning(AudioSource* source, AudioPositioning value)
+{
+    ma_sound_set_positioning(source->handle, ToMiniaudio(value));
+}
+
+AudioPositioning alimerAudioSourceGetPositioning(const AudioSource* source)
+{
+    return FromMiniaudio(ma_sound_get_positioning(source->handle));
+}
+
+float alimerAudioSourceGetRolloff(AudioSource* source)
+{
+    return ma_sound_get_rolloff(source->handle);
+}
+
+void alimerAudioSourceSetRolloff(AudioSource* source, float value)
+{
+    ma_sound_set_rolloff(source->handle, value);
+}
+
+float alimerAudioSourceGetMinGain(AudioSource* source)
+{
+    return ma_sound_get_min_gain(source->handle);
+}
+
+void alimerAudioSourceSetMinGain(AudioSource* source, float value)
+{
+    ma_sound_set_min_gain(source->handle, value);
+}
+
+float alimerAudioSourceGetMaxGain(AudioSource* source)
+{
+    return ma_sound_get_max_gain(source->handle);
+}
+
+void alimerAudioSourceSetMaxGain(AudioSource* source, float value)
+{
+    ma_sound_set_max_gain(source->handle, value);
+}
+
+float alimerAudioSourceGetMinDistance(AudioSource* source)
+{
+    return ma_sound_get_min_distance(source->handle);
+}
+
+void alimerAudioSourceSetMinDistance(AudioSource* source, float value)
+{
+    ma_sound_set_min_distance(source->handle, value);
+}
+
+float alimerAudioSourceGetMaxDistance(AudioSource* source)
+{
+    return ma_sound_get_max_distance(source->handle);
+}
+
+void alimerAudioSourceSetMaxDistance(AudioSource* source, float value)
+{
+    ma_sound_set_max_distance(source->handle, value);
+}
+
+void alimerAudioSourceGetCone(AudioSource* sound, float* pInnerAngleInRadians, float* pOuterAngleInRadians, float* pOuterGain)
+{
+    ma_sound_get_cone(sound->handle, pInnerAngleInRadians, pOuterAngleInRadians, pOuterGain);
+}
+void alimerAudioSourceSetCone(AudioSource* sound, float innerAngleInRadians, float outerAngleInRadians, float outerGain)
+{
+    ma_sound_set_cone(sound->handle, innerAngleInRadians, outerAngleInRadians, outerGain);
+}
+
+float alimerAudioSourceGetDirectionalAttenuationFactor(AudioSource* sound)
+{
+    return ma_sound_get_directional_attenuation_factor(sound->handle);
+}
+
+void alimerAudioSourceSetDirectionalAttenuationFactor(AudioSource* sound, float value)
+{
+    ma_sound_set_directional_attenuation_factor(sound->handle, value);
+}
+
+float alimerAudioSourceGetDopplerFactor(AudioSource* sound)
+{
+    return ma_sound_get_doppler_factor(sound->handle);
+}
+
+void alimerAudioSourceSetDopplerFactor(AudioSource* sound, float value)
+{
+    ma_sound_set_doppler_factor(sound->handle, value);
 }
 
 bool alimerAudioSourceIsPlaying(AudioSource* source)

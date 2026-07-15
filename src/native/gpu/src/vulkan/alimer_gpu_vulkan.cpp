@@ -1065,6 +1065,10 @@ struct VulkanPhysicalDeviceExtensions final
     bool fragmentShadingRate;
     bool meshShader;
     bool conditionalRendering;
+    bool unifiedImageLayouts;
+    bool mutableDescriptorType;
+    bool descriptorHeap;
+
     struct
     {
         bool queue;
@@ -1355,6 +1359,15 @@ struct VulkanCopyAllocator final
     void Submit(VulkanUploadContext context);
 };
 
+struct VulkanBindlessManager final
+{
+    VulkanDevice* device = nullptr;
+    bool mutableDescriptorType = false;
+
+    void Init(VulkanDevice* device);
+    void Shutdown();
+};
+
 struct VulkanDevice final : public GPUDeviceImpl
 {
     VulkanAdapter* adapter = nullptr;
@@ -1365,6 +1378,7 @@ struct VulkanDevice final : public GPUDeviceImpl
     VmaAllocator allocator = nullptr;
     VmaAllocator externalAllocator = nullptr;
     VulkanCopyAllocator copyAllocator;
+    VulkanBindlessManager bindlessManager;
 
     std::vector<VkDynamicState> psoDynamicStates;
     VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
@@ -1493,6 +1507,9 @@ struct VulkanAdapter final : public GPUAdapterImpl
     VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeatures{};
     VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{};
     VkPhysicalDeviceConditionalRenderingFeaturesEXT conditionalRenderingFeatures{};
+    VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR unifiedImageLayoutsFeatures{};
+    VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableDescriptorTypeFeaturesEXT{};
+    VkPhysicalDeviceDescriptorHeapFeaturesEXT descriptorHeapFeaturesEXT{};
 
     // Properties
     VkPhysicalDeviceProperties2 properties2 = {};
@@ -1507,7 +1524,8 @@ struct VulkanAdapter final : public GPUAdapterImpl
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingPipelineProperties = {};
     VkPhysicalDeviceFragmentShadingRatePropertiesKHR fragmentShadingRateProperties = {};
     VkPhysicalDeviceMeshShaderPropertiesEXT meshShaderProperties = {};
-    VkPhysicalDeviceMemoryProperties2 memoryProperties2;
+    VkPhysicalDeviceMemoryProperties2 memoryProperties2 = {};
+    VkPhysicalDeviceDescriptorHeapPropertiesEXT descriptorHeapPropertiesEXT = {};
 
     bool Init(VkPhysicalDevice handle_);
 
@@ -3066,6 +3084,19 @@ void VulkanCopyAllocator::Submit(VulkanUploadContext context)
     freeList.push_back(context);
 }
 
+void VulkanBindlessManager::Init(VulkanDevice* device_)
+{
+    device = device_;
+
+    // Do we support mutable descriptor types?
+    mutableDescriptorType = device->adapter->mutableDescriptorTypeFeaturesEXT.mutableDescriptorType == VK_TRUE && false;
+}
+
+void VulkanBindlessManager::Shutdown()
+{
+    device = nullptr;
+}
+
 /* VulkanDevice */
 VulkanDevice::~VulkanDevice()
 {
@@ -3090,6 +3121,7 @@ VulkanDevice::~VulkanDevice()
     }
 
     copyAllocator.Shutdown();
+    bindlessManager.Shutdown();
 
     // Destory pending objects.
     ProcessDeletionQueue(true);
@@ -3303,6 +3335,23 @@ bool VulkanDevice::Initialize(const GPUDeviceDesc& desc)
     if (adapter->extensions.conditionalRendering)
     {
         enabledDeviceExtensions.push_back(VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME);
+    }
+
+    if (adapter->extensions.unifiedImageLayouts)
+    {
+        enabledDeviceExtensions.push_back(VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME);
+    }
+
+    if (adapter->extensions.mutableDescriptorType)
+    {
+        enabledDeviceExtensions.push_back(VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME);
+    }
+
+    if (adapter->extensions.descriptorHeap)
+    {
+        // Promoted to 1.4 but needed by VK_EXT_descriptor_heap
+        enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
+        enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME);
     }
 
     if (adapter->extensions.video.queue)
@@ -3644,6 +3693,9 @@ bool VulkanDevice::Initialize(const GPUDeviceDesc& desc)
 
     // Init copy allocator
     copyAllocator.Init(this);
+
+    // Init bindless manager
+    bindlessManager.Init(this);
 
     // Dynamic PSO states
     psoDynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
@@ -5471,6 +5523,27 @@ bool VulkanAdapter::Init(VkPhysicalDevice handle_)
         addToFeatureChain(&conditionalRenderingFeatures);
     }
 
+    if (extensions.unifiedImageLayouts)
+    {
+        unifiedImageLayoutsFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFIED_IMAGE_LAYOUTS_FEATURES_KHR;
+        addToFeatureChain(&unifiedImageLayoutsFeatures);
+    }
+
+    if (extensions.mutableDescriptorType)
+    {
+        mutableDescriptorTypeFeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT;
+        addToFeatureChain(&mutableDescriptorTypeFeaturesEXT);
+    }
+
+    if (extensions.descriptorHeap)
+    {
+        descriptorHeapFeaturesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT;
+        addToFeatureChain(&descriptorHeapFeaturesEXT);
+
+        descriptorHeapPropertiesEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT;
+        addToPropertiesChain(&descriptorHeapPropertiesEXT);
+    }
+
     factory->vkGetPhysicalDeviceFeatures2(handle, &features2);
     factory->vkGetPhysicalDeviceProperties2(handle, &properties2);
 
@@ -5483,7 +5556,6 @@ bool VulkanAdapter::Init(VkPhysicalDevice handle_)
 
     synchronization2 = features13.synchronization2 == VK_TRUE || synchronization2Features.synchronization2 == VK_TRUE;
     dynamicRendering = features13.dynamicRendering == VK_TRUE || dynamicRenderingFeatures.dynamicRendering == VK_TRUE;
-
 
     memoryProperties2 = {};
     memoryProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2;
@@ -5600,9 +5672,6 @@ bool VulkanAdapter::HasFeature(GPUFeature feature) const
             // VK_KHR_shader_float16_int8 core in 1.2
             return true;
 
-        case GPUFeature_Tessellation:
-            return features2.features.tessellationShader == VK_TRUE;
-
         case GPUFeature_MultiDrawIndirect:
             // VK_KHR_draw_indirect_count is core in 1.2
             return features2.features.multiDrawIndirect == VK_TRUE;
@@ -5637,10 +5706,22 @@ bool VulkanAdapter::HasFeature(GPUFeature feature) const
             return false;
 
         case GPUFeature_ShaderOutputViewportIndex:
-            return features12.shaderOutputLayer == VK_TRUE && features12.shaderOutputViewportIndex == VK_TRUE;
+            return
+                features12.shaderOutputLayer == VK_TRUE &&
+                features12.shaderOutputViewportIndex == VK_TRUE;
 
         case GPUFeature_Predication:
             return conditionalRenderingFeatures.conditionalRendering == VK_TRUE;
+
+        case GPUFeature_DepthResolveMinMax:
+            return
+                (depthStencilResolveProperties.supportedDepthResolveModes & VK_RESOLVE_MODE_MIN_BIT) &&
+                (depthStencilResolveProperties.supportedDepthResolveModes & VK_RESOLVE_MODE_MAX_BIT);
+
+        case GPUFeature_StencilResolveMinMax:
+            return
+                (depthStencilResolveProperties.supportedStencilResolveModes & VK_RESOLVE_MODE_MIN_BIT) &&
+                (depthStencilResolveProperties.supportedStencilResolveModes & VK_RESOLVE_MODE_MAX_BIT);
 
         default:
             return false;
@@ -5940,6 +6021,18 @@ VulkanPhysicalDeviceExtensions VulkanGPUFactory::QueryPhysicalDeviceExtensions(V
         else if (strcmp(vk_extensions[i].extensionName, VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME) == 0)
         {
             extensions.conditionalRendering = true;
+        }
+        else if (strcmp(vk_extensions[i].extensionName, VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME) == 0)
+        {
+            extensions.unifiedImageLayouts = true;
+        }
+        else if (strcmp(vk_extensions[i].extensionName, VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME) == 0)
+        {
+            extensions.mutableDescriptorType = true;
+        }
+        else if (strcmp(vk_extensions[i].extensionName, VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME) == 0)
+        {
+            extensions.descriptorHeap = true;
         }
         else if (strcmp(vk_extensions[i].extensionName, VK_KHR_VIDEO_QUEUE_EXTENSION_NAME) == 0)
         {

@@ -701,13 +701,14 @@ typedef enum GPUFeature {
     GPUFeature_SamplerClampToBorder,
     GPUFeature_SamplerMinMax,
 
-    GPUFeature_Tessellation,
     GPUFeature_DepthBoundsTest,
     GPUFeature_GPUUploadHeapSupported,
     GPUFeature_CopyQueueTimestampQuery,
     GPUFeature_CacheCoherentUMA,
     GPUFeature_ShaderOutputViewportIndex,
     GPUFeature_Predication,
+    GPUFeature_DepthResolveMinMax,
+    GPUFeature_StencilResolveMinMax,
 
     _GPUFeature_Force32 = 0x7FFFFFFF
 } GPUFeature;

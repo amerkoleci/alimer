@@ -4525,7 +4525,6 @@ bool D3D12Adapter::HasFeature(GPUFeature feature) const
         case GPUFeature_TextureCompressionBC:
         case GPUFeature_IndirectFirstInstance:
         case GPUFeature_DualSourceBlending:
-        case GPUFeature_Tessellation:
         case GPUFeature_MultiDrawIndirect:
         case GPUFeature_SamplerMirrorClampToEdge:
         case GPUFeature_SamplerClampToBorder:
@@ -4559,6 +4558,10 @@ bool D3D12Adapter::HasFeature(GPUFeature feature) const
             return shaderOutputViewportIndex;
 
         case GPUFeature_Predication:
+            return true;
+
+        case GPUFeature_DepthResolveMinMax:
+        case GPUFeature_StencilResolveMinMax:
             return true;
 
         default:
