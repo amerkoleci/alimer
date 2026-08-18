@@ -1127,7 +1127,7 @@ struct D3D12Buffer final : public GPUBufferImpl, public D3D12Resource
     GPUDeviceAddress GetDeviceAddress() const override { return deviceAddress; }
 };
 
-struct D3D12Texture final : public GPUTextureImpl, public D3D12Resource
+struct D3D12Texture final : public GPUTexture, public D3D12Resource
 {
     DXGI_FORMAT dxgiFormat = DXGI_FORMAT_UNKNOWN;
     HANDLE sharedHandle = nullptr;
@@ -1309,7 +1309,7 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
 
     void SetPipelineLayout(D3D12PipelineLayout* newPipelineLayout, bool isGraphicsPipelineLayout);
 
-    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) override;
+    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
@@ -1633,7 +1633,7 @@ struct D3D12Device final : public GPUDeviceImpl
 
     /* Resource creation */
     GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
-    GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
+    GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
     GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
@@ -2846,7 +2846,7 @@ void D3D12CommandBuffer::SetPipelineLayout(D3D12PipelineLayout* newPipelineLayou
     }
 }
 
-GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture)
+GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
 {
     D3D12Surface* backendSurface = static_cast<D3D12Surface*>(surface);
 
@@ -3608,7 +3608,7 @@ GPUBuffer D3D12Device::CreateBuffer(const GPUBufferDesc& desc, const void* pInit
     return buffer;
 }
 
-GPUTexture D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
+GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
 {
     const bool isDepthStencil = alimerPixelFormatIsDepthStencil(desc.format);
 
@@ -4635,7 +4635,6 @@ GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
     device->limits.maxStorageBufferBindingSize = (1 << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1;
     device->limits.minConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT;
     device->limits.minStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT;
-    device->limits.maxPushConstantsSize = sizeof(uint32_t) * kMaxRootSignatureSize / 1;
     //const uint32_t maxPushDescriptors = kMaxRootSignatureSize / 2;
 
     device->limits.maxBufferSize = D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_C_TERM * 1024ull * 1024ull;

@@ -106,11 +106,21 @@ typedef struct IUnknown IUnknown;
 #define _ALIMER_DEF(val, def) (((val) == 0) ? (def) : (val))
 #define _ALIMER_DEF_FLT(val, def) (((val) == 0.0f) ? (def) : (val))
 
-#ifdef ALIMER_ENABLE_ASSERTS
+#ifndef ALIMER_ENABLE_ASSERT
+#	if (defined(_DEBUG) || defined(PROFILE))
+#		define ALIMER_ENABLE_ASSERT 1
+#	else
+#		define ALIMER_ENABLE_ASSERT 0
+#	endif
+#endif
+
+#ifdef ALIMER_ENABLE_ASSERT
 #   include <assert.h>
-#   define ALIMER_ASSERT(c) assert(c)
+#   define ALIMER_ASSERT(condition) assert(condition)
+#   define ALIMER_VERIFY(condition) ALIMER_ASSERT(condition)
 #else
-#   define ALIMER_ASSERT(...) ((void)0)
+#   define ALIMER_ASSERT(condition) (void)(condition)
+#   define ALIMER_VERIFY(condition) (void)(condition)
 #endif
 
 enum class TextureLayout : uint8_t
@@ -154,6 +164,7 @@ public:
         if (newCount == 0) {
             delete this;
         }
+
         return newCount;
     }
 
@@ -170,7 +181,7 @@ struct GPUBufferImpl : public GPUResource
     virtual GPUDeviceAddress GetDeviceAddress() const = 0;
 };
 
-struct GPUTextureImpl : public GPUResource
+struct GPUTexture : public GPUResource
 {
     GPUTextureDesc desc;
 };
@@ -263,7 +274,7 @@ struct GPUCommandBufferImpl : public GPUResource
     virtual void PopDebugGroup() const = 0;
     virtual void InsertDebugMarker(const char* markerLabel) const = 0;
 
-    virtual GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) = 0;
+    virtual GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) = 0;
     virtual GPUComputePassEncoder BeginComputePass(const GPUComputePassDesc& desc) = 0;
     virtual GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) = 0;
 };
@@ -289,7 +300,7 @@ struct GPUDeviceImpl : public GPUResource
 
     /* Resource creation */
     virtual GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) = 0;
-    virtual GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) = 0;
+    virtual GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) = 0;
     virtual GPUSampler CreateSampler(const GPUSamplerDesc& desc) = 0;
     virtual GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) = 0;
     virtual GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) = 0;

@@ -1130,7 +1130,7 @@ struct VulkanBuffer final : public GPUBufferImpl
     GPUDeviceAddress GetDeviceAddress() const override { return deviceAddress; }
 };
 
-struct VulkanTexture final : public GPUTextureImpl
+struct VulkanTexture final : public GPUTexture
 {
     VulkanDevice* device = nullptr;
     VkFormat vkFormat = VK_FORMAT_UNDEFINED;
@@ -1303,7 +1303,7 @@ struct VulkanCommandBuffer final : public GPUCommandBufferImpl
     void SetPipelineLayout(VulkanPipelineLayout* newPipelineLayout);
     void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size);
 
-    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) override;
+    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
@@ -1423,7 +1423,7 @@ struct VulkanDevice final : public GPUDeviceImpl
 
     /* Resource creation */
     GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
-    GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
+    GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
     GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
@@ -2564,7 +2564,7 @@ void VulkanCommandBuffer::SetPushConstants(uint32_t pushConstantIndex, const voi
     );
 }
 
-GPUAcquireSurfaceResult VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture)
+GPUAcquireSurfaceResult VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
 {
     VulkanSurface* backendSurface = static_cast<VulkanSurface*>(surface);
     size_t swapChainAcquireSemaphoreIndex = backendSurface->swapChainAcquireSemaphoreIndex;
@@ -3392,6 +3392,30 @@ bool VulkanDevice::Initialize(const GPUDeviceDesc& desc)
 
     }
 
+    // Bindless (https://github.com/gfx-rs/wgpu/blob/trunk/wgpu-hal/src/vulkan/adapter.rs)
+    ALIMER_VERIFY(adapter->features12.descriptorIndexing == VK_TRUE);
+    ALIMER_VERIFY(adapter->features12.runtimeDescriptorArray == VK_TRUE);
+    ALIMER_VERIFY(adapter->features12.descriptorBindingPartiallyBound == VK_TRUE);
+    ALIMER_VERIFY(adapter->features12.descriptorBindingVariableDescriptorCount == VK_TRUE);
+    ALIMER_VERIFY(adapter->features12.descriptorBindingUpdateUnusedWhilePending == VK_TRUE);
+    ALIMER_VERIFY(adapter->features12.descriptorBindingSampledImageUpdateAfterBind == VK_TRUE);
+    ALIMER_VERIFY(adapter->features12.descriptorBindingStorageImageUpdateAfterBind == VK_TRUE);
+    ALIMER_VERIFY(adapter->features12.descriptorBindingStorageBufferUpdateAfterBind == VK_TRUE);
+    ALIMER_VERIFY(adapter->features12.descriptorBindingUniformTexelBufferUpdateAfterBind == VK_TRUE);
+    ALIMER_VERIFY(adapter->features12.descriptorBindingStorageTexelBufferUpdateAfterBind == VK_TRUE);
+    ALIMER_VERIFY(adapter->features12.shaderSampledImageArrayNonUniformIndexing == VK_TRUE);
+    ALIMER_VERIFY(adapter->features12.shaderStorageBufferArrayNonUniformIndexing == VK_TRUE);
+    ALIMER_VERIFY(adapter->features12.shaderStorageImageArrayNonUniformIndexing == VK_TRUE);
+    ALIMER_VERIFY(adapter->features12.shaderUniformTexelBufferArrayNonUniformIndexing == VK_TRUE);
+    ALIMER_VERIFY(adapter->features12.shaderStorageTexelBufferArrayNonUniformIndexing == VK_TRUE);
+
+    if (adapter->extensions.accelerationStructure)
+    {
+        ALIMER_VERIFY(adapter->accelerationStructureFeatures.descriptorBindingAccelerationStructureUpdateAfterBind == VK_TRUE);
+    }
+
+    ALIMER_VERIFY(adapter->properties2.properties.limits.maxPushConstantsSize >= GPU_MAX_PUSH_CONSTANTS_SIZE);
+
     std::vector<VkDeviceQueueCreateInfo> queueInfos;
     for (uint32_t familyIndex = 0; familyIndex < adapter->queueFamilyIndices.queueFamilyCount; familyIndex++)
     {
@@ -3461,7 +3485,6 @@ bool VulkanDevice::Initialize(const GPUDeviceDesc& desc)
     limits.maxStorageBufferBindingSize = adapter->properties2.properties.limits.maxStorageBufferRange;
     limits.minConstantBufferOffsetAlignment = (uint32_t)adapter->properties2.properties.limits.minUniformBufferOffsetAlignment;
     limits.minStorageBufferOffsetAlignment = (uint32_t)adapter->properties2.properties.limits.minStorageBufferOffsetAlignment;
-    limits.maxPushConstantsSize = adapter->properties2.properties.limits.maxPushConstantsSize;
     [[maybe_unused]] const uint32_t maxPushDescriptors = adapter->pushDescriptorProps.maxPushDescriptors;
     limits.maxBufferSize = adapter->properties13.maxBufferSize;
     limits.maxColorAttachments = adapter->properties2.properties.limits.maxColorAttachments;
@@ -4053,7 +4076,7 @@ GPUBuffer VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pIni
     return buffer;
 }
 
-GPUTexture VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
+GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
 {
     const bool isDepthStencil = alimerPixelFormatIsDepthStencil(desc.format);
 

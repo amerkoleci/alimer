@@ -56,7 +56,7 @@ typedef struct GPUCommandBufferImpl*        GPUCommandBuffer;
 typedef struct GPUComputePassEncoderImpl*   GPUComputePassEncoder;
 typedef struct GPURenderPassEncoderImpl*    GPURenderPassEncoder;
 typedef struct GPUBufferImpl*               GPUBuffer;
-typedef struct GPUTextureImpl*              GPUTexture;
+typedef struct GPUTexture                   GPUTexture;
 typedef struct GPUSamplerImpl*              GPUSampler;
 typedef struct GPUQueryHeapImpl*            GPUQueryHeap;
 typedef struct GPUBindGroupLayoutImpl*      GPUBindGroupLayout;
@@ -77,6 +77,7 @@ typedef int32_t GPUBindlessIndex;
 #define GPU_MAX_VERTEX_BUFFER_BINDINGS (8u)
 #define GPU_WHOLE_SIZE (UINT64_MAX)
 #define GPU_LOD_CLAMP_NONE (1000.0F)
+#define GPU_MAX_PUSH_CONSTANTS_SIZE (128u)  /* 128 bytes is the minimum guaranteed size for push constants in Vulkan */
 #define GPU_INVALID_BINDLESS_INDEX (-1)
 
 /* Enums */
@@ -286,7 +287,6 @@ typedef enum GPUPixelFormat {
 } GPUPixelFormat;
 
 typedef enum GPUVertexAttributeSemantic {
-
     GPUVertexAttributeSemantic_Undefined,
     GPUVertexAttributeSemantic_Position,
     GPUVertexAttributeSemantic_Normal,
@@ -952,7 +952,7 @@ typedef struct GPUComputePassDesc {
 } GPUComputePassDesc;
 
 typedef struct GPURenderPassColorAttachment {
-    GPUTexture      texture DEFAULT_INITIALIZER(nullptr);
+    GPUTexture*     texture DEFAULT_INITIALIZER(nullptr);
     uint32_t        mipLevel DEFAULT_INITIALIZER(0);
     GPULoadAction   loadAction DEFAULT_INITIALIZER(GPULoadAction_Discard);
     GPUStoreAction  storeAction DEFAULT_INITIALIZER(GPUStoreAction_Store);
@@ -960,7 +960,7 @@ typedef struct GPURenderPassColorAttachment {
 } GPURenderPassColorAttachment;
 
 typedef struct GPURenderPassDepthStencilAttachment {
-    GPUTexture      texture DEFAULT_INITIALIZER(nullptr);
+    GPUTexture*     texture DEFAULT_INITIALIZER(nullptr);
     uint32_t        mipLevel DEFAULT_INITIALIZER(0);
     GPULoadAction   depthLoadAction DEFAULT_INITIALIZER(GPULoadAction_Clear);
     GPUStoreAction  depthStoreAction DEFAULT_INITIALIZER(GPUStoreAction_Discard);
@@ -977,7 +977,7 @@ typedef struct GPURenderPassDesc {
     uint32_t colorAttachmentCount DEFAULT_INITIALIZER(0);
     const GPURenderPassColorAttachment* colorAttachments DEFAULT_INITIALIZER(nullptr);
     const GPURenderPassDepthStencilAttachment* depthStencilAttachment DEFAULT_INITIALIZER(nullptr);
-    GPUTexture shadingRateTexture DEFAULT_INITIALIZER(nullptr);
+    GPUTexture* shadingRateTexture DEFAULT_INITIALIZER(nullptr);
 } GPURenderPassDesc;
 
 typedef struct GPUDeviceDesc {
@@ -1006,7 +1006,6 @@ typedef struct GPUDeviceLimits {
     uint32_t maxStorageBufferBindingSize;
     uint32_t minConstantBufferOffsetAlignment;
     uint32_t minStorageBufferOffsetAlignment;
-    uint32_t maxPushConstantsSize;
     uint64_t maxBufferSize;
     uint32_t maxColorAttachments;
     uint32_t maxViewports;
@@ -1136,7 +1135,6 @@ ALIMER_GPU_API uint64_t agpuDeviceCommitFrame(GPUDevice device);
 
 /* Device resource creation methods */
 ALIMER_GPU_API GPUBuffer agpuDeviceCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData);
-ALIMER_GPU_API GPUTexture agpuDeviceCreateTexture(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData);
 ALIMER_GPU_API GPUSampler agpuDeviceCreateSampler(GPUDevice device, const GPUSamplerDesc* desc);
 
 /* CommandQueue */
@@ -1149,7 +1147,7 @@ ALIMER_GPU_API void agpuCommandQueueSubmit(GPUCommandQueue queue, uint32_t numCo
 ALIMER_GPU_API void agpuCommandBufferPushDebugGroup(GPUCommandBuffer commandBuffer, const char* groupLabel);
 ALIMER_GPU_API void agpuCommandBufferPopDebugGroup(GPUCommandBuffer commandBuffer);
 ALIMER_GPU_API void agpuCommandBufferInsertDebugMarker(GPUCommandBuffer commandBuffer, const char* markerLabel);
-ALIMER_GPU_API GPUAcquireSurfaceResult agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer commandBuffer, GPUSurface surface, GPUTexture* surfaceTexture);
+ALIMER_GPU_API GPUAcquireSurfaceResult agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer commandBuffer, GPUSurface surface, GPUTexture** surfaceTexture);
 ALIMER_GPU_API GPUComputePassEncoder agpuCommandBufferBeginComputePass(GPUCommandBuffer commandBuffer, const GPUComputePassDesc* desc);
 ALIMER_GPU_API GPURenderPassEncoder agpuCommandBufferBeginRenderPass(GPUCommandBuffer commandBuffer, const GPURenderPassDesc* desc);
 
@@ -1194,19 +1192,19 @@ ALIMER_GPU_API uint64_t agpuBufferGetSize(GPUBuffer buffer);
 ALIMER_GPU_API GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer buffer);
 
 /* Texture */
-ALIMER_GPU_API void agpuTextureSetLabel(GPUTexture texture, const char* label);
-ALIMER_GPU_API GPUTextureDimension agpuTextureGetDimension(GPUTexture texture);
-ALIMER_GPU_API GPUPixelFormat agpuTextureGetFormat(GPUTexture texture);
-ALIMER_GPU_API GPUTextureUsage agpuTextureGetUsage(GPUTexture texture);
-ALIMER_GPU_API uint32_t agpuTextureGetWidth(GPUTexture texture);
-ALIMER_GPU_API uint32_t agpuTextureGetHeight(GPUTexture texture);
-ALIMER_GPU_API uint32_t agpuTextureGetDepthOrArrayLayers(GPUTexture texture);
-ALIMER_GPU_API uint32_t agpuTextureGetMipLevelCount(GPUTexture texture);
-ALIMER_GPU_API uint32_t agpuTextureGetSampleCount(GPUTexture texture);
-ALIMER_GPU_API uint32_t agpuTextureGetLevelWidth(GPUTexture texture, uint32_t mipLevel);
-ALIMER_GPU_API uint32_t agpuTextureGetLevelHeight(GPUTexture texture, uint32_t mipLevel);
-ALIMER_GPU_API uint32_t agpuTextureAddRef(GPUTexture texture);
-ALIMER_GPU_API uint32_t agpuTextureRelease(GPUTexture texture);
+ALIMER_GPU_API GPUTexture* agpuTextureCreate(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData);
+ALIMER_GPU_API void agpuTextureDestroy(GPUTexture* texture);
+ALIMER_GPU_API void agpuTextureSetLabel(GPUTexture* texture, const char* label);
+ALIMER_GPU_API GPUTextureDimension agpuTextureGetDimension(GPUTexture* texture);
+ALIMER_GPU_API GPUPixelFormat agpuTextureGetFormat(GPUTexture* texture);
+ALIMER_GPU_API GPUTextureUsage agpuTextureGetUsage(GPUTexture* texture);
+ALIMER_GPU_API uint32_t agpuTextureGetWidth(GPUTexture* texture);
+ALIMER_GPU_API uint32_t agpuTextureGetHeight(GPUTexture* texture);
+ALIMER_GPU_API uint32_t agpuTextureGetDepthOrArrayLayers(GPUTexture* texture);
+ALIMER_GPU_API uint32_t agpuTextureGetMipLevelCount(GPUTexture* texture);
+ALIMER_GPU_API uint32_t agpuTextureGetSampleCount(GPUTexture* texture);
+ALIMER_GPU_API uint32_t agpuTextureGetLevelWidth(GPUTexture* texture, uint32_t mipLevel);
+ALIMER_GPU_API uint32_t agpuTextureGetLevelHeight(GPUTexture* texture, uint32_t mipLevel);
 
 /* Sampler */
 ALIMER_GPU_API void agpuSamplerSetLabel(GPUSampler sampler, const char* label);

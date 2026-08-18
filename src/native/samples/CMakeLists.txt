@@ -35,6 +35,8 @@ function(add_sample SAMPLE_NAME)
     #    set_target_properties(${SAMPLE_NAME} PROPERTIES WIN32_EXECUTABLE TRUE)
     endif ()
 
+    target_link_libraries(${SAMPLE_NAME} PRIVATE SDL3-shared)
+
     if (ALIMER_GPU)
         target_compile_definitions(${SAMPLE_NAME} PRIVATE ALIMER_GPU)
 

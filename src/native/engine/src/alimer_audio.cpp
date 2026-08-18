@@ -888,6 +888,7 @@ void alimerAudioSourceGetCone(AudioSource* sound, float* pInnerAngleInRadians, f
 {
     ma_sound_get_cone(sound->handle, pInnerAngleInRadians, pOuterAngleInRadians, pOuterGain);
 }
+
 void alimerAudioSourceSetCone(AudioSource* sound, float innerAngleInRadians, float outerAngleInRadians, float outerGain)
 {
     ma_sound_set_cone(sound->handle, innerAngleInRadians, outerAngleInRadians, outerGain);

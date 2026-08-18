@@ -584,60 +584,6 @@ GPUBuffer agpuDeviceCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, co
     return device->CreateBuffer(descDef, pInitialData);
 }
 
-static GPUTextureDesc _GPUTextureDesc_Defaults(const GPUTextureDesc* desc)
-{
-    GPUTextureDesc def = *desc;
-    def.dimension = _ALIMER_DEF(def.dimension, GPUTextureDimension_2D);
-    def.format = _ALIMER_DEF(def.format, GPUPixelFormat_RGBA8Unorm);
-    def.width = _ALIMER_DEF(def.width, 1u);
-    def.height = _ALIMER_DEF(def.height, 1u);
-    def.depthOrArrayLayers = _ALIMER_DEF(def.depthOrArrayLayers, 1u);
-    if (def.mipLevelCount == 0)
-    {
-        def.mipLevelCount = GetMipLevelCount(def.width, def.height, def.depthOrArrayLayers);
-    }
-    def.sampleCount = _ALIMER_DEF(def.sampleCount, 1u);
-    return def;
-}
-
-static bool ValidateTextureDesc(const GPUTextureDesc& desc)
-{
-    if (desc.width < 1 || desc.height < 1 || desc.depthOrArrayLayers < 1)
-    {
-        agpuLogError("Texture width, height and depthOrArrayLayers must be non-zero.");
-        return false;
-    }
-
-    if (desc.format == GPUPixelFormat_Undefined)
-    {
-        agpuLogError("Texture format must be different than Undefined.");
-        return false;
-    }
-
-    if ((desc.dimension == GPUTextureDimension_1D || desc.dimension == GPUTextureDimension_3D)
-        && desc.sampleCount != 1)
-    {
-        agpuLogError("1D and 3D Textures must use TextureSampleCount.Count1.");
-        return false;
-    }
-
-    return true;
-}
-
-GPUTexture agpuDeviceCreateTexture(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData)
-{
-    if (!desc)
-        return nullptr;
-
-    GPUTextureDesc descDef = _GPUTextureDesc_Defaults(desc);
-    if (!ValidateTextureDesc(descDef))
-    {
-        return nullptr;
-    }
-
-    return device->CreateTexture(descDef, pInitialData);
-}
-
 static GPUSamplerDesc _GPUSamplerDesc_Defaults(const GPUSamplerDesc* desc)
 {
     GPUSamplerDesc def = {};
@@ -690,7 +636,7 @@ void agpuCommandBufferInsertDebugMarker(GPUCommandBuffer commandBuffer, const ch
     commandBuffer->InsertDebugMarker(markerLabel);
 }
 
-GPUAcquireSurfaceResult agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer commandBuffer, GPUSurface surface, GPUTexture* surfaceTexture)
+GPUAcquireSurfaceResult agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer commandBuffer, GPUSurface surface, GPUTexture** surfaceTexture)
 {
     return commandBuffer->AcquireSurfaceTexture(surface, surfaceTexture);
 }
@@ -899,69 +845,118 @@ GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer buffer)
 }
 
 /* Texture */
-void agpuTextureSetLabel(GPUTexture texture, const char* label)
+static GPUTextureDesc _GPUTextureDesc_Defaults(const GPUTextureDesc* desc)
+{
+    GPUTextureDesc def = *desc;
+    def.dimension = _ALIMER_DEF(def.dimension, GPUTextureDimension_2D);
+    def.format = _ALIMER_DEF(def.format, GPUPixelFormat_RGBA8Unorm);
+    def.width = _ALIMER_DEF(def.width, 1u);
+    def.height = _ALIMER_DEF(def.height, 1u);
+    def.depthOrArrayLayers = _ALIMER_DEF(def.depthOrArrayLayers, 1u);
+    if (def.mipLevelCount == 0)
+    {
+        def.mipLevelCount = GetMipLevelCount(def.width, def.height, def.depthOrArrayLayers);
+    }
+    def.sampleCount = _ALIMER_DEF(def.sampleCount, 1u);
+    return def;
+}
+
+static bool ValidateTextureDesc(const GPUTextureDesc& desc)
+{
+    if (desc.width < 1 || desc.height < 1 || desc.depthOrArrayLayers < 1)
+    {
+        agpuLogError("Texture width, height and depthOrArrayLayers must be non-zero.");
+        return false;
+    }
+
+    if (desc.format == GPUPixelFormat_Undefined)
+    {
+        agpuLogError("Texture format must be different than Undefined.");
+        return false;
+    }
+
+    if ((desc.dimension == GPUTextureDimension_1D || desc.dimension == GPUTextureDimension_3D)
+        && desc.sampleCount != 1)
+    {
+        agpuLogError("1D and 3D Textures must use TextureSampleCount.Count1.");
+        return false;
+    }
+
+    return true;
+}
+
+GPUTexture* agpuTextureCreate(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData)
+{
+    if (!desc)
+        return nullptr;
+
+    GPUTextureDesc descDef = _GPUTextureDesc_Defaults(desc);
+    if (!ValidateTextureDesc(descDef))
+    {
+        return nullptr;
+    }
+
+    return device->CreateTexture(descDef, pInitialData);
+}
+
+void agpuTextureDestroy(GPUTexture* texture)
+{
+    texture->Release();
+}
+
+void agpuTextureSetLabel(GPUTexture* texture, const char* label)
 {
     texture->SetLabel(label);
 }
 
-GPUTextureDimension agpuTextureGetDimension(GPUTexture texture)
+GPUTextureDimension agpuTextureGetDimension(GPUTexture* texture)
 {
     return texture->desc.dimension;
 }
 
-GPUPixelFormat agpuTextureGetFormat(GPUTexture texture)
+GPUPixelFormat agpuTextureGetFormat(GPUTexture* texture)
 {
     return texture->desc.format;
 }
 
-GPUTextureUsage agpuTextureGetUsage(GPUTexture texture)
+GPUTextureUsage agpuTextureGetUsage(GPUTexture* texture)
 {
     return texture->desc.usage;
 }
 
-uint32_t agpuTextureGetWidth(GPUTexture texture)
+uint32_t agpuTextureGetWidth(GPUTexture* texture)
 {
     return texture->desc.width;
 }
 
-uint32_t agpuTextureGetHeight(GPUTexture texture)
+uint32_t agpuTextureGetHeight(GPUTexture* texture)
 {
     return texture->desc.height;
 }
 
-uint32_t agpuTextureGetDepthOrArrayLayers(GPUTexture texture)
+uint32_t agpuTextureGetDepthOrArrayLayers(GPUTexture* texture)
 {
     return texture->desc.depthOrArrayLayers;
 }
 
-uint32_t agpuTextureGetMipLevelCount(GPUTexture texture)
+uint32_t agpuTextureGetMipLevelCount(GPUTexture* texture)
 {
     return texture->desc.mipLevelCount;
 }
 
-uint32_t agpuTextureGetSampleCount(GPUTexture texture)
+uint32_t agpuTextureGetSampleCount(GPUTexture* texture)
 {
     return texture->desc.sampleCount;
 }
 
-uint32_t agpuTextureGetLevelWidth(GPUTexture texture, uint32_t mipLevel)
+uint32_t agpuTextureGetLevelWidth(GPUTexture* texture, uint32_t mipLevel)
 {
     return std::max(texture->desc.width >> mipLevel, 1u);
 }
 
-uint32_t agpuTextureGetLevelHeight(GPUTexture texture, uint32_t mipLevel)
+uint32_t agpuTextureGetLevelHeight(GPUTexture* texture, uint32_t mipLevel)
 {
     return std::max(texture->desc.height >> mipLevel, 1u);
-}
-
-uint32_t agpuTextureAddRef(GPUTexture texture)
-{
-    return texture->AddRef();
-}
-
-uint32_t agpuTextureRelease(GPUTexture texture)
-{
-    return texture->Release();
 }
 
 /* Sampler */

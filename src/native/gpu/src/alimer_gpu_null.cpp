@@ -28,7 +28,7 @@ struct NullBuffer final : public GPUBufferImpl
     GPUDeviceAddress GetDeviceAddress() const override { return deviceAddress; }
 };
 
-struct NullTexture final : public GPUTextureImpl
+struct NullTexture final : public GPUTexture
 {};
 
 struct NullSampler final : public GPUSamplerImpl
@@ -111,7 +111,7 @@ struct NullCommandBuffer final : public GPUCommandBufferImpl
     NullComputePassEncoder* computePassEncoder = nullptr;
     NullRenderPassEncoder* renderPassEncoder = nullptr;
 
-    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture) override;
+    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
@@ -150,7 +150,7 @@ struct NullDevice final : public GPUDeviceImpl
 
     /* Resource creation */
     GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
-    GPUTexture CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
+    GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
     GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
     GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
     GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
@@ -357,7 +357,7 @@ void NullRenderPassEncoder::SetShadingRate(GPUShadingRate rate)
 }
 
 /* NullCommandBuffer */
-GPUAcquireSurfaceResult NullCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture* surfaceTexture)
+GPUAcquireSurfaceResult NullCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
 {
     NullSurface* backendSurface = static_cast<NullSurface*>(surface);
 
@@ -458,7 +458,7 @@ GPUBuffer NullDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pIniti
     return buffer;
 }
 
-GPUTexture NullDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
+GPUTexture* NullDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData)
 {
     NullTexture* texture = new NullTexture();
     texture->desc = desc;
