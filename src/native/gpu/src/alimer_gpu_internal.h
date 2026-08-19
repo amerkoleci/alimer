@@ -153,15 +153,16 @@ public:
     GPUResource(GPUResource&&) = delete;
     GPUResource& operator=(GPUResource&&) = delete;
 
-    virtual uint32_t AddRef()
+    uint32_t AddRef()
     {
         return ++refCount;
     }
 
-    virtual uint32_t Release()
+    uint32_t Release()
     {
         uint32_t newCount = --refCount;
-        if (newCount == 0) {
+        if (newCount == 0)
+        {
             delete this;
         }
 
@@ -175,18 +176,24 @@ private:
     std::atomic_uint32_t refCount = 1;
 };
 
-struct GPUBufferImpl : public GPUResource
+struct GPUBuffer : public GPUResource
 {
     GPUBufferDesc desc;
     virtual GPUDeviceAddress GetDeviceAddress() const = 0;
 };
+
+struct GPUBufferView : public GPUResource
+{};
 
 struct GPUTexture : public GPUResource
 {
     GPUTextureDesc desc;
 };
 
-struct GPUSamplerImpl : public GPUResource
+struct GPUTextureView : public GPUResource
+{};
+
+struct GPUSampler : public GPUResource
 {
 
 };
@@ -196,22 +203,7 @@ struct GPUQueryHeapImpl : public GPUResource
 
 };
 
-struct GPUBindGroupLayoutImpl : public GPUResource
-{
-
-};
-
-struct GPUBindGroupImpl : public GPUResource
-{
-
-};
-
-struct GPUPipelineLayoutImpl : public GPUResource
-{
-
-};
-
-struct GPUShaderModuleImpl : public GPUResource
+struct GPUShaderModule : public GPUResource
 {
 
 };
@@ -237,10 +229,10 @@ struct GPUCommandEncoder : public GPUResource
 struct GPUComputePassEncoderImpl : public GPUCommandEncoder
 {
     virtual void SetPipeline(GPUComputePipeline pipeline) = 0;
-    virtual void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) = 0;
+    virtual void PushConstants(const void* data, uint32_t size) = 0;
 
     virtual void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) = 0;
-    virtual void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) = 0;
+    virtual void DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
 };
 
 struct GPURenderPassEncoderImpl : public GPUCommandEncoder
@@ -252,18 +244,18 @@ struct GPURenderPassEncoderImpl : public GPUCommandEncoder
     virtual void SetBlendColor(const GPUColor* color) = 0;
     virtual void SetStencilReference(uint32_t reference) = 0;
 
-    virtual void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) = 0;
-    virtual void SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset) = 0;
+    virtual void SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset) = 0;
+    virtual void SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset) = 0;
     virtual void SetPipeline(GPURenderPipeline pipeline) = 0;
-    virtual void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) = 0;
+    virtual void PushConstants(const void* data, uint32_t size) = 0;
 
     virtual void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) = 0;
     virtual void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) = 0;
-    virtual void DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) = 0;
-    virtual void DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) = 0;
+    virtual void DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
+    virtual void DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) = 0;
 
-    virtual void MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
-    virtual void MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
+    virtual void MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
+    virtual void MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) = 0;
 
     virtual void SetShadingRate(GPUShadingRate rate) = 0;
 };
@@ -299,13 +291,11 @@ struct GPUDeviceImpl : public GPUResource
     virtual uint64_t GetTimestampFrequency() const = 0;
 
     /* Resource creation */
-    virtual GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) = 0;
+    virtual GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) = 0;
     virtual GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) = 0;
-    virtual GPUSampler CreateSampler(const GPUSamplerDesc& desc) = 0;
-    virtual GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) = 0;
-    virtual GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) = 0;
+    virtual GPUSampler* CreateSampler(const GPUSamplerDesc& desc) = 0;
 
-    virtual GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) = 0;
+    virtual GPUShaderModule* CreateShaderModule(const GPUShaderModuleDesc* desc) = 0;
     virtual GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) = 0;
     virtual GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) = 0;
     virtual GPUQueryHeap CreateQueryHeap(const GPUQueryHeapDesc& desc) = 0;

@@ -1114,7 +1114,7 @@ struct D3D12Resource
     bool immutableState = false;
 };
 
-struct D3D12Buffer final : public GPUBufferImpl, public D3D12Resource
+struct D3D12Buffer final : public GPUBuffer, public D3D12Resource
 {
     uint64_t allocatedSize = 0;
     D3D12_GPU_VIRTUAL_ADDRESS deviceAddress = 0;
@@ -1146,29 +1146,12 @@ struct D3D12Texture final : public GPUTexture, public D3D12Resource
     D3D12_CPU_DESCRIPTOR_HANDLE GetDSV(DXGI_FORMAT dsvFormat, uint32_t mipLevel, bool readOnly) const;
 };
 
-struct D3D12Sampler final : public GPUSamplerImpl
+struct D3D12Sampler final : public GPUSampler
 {
     D3D12_SAMPLER_DESC samplerDesc{};
 };
 
-struct D3D12BindGroupLayout final : public GPUBindGroupLayoutImpl
-{
-    D3D12Device* device = nullptr;
-
-    ~D3D12BindGroupLayout() override;
-};
-
-struct D3D12PipelineLayout final : public GPUPipelineLayoutImpl
-{
-    D3D12Device* device = nullptr;
-    ID3D12RootSignature* handle = nullptr;
-    RootParameterIndex pushConstantsBaseIndex = ~0u;
-
-    ~D3D12PipelineLayout() override;
-    void SetLabel(const char* label) override;
-};
-
-struct D3D12ShaderModule final : public GPUShaderModuleImpl
+struct D3D12ShaderModule final : public GPUShaderModule
 {
     std::vector<uint8_t> byteCode;
 
@@ -1178,7 +1161,6 @@ struct D3D12ShaderModule final : public GPUShaderModuleImpl
 struct D3D12ComputePipeline final : public GPUComputePipelineImpl
 {
     D3D12Device* device = nullptr;
-    D3D12PipelineLayout* layout = nullptr;
     ID3D12PipelineState* handle = nullptr;
 
     ~D3D12ComputePipeline() override;
@@ -1188,7 +1170,6 @@ struct D3D12ComputePipeline final : public GPUComputePipelineImpl
 struct D3D12RenderPipeline final : public GPURenderPipelineImpl
 {
     D3D12Device* device = nullptr;
-    D3D12PipelineLayout* layout = nullptr;
     ID3D12PipelineState* handle = nullptr;
 
     // Render Pipeline Only
@@ -1224,10 +1205,10 @@ struct D3D12ComputePassEncoder final : public GPUComputePassEncoderImpl
     void InsertDebugMarker(const char* markerLabel) const override;
 
     void SetPipeline(GPUComputePipeline pipeline) override;
-    void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
+    void PushConstants(const void* data, uint32_t size) override;
     void PrepareDispatch();
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
-    void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
 };
 
 struct D3D12RenderPassEncoder final : public GPURenderPassEncoderImpl
@@ -1256,19 +1237,19 @@ struct D3D12RenderPassEncoder final : public GPURenderPassEncoderImpl
     void SetBlendColor(const GPUColor* color) override;
     void SetStencilReference(uint32_t reference) override;
 
-    void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) override;
-    void SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset) override;
+    void SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset) override;
+    void SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset) override;
     void SetPipeline(GPURenderPipeline pipeline) override;
-    void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
+    void PushConstants(const void* data, uint32_t size) override;
 
     void PrepareDraw();
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
     void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) override;
-    void DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
-    void DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
 
-    void MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
-    void MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+    void MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+    void MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
 
     void SetShadingRate(GPUShadingRate rate) override;
 };
@@ -1294,8 +1275,6 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
     std::vector<D3D12_BUFFER_BARRIER> bufferBarriers;
     // Legacy barriers
     D3D12_RESOURCE_BARRIER barriers[kMaxBarrierCount] = {};
-    D3D12PipelineLayout* currentPipelineLayout = nullptr;
-    bool currentPipelineLayoutIsGraphics = false;
     std::vector<D3D12Surface*> presentSurfaces;
 
     ~D3D12CommandBuffer() override;
@@ -1306,8 +1285,6 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
     void TextureBarrier(const D3D12Texture* resource, TextureLayout newLayout, uint32_t subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, bool commit = false);
     void InsertUAVBarrier(const D3D12Resource* resource, bool commit = false);
     void CommitBarriers();
-
-    void SetPipelineLayout(D3D12PipelineLayout* newPipelineLayout, bool isGraphicsPipelineLayout);
 
     GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
@@ -1571,6 +1548,62 @@ private:
     }
 };
 
+struct D3D12BindlessDescriptorHeap final
+{
+    std::vector<GPUBindlessIndex> freeList;
+    std::mutex locker;
+
+    void Init(uint32_t capacity)
+    {
+        for (uint32_t i = 0; i < capacity; ++i)
+        {
+            freeList.push_back((GPUBindlessIndex)(capacity - i - 1));
+        }
+    }
+
+    GPUBindlessIndex Allocate()
+    {
+        std::scoped_lock lck(locker);
+        if (!freeList.empty())
+        {
+            GPUBindlessIndex index = freeList.back();
+            freeList.pop_back();
+            return index;
+        }
+
+        return GPU_INVALID_BINDLESS_INDEX;
+    }
+
+    void Free(GPUBindlessIndex index)
+    {
+        if (index < 0)
+            return;
+
+        std::scoped_lock lck(locker);
+        freeList.push_back(index);
+    }
+};
+
+struct D3D12BindlessManager final
+{
+public:
+    D3D12Device* device;
+    RootParameterIndex pushConstantsIndex = ~0u;
+    RootParameterIndex dynamicConstantBufferStartIndex = ~0u;
+    ID3D12RootSignature* globalRootSignature = nullptr;
+
+    void Init(D3D12Device* device_);
+    void Shutdown();
+
+    GPUBindlessIndex AllocateSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* pDesc);
+    void FreeResource(GPUBindlessIndex index);
+    void FreeSampler(GPUBindlessIndex index);
+
+private:
+    D3D12BindlessDescriptorHeap _resources;
+    D3D12BindlessDescriptorHeap _samplers;
+};
+
 struct D3D12Device final : public GPUDeviceImpl
 {
     D3D12Adapter* adapter = nullptr;
@@ -1598,6 +1631,7 @@ struct D3D12Device final : public GPUDeviceImpl
     D3D12DescriptorAllocator shaderResourceViewHeap;
     D3D12DescriptorAllocator samplerHeap;
 
+    D3D12BindlessManager bindlessManager;
     ID3D12CommandSignature* dispatchCommandSignature = nullptr;
     ID3D12CommandSignature* drawIndirectCommandSignature = nullptr;
     ID3D12CommandSignature* drawIndexedIndirectCommandSignature = nullptr;
@@ -1632,12 +1666,10 @@ struct D3D12Device final : public GPUDeviceImpl
     uint64_t GetTimestampFrequency() const override { return timestampFrequency; }
 
     /* Resource creation */
-    GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
+    GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
     GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
-    GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
-    GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
-    GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
-    GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) override;
+    GPUSampler* CreateSampler(const GPUSamplerDesc& desc) override;
+    GPUShaderModule* CreateShaderModule(const GPUShaderModuleDesc* desc) override;
     GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
     GPUQueryHeap CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
@@ -1954,28 +1986,6 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Texture::GetDSV(DXGI_FORMAT dsvFormat, uint32_t
     return cpuHandle;
 }
 
-/* D3D12BindGroupLayout */
-D3D12BindGroupLayout::~D3D12BindGroupLayout()
-{
-
-}
-
-/* D3D12PipelineLayout */
-D3D12PipelineLayout::~D3D12PipelineLayout()
-{
-    device->DeferDestroy(handle);
-    handle = nullptr;
-}
-
-void D3D12PipelineLayout::SetLabel(const char* label)
-{
-    std::wstring wideLabel = ToUtf16(label);
-    if (!wideLabel.empty())
-    {
-        handle->SetName(wideLabel.c_str());
-    }
-}
-
 /* D3D12ShaderModule */
 D3D12ShaderModule::~D3D12ShaderModule()
 {}
@@ -1983,8 +1993,6 @@ D3D12ShaderModule::~D3D12ShaderModule()
 /* D3D12ComputePipeline */
 D3D12ComputePipeline::~D3D12ComputePipeline()
 {
-    SafeRelease(layout);
-
     device->DeferDestroy(handle);
     handle = nullptr;
 }
@@ -2001,8 +2009,6 @@ void D3D12ComputePipeline::SetLabel(const char* label)
 /* D3D12RenderPipeline */
 D3D12RenderPipeline::~D3D12RenderPipeline()
 {
-    SafeRelease(layout);
-
     device->DeferDestroy(handle);
     handle = nullptr;
 }
@@ -2080,22 +2086,20 @@ void D3D12ComputePassEncoder::SetPipeline(GPUComputePipeline pipeline)
         return;
 
     D3D12ComputePipeline* backendPipeline = static_cast<D3D12ComputePipeline*>(pipeline);
-    commandBuffer->SetPipelineLayout(backendPipeline->layout, false);
-
+    commandBuffer->commandList->SetComputeRootSignature(commandBuffer->device->bindlessManager.globalRootSignature);
     commandBuffer->commandList->SetPipelineState(backendPipeline->handle);
+
     currentPipeline = backendPipeline;
     currentPipeline->AddRef();
 }
 
-void D3D12ComputePassEncoder::SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size)
+void D3D12ComputePassEncoder::PushConstants(const void* data, uint32_t size)
 {
-    D3D12PipelineLayout* pipelineLayout = currentPipeline->layout;
-    uint32_t rootParameterIndex = pipelineLayout->pushConstantsBaseIndex + pushConstantIndex;
-    uint32_t rootConstantNum = size / 4;
+    uint32_t rootParameterIndex = commandBuffer->device->bindlessManager.pushConstantsIndex;
 
     commandBuffer->commandList->SetComputeRoot32BitConstants(
         rootParameterIndex,
-        rootConstantNum,
+        size / 4,
         data,
         0
     );
@@ -2113,7 +2117,7 @@ void D3D12ComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCount
     commandBuffer->commandList->Dispatch(groupCountX, groupCountY, groupCountZ);
 }
 
-void D3D12ComputePassEncoder::DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+void D3D12ComputePassEncoder::DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDispatch();
 
@@ -2409,7 +2413,7 @@ void D3D12RenderPassEncoder::SetStencilReference(uint32_t reference)
     commandBuffer->commandList->OMSetStencilRef(reference);
 }
 
-void D3D12RenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset)
+void D3D12RenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset)
 {
     D3D12Buffer* backendBuffer = static_cast<D3D12Buffer*>(buffer);
 
@@ -2418,7 +2422,7 @@ void D3D12RenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer buffer, ui
     vboViews[slot].StrideInBytes = 0;
 }
 
-void D3D12RenderPassEncoder::SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset)
+void D3D12RenderPassEncoder::SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset)
 {
     D3D12Buffer* backendBuffer = static_cast<D3D12Buffer*>(buffer);
 
@@ -2435,23 +2439,20 @@ void D3D12RenderPassEncoder::SetPipeline(GPURenderPipeline pipeline)
         return;
 
     D3D12RenderPipeline* backendPipeline = static_cast<D3D12RenderPipeline*>(pipeline);
-    commandBuffer->SetPipelineLayout(backendPipeline->layout, true);
-
+    commandBuffer->commandList->SetGraphicsRootSignature(commandBuffer->device->bindlessManager.globalRootSignature);
     commandBuffer->commandList->SetPipelineState(backendPipeline->handle);
     commandBuffer->commandList->IASetPrimitiveTopology(backendPipeline->primitiveTopology);
     currentPipeline = backendPipeline;
     currentPipeline->AddRef();
 }
 
-void D3D12RenderPassEncoder::SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size)
+void D3D12RenderPassEncoder::PushConstants(const void* data, uint32_t size)
 {
-    D3D12PipelineLayout* pipelineLayout = currentPipeline->layout;
-    uint32_t rootParameterIndex = pipelineLayout->pushConstantsBaseIndex + pushConstantIndex;
-    uint32_t rootConstantNum = size / 4;
+    uint32_t rootParameterIndex = commandBuffer->device->bindlessManager.pushConstantsIndex;
 
     commandBuffer->commandList->SetGraphicsRoot32BitConstants(
         rootParameterIndex,
-        rootConstantNum,
+        size / 4,
         data,
         0
     );
@@ -2486,7 +2487,7 @@ void D3D12RenderPassEncoder::DrawIndexed(uint32_t indexCount, uint32_t instanceC
     commandBuffer->commandList->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
 }
 
-void D3D12RenderPassEncoder::DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+void D3D12RenderPassEncoder::DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDraw();
 
@@ -2500,7 +2501,7 @@ void D3D12RenderPassEncoder::DrawIndirect(GPUBuffer indirectBuffer, uint64_t ind
         0);
 }
 
-void D3D12RenderPassEncoder::DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+void D3D12RenderPassEncoder::DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDraw();
 
@@ -2514,7 +2515,7 @@ void D3D12RenderPassEncoder::DrawIndexedIndirect(GPUBuffer indirectBuffer, uint6
         0);
 }
 
-void D3D12RenderPassEncoder::MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
+void D3D12RenderPassEncoder::MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     PrepareDraw();
 
@@ -2532,7 +2533,7 @@ void D3D12RenderPassEncoder::MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_
     );
 }
 
-void D3D12RenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
+void D3D12RenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     PrepareDraw();
 
@@ -2594,8 +2595,6 @@ void D3D12CommandBuffer::Clear()
         surface->Release();
     }
 
-    SafeRelease(currentPipelineLayout);
-    currentPipelineLayoutIsGraphics = false;
     presentSurfaces.clear();
     globalBarriers.clear();
     textureBarriers.clear();
@@ -2825,25 +2824,6 @@ void D3D12CommandBuffer::CommitBarriers()
     }
 
     numBarriersToCommit = 0;
-}
-
-void D3D12CommandBuffer::SetPipelineLayout(D3D12PipelineLayout* newPipelineLayout, bool isGraphicsPipelineLayout)
-{
-    if (currentPipelineLayout == newPipelineLayout)
-        return;
-
-    currentPipelineLayout = newPipelineLayout;
-    currentPipelineLayoutIsGraphics = isGraphicsPipelineLayout;
-    currentPipelineLayout->AddRef();
-
-    if (isGraphicsPipelineLayout)
-    {
-        commandList->SetGraphicsRootSignature(currentPipelineLayout->handle);
-    }
-    else
-    {
-        commandList->SetComputeRootSignature(currentPipelineLayout->handle);
-    }
 }
 
 GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
@@ -3194,6 +3174,136 @@ void D3D12CopyAllocator::Submit(D3D12UploadContext context)
     //}
 }
 
+/* D3D12BindlessManager */
+void D3D12BindlessManager::Init(D3D12Device* device_)
+{
+    device = device_;
+    uint32_t MaxNonSamplerDescriptors = 0;
+    uint32_t MaxSamplerDescriptors = 0;
+    D3D12_FEATURE_DATA_D3D12_OPTIONS19 options19{};
+    if (FAILED(device->handle->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, &options19, sizeof(options19))))
+    {
+        if (device->features.ResourceBindingTier() == D3D12_RESOURCE_BINDING_TIER_1)
+        {
+            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
+        }
+        else if (device->features.ResourceBindingTier() == D3D12_RESOURCE_BINDING_TIER_2)
+        {
+            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
+        }
+        else
+        {
+            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
+        }
+        MaxSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
+    }
+    else
+    {
+        MaxNonSamplerDescriptors = options19.MaxViewDescriptorHeapSize;
+        MaxSamplerDescriptors = options19.MaxSamplerDescriptorHeapSizeWithStaticSamplers;
+    }
+
+    // Create universal root signature with bindless descriptor tables
+    const uint32_t kDynamicConstantBufferCount = 1;
+    uint32_t rootParameterCount = 1 + kDynamicConstantBufferCount;
+    std::vector<CD3DX12_ROOT_PARAMETER1> rootParameters;
+    rootParameters.resize(rootParameterCount);
+
+    pushConstantsIndex = 0;
+    dynamicConstantBufferStartIndex = pushConstantsIndex + 1;
+
+    // Push constants
+    constexpr uint32_t PushConstantsShaderRegister = 999; // b999 in shader
+    rootParameters[pushConstantsIndex].InitAsConstants(GPU_MAX_PUSH_CONSTANTS_SIZE / 4, PushConstantsShaderRegister, 0, D3D12_SHADER_VISIBILITY_ALL);
+    // Dynamic Constant buffers
+    for (uint32_t i = 0; i < kDynamicConstantBufferCount; ++i)
+    {
+        rootParameters[dynamicConstantBufferStartIndex + i].InitAsConstantBufferView(i, 0u, D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC, D3D12_SHADER_VISIBILITY_ALL);
+    }
+
+    // Create entries for static samples
+    std::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplers;
+    //staticSamplers.resize(kStaticSamplerCount);
+    //for (uint32_t samplerIndex = 0; samplerIndex < kStaticSamplerCount; samplerIndex++)
+    //{
+    //    uint32_t binding = kStaticSamplerRegisterSpaceBegin + samplerIndex;
+    //    staticSamplers[samplerIndex] = ToD3D12StaticSamplerDesc(device->staticSamplers[samplerIndex]->GetDesc(), binding, 0, D3D12_SHADER_VISIBILITY_ALL);
+    //}
+
+    D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
+    rootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+    rootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(rootParameters.size());
+    rootSignatureDesc.Desc_1_1.pParameters = rootParameters.data();
+    rootSignatureDesc.Desc_1_1.NumStaticSamplers = static_cast<UINT>(staticSamplers.size());
+    rootSignatureDesc.Desc_1_1.pStaticSamplers = staticSamplers.data();
+    rootSignatureDesc.Desc_1_1.Flags =
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
+        D3D12_ROOT_SIGNATURE_FLAG_CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED |
+        D3D12_ROOT_SIGNATURE_FLAG_SAMPLER_HEAP_DIRECTLY_INDEXED;
+
+    ComPtr<ID3DBlob> signature;
+    ComPtr<ID3DBlob> error;
+    HRESULT hr;
+    if (device->deviceConfiguration)
+    {
+        hr = device->deviceConfiguration->SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error);
+    }
+    else
+    {
+        hr = d3d12_D3D12SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error);
+    }
+
+    if (FAILED(hr))
+    {
+        const char* errString = error ? reinterpret_cast<const char*>(error->GetBufferPointer()) : "";
+        agpuLogError("%s, Failed to serialize root signature: %s - result: 0x%08X", errString, hr);
+        return;
+    }
+
+    hr = device->handle->CreateRootSignature(0,
+        signature->GetBufferPointer(),
+        signature->GetBufferSize(),
+        IID_PPV_ARGS(&globalRootSignature)
+    );
+
+    if (FAILED(hr))
+    {
+        agpuLogError("%s, Failed to create root signature, result: 0x%08X", hr);
+        return;
+    }
+
+    uint32_t resourceCapacity = std::min<uint32_t>(GPU_MAX_BINDLESS_RESOURCES, MaxNonSamplerDescriptors);
+    uint32_t samplersCapacity = std::min<uint32_t>(GPU_MAX_BINDLESS_SAMPLERS, MaxSamplerDescriptors);
+
+    uint32_t nonBindlessResourcesCount = 1024;
+    uint32_t nonBindlessSamplerCount = 32;
+    _resources.Init(resourceCapacity - nonBindlessResourcesCount);
+    _samplers.Init(samplersCapacity - nonBindlessSamplerCount);
+}
+
+void D3D12BindlessManager::Shutdown()
+{
+    SafeRelease(globalRootSignature);
+}
+
+GPUBindlessIndex D3D12BindlessManager::AllocateSRV(ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* pDesc)
+{
+    GPUBindlessIndex index = _resources.Allocate();
+
+    if (index != GPU_INVALID_BINDLESS_INDEX)
+    {
+        ALIMER_ASSERT(index < _resources.freeList.size());
+
+        DescriptorIndex descriptorIndex = 0; // device->shaderResourceViewHeap.AllocateBindlessDescriptor();
+        D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle = device->shaderResourceViewHeap.GetCpuHandle(descriptorIndex);
+
+        device->handle->CreateShaderResourceView(resource, pDesc, descriptorHandle);
+        device->shaderResourceViewHeap.CopyToShaderVisibleHeap(descriptorIndex);
+    }
+
+    return index;
+}
+
 /* D3D12Device */
 D3D12Device::~D3D12Device()
 {
@@ -3202,6 +3312,9 @@ D3D12Device::~D3D12Device()
 
     // Shutdown copy allocator
     copyAllocator.Shutdown();
+
+    // Shutdown bindless manager
+    bindlessManager.Shutdown();
 
     // Shutdown descriptor heap allocators
     renderTargetViewHeap.Shutdown();
@@ -3467,7 +3580,7 @@ void D3D12Device::ProcessDeletionQueue(bool force)
     destroyMutex.unlock();
 }
 
-GPUBuffer D3D12Device::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
+GPUBuffer* D3D12Device::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
 {
     D3D12Buffer* buffer = new D3D12Buffer();
     buffer->device = this;
@@ -3809,98 +3922,14 @@ GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUText
     return texture;
 }
 
-GPUSampler D3D12Device::CreateSampler(const GPUSamplerDesc& desc)
+GPUSampler* D3D12Device::CreateSampler(const GPUSamplerDesc& desc)
 {
     D3D12Sampler* sampler = new D3D12Sampler();
     sampler->samplerDesc = ToD3D12SamplerDesc(desc);
     return sampler;
 }
 
-GPUBindGroupLayout D3D12Device::CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc)
-{
-    D3D12BindGroupLayout* layout = new D3D12BindGroupLayout();
-    layout->device = this;
-
-    return layout;
-}
-
-GPUPipelineLayout D3D12Device::CreatePipelineLayout(const GPUPipelineLayoutDesc& desc)
-{
-    D3D12PipelineLayout* layout = new D3D12PipelineLayout();
-    layout->device = this;
-
-    // TODO: Handle dynamic constant buffers
-    std::vector<D3D12_ROOT_PARAMETER1> rootParameters;
-    std::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplers;
-
-    // PushConstants
-    if (desc.pushConstantRangeCount > 0)
-    {
-        layout->pushConstantsBaseIndex = RootParameterIndex(rootParameters.size());
-
-        for (uint32_t i = 0; i < desc.pushConstantRangeCount; i++)
-        {
-            const GPUPushConstantRange& pushConstantRange = desc.pushConstantRanges[i];
-
-            D3D12_ROOT_PARAMETER1 rootParameter = {};
-            rootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-            rootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL; // ToD3D12(pushConstantRange.visibility);
-            rootParameter.Constants.ShaderRegister = pushConstantRange.binding;
-            rootParameter.Constants.RegisterSpace = 0;
-            rootParameter.Constants.Num32BitValues = pushConstantRange.size / 4;
-
-            rootParameters.push_back(rootParameter);
-        }
-    }
-
-    D3D12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc = {};
-    rootSignatureDesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
-    rootSignatureDesc.Desc_1_1.NumParameters = static_cast<UINT>(rootParameters.size());
-    rootSignatureDesc.Desc_1_1.pParameters = rootParameters.data();
-    rootSignatureDesc.Desc_1_1.NumStaticSamplers = static_cast<UINT>(staticSamplers.size());
-    rootSignatureDesc.Desc_1_1.pStaticSamplers = staticSamplers.data();
-    rootSignatureDesc.Desc_1_1.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
-    ComPtr<ID3DBlob> signature;
-    ComPtr<ID3DBlob> error;
-    HRESULT hr;
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-    if (d3d12_state.deviceFactory)
-    {
-        hr = deviceConfiguration->SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error);
-    }
-    else
-#endif
-    {
-        hr = d3d12_D3D12SerializeVersionedRootSignature(&rootSignatureDesc, &signature, &error);
-    }
-
-    if (FAILED(hr))
-    {
-        delete layout;
-
-        const char* errString = error ? reinterpret_cast<const char*>(error->GetBufferPointer()) : "";
-        agpuLogError("%s, Failed to serialize root signature: %s - result: 0x%08X", errString, hr);
-        return nullptr;
-    }
-
-    hr = handle->CreateRootSignature(0,
-        signature->GetBufferPointer(),
-        signature->GetBufferSize(),
-        IID_PPV_ARGS(&layout->handle)
-    );
-
-    if (FAILED(hr))
-    {
-        delete layout;
-        agpuLogError("%s, Failed to create root signature, result: 0x%08X", hr);
-        return nullptr;
-    }
-
-    return layout;
-}
-
-GPUShaderModule D3D12Device::CreateShaderModule(const GPUShaderModuleDesc* desc)
+GPUShaderModule* D3D12Device::CreateShaderModule(const GPUShaderModuleDesc* desc)
 {
     D3D12ShaderModule* shaderModule = new D3D12ShaderModule();
     shaderModule->byteCode.resize(desc->byteCodeSize);
@@ -3913,8 +3942,6 @@ GPUComputePipeline D3D12Device::CreateComputePipeline(const GPUComputePipelineDe
 {
     D3D12ComputePipeline* pipeline = new D3D12ComputePipeline();
     pipeline->device = this;
-    pipeline->layout = static_cast<D3D12PipelineLayout*>(desc.layout);
-    pipeline->layout->AddRef();
 
     auto backendShader = static_cast<D3D12ShaderModule*>(desc.shader);
 
@@ -3924,7 +3951,7 @@ GPUComputePipeline D3D12Device::CreateComputePipeline(const GPUComputePipelineDe
         CD3DX12_PIPELINE_STATE_STREAM_CS CS;
     } stream;
 
-    stream.pRootSignature = pipeline->layout->handle;
+    stream.pRootSignature = bindlessManager.globalRootSignature;
     stream.CS = { backendShader->byteCode.data(), backendShader->byteCode.size() };
 
     D3D12_PIPELINE_STATE_STREAM_DESC streamDesc = {};
@@ -3950,8 +3977,6 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
 {
     D3D12RenderPipeline* pipeline = new D3D12RenderPipeline();
     pipeline->device = this;
-    pipeline->layout = static_cast<D3D12PipelineLayout*>(desc.layout);
-    pipeline->layout->AddRef();
 
     // PipelineStream
     struct PSO_STREAM
@@ -3983,7 +4008,7 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
         } stream2 = {};
     } stream = {};
 
-    stream.stream1.pRootSignature = pipeline->layout->handle;
+    stream.stream1.pRootSignature = bindlessManager.globalRootSignature;
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> inputElements;
     D3D12_INPUT_LAYOUT_DESC inputLayout = {};
@@ -4660,31 +4685,6 @@ GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
     //const bool supportsDP4a = d3dFeatures.HighestShaderModel() >= D3D_SHADER_MODEL_6_4;
     device->limits.shaderModel = FromD3D12(features.HighestShaderModel());
 
-    uint32_t MaxNonSamplerDescriptors = 0;
-    uint32_t MaxSamplerDescriptors = 0;
-    D3D12_FEATURE_DATA_D3D12_OPTIONS19 options19{};
-    if (FAILED(device->handle->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, &options19, sizeof(options19))))
-    {
-        if (features.ResourceBindingTier() == D3D12_RESOURCE_BINDING_TIER_1)
-        {
-            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
-        }
-        else if (features.ResourceBindingTier() == D3D12_RESOURCE_BINDING_TIER_2)
-        {
-            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
-        }
-        else
-        {
-            MaxNonSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
-        }
-        MaxSamplerDescriptors = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
-    }
-    else
-    {
-        MaxNonSamplerDescriptors = options19.MaxViewDescriptorHeapSize;
-        MaxSamplerDescriptors = options19.MaxSamplerDescriptorHeapSizeWithStaticSamplers;
-    }
-
     // ConservativeRasterization
     device->limits.conservativeRasterizationTier = static_cast<GPUConservativeRasterizationTier>(features.ConservativeRasterizationTier());
 
@@ -4901,6 +4901,9 @@ GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
     {
         return nullptr;
     }
+
+    // Init bindless manager
+    device->bindlessManager.Init(device);
 
     // Create indirect command signatures
     device->dispatchCommandSignature = device->CreateCommandSignature(D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH, sizeof(D3D12_DISPATCH_ARGUMENTS));

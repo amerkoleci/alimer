@@ -230,7 +230,7 @@ GPUPixelFormatInfo agpuPixelFormatGetInfo(GPUPixelFormat format)
     return kPixelFormatInfo[size_t(format)];
 }
 
-bool agpuIsBackendSupport(GPUBackendType backend)
+GPUBool agpuIsBackendSupport(GPUBackendType backend)
 {
     switch (backend)
     {
@@ -266,7 +266,7 @@ bool agpuIsBackendSupport(GPUBackendType backend)
     }
 }
 
-GPUFactory agpuCreateFactory(const GPUFactoryDesc* desc)
+GPUFactory agpuFactoryCreate(const GPUFactoryDesc* desc)
 {
     GPUBackendType backend = (desc != nullptr ? desc->preferredBackend : GPUBackendType_Undefined);
     if (backend == GPUBackendType_Undefined)
@@ -482,7 +482,7 @@ static GPUSurfaceConfig _GPUSurfaceConfig_Defaults(const GPUSurfaceConfig* confi
     return def;
 }
 
-bool agpuSurfaceConfigure(GPUSurface surface, const GPUSurfaceConfig* config)
+GPUBool agpuSurfaceConfigure(GPUSurface surface, const GPUSurfaceConfig* config)
 {
     if (!config)
         return false;
@@ -536,7 +536,7 @@ void agpuDeviceGetLimits(GPUDevice device, GPUDeviceLimits* limits)
     device->GetLimits(limits);
 }
 
-bool agpuDeviceHasFeature(GPUDevice device, GPUFeature feature)
+GPUBool agpuDeviceHasFeature(GPUDevice device, GPUFeature feature)
 {
     return device->HasFeature(feature);
 }
@@ -559,44 +559,6 @@ uint64_t agpuDeviceGetTimestampFrequency(GPUDevice device)
 uint64_t agpuDeviceCommitFrame(GPUDevice device)
 {
     return device->CommitFrame();
-}
-
-static GPUBufferDesc _GPUBufferDesc_Defaults(const GPUBufferDesc* desc)
-{
-    GPUBufferDesc def = *desc;
-    return def;
-}
-
-GPUBuffer agpuDeviceCreateBuffer(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData)
-{
-    if (!desc)
-        return nullptr;
-
-    GPUBufferDesc descDef = _GPUBufferDesc_Defaults(desc);
-
-    // TODO: Validation
-    //if (descDef.size > adapterProperties.limits.bufferMaxSize)
-    //{
-    //    alimerLogError("Buffer size too large: {}, limit: {}", desc.size, adapterProperties.limits.bufferMaxSize);
-    //    return nullptr;
-    //}
-
-    return device->CreateBuffer(descDef, pInitialData);
-}
-
-static GPUSamplerDesc _GPUSamplerDesc_Defaults(const GPUSamplerDesc* desc)
-{
-    GPUSamplerDesc def = {};
-    if (desc)
-        def = *desc;
-
-    return def;
-}
-
-GPUSampler agpuDeviceCreateSampler(GPUDevice device, const GPUSamplerDesc* desc)
-{
-    GPUSamplerDesc descDef = _GPUSamplerDesc_Defaults(desc);
-    return device->CreateSampler(descDef);
 }
 
 /* CommandQueue */
@@ -667,9 +629,12 @@ void agpuComputePassEncoderSetPipeline(GPUComputePassEncoder computePassEncoder,
     computePassEncoder->SetPipeline(pipeline);
 }
 
-void agpuComputePassEncoderSetPushConstants(GPUComputePassEncoder computePassEncoder, uint32_t pushConstantIndex, const void* data, uint32_t size)
+void agpuComputePassEncoderPushConstants(GPUComputePassEncoder computePassEncoder,const void* data, uint32_t size)
 {
-    computePassEncoder->SetPushConstants(pushConstantIndex, data, size);
+    ALIMER_ASSERT(data != nullptr);
+    ALIMER_ASSERT(size > 0 && size <= GPU_MAX_PUSH_CONSTANTS_SIZE);
+
+    computePassEncoder->PushConstants(data, size);
 }
 
 void agpuComputePassEncoderDispatch(GPUComputePassEncoder computePassEncoder, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
@@ -677,7 +642,7 @@ void agpuComputePassEncoderDispatch(GPUComputePassEncoder computePassEncoder, ui
     computePassEncoder->Dispatch(groupCountX, groupCountY, groupCountZ);
 }
 
-void agpuComputePassEncoderDispatchIndirect(GPUComputePassEncoder computePassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+void agpuComputePassEncoderDispatchIndirect(GPUComputePassEncoder computePassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
 {
     computePassEncoder->DispatchIndirect(indirectBuffer, indirectBufferOffset);
 }
@@ -743,12 +708,12 @@ void agpuRenderPassEncoderSetStencilReference(GPURenderPassEncoder renderPassEnc
     renderPassEncoder->SetStencilReference(reference);
 }
 
-void agpuRenderPassEncoderSetVertexBuffer(GPURenderPassEncoder renderPassEncoder, uint32_t slot, GPUBuffer buffer, uint64_t offset)
+void agpuRenderPassEncoderSetVertexBuffer(GPURenderPassEncoder renderPassEncoder, uint32_t slot, GPUBuffer* buffer, uint64_t offset)
 {
     renderPassEncoder->SetVertexBuffer(slot, buffer, offset);
 }
 
-void agpuRenderPassEncoderSetIndexBuffer(GPURenderPassEncoder renderPassEncoder, GPUBuffer buffer, GPUIndexType type, uint64_t offset)
+void agpuRenderPassEncoderSetIndexBuffer(GPURenderPassEncoder renderPassEncoder, GPUBuffer* buffer, GPUIndexType type, uint64_t offset)
 {
     renderPassEncoder->SetIndexBuffer(buffer, type, offset);
 }
@@ -758,9 +723,12 @@ void agpuRenderPassEncoderSetPipeline(GPURenderPassEncoder renderPassEncoder, GP
     renderPassEncoder->SetPipeline(pipeline);
 }
 
-void agpuRenderPassEncoderSetPushConstants(GPURenderPassEncoder renderPassEncoder, uint32_t pushConstantIndex, const void* data, uint32_t size)
+void agpuRenderPassEncoderSetPushConstants(GPURenderPassEncoder renderPassEncoder, const void* data, uint32_t size)
 {
-    renderPassEncoder->SetPushConstants(pushConstantIndex, data, size);
+    ALIMER_ASSERT(data != nullptr);
+    ALIMER_ASSERT(size > 0 && size <= GPU_MAX_PUSH_CONSTANTS_SIZE);
+
+    renderPassEncoder->PushConstants(data, size);
 }
 
 void agpuRenderPassEncoderDraw(GPURenderPassEncoder renderPassEncoder, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
@@ -773,22 +741,22 @@ void agpuRenderPassEncoderDrawIndexed(GPURenderPassEncoder renderPassEncoder, ui
     renderPassEncoder->DrawIndexed(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
 }
 
-void agpuRenderPassEncoderDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+void agpuRenderPassEncoderDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
 {
     renderPassEncoder->DrawIndirect(indirectBuffer, indirectBufferOffset);
 }
 
-void agpuRenderPassEncoderDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+void agpuRenderPassEncoderDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
 {
     renderPassEncoder->DrawIndexedIndirect(indirectBuffer, indirectBufferOffset);
 }
 
-void agpuRenderPassEncoderMultiDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
+void agpuRenderPassEncoderMultiDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     renderPassEncoder->MultiDrawIndirect(indirectBuffer, indirectBufferOffset, maxDrawCount, drawCountBuffer, drawCountBufferOffset);
 }
 
-void agpuRenderPassEncoderMultiDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
+void agpuRenderPassEncoderMultiDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     renderPassEncoder->MultiDrawIndexedIndirect(indirectBuffer, indirectBufferOffset, maxDrawCount, drawCountBuffer, drawCountBufferOffset);
 }
@@ -819,27 +787,45 @@ void agpuRenderPassEncoderInsertDebugMarker(GPURenderPassEncoder renderPassEncod
 }
 
 /* Buffer */
-void agpuBufferSetLabel(GPUBuffer buffer, const char* label)
+static GPUBufferDesc _GPUBufferDesc_Defaults(const GPUBufferDesc* desc)
+{
+    GPUBufferDesc def = *desc;
+    return def;
+}
+
+GPUBuffer* agpuBufferCreate(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData)
+{
+    if (!desc)
+        return nullptr;
+
+    GPUBufferDesc descDef = _GPUBufferDesc_Defaults(desc);
+
+    // TODO: Validation
+    //if (descDef.size > adapterProperties.limits.bufferMaxSize)
+    //{
+    //    alimerLogError("Buffer size too large: {}, limit: {}", desc.size, adapterProperties.limits.bufferMaxSize);
+    //    return nullptr;
+    //}
+
+    return device->CreateBuffer(descDef, pInitialData);
+}
+
+void agpuBufferDestroy(GPUBuffer* buffer)
+{
+    buffer->Release();
+}
+
+void agpuBufferSetLabel(GPUBuffer* buffer, const char* label)
 {
     buffer->SetLabel(label);
 }
 
-uint32_t agpuBufferAddRef(GPUBuffer buffer)
-{
-    return buffer->AddRef();
-}
-
-uint32_t agpuBufferRelease(GPUBuffer buffer)
-{
-    return buffer->Release();
-}
-
-uint64_t agpuBufferGetSize(GPUBuffer buffer)
+uint64_t agpuBufferGetSize(GPUBuffer* buffer)
 {
     return buffer->desc.size;
 }
 
-GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer buffer)
+GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer* buffer)
 {
     return buffer->GetDeviceAddress();
 }
@@ -960,53 +946,33 @@ uint32_t agpuTextureGetLevelHeight(GPUTexture* texture, uint32_t mipLevel)
 }
 
 /* Sampler */
-void agpuSamplerSetLabel(GPUSampler sampler, const char* label)
+static GPUSamplerDesc _GPUSamplerDesc_Defaults(const GPUSamplerDesc* desc)
+{
+    GPUSamplerDesc def = {};
+    if (desc)
+        def = *desc;
+
+    return def;
+}
+
+GPUSampler* agpuSamplerCreate(GPUDevice device, const GPUSamplerDesc* desc)
+{
+    GPUSamplerDesc descDef = _GPUSamplerDesc_Defaults(desc);
+    return device->CreateSampler(descDef);
+}
+
+void agpuSamplerDestroy(GPUSampler* sampler)
+{
+    sampler->Release();
+}
+
+void agpuSamplerSetLabel(GPUSampler* sampler, const char* label)
 {
     sampler->SetLabel(label);
 }
 
-uint32_t agpuSamplerAddRef(GPUSampler sampler)
-{
-    return sampler->AddRef();
-}
-
-uint32_t agpuSamplerRelease(GPUSampler sampler)
-{
-    return sampler->Release();
-}
-
-/* PipelineLayout */
-static GPUPipelineLayoutDesc _GPUPipelineLayoutDesc_Defaults(const GPUPipelineLayoutDesc* desc) {
-    GPUPipelineLayoutDesc def = *desc;
-    return def;
-}
-
-GPUPipelineLayout agpuCreatePipelineLayout(GPUDevice device, const GPUPipelineLayoutDesc* desc)
-{
-    if (!desc)
-        return nullptr;
-
-    GPUPipelineLayoutDesc descDef = _GPUPipelineLayoutDesc_Defaults(desc);
-    return device->CreatePipelineLayout(descDef);
-}
-
-void agpuPipelineLayoutSetLabel(GPUPipelineLayout pipelineLayout, const char* label)
-{
-    pipelineLayout->SetLabel(label);
-}
-
-uint32_t agpuPipelineLayoutAddRef(GPUPipelineLayout pipelineLayout)
-{
-    return pipelineLayout->AddRef();
-}
-
-uint32_t agpuPipelineLayoutRelease(GPUPipelineLayout pipelineLayout)
-{
-    return pipelineLayout->Release();
-}
-
 /* ShaderModule */
-GPUShaderModule agpuCreateShaderModule(GPUDevice device, const GPUShaderModuleDesc* desc)
+GPUShaderModule* agpuCreateShaderModule(GPUDevice device, const GPUShaderModuleDesc* desc)
 {
     if (!desc)
     {
@@ -1034,19 +1000,14 @@ GPUShaderModule agpuCreateShaderModule(GPUDevice device, const GPUShaderModuleDe
     return device->CreateShaderModule(desc);
 }
 
-void agpuShaderModuleSetLabel(GPUShaderModule shaderModule, const char* label)
+void agpuShaderModuleDestroy(GPUShaderModule* shaderModule)
+{
+    shaderModule->Release();
+}
+
+void agpuShaderModuleSetLabel(GPUShaderModule* shaderModule, const char* label)
 {
     shaderModule->SetLabel(label);
-}
-
-uint32_t agpuShaderModuleAddRef(GPUShaderModule shaderModule)
-{
-    return shaderModule->AddRef();
-}
-
-uint32_t agpuShaderModuleRelease(GPUShaderModule shaderModule)
-{
-    return shaderModule->Release();
 }
 
 /* ComputePipeline */

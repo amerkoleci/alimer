@@ -93,7 +93,14 @@ typedef struct PhysicsWorldConfig {
     uint32_t maxBodyPairs;
 } PhysicsWorldConfig;
 
+typedef struct PhysicsAllocationCallbacks {
+    void* (*allocate)(size_t size, void* userData);
+    void (*free)(void* ptr, void* userData);
+    void* userData;
+} PhysicsAllocationCallbacks;
+
 typedef struct PhysicsConfig {
+    const PhysicsAllocationCallbacks* allocationCallbacks;
     uint32_t tempAllocatorInitSize;
     uint32_t maxPhysicsJobs;
     uint32_t maxPhysicsBarriers;
@@ -118,6 +125,8 @@ typedef struct PhysicsBodyDesc {
     PhysicsShape** shapes;
 } PhysicsBodyDesc;
 
+ALIMER_PHYSICS_API void alimerPhysicsSetAllocationCallbacks(const PhysicsAllocationCallbacks* callbacks);
+
 ALIMER_PHYSICS_API bool alimerPhysicsInit(const PhysicsConfig* config);
 ALIMER_PHYSICS_API void alimerPhysicsShutdown(void);
 
@@ -133,12 +142,10 @@ ALIMER_PHYSICS_API void alimerPhysicsWorldOptimizeBroadPhase(PhysicsWorld* world
 
 /* Material */
 ALIMER_PHYSICS_API PhysicsMaterial* alimerPhysicsMaterialCreate(const char* name, float friction, float restitution);
-ALIMER_PHYSICS_API uint32_t alimerPhysicsMaterialAddRef(PhysicsMaterial* material);
-ALIMER_PHYSICS_API uint32_t alimerPhysicsMaterialRelease(PhysicsMaterial* material);
+ALIMER_PHYSICS_API void alimerPhysicsMaterialDestroy(PhysicsMaterial* material);
 
 /* Shape */
-ALIMER_PHYSICS_API void alimerPhysicsShapeAddRef(PhysicsShape* shape);
-ALIMER_PHYSICS_API void alimerPhysicsShapeRelease(PhysicsShape* shape);
+ALIMER_PHYSICS_API void alimerPhysicsShapeDestroy(PhysicsShape* shape);
 ALIMER_PHYSICS_API bool alimerPhysicsShapeIsValid(PhysicsShape* shape);
 ALIMER_PHYSICS_API PhysicsShapeType alimerPhysicsShapeGetType(PhysicsShape* shape);
 ALIMER_PHYSICS_API PhysicsBody* alimerPhysicsShapeGetBody(PhysicsShape* shape);
@@ -148,19 +155,18 @@ ALIMER_PHYSICS_API float alimerPhysicsShapeGetVolume(PhysicsShape* shape);
 ALIMER_PHYSICS_API float alimerPhysicsShapeGetDensity(PhysicsShape* shape);
 ALIMER_PHYSICS_API float alimerPhysicsShapeGetMass(PhysicsShape* shape);
 
-ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsCreateBoxShape(const Vec3* size, PhysicsMaterial* material);
-ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsCreateSphereShape(float radius, PhysicsMaterial* material);
-ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsCreateCapsuleShape(float height, float radius, PhysicsMaterial* material);
-ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsCreateCylinderShape(float height, float radius, PhysicsMaterial* material);
-ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsCreateConvexHullShape(const Vec3* points, uint32_t pointsCount, PhysicsMaterial* material);
-ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsCreateMeshShape(const Vec3* vertices, uint32_t verticesCount, const uint32_t* indices, uint32_t indicesCount);
-ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsCreateTerrainShape(const float* samples, const Vec3* offset, const Vec3* scale, uint32_t sampleCount);
+ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateBox(const Vec3* size, PhysicsMaterial* material);
+ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateSphere(float radius, PhysicsMaterial* material);
+ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateCapsule(float height, float radius, PhysicsMaterial* material);
+ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateCylinder(float height, float radius, PhysicsMaterial* material);
+ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateConvexHull(const Vec3* points, uint32_t pointsCount, PhysicsMaterial* material);
+ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateMesh(const Vec3* vertices, uint32_t verticesCount, const uint32_t* indices, uint32_t indicesCount);
+ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateTerrain(const float* samples, const Vec3* offset, const Vec3* scale, uint32_t sampleCount);
 
 /* Body */
 ALIMER_PHYSICS_API void alimerPhysicsBodyDescInit(PhysicsBodyDesc* desc);
 ALIMER_PHYSICS_API PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, const PhysicsBodyDesc* desc);
-ALIMER_PHYSICS_API void alimerPhysicsBodyAddRef(PhysicsBody* body);
-ALIMER_PHYSICS_API void alimerPhysicsBodyRelease(PhysicsBody* body);
+ALIMER_PHYSICS_API void alimerPhysicsBodyDestroy(PhysicsBody* body);
 ALIMER_PHYSICS_API bool alimerPhysicsBodyIsValid(PhysicsBody* body);
 
 ALIMER_PHYSICS_API PhysicsWorld* alimerPhysicsBodyGetWorld(PhysicsBody* body);

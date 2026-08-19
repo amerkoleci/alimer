@@ -377,12 +377,67 @@ struct PhysicsShape final
     void* userdata = nullptr;
 };
 
+// Default allocation callbacks.
+#include <new>
+
+void* jolt_default_alloc(size_t size, void* /*userData*/)
+{
+    // Use Jolt default allocator
+    return JPH::Allocate(size);
+}
+
+void jolt_default_free(void* ptr, void* /*userData*/)
+{
+    // Use Jolt default allocator
+    JPH::Free(ptr);
+}
+
+const PhysicsAllocationCallbacks s_defaultJoltAllocCallbacks = { jolt_default_alloc, jolt_default_free, nullptr };
+const PhysicsAllocationCallbacks* s_allocCallbacks = &s_defaultJoltAllocCallbacks;
+
+void alimerPhysicsSetAllocationCallbacks(const PhysicsAllocationCallbacks* callbacks)
+{
+    if (callbacks == nullptr)
+    {
+        s_allocCallbacks = &s_defaultJoltAllocCallbacks;
+    }
+    else
+    {
+        s_allocCallbacks = callbacks;
+    }
+}
+
+template<typename T>
+static T* PhysicsAlloc()
+{
+    T* object = (T*)s_allocCallbacks->allocate(sizeof(T), s_allocCallbacks->userData);
+    new (object) T();
+    return object;
+}
+
+template<typename T>
+static void PhysicsFree(T* object)
+{
+    if (!object)
+        return;
+
+    if constexpr (!__is_trivially_copyable(T))
+    {
+        object->~T();
+    }
+
+    s_allocCallbacks->free(object, s_allocCallbacks->userData);
+}
+
 bool alimerPhysicsInit(const PhysicsConfig* config)
 {
     JPH_ASSERT(config);
 
     if (physics_state.initialized)
         return true;
+
+    // Set user-provided allocation callbacks.
+    alimerPhysicsSetAllocationCallbacks(config->allocationCallbacks);
 
     JPH::RegisterDefaultAllocator();
 
@@ -448,7 +503,7 @@ PhysicsWorld* alimerPhysicsWorldCreate(const PhysicsWorldConfig* pConfig)
 {
     PhysicsWorldConfig config = PhysicsWorldConfig_Defaults(pConfig);
 
-    PhysicsWorld* world = new PhysicsWorld();
+    PhysicsWorld* world = PhysicsAlloc<PhysicsWorld>();
     world->refCount.store(1);
 
     // Init the physics system
@@ -481,7 +536,7 @@ void alimerPhysicsWorldDestroy(PhysicsWorld* world)
     uint32_t newCount = --world->refCount;
     if (newCount == 0)
     {
-        delete world;
+        PhysicsFree(world);
     }
 }
 
@@ -530,28 +585,16 @@ PhysicsMaterial* alimerPhysicsMaterialCreate(const char* name, float friction, f
     return material;
 }
 
-uint32_t alimerPhysicsMaterialAddRef(PhysicsMaterial* material)
-{
-    return ++material->refCount;
-}
-
-uint32_t alimerPhysicsMaterialRelease(PhysicsMaterial* material)
+void alimerPhysicsMaterialDestroy(PhysicsMaterial* material)
 {
     uint32_t newCount = --material->refCount;
     if (newCount == 0)
     {
         delete material;
     }
-
-    return newCount;
 }
 
-void alimerPhysicsShapeAddRef(PhysicsShape* shape)
-{
-    ++shape->refCount;
-}
-
-void alimerPhysicsShapeRelease(PhysicsShape* shape)
+void alimerPhysicsShapeDestroy(PhysicsShape* shape)
 {
     uint32_t result = --shape->refCount;
     if (result == 0)
@@ -612,7 +655,7 @@ float alimerPhysicsShapeGetMass(PhysicsShape* shape)
     return properties.mMass;
 }
 
-PhysicsShape* alimerPhysicsCreateBoxShape(const Vec3* size, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsShapeCreateBox(const Vec3* size, PhysicsMaterial* material)
 {
     JPH_ASSERT(size);
     JPH_ASSERT(size->x > 0.f && size->y > 0.f && size->z > 0.f);
@@ -636,7 +679,7 @@ PhysicsShape* alimerPhysicsCreateBoxShape(const Vec3* size, PhysicsMaterial* mat
     return shape;
 }
 
-PhysicsShape* alimerPhysicsCreateSphereShape(float radius, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsShapeCreateSphere(float radius, PhysicsMaterial* material)
 {
     JPH_ASSERT(radius > 0.f);
 
@@ -655,7 +698,7 @@ PhysicsShape* alimerPhysicsCreateSphereShape(float radius, PhysicsMaterial* mate
     return shape;
 }
 
-PhysicsShape* alimerPhysicsCreateCapsuleShape(float height, float radius, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsShapeCreateCapsule(float height, float radius, PhysicsMaterial* material)
 {
     JPH::CapsuleShapeSettings settings(
         std::max(0.01f, height) * 0.5f,
@@ -675,7 +718,7 @@ PhysicsShape* alimerPhysicsCreateCapsuleShape(float height, float radius, Physic
     return shape;
 }
 
-PhysicsShape* alimerPhysicsCreateCylinderShape(float height, float radius, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsShapeCreateCylinder(float height, float radius, PhysicsMaterial* material)
 {
     JPH::CylinderShapeSettings settings(
         std::max(0.01f, height) * 0.5f,
@@ -697,7 +740,7 @@ PhysicsShape* alimerPhysicsCreateCylinderShape(float height, float radius, Physi
     return shape;
 }
 
-PhysicsShape* alimerPhysicsCreateConvexHullShape(const Vec3* points, uint32_t pointsCount, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsShapeCreateConvexHull(const Vec3* points, uint32_t pointsCount, PhysicsMaterial* material)
 {
     JPH::Array<JPH::Vec3> joltPoints;
     joltPoints.reserve(pointsCount);
@@ -726,7 +769,7 @@ PhysicsShape* alimerPhysicsCreateConvexHullShape(const Vec3* points, uint32_t po
     return shape;
 }
 
-PhysicsShape* alimerPhysicsCreateMeshShape(const Vec3* vertices, uint32_t verticesCount, const uint32_t* indices, uint32_t indicesCount)
+PhysicsShape* alimerPhysicsShapeCreateMesh(const Vec3* vertices, uint32_t verticesCount, const uint32_t* indices, uint32_t indicesCount)
 {
     JPH::VertexList joltVertices;
     joltVertices.reserve(verticesCount);
@@ -762,7 +805,7 @@ PhysicsShape* alimerPhysicsCreateMeshShape(const Vec3* vertices, uint32_t vertic
     return shape;
 }
 
-PhysicsShape* alimerPhysicsCreateTerrainShape(const float* samples, const Vec3* offset, const Vec3* scale, uint32_t sampleCount)
+PhysicsShape* alimerPhysicsShapeCreateTerrain(const float* samples, const Vec3* offset, const Vec3* scale, uint32_t sampleCount)
 {
     JPH::Vec3 joltOffset = ToJolt(offset);
     JPH::Vec3 joltScale = ToJolt(scale);
@@ -888,12 +931,7 @@ PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, const PhysicsBodyDesc*
     return body;
 }
 
-void alimerPhysicsBodyAddRef(PhysicsBody* body)
-{
-    ++body->refCount;
-}
-
-void alimerPhysicsBodyRelease(PhysicsBody* body)
+void alimerPhysicsBodyDestroy(PhysicsBody* body)
 {
     uint32_t result = --body->refCount;
     if (result == 0)

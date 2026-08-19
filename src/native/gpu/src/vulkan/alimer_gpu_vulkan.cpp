@@ -1115,7 +1115,7 @@ struct VulkanSurface;
 struct VulkanAdapter;
 struct VulkanGPUFactory;
 
-struct VulkanBuffer final : public GPUBufferImpl
+struct VulkanBuffer final : public GPUBuffer
 {
     VulkanDevice* device = nullptr;
     VkBuffer handle = VK_NULL_HANDLE;
@@ -1145,7 +1145,7 @@ struct VulkanTexture final : public GPUTexture
     VkImageView GetView(uint32_t mipLevel) const;
 };
 
-struct VulkanSampler final : public GPUSamplerImpl
+struct VulkanSampler final : public GPUSampler
 {
     VulkanDevice* device = nullptr;
     VkSampler handle = VK_NULL_HANDLE;
@@ -1154,26 +1154,7 @@ struct VulkanSampler final : public GPUSamplerImpl
     void SetLabel(const char* label) override;
 };
 
-struct VulkanBindGroupLayout final : public GPUBindGroupLayoutImpl
-{
-    VulkanDevice* device = nullptr;
-    VkDescriptorSetLayout handle = VK_NULL_HANDLE;
-
-    ~VulkanBindGroupLayout() override;
-    void SetLabel(const char* label) override;
-};
-
-struct VulkanPipelineLayout final : public GPUPipelineLayoutImpl
-{
-    VulkanDevice* device = nullptr;
-    VkPipelineLayout handle = VK_NULL_HANDLE;
-    std::vector<VkPushConstantRange> pushConstantRanges;
-
-    ~VulkanPipelineLayout() override;
-    void SetLabel(const char* label) override;
-};
-
-struct VulkanShaderModule final : public GPUShaderModuleImpl
+struct VulkanShaderModule final : public GPUShaderModule
 {
     VulkanDevice* device = nullptr;
     std::string entryPoint;
@@ -1186,7 +1167,6 @@ struct VulkanShaderModule final : public GPUShaderModuleImpl
 struct VulkanComputePipeline final : public GPUComputePipelineImpl
 {
     VulkanDevice* device = nullptr;
-    VulkanPipelineLayout* layout = nullptr;
     VkPipeline handle = VK_NULL_HANDLE;
 
     ~VulkanComputePipeline() override;
@@ -1196,7 +1176,6 @@ struct VulkanComputePipeline final : public GPUComputePipelineImpl
 struct VulkanRenderPipeline final : public GPURenderPipelineImpl
 {
     VulkanDevice* device = nullptr;
-    VulkanPipelineLayout* layout = nullptr;
     VkPipeline handle = VK_NULL_HANDLE;
 
     ~VulkanRenderPipeline() override;
@@ -1227,10 +1206,10 @@ struct VulkanComputePassEncoder final : public GPUComputePassEncoderImpl
     void InsertDebugMarker(const char* markerLabel) const override;
 
     void SetPipeline(GPUComputePipeline pipeline) override;
-    void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
+    void PushConstants(const void* data, uint32_t size) override;
     void PrepareDispatch();
     void Dispatch(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) override;
-    void DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
 };
 
 struct VulkanRenderPassEncoder final : public GPURenderPassEncoderImpl
@@ -1254,19 +1233,19 @@ struct VulkanRenderPassEncoder final : public GPURenderPassEncoderImpl
     void SetBlendColor(const GPUColor* color) override;
     void SetStencilReference(uint32_t reference) override;
 
-    void SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset) override;
-    void SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset) override;
+    void SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset) override;
+    void SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset) override;
     void SetPipeline(GPURenderPipeline pipeline) override;
-    void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size) override;
+    void PushConstants(const void* data, uint32_t size) override;
 
     void PrepareDraw();
     void Draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) override;
     void DrawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance) override;
-    void DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
-    void DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
+    void DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset) override;
 
-    void MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
-    void MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+    void MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
+    void MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer = nullptr, uint64_t drawCountBufferOffset = 0) override;
 
     void SetShadingRate(GPUShadingRate rate) override;
 };
@@ -1290,7 +1269,6 @@ struct VulkanCommandBuffer final : public GPUCommandBufferImpl
     std::vector<VkMemoryBarrier2> memoryBarriers;
     std::vector<VkImageMemoryBarrier2> imageBarriers;
     std::vector<VkBufferMemoryBarrier2> bufferBarriers;
-    VulkanPipelineLayout* currentPipelineLayout = nullptr;
     std::vector<VulkanSurface*> presentSurfaces;
 
     ~VulkanCommandBuffer() override;
@@ -1300,8 +1278,6 @@ struct VulkanCommandBuffer final : public GPUCommandBufferImpl
 
     void TextureBarrier(const VulkanTexture* texture, TextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, GPUTextureAspect aspect = GPUTextureAspect_All);
     void CommitBarriers();
-    void SetPipelineLayout(VulkanPipelineLayout* newPipelineLayout);
-    void SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size);
 
     GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
     void PushDebugGroup(const char* groupLabel) const override;
@@ -1364,6 +1340,10 @@ struct VulkanBindlessManager final
     VulkanDevice* device = nullptr;
     bool mutableDescriptorType = false;
 
+    // One set, three bindings: 0 = mutable resources (CBV/SRV/UAV-equivalent), 1 = samplers, 2 = acceleration structures (only present if supportsRayTracing).
+    VkDescriptorSetLayout globalSetLayout = VK_NULL_HANDLE;
+    VkPipelineLayout globalPipelineLayout = VK_NULL_HANDLE;
+
     void Init(VulkanDevice* device);
     void Shutdown();
 };
@@ -1395,8 +1375,6 @@ struct VulkanDevice final : public GPUDeviceImpl
     std::deque<std::pair<std::pair<VkBuffer, VmaAllocation>, uint64_t>> destroyedBuffers;
     std::deque<std::pair<VkBufferView, uint64_t>> destroyedBufferViews;
     std::deque<std::pair<VkSampler, uint64_t>> destroyedSamplers;
-    std::deque<std::pair<VkDescriptorSetLayout, uint64_t>> destroyedDescriptorSetLayouts;
-    std::deque<std::pair<VkPipelineLayout, uint64_t>> destroyedPipelineLayouts;
     std::deque<std::pair<VkShaderModule, uint64_t>> destroyedShaderModules;
     std::deque<std::pair<VkPipeline, uint64_t>> destroyedPipelines;
     std::deque<std::pair<VkQueryPool, uint64_t>> destroyedQueryPools;
@@ -1422,12 +1400,10 @@ struct VulkanDevice final : public GPUDeviceImpl
     uint64_t GetTimestampFrequency() const override;
 
     /* Resource creation */
-    GPUBuffer CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
+    GPUBuffer* CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData) override;
     GPUTexture* CreateTexture(const GPUTextureDesc& desc, const GPUTextureData* pInitialData) override;
-    GPUSampler CreateSampler(const GPUSamplerDesc& desc) override;
-    GPUBindGroupLayout CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc) override;
-    GPUPipelineLayout CreatePipelineLayout(const GPUPipelineLayoutDesc& desc) override;
-    GPUShaderModule CreateShaderModule(const GPUShaderModuleDesc* desc) override;
+    GPUSampler* CreateSampler(const GPUSamplerDesc& desc) override;
+    GPUShaderModule* CreateShaderModule(const GPUShaderModuleDesc* desc) override;
     GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
     GPUQueryHeap CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
@@ -1707,42 +1683,6 @@ void VulkanSampler::SetLabel(const char* label)
     device->SetObjectName(VK_OBJECT_TYPE_SAMPLER, reinterpret_cast<uint64_t>(handle), label);
 }
 
-/* VulkanBindGroupLayout */
-VulkanBindGroupLayout::~VulkanBindGroupLayout()
-{
-    const uint64_t frameCount = device->frameCount;
-    device->destroyMutex.lock();
-    if (handle != VK_NULL_HANDLE)
-    {
-        device->destroyedDescriptorSetLayouts.push_back(std::make_pair(handle, frameCount));
-        handle = VK_NULL_HANDLE;
-    }
-    device->destroyMutex.unlock();
-}
-
-void VulkanBindGroupLayout::SetLabel(const char* label)
-{
-    device->SetObjectName(VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, reinterpret_cast<uint64_t>(handle), label);
-}
-
-/* VulkanPipelineLayout */
-VulkanPipelineLayout::~VulkanPipelineLayout()
-{
-    const uint64_t frameCount = device->frameCount;
-    device->destroyMutex.lock();
-    if (handle != VK_NULL_HANDLE)
-    {
-        device->destroyedPipelineLayouts.push_back(std::make_pair(handle, frameCount));
-        handle = VK_NULL_HANDLE;
-    }
-    device->destroyMutex.unlock();
-}
-
-void VulkanPipelineLayout::SetLabel(const char* label)
-{
-    device->SetObjectName(VK_OBJECT_TYPE_PIPELINE_LAYOUT, reinterpret_cast<uint64_t>(handle), label);
-}
-
 /* VulkanShaderModule */
 VulkanShaderModule::~VulkanShaderModule()
 {
@@ -1764,8 +1704,6 @@ void VulkanShaderModule::SetLabel(const char* label)
 /* VulkanComputePipeline */
 VulkanComputePipeline::~VulkanComputePipeline()
 {
-    SafeRelease(layout);
-
     const uint64_t frameCount = device->frameCount;
     device->destroyMutex.lock();
     if (handle != VK_NULL_HANDLE)
@@ -1784,8 +1722,6 @@ void VulkanComputePipeline::SetLabel(const char* label)
 /* VulkanRenderPipeline */
 VulkanRenderPipeline::~VulkanRenderPipeline()
 {
-    SafeRelease(layout);
-
     const uint64_t frameCount = device->frameCount;
     device->destroyMutex.lock();
     if (handle != VK_NULL_HANDLE)
@@ -1866,17 +1802,21 @@ void VulkanComputePassEncoder::SetPipeline(GPUComputePipeline pipeline)
     if (currentPipeline == pipeline)
         return;
 
-    VulkanComputePipeline* backendPipeline = static_cast<VulkanComputePipeline*>(pipeline);
-    commandBuffer->SetPipelineLayout(backendPipeline->layout);
-
-    commandBuffer->device->vkCmdBindPipeline(commandBuffer->handle, VK_PIPELINE_BIND_POINT_COMPUTE, backendPipeline->handle);
-    currentPipeline = backendPipeline;
+    currentPipeline = static_cast<VulkanComputePipeline*>(pipeline);
     currentPipeline->AddRef();
+
+    commandBuffer->device->vkCmdBindPipeline(commandBuffer->handle, VK_PIPELINE_BIND_POINT_COMPUTE, currentPipeline->handle);
 }
 
-void VulkanComputePassEncoder::SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size)
+void VulkanComputePassEncoder::PushConstants(const void* data, uint32_t size)
 {
-    commandBuffer->SetPushConstants(pushConstantIndex, data, size);
+    commandBuffer->device->vkCmdPushConstants(commandBuffer->handle,
+        commandBuffer->device->bindlessManager.globalPipelineLayout,
+        VK_SHADER_STAGE_ALL,
+        0,
+        size,
+        data
+    );
 }
 
 void VulkanComputePassEncoder::PrepareDispatch()
@@ -1891,7 +1831,7 @@ void VulkanComputePassEncoder::Dispatch(uint32_t groupCountX, uint32_t groupCoun
     commandBuffer->device->vkCmdDispatch(commandBuffer->handle, groupCountX, groupCountY, groupCountZ);
 }
 
-void VulkanComputePassEncoder::DispatchIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+void VulkanComputePassEncoder::DispatchIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDispatch();
 
@@ -2120,7 +2060,7 @@ void VulkanRenderPassEncoder::SetStencilReference(uint32_t reference)
     commandBuffer->device->vkCmdSetStencilReference(commandBuffer->handle, VK_STENCIL_FRONT_AND_BACK, reference);
 }
 
-void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer buffer, uint64_t offset)
+void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer* buffer, uint64_t offset)
 {
     // TODO: Batch with 1 call
     VulkanBuffer* backendBuffer = static_cast<VulkanBuffer*>(buffer);
@@ -2128,7 +2068,7 @@ void VulkanRenderPassEncoder::SetVertexBuffer(uint32_t slot, GPUBuffer buffer, u
     commandBuffer->device->vkCmdBindVertexBuffers(commandBuffer->handle, slot, 1, &backendBuffer->handle, &offset);
 }
 
-void VulkanRenderPassEncoder::SetIndexBuffer(GPUBuffer buffer, GPUIndexType type, uint64_t offset)
+void VulkanRenderPassEncoder::SetIndexBuffer(GPUBuffer* buffer, GPUIndexType type, uint64_t offset)
 {
     VulkanBuffer* backendBuffer = static_cast<VulkanBuffer*>(buffer);
     VkIndexType vkIndexType = (type == GPUIndexType_Uint16) ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
@@ -2141,17 +2081,21 @@ void VulkanRenderPassEncoder::SetPipeline(GPURenderPipeline pipeline)
     if (currentPipeline == pipeline)
         return;
 
-    VulkanRenderPipeline* backendPipeline = static_cast<VulkanRenderPipeline*>(pipeline);
-    commandBuffer->SetPipelineLayout(backendPipeline->layout);
-
-    commandBuffer->device->vkCmdBindPipeline(commandBuffer->handle, VK_PIPELINE_BIND_POINT_GRAPHICS, backendPipeline->handle);
-    currentPipeline = backendPipeline;
+    currentPipeline = static_cast<VulkanRenderPipeline*>(pipeline);
     currentPipeline->AddRef();
+
+    commandBuffer->device->vkCmdBindPipeline(commandBuffer->handle, VK_PIPELINE_BIND_POINT_GRAPHICS, currentPipeline->handle);
 }
 
-void VulkanRenderPassEncoder::SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size)
+void VulkanRenderPassEncoder::PushConstants(const void* data, uint32_t size)
 {
-    commandBuffer->SetPushConstants(pushConstantIndex, data, size);
+    commandBuffer->device->vkCmdPushConstants(commandBuffer->handle,
+        commandBuffer->device->bindlessManager.globalPipelineLayout,
+        VK_SHADER_STAGE_ALL,
+        0,
+        size,
+        data
+    );
 }
 
 void VulkanRenderPassEncoder::PrepareDraw()
@@ -2173,7 +2117,7 @@ void VulkanRenderPassEncoder::DrawIndexed(uint32_t indexCount, uint32_t instance
     commandBuffer->device->vkCmdDrawIndexed(commandBuffer->handle, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
 }
 
-void VulkanRenderPassEncoder::DrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+void VulkanRenderPassEncoder::DrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDraw();
 
@@ -2187,7 +2131,7 @@ void VulkanRenderPassEncoder::DrawIndirect(GPUBuffer indirectBuffer, uint64_t in
     );
 }
 
-void VulkanRenderPassEncoder::DrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset)
+void VulkanRenderPassEncoder::DrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset)
 {
     PrepareDraw();
 
@@ -2201,7 +2145,7 @@ void VulkanRenderPassEncoder::DrawIndexedIndirect(GPUBuffer indirectBuffer, uint
     );
 }
 
-void VulkanRenderPassEncoder::MultiDrawIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
+void VulkanRenderPassEncoder::MultiDrawIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     PrepareDraw();
 
@@ -2233,7 +2177,7 @@ void VulkanRenderPassEncoder::MultiDrawIndirect(GPUBuffer indirectBuffer, uint64
     }
 }
 
-void VulkanRenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer drawCountBuffer, uint64_t drawCountBufferOffset)
+void VulkanRenderPassEncoder::MultiDrawIndexedIndirect(GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset)
 {
     PrepareDraw();
 
@@ -2365,7 +2309,6 @@ void VulkanCommandBuffer::Clear()
     {
         surface->Release();
     }
-    SafeRelease(currentPipelineLayout);
     presentSurfaces.clear();
     memoryBarriers.clear();
     imageBarriers.clear();
@@ -2537,31 +2480,6 @@ void VulkanCommandBuffer::CommitBarriers()
     }
 
     numBarriersToCommit = 0;
-}
-
-void VulkanCommandBuffer::SetPipelineLayout(VulkanPipelineLayout* newPipelineLayout)
-{
-    if (currentPipelineLayout == newPipelineLayout)
-        return;
-
-    currentPipelineLayout = newPipelineLayout;
-    currentPipelineLayout->AddRef();
-}
-
-void VulkanCommandBuffer::SetPushConstants(uint32_t pushConstantIndex, const void* data, uint32_t size)
-{
-    ALIMER_ASSERT(currentPipelineLayout);
-
-    const VkPushConstantRange& pushConstantRange = currentPipelineLayout->pushConstantRanges[pushConstantIndex];
-
-    device->vkCmdPushConstants(
-        handle,
-        currentPipelineLayout->handle,
-        pushConstantRange.stageFlags,
-        pushConstantRange.offset,
-        size,
-        data
-    );
 }
 
 GPUAcquireSurfaceResult VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
@@ -3090,10 +3008,50 @@ void VulkanBindlessManager::Init(VulkanDevice* device_)
 
     // Do we support mutable descriptor types?
     mutableDescriptorType = device->adapter->mutableDescriptorTypeFeaturesEXT.mutableDescriptorType == VK_TRUE && false;
+
+    VkDescriptorSetLayoutCreateInfo layoutCreateInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+    layoutCreateInfo.pNext = nullptr;
+    layoutCreateInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+    layoutCreateInfo.bindingCount = 0;
+    layoutCreateInfo.pBindings = nullptr;
+    VK_CHECK(device->vkCreateDescriptorSetLayout(device->handle, &layoutCreateInfo, nullptr, &globalSetLayout));
+
+    // Pipeline layout
+    VkPushConstantRange pushConstantRange = {};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_ALL | VK_SHADER_STAGE_COMPUTE_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = GPU_MAX_PUSH_CONSTANTS_SIZE;
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &globalSetLayout;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+
+    const VkResult result = device->vkCreatePipelineLayout(device->handle, &pipelineLayoutInfo, nullptr, &globalPipelineLayout);
+    if (result != VK_SUCCESS)
+    {
+        agpuLogError("Vulkan: Failed to create PipelineLayout, error: %s", VkResultToString(result));
+        return;
+    }
+
+    device->SetObjectName(VK_OBJECT_TYPE_PIPELINE_LAYOUT, reinterpret_cast<uint64_t>(globalPipelineLayout), "Global Pipeline Layout");
 }
 
 void VulkanBindlessManager::Shutdown()
 {
+    if (globalPipelineLayout != VK_NULL_HANDLE)
+    {
+        device->vkDestroyPipelineLayout(device->handle, globalPipelineLayout, nullptr);
+        globalPipelineLayout = VK_NULL_HANDLE;
+    }
+
+    if (globalSetLayout != VK_NULL_HANDLE)
+    {
+        device->vkDestroyDescriptorSetLayout(device->handle, globalSetLayout, nullptr);
+        globalSetLayout = VK_NULL_HANDLE;
+    }
+
     device = nullptr;
 }
 
@@ -3120,7 +3078,10 @@ VulkanDevice::~VulkanDevice()
         queues[index].commandBuffers.clear();
     }
 
+    // Shutdown copy allocator
     copyAllocator.Shutdown();
+
+    // Shutdown bindless manager
     bindlessManager.Shutdown();
 
     // Destory pending objects.
@@ -3826,8 +3787,6 @@ void VulkanDevice::ProcessDeletionQueue(bool force)
     Destroy(destroyedBuffers, [&](auto& item) { vmaDestroyBuffer(allocator, item.first, item.second); });
     Destroy(destroyedBufferViews, [&](auto& item) { vkDestroyBufferView(handle, item, nullptr); });
     Destroy(destroyedSamplers, [&](auto& item) { vkDestroySampler(handle, item, nullptr); });
-    Destroy(destroyedDescriptorSetLayouts, [&](auto& item) { vkDestroyDescriptorSetLayout(handle, item, nullptr); });
-    Destroy(destroyedPipelineLayouts, [&](auto& item) { vkDestroyPipelineLayout(handle, item, nullptr); });
     Destroy(destroyedShaderModules, [&](auto& item) { vkDestroyShaderModule(handle, item, nullptr); });
     Destroy(destroyedPipelines, [&](auto& item) { vkDestroyPipeline(handle, item, nullptr); });
     Destroy(destroyedQueryPools, [&](auto& item) { vkDestroyQueryPool(handle, item, nullptr); });
@@ -3843,7 +3802,7 @@ uint64_t VulkanDevice::GetTimestampFrequency() const
     return timestampFrequency;
 }
 
-GPUBuffer VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
+GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pInitialData)
 {
     VulkanBuffer* buffer = new VulkanBuffer();
     buffer->device = this;
@@ -4385,7 +4344,7 @@ GPUTexture* VulkanDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTex
     return texture;
 }
 
-GPUSampler VulkanDevice::CreateSampler(const GPUSamplerDesc& desc)
+GPUSampler* VulkanDevice::CreateSampler(const GPUSamplerDesc& desc)
 {
     VulkanSampler* sampler = new VulkanSampler();
     sampler->device = this;
@@ -4438,79 +4397,7 @@ GPUSampler VulkanDevice::CreateSampler(const GPUSamplerDesc& desc)
     return sampler;
 }
 
-GPUBindGroupLayout VulkanDevice::CreateBindGroupLayout(const GPUBindGroupLayoutDesc& desc)
-{
-    // https://developer.arm.com/documentation/101897/0303/CPU-overheads/Optimizing-descriptor-sets-and-layouts-for-Vulkan
-    // For ease of programming, VkDescriptorSetLayoutBinding::stageFlags can always be set to VK_SHADER_STAGE_ALL with no performance loss.
-    VulkanBindGroupLayout* layout = new VulkanBindGroupLayout();
-    layout->device = this;
-
-    VkDescriptorSetLayoutCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    createInfo.bindingCount = 0;
-    createInfo.pBindings = nullptr;
-
-    VkResult result = vkCreateDescriptorSetLayout(handle, &createInfo, nullptr, &layout->handle);
-    if (result != VK_SUCCESS)
-    {
-        delete layout;
-        VK_LOG_ERROR(result, "Failed to create BindGroupLayout");
-        return nullptr;
-    }
-
-    if (desc.label)
-    {
-        layout->SetLabel(desc.label);
-    }
-
-    return layout;
-}
-
-GPUPipelineLayout VulkanDevice::CreatePipelineLayout(const GPUPipelineLayoutDesc& desc)
-{
-    VulkanPipelineLayout* layout = new VulkanPipelineLayout();
-    layout->device = this;
-
-    layout->pushConstantRanges.resize(desc.pushConstantRangeCount);
-
-    uint32_t offset = 0;
-    for (uint32_t i = 0; i < desc.pushConstantRangeCount; i++)
-    {
-        const GPUPushConstantRange& pushConstantRange = desc.pushConstantRanges[i];
-
-        VkPushConstantRange& range = layout->pushConstantRanges[i];
-        range = {};
-        range.stageFlags = VK_SHADER_STAGE_ALL;
-        range.offset = offset;
-        range.size = pushConstantRange.size;
-
-        offset += pushConstantRange.size;
-    }
-
-    VkPipelineLayoutCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    createInfo.setLayoutCount = 0;
-    createInfo.pSetLayouts = nullptr;
-    createInfo.pushConstantRangeCount = desc.pushConstantRangeCount;
-    createInfo.pPushConstantRanges = layout->pushConstantRanges.data();
-
-    VkResult result = vkCreatePipelineLayout(handle, &createInfo, nullptr, &layout->handle);
-    if (result != VK_SUCCESS)
-    {
-        delete layout;
-        VK_LOG_ERROR(result, "Failed to create PipelineLayout");
-        return nullptr;
-    }
-
-    if (desc.label)
-    {
-        layout->SetLabel(desc.label);
-    }
-
-    return layout;
-}
-
-GPUShaderModule VulkanDevice::CreateShaderModule(const GPUShaderModuleDesc* desc)
+GPUShaderModule* VulkanDevice::CreateShaderModule(const GPUShaderModuleDesc* desc)
 {
     VkShaderModuleCreateInfo moduleInfo = {};
     moduleInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -4542,13 +4429,11 @@ GPUComputePipeline VulkanDevice::CreateComputePipeline(const GPUComputePipelineD
 {
     VulkanComputePipeline* pipeline = new VulkanComputePipeline();
     pipeline->device = this;
-    pipeline->layout = static_cast<VulkanPipelineLayout*>(desc.layout);
-    pipeline->layout->AddRef();
 
     VkComputePipelineCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     createInfo.stage = static_cast<VulkanShaderModule*>(desc.shader)->stageInfo;
-    createInfo.layout = pipeline->layout->handle;
+    createInfo.layout = bindlessManager.globalPipelineLayout;
 
     VkResult result = vkCreateComputePipelines(handle, pipelineCache, 1, &createInfo, nullptr, &pipeline->handle);
     if (result != VK_SUCCESS)
@@ -4570,8 +4455,6 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
 {
     VulkanRenderPipeline* pipeline = new VulkanRenderPipeline();
     pipeline->device = this;
-    pipeline->layout = static_cast<VulkanPipelineLayout*>(desc.layout);
-    pipeline->layout->AddRef();
 
     // ShaderStages
     std::vector<VkPipelineShaderStageCreateInfo> stages;
@@ -4826,7 +4709,7 @@ GPURenderPipeline VulkanDevice::CreateRenderPipeline(const GPURenderPipelineDesc
     createInfo.pDepthStencilState = (desc.depthStencilAttachmentFormat != GPUPixelFormat_Undefined) ? &depthStencilState : nullptr;
     createInfo.pColorBlendState = &blendState;
     createInfo.pDynamicState = &dynamicStateInfo;
-    createInfo.layout = pipeline->layout->handle;
+    createInfo.layout = bindlessManager.globalPipelineLayout;
     createInfo.renderPass = VK_NULL_HANDLE;
     createInfo.subpass = 0;
     createInfo.basePipelineHandle = VK_NULL_HANDLE;
