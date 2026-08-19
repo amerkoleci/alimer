@@ -36,6 +36,7 @@
 #   define DEFAULT_INITIALIZER(x)
 #endif
 
+#include <stddef.h>
 #include <stdint.h>
 
 /* Version API */
