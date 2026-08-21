@@ -23,15 +23,29 @@ jobs:
         include:
           - rid: win-x64
             runner: windows-2025-vs2026
-            skip_tests: false
+            generator: "Visual Studio 18 2026"
+            extraArgs: "-A x64"
           - rid: win-arm64
             runner: windows-2025-vs2026
-            skip_tests: true
+            generator: "Visual Studio 18 2026"
+            extraArgs: "-A ARM64"
+          - rid: linux-x64
+            runner: ubuntu-latest
+            generator: "Ninja"
+            extraArgs: ""
+          - rid: osx-universal
+            runner: macos-latest
+            generator: "Ninja"
+            extraArgs: "-DCMAKE_OSX_ARCHITECTURES=\"x86_64;arm64\""
 
     runs-on: ${{ matrix.runner }}
     steps:
-    - uses: actions/checkout@v7
-    - uses: lukka/get-cmake@latest
+    - name: Checkout
+      uses: actions/checkout@v7
+  
+    - name: Get CMake and Ninja
+      uses: lukka/get-cmake@latest
+  
     - name: Install Linux dependencies
       if: startsWith(matrix.rid, 'linux-')
       run: |
@@ -43,64 +57,13 @@ jobs:
             libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
             libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev fcitx-libs-dev \
             gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
     - name: Configure ${{ matrix.runner }}
-      run: cmake -S "src/native" -B "build_${{ matrix.rid }}" -G "Visual Studio 18 2026" -A x64 -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX="${{ matrix.rid }}-sdk" -DALIMER_SAMPLES=OFF
+      run: cmake -S "src/native" -B "build_${{ matrix.rid }}" -G "${{ matrix.generator }}" ${{ matrix.extraArgs }} -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX="${{ matrix.rid }}-sdk" -DALIMER_SAMPLES=OFF
+
     - name: Build ${{ matrix.rid }}
-      run: cmake --build build_${{ matrix.rid }} --target install --config Distribution
+      run: cmake --build build_${{ matrix.rid }} --target install --config Distribution --verbose --parallel 
     - uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.rid }}-sdk
         path: ${{ matrix.rid }}-sdk
-
-  linux:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v7
-
-    - name: Get CMake and Ninja
-      uses: lukka/get-cmake@latest
-      with:
-        cmakeVersion: latestrc
-        ninjaVersion: latest
-
-    - name: Install dependencies on Ubuntu
-      run: |
-        sudo apt-get update
-        sudo apt-get install build-essential git make \
-            pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev \
-            libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev \
-            libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev \
-            libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
-            libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev fcitx-libs-dev \
-            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-
-    - name: CMake Configure (linux-x64)
-      run: cmake -S "src/native" -B "build_linux_x64" -G Ninja -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX="linux-x64-sdk" -DALIMER_SAMPLES=OFF
-    - name: Build linux-x64
-      run: cmake --build build_linux_x64 --target install --config Distribution --verbose --parallel 
-     
-    - uses: actions/upload-artifact@v7
-      with:
-        name: linux-x64-sdk
-        path: linux-x64-sdk
-
-  macos:
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v7
-
-    - name: Get CMake and Ninja
-      uses: lukka/get-cmake@latest
-      with:
-        cmakeVersion: latestrc
-        ninjaVersion: latest
-
-    - name: CMake Configure (osx-universal)
-      run: cmake -S "src/native" -B "build_osx" -G Ninja -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DCMAKE_INSTALL_PREFIX="osx-sdk" -DALIMER_SAMPLES=OFF
-    - name: Build osx-universal
-      run: cmake --build build_osx --target install --config Distribution --verbose --parallel 
-     
-    - uses: actions/upload-artifact@v7
-      with:
-        name: osx-sdk
-        path: osx-sdk
