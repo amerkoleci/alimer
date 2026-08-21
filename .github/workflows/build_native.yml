@@ -1,7 +1,6 @@
 name: Build Native
 
 on:
-  workflow_dispatch:  
   push:
     branches:
       - 'main'
@@ -12,38 +11,46 @@ on:
     paths:
       - .github/workflows/build_native.yml
       - 'src/native/**'
+  workflow_call:
+  workflow_dispatch:
+  
 jobs:
-  windows:
-    runs-on: windows-2025-vs2026
+  build:
+    name: Native (${{ matrix.rid }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: win-x64
+            runner: windows-2025-vs2026
+            skip_tests: false
+          - rid: win-arm64
+            runner: windows-2025-vs2026
+            skip_tests: true
+
+    runs-on: ${{ matrix.runner }}
     steps:
-    - name: Checkout
-      uses: actions/checkout@v7
-
-    - name: Get CMake and Ninja
-      uses: lukka/get-cmake@latest
-      with:
-        cmakeVersion: latestrc
-        ninjaVersion: latest
-      
-    - name: Configure win-x64
-      run: cmake -S "src/native" -B "build_win_64" -G "Visual Studio 18 2026" -A x64 -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX="win-x64-sdk" -DALIMER_SAMPLES=OFF
-    - name: Build win-x64
-      run: cmake --build build_win_64 --target install --config Distribution
-
+    - uses: actions/checkout@v7
+    - uses: lukka/get-cmake@latest
+    - name: Install Linux dependencies
+      if: startsWith(matrix.rid, 'linux-')
+      run: |
+        sudo apt-get update
+        sudo apt-get install build-essential git make \
+            pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev \
+            libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev \
+            libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev \
+            libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
+            libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev fcitx-libs-dev \
+            gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+    - name: Configure ${{ matrix.runner }}
+      run: cmake -S "src/native" -B "build_${{ matrix.rid }}" -G "Visual Studio 18 2026" -A x64 -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX="${{ matrix.rid }}-sdk" -DALIMER_SAMPLES=OFF
+    - name: Build ${{ matrix.rid }}
+      run: cmake --build build_${{ matrix.rid }} --target install --config Distribution
     - uses: actions/upload-artifact@v7
       with:
-        name: win-x64-sdk
-        path: win-x64-sdk
-
-    - name: Configure win-arm64
-      run: cmake -S "src/native" -B "build_win_arm64" -G "Visual Studio 18 2026" -A ARM64 -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX="win-arm64-sdk" -DALIMER_SAMPLES=OFF
-    - name: Build win-arm64
-      run: cmake --build build_win_arm64 --target install --config Distribution        
-
-    - uses: actions/upload-artifact@v7
-      with:
-        name: win-arm64-sdk
-        path: win-arm64-sdk
+        name: ${{ matrix.rid }}-sdk
+        path: ${{ matrix.rid }}-sdk
 
   linux:
     runs-on: ubuntu-latest
