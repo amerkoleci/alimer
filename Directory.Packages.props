@@ -3,15 +3,15 @@
   <PropertyGroup>
     <CodeAnalysisVersion>5.3.0</CodeAnalysisVersion>
     <ImGuiVersion>2.2.10-prerelease</ImGuiVersion>
-    <SkiaSharpVersion>4.151.0-preview.1.1</SkiaSharpVersion>
-    <AvaloniaVersion>12.0.5</AvaloniaVersion>
+    <SkiaSharpVersion>4.151.1</SkiaSharpVersion>
+    <AvaloniaVersion>12.1.1</AvaloniaVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- Source Generators -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(CodeAnalysisVersion)" />
     
     <!-- Platform specific -->
-    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.2.0" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
     <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.4.0" />
     <!-- Engine -->
     <PackageVersion Include="SkiaSharp" Version="$(SkiaSharpVersion)" />

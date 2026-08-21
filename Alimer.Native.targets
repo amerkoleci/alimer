@@ -4,6 +4,10 @@
       <ItemGroup>
         <None Include="$(AlimerNativeDirectory)win-x64/SDL3.dll" Link="SDL3.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />
         <None Include="$(AlimerNativeDirectory)win-x64/alimer_native.dll" Link="alimer_native.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" />
+        <!-- Optional for now -->
+        <None Include="$(AlimerNativeDirectory)win-x64/alimer_gpu.dll" Link="alimer_gpu.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(AlimerNativeDirectory)win-x64/alimer_gpu.dll')" />
+        <None Include="$(AlimerNativeDirectory)win-x64/alimer_gpu_d.pdb" Link="alimer_gpu_d.pdb" Visible="False" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(AlimerNativeDirectory)win-x64/alimer_gpu_d.pdb')" />
+        <None Include="$(AlimerNativeDirectory)win-x64/alimer_gpu_d.dll" Link="alimer_gpu_d.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(AlimerNativeDirectory)win-x64/alimer_gpu_d.dll')" />
       </ItemGroup>
     </When>
     <When Condition="($([MSBuild]::IsOsPlatform('windows')) and '$(RuntimeIdentifier)'=='') or '$(RuntimeIdentifier)'=='win-arm64'">

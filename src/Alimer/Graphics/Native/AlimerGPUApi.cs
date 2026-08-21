@@ -11,7 +11,12 @@ namespace Alimer.Graphics.Native;
 
 internal static unsafe partial class AlimerGPUApi
 {
+#if DEBUG
+    //public const string LibraryName = "alimer_gpu_d";
     public const string LibraryName = "alimer_gpu";
+#else
+    public const string LibraryName = "alimer_gpu";
+#endif
     public const int GPU_MAX_ADAPTER_NAME_SIZE = 256;
     public const int GPU_MAX_COLOR_ATTACHMENTS = 8;
     public const int GPU_MAX_VERTEX_BUFFER_BINDINGS = 8;
@@ -30,6 +35,66 @@ internal static unsafe partial class AlimerGPUApi
         Trace,
 
         Count
+    }
+
+    public enum GPUMemoryType
+    {
+        /// <summary>
+        /// CPU no access, GPU read/write
+        /// </summary>
+        Private,
+        /// <summary>
+        /// CPU write, GPU read
+        /// </summary>
+        Upload,
+        /// <summary>
+        /// CPU read, GPU write
+        /// </summary>
+        Readback,
+
+        Count,
+    }
+
+    [Flags]
+    public enum GPUBufferUsage
+    {
+
+        None = 0,
+        Vertex = 1 << 0,
+        Index = 1 << 1,
+        /// <summary>
+        /// Supports Constant buffer access.
+        /// </summary>
+        Constant = 1 << 2,
+        ShaderRead = 1 << 3,
+        ShaderWrite = 1 << 4,
+        /// <summary>
+        /// Supports indirect buffer access for indirect draw/dispatch.
+        /// </summary>
+        Indirect = 1 << 5,
+        /// <summary>
+        /// Supports predication access for conditional rendering.
+        /// </summary>
+        Predication = (1 << 6),
+        /// <summary>
+        /// Supports ray tracing acceleration structure usage.
+        /// </summary>
+        RayTracing = 1 << 7,
+        Count
+    }
+
+    public enum GPUTextureDimension
+    {
+        /// Undefined - default to 2D texture.
+        Undefined = 0,
+        /// One-dimensional Texture.
+        Texture1D = 1,
+        /// Two-dimensional Texture.
+        Texture2D = 2,
+        /// Three-dimensional Texture.
+        Texture3D = 3,
+        /// Cubemap Texture.
+        TextureCube = 4,
     }
     #endregion
 
@@ -51,7 +116,7 @@ internal static unsafe partial class AlimerGPUApi
         public uint deviceID;
     }
 
-    public struct GPUAdapterLimits
+    public struct GPUDeviceLimits
     {
         public uint maxTextureDimension1D;
         public uint maxTextureDimension2D;
@@ -130,6 +195,34 @@ internal static unsafe partial class AlimerGPUApi
     {
         public byte* label;
     }
+
+    public struct GPUBufferDesc
+    {
+        public byte* label;
+        public ulong size;
+        public GPUBufferUsage usage;
+        public GPUMemoryType memoryType;
+    }
+
+    public struct GPUTextureDesc
+    {
+        public byte* label;
+        public GPUTextureDimension dimension;
+        public PixelFormat format;
+        public TextureUsage usage;
+        public uint width;
+        public uint height;
+        public uint depthOrArrayLayers;
+        public uint mipLevelCount;
+        public uint sampleCount;
+    }
+
+    public struct GPUTextureData
+    {
+        public void* pData;
+        public uint rowPitch;
+        public uint slicePitch;
+    }
     #endregion
 
     #region Handles
@@ -180,26 +273,26 @@ internal static unsafe partial class AlimerGPUApi
     }
 
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public readonly partial struct GPUSurfaceHandle(nint handle) : IEquatable<GPUSurfaceHandle>
+    public readonly partial struct GPUSurfaceSource(nint handle) : IEquatable<GPUSurfaceSource>
     {
         public nint Handle { get; } = handle;
         public readonly bool IsNull => Handle == 0;
         public readonly bool IsNotNull => Handle != 0;
 
-        public static GPUSurfaceHandle Null => new(0);
-        public static implicit operator GPUSurfaceHandle(nint handle) => new(handle);
-        public static implicit operator nint(GPUSurfaceHandle handle) => handle.Handle;
+        public static GPUSurfaceSource Null => new(0);
+        public static implicit operator GPUSurfaceSource(nint handle) => new(handle);
+        public static implicit operator nint(GPUSurfaceSource handle) => handle.Handle;
 
-        public static bool operator ==(GPUSurfaceHandle left, GPUSurfaceHandle right) => left.Handle == right.Handle;
-        public static bool operator !=(GPUSurfaceHandle left, GPUSurfaceHandle right) => left.Handle != right.Handle;
-        public static bool operator ==(GPUSurfaceHandle left, nint right) => left.Handle == right;
-        public static bool operator !=(GPUSurfaceHandle left, nint right) => left.Handle != right;
-        public bool Equals(GPUSurfaceHandle other) => Handle == other.Handle;
+        public static bool operator ==(GPUSurfaceSource left, GPUSurfaceSource right) => left.Handle == right.Handle;
+        public static bool operator !=(GPUSurfaceSource left, GPUSurfaceSource right) => left.Handle != right.Handle;
+        public static bool operator ==(GPUSurfaceSource left, nint right) => left.Handle == right;
+        public static bool operator !=(GPUSurfaceSource left, nint right) => left.Handle != right;
+        public bool Equals(GPUSurfaceSource other) => Handle == other.Handle;
         /// <inheritdoc/>
-        public override bool Equals([NotNullWhen(true)] object? obj) => obj is GPUSurfaceHandle handle && Equals(handle);
+        public override bool Equals([NotNullWhen(true)] object? obj) => obj is GPUSurfaceSource handle && Equals(handle);
         /// <inheritdoc/>
         public override readonly int GetHashCode() => Handle.GetHashCode();
-        private readonly string DebuggerDisplay => $"{nameof(GPUSurfaceHandle)} [0x{Handle:X}]";
+        private readonly string DebuggerDisplay => $"{nameof(GPUSurfaceSource)} [0x{Handle:X}]";
     }
 
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
@@ -293,6 +386,75 @@ internal static unsafe partial class AlimerGPUApi
         public override readonly int GetHashCode() => Handle.GetHashCode();
         private readonly string DebuggerDisplay => $"{nameof(GPUCommandBuffer)} [0x{Handle:X}]";
     }
+
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
+    public readonly partial struct GPUBuffer(nint handle) : IEquatable<GPUBuffer>
+    {
+        public nint Handle { get; } = handle;
+        public readonly bool IsNull => Handle == 0;
+        public readonly bool IsNotNull => Handle != 0;
+
+        public static GPUBuffer Null => new(0);
+        public static implicit operator GPUBuffer(nint handle) => new(handle);
+        public static implicit operator nint(GPUBuffer handle) => handle.Handle;
+
+        public static bool operator ==(GPUBuffer left, GPUBuffer right) => left.Handle == right.Handle;
+        public static bool operator !=(GPUBuffer left, GPUBuffer right) => left.Handle != right.Handle;
+        public static bool operator ==(GPUBuffer left, nint right) => left.Handle == right;
+        public static bool operator !=(GPUBuffer left, nint right) => left.Handle != right;
+        public bool Equals(GPUBuffer other) => Handle == other.Handle;
+        /// <inheritdoc/>
+        public override bool Equals([NotNullWhen(true)] object? obj) => obj is GPUBuffer handle && Equals(handle);
+        /// <inheritdoc/>
+        public override readonly int GetHashCode() => Handle.GetHashCode();
+        private readonly string DebuggerDisplay => $"{nameof(GPUBuffer)} [0x{Handle:X}]";
+    }
+
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
+    public readonly partial struct GPUTexture(nint handle) : IEquatable<GPUTexture>
+    {
+        public nint Handle { get; } = handle;
+        public readonly bool IsNull => Handle == 0;
+        public readonly bool IsNotNull => Handle != 0;
+
+        public static GPUTexture Null => new(0);
+        public static implicit operator GPUTexture(nint handle) => new(handle);
+        public static implicit operator nint(GPUTexture handle) => handle.Handle;
+
+        public static bool operator ==(GPUTexture left, GPUTexture right) => left.Handle == right.Handle;
+        public static bool operator !=(GPUTexture left, GPUTexture right) => left.Handle != right.Handle;
+        public static bool operator ==(GPUTexture left, nint right) => left.Handle == right;
+        public static bool operator !=(GPUTexture left, nint right) => left.Handle != right;
+        public bool Equals(GPUTexture other) => Handle == other.Handle;
+        /// <inheritdoc/>
+        public override bool Equals([NotNullWhen(true)] object? obj) => obj is GPUTexture handle && Equals(handle);
+        /// <inheritdoc/>
+        public override readonly int GetHashCode() => Handle.GetHashCode();
+        private readonly string DebuggerDisplay => $"{nameof(GPUTexture)} [0x{Handle:X}]";
+    }
+
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
+    public readonly partial struct GPUSampler(nint handle) : IEquatable<GPUSampler>
+    {
+        public nint Handle { get; } = handle;
+        public readonly bool IsNull => Handle == 0;
+        public readonly bool IsNotNull => Handle != 0;
+
+        public static GPUSampler Null => new(0);
+        public static implicit operator GPUSampler(nint handle) => new(handle);
+        public static implicit operator nint(GPUSampler handle) => handle.Handle;
+
+        public static bool operator ==(GPUSampler left, GPUSampler right) => left.Handle == right.Handle;
+        public static bool operator !=(GPUSampler left, GPUSampler right) => left.Handle != right.Handle;
+        public static bool operator ==(GPUSampler left, nint right) => left.Handle == right;
+        public static bool operator !=(GPUSampler left, nint right) => left.Handle != right;
+        public bool Equals(GPUSampler other) => Handle == other.Handle;
+        /// <inheritdoc/>
+        public override bool Equals([NotNullWhen(true)] object? obj) => obj is GPUSampler handle && Equals(handle);
+        /// <inheritdoc/>
+        public override readonly int GetHashCode() => Handle.GetHashCode();
+        private readonly string DebuggerDisplay => $"{nameof(GPUSampler)} [0x{Handle:X}]";
+    }
     #endregion
 
     [LibraryImport(LibraryName)]
@@ -319,12 +481,15 @@ internal static unsafe partial class AlimerGPUApi
     public static partial GPUAdapter agpuFactoryGetAdapter(GPUFactory factory, int index);
     [LibraryImport(LibraryName)]
     public static partial GPUAdapter agpuFactoryGetBestAdapter(GPUFactory factory);
+    [LibraryImport(LibraryName)]
+    public static partial GPUSurface agpuFactoryCreateSurface(GPUFactory factory, GPUSurfaceSource source);
 
     #region GPUAdapter Methods
     [LibraryImport(LibraryName)]
     public static partial void agpuAdapterGetInfo(GPUAdapter adapter, out GPUAdapterInfo info);
+    /* Device */
     [LibraryImport(LibraryName)]
-    public static partial void agpuAdapterGetLimits(GPUAdapter adapter, out GPUAdapterLimits limits);
+    public static partial GPUDevice agpuAdapterCreateDevice(GPUAdapter adapter, GPUDeviceDesc* desc);
 
     //[LibraryImport(LibraryName)]
     //[return: MarshalAs(UnmanagedType.U1)]
@@ -333,18 +498,25 @@ internal static unsafe partial class AlimerGPUApi
 
     /* SurfaceHandle */
     [LibraryImport(LibraryName)]
-    public static partial GPUSurfaceHandle agpuSurfaceHandleCreateFromWin32(nint hwnd);
+    public static partial GPUSurfaceSource agpuSurfaceSourceCreateFromWin32(nint hwnd);
 
     [LibraryImport(LibraryName)]
-    public static partial GPUSurfaceHandle agpuSurfaceHandleCreateFromAndroid(nint window);
+    public static partial GPUSurfaceSource agpuSurfaceSourceCreateFromAndroid(nint window);
+
+    [LibraryImport(LibraryName)]
+    public static partial GPUSurfaceSource agpuSurfaceSourceCreateFromMetalLayer(nint metalLayer);
+
+    [LibraryImport(LibraryName)]
+    public static partial GPUSurfaceSource agpuSurfaceSourceCreateFromWaylandSurface(nint display, nint surface);
+
+    [LibraryImport(LibraryName)]
+    public static partial GPUSurfaceSource agpuSurfaceSourceCreateFromXlibWindow(nint display, ulong window);
 
 
     [LibraryImport(LibraryName)]
-    public static partial void agpuSurfaceHandleDestroy(GPUSurfaceHandle surfaceHandle);
+    public static partial void agpuSurfaceSourceDestroy(GPUSurfaceSource surfaceSource);
 
     #region GPUSurface Methods
-    [LibraryImport(LibraryName)]
-    public static partial GPUSurface agpuCreateSurface(GPUFactory factory, GPUSurfaceHandle surfaceHandle);
     [LibraryImport(LibraryName)]
     public static partial void agpuSurfaceGetCapabilities(GPUSurface surface, GPUAdapter adapter, out GPUSurfaceCapabilities capabilities);
     [LibraryImport(LibraryName)]
@@ -359,15 +531,14 @@ internal static unsafe partial class AlimerGPUApi
     #endregion
 
     #region GPUDevice Methods
-    /* Device */
-    [LibraryImport(LibraryName)]
-    public static partial GPUDevice agpuCreateDevice(GPUAdapter adapter, GPUDeviceDesc* desc);
     [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
     public static partial void agpuDeviceSetLabel(GPUDevice device, string label);
     [LibraryImport(LibraryName)]
     public static partial uint agpuDeviceAddRef(GPUDevice device);
     [LibraryImport(LibraryName)]
     public static partial uint agpuDeviceRelease(GPUDevice device);
+    [LibraryImport(LibraryName)]
+    public static partial void agpuDeviceGetLimits(GPUDevice device, out GPUDeviceLimits limits);
     [LibraryImport(LibraryName)]
     [return: MarshalAs(UnmanagedType.U1)]
     public static partial bool agpuDeviceHasFeature(GPUDevice device, Feature feature);
@@ -381,6 +552,13 @@ internal static unsafe partial class AlimerGPUApi
     /// Commit the current frame and advance to next frame
     [LibraryImport(LibraryName)]
     public static partial ulong agpuDeviceCommitFrame(GPUDevice device);
+
+    [LibraryImport(LibraryName)]
+    public static partial GPUBuffer agpuDeviceCreateBuffer(GPUDevice device, GPUBufferDesc* desc, void* pInitialData);
+    [LibraryImport(LibraryName)]
+    public static partial GPUTexture agpuDeviceCreateTexture(GPUDevice device, GPUTextureDesc* desc, GPUTextureData* pInitialData);
+    //[LibraryImport(LibraryName)]
+    //public static partial GPUSampler agpuDeviceCreateSampler(GPUDevice device, GPUSamplerDesc* desc);
     #endregion
 
     #region CommandQueue

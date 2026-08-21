@@ -19,8 +19,11 @@ internal unsafe class NativeGraphicsManager : GraphicsManager
 
     static NativeGraphicsManager()
     {
-        var level = agpuGetLogLevel();
-        //agpuSetLogLevel(Level);
+#if DEBUG
+        agpuSetLogLevel(GPULogLevel.Debug);
+#else
+        agpuSetLogLevel(GPULogLevel.Info);
+#endif
         agpuSetLogCallback(&OnNativeLogCallback, 0);
     }
 
@@ -57,14 +60,26 @@ internal unsafe class NativeGraphicsManager : GraphicsManager
         }
     }
 
-    protected override Surface CreateSurfaceCore(in SurfaceDescriptor descriptor)
-    {
-        throw new NotImplementedException();
-    }
+    protected override Surface CreateSurfaceCore(in SurfaceDescriptor descriptor) => new NativeSurface(this, in descriptor);
 
     [UnmanagedCallersOnly]
     private static unsafe void OnNativeLogCallback(GPULogLevel level, byte* messagePtr, nint userData)
     {
         string message = Utf8StringMarshaller.ConvertToManaged(messagePtr)!;
+        switch (level)
+        {
+            case GPULogLevel.Debug:
+                Log.Debug(message);
+                break;
+            case GPULogLevel.Info:
+                Log.Info(message);
+                break;
+            case GPULogLevel.Warn:
+                Log.Warn(message);
+                break;
+            case GPULogLevel.Error:
+                Log.Error(message);
+                break;
+        }
     }
 }

@@ -98,6 +98,7 @@ public abstract unsafe class GraphicsManager : GraphicsBaseObject
             case GraphicsBackend.Vulkan:
                 if (Vulkan.VulkanGraphicsManager.IsSupported)
                 {
+                    //manager = new Native.NativeGraphicsManager(in options);
                     manager = new Vulkan.VulkanGraphicsManager(in options);
                 }
                 break;

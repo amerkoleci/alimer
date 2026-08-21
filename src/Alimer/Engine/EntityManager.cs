@@ -4,7 +4,6 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Specialized;
-using System.Linq;
 using System.Reflection;
 using Alimer.Graphics;
 
@@ -128,7 +127,8 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
 
     internal void Remove(Entity entity)
     {
-        if (!_entities.Remove(entity)) return;
+        if (!_entities.Remove(entity))
+            return;
 
         entity.Components.CollectionChanged -= OnComponentsCollectionChanged;
         entity.Children.CollectionChanged -= OnChildrenCollectionChanged;

@@ -50,11 +50,16 @@ unsafe partial class AlimerApi
         public PhysicsShape* shapes;
     }
 
+    public struct PhysicsAllocationCallbacks
+    {
+        public delegate* unmanaged<nuint, nint, void*> allocate;
+        public delegate* unmanaged<void*, nint, void> free;
+        public nint userData;
+    }
+
     public struct PhysicsConfig
     {
-        public uint tempAllocatorInitSize;
-        public uint maxPhysicsJobs;
-        public uint maxPhysicsBarriers;
+        public PhysicsAllocationCallbacks* allocationCallbacks;
     }
 
     public struct PhysicsWorldConfig
@@ -180,12 +185,13 @@ unsafe partial class AlimerApi
     public static partial void alimerPhysicsWorldGetGravity(PhysicsWorld world, out Vector3 gravity);
     [LibraryImport(LibraryName)]
     public static partial void alimerPhysicsWorldSetGravity(PhysicsWorld world, in Vector3 gravity);
-    [LibraryImport(LibraryName)]
 
-    [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool alimerPhysicsWorldUpdate(PhysicsWorld world, float deltaTime, int collisionSteps);
     [LibraryImport(LibraryName)]
     public static partial void alimerPhysicsWorldOptimizeBroadPhase(PhysicsWorld world);
+
+    [LibraryImport(LibraryName)]
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool alimerPhysicsWorldUpdate(PhysicsWorld world, float deltaTime, int collisionSteps);
     #endregion
 
     #region PhysicsMaterial
