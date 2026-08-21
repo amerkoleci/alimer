@@ -101,7 +101,10 @@ struct PhysicsWorld final
 struct PhysicsMaterial final
 {
     std::atomic_uint32_t refCount;
-    //JPH::Ref<AlimerPhysicsMaterial> handle;
+    float friction = 0.3f;
+    float restitution = 0.0f;
+    // TODO: expose density on the material or on PhysicsShapeDesc - Box3D
+    // needs it per-shape (b3ShapeDef::density), not per-material.
 };
 
 struct PhysicsBody final
@@ -117,6 +120,7 @@ struct PhysicsShape final
     PhysicsShapeType type;
     Vec3 size;
     PhysicsBody* body;
+    PhysicsMaterial* material;
     b3ShapeId id;
 };
 
@@ -171,7 +175,8 @@ PhysicsWorld* alimerPhysicsWorldCreate(const PhysicsWorldConfig* pConfig)
 
     if (!b3World_IsValid(world->id))
     {
-        //alimerLogError(LogCategory_Physics, "Jolt: CreateBox failed with %s", shapeResult.GetError().c_str());
+        //alimerLogError(LogCategory_Physics, "Box3D: CreateWorld failed");
+        delete world;
         return nullptr;
     }
 
@@ -222,9 +227,12 @@ void alimerPhysicsWorldOptimizeBroadPhase(PhysicsWorld* world)
 /* Material */
 PhysicsMaterial* alimerPhysicsMaterialCreate(const char* name, float friction, float restitution)
 {
+    ALIMER_UNUSED(name); // Box3D shape materials are not named individually.
+
     PhysicsMaterial* material = new PhysicsMaterial();
     material->refCount.store(1);
-    //material->handle = new AlimerPhysicsMaterial(name, JPH::ColorArg(255, 0, 0), friction, restitution);
+    material->friction = friction;
+    material->restitution = restitution;
     return material;
 }
 
@@ -254,6 +262,10 @@ void alimerPhysicsShapeRelease(PhysicsShape* shape)
     uint32_t result = --shape->refCount;
     if (result == 0)
     {
+        if (shape->material)
+        {
+            alimerPhysicsMaterialRelease(shape->material);
+        }
         delete shape;
     }
 }
@@ -319,6 +331,11 @@ PhysicsShape* alimerPhysicsCreateBoxShape(const Vec3* size, PhysicsMaterial* mat
     shape->size.x = size->x;
     shape->size.y = size->y;
     shape->size.z = size->z;
+    shape->material = material;
+    if (material)
+    {
+        alimerPhysicsMaterialAddRef(material);
+    }
     return shape;
 }
 
@@ -332,6 +349,11 @@ PhysicsShape* alimerPhysicsCreateSphereShape(float radius, PhysicsMaterial* mate
     shape->size.x = radius;
     shape->size.y = radius;
     shape->size.z = radius;
+    shape->material = material;
+    if (material)
+    {
+        alimerPhysicsMaterialAddRef(material);
+    }
     return shape;
 }
 
@@ -346,6 +368,11 @@ PhysicsShape* alimerPhysicsCreateCapsuleShape(float height, float radius, Physic
     shape->size.x = radius;
     shape->size.y = height;
     shape->size.z = 0.f;
+    shape->material = material;
+    if (material)
+    {
+        alimerPhysicsMaterialAddRef(material);
+    }
     return shape;
 }
 
@@ -360,6 +387,11 @@ PhysicsShape* alimerPhysicsCreateCylinderShape(float height, float radius, Physi
     shape->size.x = radius;
     shape->size.y = height;
     shape->size.z = 0.f;
+    shape->material = material;
+    if (material)
+    {
+        alimerPhysicsMaterialAddRef(material);
+    }
     return shape;
 }
 
@@ -388,6 +420,78 @@ PhysicsShape* alimerPhysicsCreateTerrainShape(const float* samples, const Vec3* 
     shape->type = PhysicsShapeType_Terrain;
     // TODO: save samples, offset, scale, and sampleCount
     return shape;
+}
+
+static bool AttachShapeToBody(b3BodyId bodyId, PhysicsShape* shape)
+{
+    b3ShapeDef shapeDef = b3DefaultShapeDef();
+    // TODO: Box3D requires density on b3ShapeDef, but alimer doesn't expose it
+    // per-shape/material today. Hardcoding 1.0f keeps dynamic bodies simulating
+    // correctly (Box3D warns a dynamic body needs >=1 shape with non-zero density)
+    // but this should become a real parameter (e.g. on PhysicsMaterial).
+    shapeDef.density = 1.0f;
+
+    if (shape->material)
+    {
+        shapeDef.baseMaterial.friction = shape->material->friction;
+        shapeDef.baseMaterial.restitution = shape->material->restitution;
+    }
+
+    switch (shape->type)
+    {
+        case PhysicsShapeType_Box:
+        {
+            // alimer's `size` is treated as full extents; Box3D hulls want half-extents.
+            b3BoxHull hull = b3MakeBoxHull(shape->size.x * 0.5f, shape->size.y * 0.5f, shape->size.z * 0.5f);
+            shape->id = b3CreateHullShape(bodyId, &shapeDef, &hull.base);
+            break;
+        }
+
+        case PhysicsShapeType_Sphere:
+        {
+            // NOTE: b3Sphere / b3CreateSphereShape are inferred from the Box2D v3 naming
+            // pattern - Box3D v0.1 has no published signature for these yet. Verify field
+            // names (center/radius) and the function name against your vendored box3d.h.
+            b3Sphere sphere{};
+            sphere.center = { 0.0f, 0.0f, 0.0f };
+            sphere.radius = shape->size.x;
+            shape->id = b3CreateSphereShape(bodyId, &shapeDef, &sphere);
+            break;
+        }
+
+        case PhysicsShapeType_Capsule:
+        {
+            // NOTE: same caveat as sphere - b3Capsule field names (center1/center2/radius)
+            // are inferred from Box2D v3, not confirmed against Box3D's current header.
+            b3Capsule capsule{};
+            const float halfHeight = shape->size.y * 0.5f;
+            capsule.center1 = { 0.0f, -halfHeight, 0.0f };
+            capsule.center2 = { 0.0f, halfHeight, 0.0f };
+            capsule.radius = shape->size.x;
+            shape->id = b3CreateCapsuleShape(bodyId, &shapeDef, &capsule);
+            break;
+        }
+
+        case PhysicsShapeType_Cylinder:
+            // Box3D has no dedicated cylinder primitive - only a hull builder
+            // (something like b3MakeCylinderHull). Left unimplemented until the
+            // exact helper name/signature is confirmed; a capsule is NOT an
+            // acceptable stand-in, it changes collision behavior.
+            //alimerLogError(LogCategory_Physics, "Box3D: cylinder shape not yet implemented");
+            return false;
+
+        case PhysicsShapeType_ConvexHull:
+        case PhysicsShapeType_Mesh:
+        case PhysicsShapeType_Terrain:
+        default:
+            // These still discard their source data at creation time
+            // (see alimerPhysicsCreateConvexHullShape/CreateMeshShape/CreateTerrainShape),
+            // so there is nothing to attach yet - that has to be fixed first.
+            //alimerLogError(LogCategory_Physics, "Box3D: shape type not yet implemented");
+            return false;
+    }
+
+    return b3Shape_IsValid(shape->id);
 }
 
 /* Body */
@@ -431,20 +535,26 @@ PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, const PhysicsBodyDesc*
     bodyDef.rotation = ToBox3D(&desc->initialTransform.rotation);
     bodyDef.linearDamping = desc->linearDamping;
 
-    for (uint32_t i = 0; i < desc->shapeCount; i++)
-    {
-    }
-
     PhysicsBody* body = new PhysicsBody();
     body->refCount.store(1);
     body->world = world;
     body->id = b3CreateBody(world->id, &bodyDef);
     b3Body_SetUserData(body->id, body);
 
-    // Assign the body to the shapes
+    // Shapes can only be attached once the body exists, since Box3D's
+    // b3CreateXShape functions take the owning b3BodyId.
     for (uint32_t i = 0; i < desc->shapeCount; i++)
     {
-        desc->shapes[i]->body = body;
+        PhysicsShape* shape = desc->shapes[i];
+        if (!AttachShapeToBody(body->id, shape))
+        {
+            //alimerLogError(LogCategory_Physics, "Failed to attach shape %u to body", i);
+            b3DestroyBody(body->id);
+            delete body;
+            return nullptr;
+        }
+
+        shape->body = body;
     }
 
     return body;

@@ -33,10 +33,11 @@ JPH_SUPPRESS_WARNINGS
 // STL includes
 #include <iostream>
 #include <cstdarg>
+#include <thread>
 
 JPH_SUPPRESS_WARNING_POP
 
-static void TraceImpl(const char* fmt, ...)
+static void JoltTraceFunc(const char* fmt, ...)
 {
     // Format the message
     va_list list;
@@ -54,7 +55,7 @@ static void TraceImpl(const char* fmt, ...)
 //static JPH_AssertFailureFunc s_AssertFailureFunc = nullptr;
 
 // Callback for asserts, connect this to your own assert handler if you have one
-static bool AssertFailedImpl(const char* inExpression, const char* inMessage, const char* inFile, uint32_t inLine)
+static bool JoltAssertFailed(const char* inExpression, const char* inMessage, const char* inFile, uint32_t inLine)
 {
     // Print to the TTY
     //alimerLogError(LogCategory_Physics, "%s:%s: (%s) %s", inFile, inLine, inExpression, (inMessage != nullptr ? inMessage : ""));
@@ -171,8 +172,7 @@ public:
         : JPH::PhysicsMaterialSimple(name, color)
         , friction(friction_)
         , restitution(restitution_)
-    {
-    }
+    {}
 };
 
 /// Class that determines if two object layers can collide
@@ -334,17 +334,11 @@ public:
     }
 };
 
-
-static struct
-{
-    bool initialized;
-    JPH::TempAllocatorImplWithMallocFallback* tempAllocator;
-    JPH::JobSystemThreadPool* jobSystem;
-} physics_state = {};
-
 struct PhysicsWorld final
 {
     std::atomic_uint32_t                refCount;
+    JPH::TempAllocatorImplWithMallocFallback* tempAllocator;
+    JPH::JobSystemThreadPool* jobSystem;
     AlimerObjectLayerPairFilter         objectLayerFilter;
     JoltBroadPhaseLayerInterface	    broadPhaseLayerInterface;
     JoltObjectVsBroadPhaseLayerFilter   objectVsBroadPhaseLayerFilter;
@@ -373,8 +367,6 @@ struct PhysicsShape final
     std::atomic_uint32_t refCount;
     PhysicsShapeType type;
     JPH::ShapeRefC handle;
-    PhysicsBody* body;
-    void* userdata = nullptr;
 };
 
 // Default allocation callbacks.
@@ -429,49 +421,37 @@ static void PhysicsFree(T* object)
     s_allocCallbacks->free(object, s_allocCallbacks->userData);
 }
 
+std::atomic_bool initialized;
 bool alimerPhysicsInit(const PhysicsConfig* config)
 {
-    JPH_ASSERT(config);
-
-    if (physics_state.initialized)
+    if (initialized)
         return true;
 
+    PhysicsConfig configDef = config ? *config : PhysicsConfig{};
+
     // Set user-provided allocation callbacks.
-    alimerPhysicsSetAllocationCallbacks(config->allocationCallbacks);
+    alimerPhysicsSetAllocationCallbacks(configDef.allocationCallbacks);
 
     JPH::RegisterDefaultAllocator();
 
     // TODO
-    JPH::Trace = TraceImpl;
-    JPH_IF_ENABLE_ASSERTS(JPH::AssertFailed = AssertFailedImpl;)
+    JPH::Trace = JoltTraceFunc;
+    JPH_IF_ENABLE_ASSERTS(JPH::AssertFailed = JoltAssertFailed);
 
-        // Create a factory
-        JPH::Factory::sInstance = new JPH::Factory();
+    // Create a factory
+    JPH::Factory::sInstance = new JPH::Factory();
 
     // Register all Jolt physics types
     JPH::RegisterTypes();
 
-    const uint32_t tempAllocatorSize = config->tempAllocatorInitSize > 0 ? config->tempAllocatorInitSize : 8 * 1024 * 1024;
-    const uint32_t maxPhysicsJobs = config->maxPhysicsJobs > 0 ? config->maxPhysicsJobs : JPH::cMaxPhysicsJobs;
-    const uint32_t maxPhysicsBarriers = config->maxPhysicsBarriers > 0 ? config->maxPhysicsBarriers : JPH::cMaxPhysicsBarriers;
-
-    // Init temp allocator
-    physics_state.tempAllocator = new JPH::TempAllocatorImplWithMallocFallback(tempAllocatorSize);
-
-    // Init Job system.
-    physics_state.jobSystem = new JPH::JobSystemThreadPool(maxPhysicsJobs, maxPhysicsBarriers);
-
-    physics_state.initialized = true;
+    initialized.store(true);
     return true;
 }
 
 void alimerPhysicsShutdown(void)
 {
-    if (!physics_state.initialized)
+    if (!initialized.load())
         return;
-
-    delete physics_state.jobSystem; physics_state.jobSystem = nullptr;
-    delete physics_state.tempAllocator; physics_state.tempAllocator = nullptr;
 
     // Unregisters all types with the factory and cleans up the default material
     JPH::UnregisterTypes();
@@ -480,8 +460,7 @@ void alimerPhysicsShutdown(void)
     delete JPH::Factory::sInstance;
     JPH::Factory::sInstance = nullptr;
 
-    physics_state.initialized = false;
-    memset(&physics_state, 0, sizeof(physics_state));
+    initialized.store(false);
 }
 
 static PhysicsWorldConfig PhysicsWorldConfig_Defaults(const PhysicsWorldConfig* pConfig)
@@ -506,6 +485,13 @@ PhysicsWorld* alimerPhysicsWorldCreate(const PhysicsWorldConfig* pConfig)
     PhysicsWorld* world = PhysicsAlloc<PhysicsWorld>();
     world->refCount.store(1);
 
+    // Init temp allocator
+    const uint32_t tempAllocatorSize = 8 * 1024 * 1024;
+    world->tempAllocator = new JPH::TempAllocatorImplWithMallocFallback(tempAllocatorSize);
+
+    // Init Job system.
+    world->jobSystem = new JPH::JobSystemThreadPool(JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers, std::thread::hardware_concurrency() - 1);
+
     // Init the physics system
     const uint32_t maxBodies = config.maxBodies ? config.maxBodies : 65536;
     const uint32_t maxBodyPairs = config.maxBodyPairs ? config.maxBodyPairs : 65536;
@@ -524,6 +510,9 @@ PhysicsWorld* alimerPhysicsWorldCreate(const PhysicsWorldConfig* pConfig)
     if (!shapeResult.IsValid())
     {
         //alimerLogError(LogCategory_Physics, "Jolt: CreateBox failed with %s", shapeResult.GetError().c_str());
+        delete world->tempAllocator;
+        delete world->jobSystem;
+        PhysicsFree(world);
         return nullptr;
     }
 
@@ -536,6 +525,8 @@ void alimerPhysicsWorldDestroy(PhysicsWorld* world)
     uint32_t newCount = --world->refCount;
     if (newCount == 0)
     {
+        delete world->tempAllocator;
+        delete world->jobSystem;
         PhysicsFree(world);
     }
 }
@@ -560,26 +551,28 @@ void alimerPhysicsWorldSetGravity(PhysicsWorld* world, const Vec3* gravity)
     world->system.SetGravity(ToJolt(gravity));
 }
 
-bool alimerPhysicsWorldUpdate(PhysicsWorld* world, float deltaTime, int collisionSteps)
-{
-    JPH::EPhysicsUpdateError error = world->system.Update(
-        deltaTime,
-        collisionSteps,
-        physics_state.tempAllocator,
-        physics_state.jobSystem
-    );
-    return error == JPH::EPhysicsUpdateError::None;
-}
-
 void alimerPhysicsWorldOptimizeBroadPhase(PhysicsWorld* world)
 {
     world->system.OptimizeBroadPhase();
 }
 
+bool alimerPhysicsWorldUpdate(PhysicsWorld* world, float deltaTime, int collisionSteps)
+{
+    // TODO: Understand if tempAllocator and jobSystem can be used as global
+
+    JPH::EPhysicsUpdateError error = world->system.Update(
+        deltaTime,
+        collisionSteps,
+        world->tempAllocator,
+        world->jobSystem
+    );
+    return error == JPH::EPhysicsUpdateError::None;
+}
+
 /* Material */
 PhysicsMaterial* alimerPhysicsMaterialCreate(const char* name, float friction, float restitution)
 {
-    PhysicsMaterial* material = new PhysicsMaterial();
+    PhysicsMaterial* material = PhysicsAlloc<PhysicsMaterial>();
     material->refCount.store(1);
     material->handle = new AlimerPhysicsMaterial(name, JPH::ColorArg(255, 0, 0), friction, restitution);
     return material;
@@ -590,7 +583,7 @@ void alimerPhysicsMaterialDestroy(PhysicsMaterial* material)
     uint32_t newCount = --material->refCount;
     if (newCount == 0)
     {
-        delete material;
+        PhysicsFree(material);
     }
 }
 
@@ -599,7 +592,7 @@ void alimerPhysicsShapeDestroy(PhysicsShape* shape)
     uint32_t result = --shape->refCount;
     if (result == 0)
     {
-        delete shape;
+        PhysicsFree(shape);
     }
 }
 
@@ -611,22 +604,6 @@ bool alimerPhysicsShapeIsValid(PhysicsShape* shape)
 PhysicsShapeType alimerPhysicsShapeGetType(PhysicsShape* shape)
 {
     return shape->type;
-}
-
-PhysicsBody* alimerPhysicsShapeGetBody(PhysicsShape* shape)
-{
-    return shape->body;
-}
-
-void* alimerPhysicsShapeGetUserData(PhysicsShape* shape)
-{
-    return shape->userdata;
-}
-
-void alimerPhysicsShapeSetUserData(PhysicsShape* shape, void* userdata)
-{
-    // freeUserData?
-    shape->userdata = userdata;
 }
 
 float alimerPhysicsShapeGetVolume(PhysicsShape* shape)
@@ -671,11 +648,11 @@ PhysicsShape* alimerPhysicsShapeCreateBox(const Vec3* size, PhysicsMaterial* mat
         return nullptr;
     }
 
-    PhysicsShape* shape = new PhysicsShape();
+    PhysicsShape* shape = PhysicsAlloc<PhysicsShape>();
     shape->refCount.store(1);
     shape->type = PhysicsShapeType_Box;
     shape->handle = shapeResult.Get();
-    //shape->handle->SetUserData(reinterpret_cast<uint64_t>(shape));
+    shapeResult.Get()->SetUserData(reinterpret_cast<JPH::uint64>(shape));
     return shape;
 }
 
@@ -691,10 +668,11 @@ PhysicsShape* alimerPhysicsShapeCreateSphere(float radius, PhysicsMaterial* mate
         return nullptr;
     }
 
-    PhysicsShape* shape = new PhysicsShape();
+    PhysicsShape* shape = PhysicsAlloc<PhysicsShape>();
     shape->refCount.store(1);
     shape->type = PhysicsShapeType_Sphere;
     shape->handle = shapeResult.Get();
+    shapeResult.Get()->SetUserData(reinterpret_cast<JPH::uint64>(shape));
     return shape;
 }
 
@@ -711,10 +689,11 @@ PhysicsShape* alimerPhysicsShapeCreateCapsule(float height, float radius, Physic
         return nullptr;
     }
 
-    PhysicsShape* shape = new PhysicsShape();
+    PhysicsShape* shape = PhysicsAlloc<PhysicsShape>();
     shape->refCount.store(1);
     shape->type = PhysicsShapeType_Capsule;
     shape->handle = shapeResult.Get();
+    shapeResult.Get()->SetUserData(reinterpret_cast<JPH::uint64>(shape));
     return shape;
 }
 
@@ -733,10 +712,11 @@ PhysicsShape* alimerPhysicsShapeCreateCylinder(float height, float radius, Physi
         return nullptr;
     }
 
-    PhysicsShape* shape = new PhysicsShape();
+    PhysicsShape* shape = PhysicsAlloc<PhysicsShape>();
     shape->refCount.store(1);
     shape->type = PhysicsShapeType_Cylinder;
     shape->handle = shapeResult.Get();
+    shapeResult.Get()->SetUserData(reinterpret_cast<JPH::uint64>(shape));
     return shape;
 }
 
@@ -762,10 +742,11 @@ PhysicsShape* alimerPhysicsShapeCreateConvexHull(const Vec3* points, uint32_t po
         return nullptr;
     }
 
-    PhysicsShape* shape = new PhysicsShape();
+    PhysicsShape* shape = PhysicsAlloc<PhysicsShape>();
     shape->refCount.store(1);
     shape->type = PhysicsShapeType_ConvexHull;
     shape->handle = shapeResult.Get();
+    shapeResult.Get()->SetUserData(reinterpret_cast<JPH::uint64>(shape));
     return shape;
 }
 
@@ -798,10 +779,11 @@ PhysicsShape* alimerPhysicsShapeCreateMesh(const Vec3* vertices, uint32_t vertic
         return nullptr;
     }
 
-    PhysicsShape* shape = new PhysicsShape();
+    PhysicsShape* shape = PhysicsAlloc<PhysicsShape>();
     shape->refCount.store(1);
     shape->type = PhysicsShapeType_Mesh;
     shape->handle = shapeResult.Get();
+    shapeResult.Get()->SetUserData(reinterpret_cast<JPH::uint64>(shape));
     return shape;
 }
 
@@ -818,10 +800,11 @@ PhysicsShape* alimerPhysicsShapeCreateTerrain(const float* samples, const Vec3* 
         return nullptr;
     }
 
-    PhysicsShape* shape = new PhysicsShape();
+    PhysicsShape* shape = PhysicsAlloc<PhysicsShape>();
     shape->refCount.store(1);
     shape->type = PhysicsShapeType_Terrain;
     shape->handle = shapeResult.Get();
+    shapeResult.Get()->SetUserData(reinterpret_cast<JPH::uint64>(shape));
     return shape;
 }
 
@@ -831,6 +814,10 @@ void alimerPhysicsBodyDescInit(PhysicsBodyDesc* desc)
     memset(desc, 0, sizeof(PhysicsBodyDesc));
 
     desc->type = PhysicsBodyType_Dynamic;
+    desc->initialTransform.position = { 0.f, 0.f, 0.f };
+    desc->initialTransform.rotation = { 0.f, 0.f, 0.f, 1.f };
+    desc->linearVelocity = { 0.f, 0.f, 0.f };
+    desc->angularVelocity = { 0.f, 0.f, 0.f };
     desc->mass = 1.0f;
     desc->linearDamping = 0.05f;
     desc->angularDamping = 0.05f;
@@ -844,20 +831,9 @@ void alimerPhysicsBodyDescInit(PhysicsBodyDesc* desc)
 
 PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, const PhysicsBodyDesc* desc)
 {
-    if (!desc) {
-        return nullptr;
-    }
-
-    if (desc->shapeCount > 0)
+    if (!desc)
     {
-        for (uint32_t i = 0; i < desc->shapeCount; i++)
-        {
-            if (desc->shapes[i]->body)
-            {
-                //alimerLogError(LogCategory_Physics, "PhysicsShape is already attached to another body");
-                return nullptr;
-            }
-        }
+        return nullptr;
     }
 
     const uint32_t count = world->system.GetNumBodies();
@@ -877,9 +853,12 @@ PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, const PhysicsBodyDesc*
     JPH::ObjectLayer objectLayer = (desc->type == PhysicsBodyType_Static) ? Layers::NON_MOVING : Layers::MOVING;
 
     JPH::MutableCompoundShapeSettings compoundShapeSettings;
+
     JPH::BodyCreationSettings bodySettings;
     bodySettings.mPosition = position;
     bodySettings.mRotation = rotation;
+    bodySettings.mLinearVelocity = ToJolt(&desc->linearVelocity);
+    bodySettings.mAngularVelocity = ToJolt(&desc->angularVelocity);
     bodySettings.mObjectLayer = objectLayer;
     bodySettings.mMotionType = motionType;
 
@@ -912,7 +891,7 @@ PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, const PhysicsBodyDesc*
         bodySettings.mMassPropertiesOverride.mMass = desc->mass;
     }
 
-    PhysicsBody* body = new PhysicsBody();
+    PhysicsBody* body = PhysicsAlloc<PhysicsBody>();
     body->refCount.store(1);
     body->world = world;
     body->handle = bodyInterface.CreateBody(bodySettings);
@@ -920,13 +899,7 @@ PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, const PhysicsBodyDesc*
     body->handle->SetUserData(reinterpret_cast<uint64_t>(body));
 
     // Add it to the world
-    bodyInterface.AddBody(body->id, JPH::EActivation::Activate);
-
-    // Assign the body to the shapes
-    for (uint32_t i = 0; i < desc->shapeCount; i++)
-    {
-        desc->shapes[i]->body = body;
-    }
+    bodyInterface.AddBody(body->id, (desc->type == PhysicsBodyType_Static) ? JPH::EActivation::DontActivate : JPH::EActivation::Activate);
 
     return body;
 }
@@ -947,7 +920,7 @@ void alimerPhysicsBodyDestroy(PhysicsBody* body)
         body->id = {};
         body->world = nullptr;
 
-        delete body;
+        PhysicsFree(body);
     }
 }
 
@@ -980,6 +953,22 @@ void alimerPhysicsBodySetType(PhysicsBody* body, PhysicsBodyType value)
 
     JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterface();
     bodyInterface.SetMotionType(body->id, ToJolt(value), JPH::EActivation::Activate);
+}
+
+void alimerPhysicsBodyGetPosition(PhysicsBody* body, Vec3* position)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterfaceNoLock();
+    FromJolt(bodyInterface.GetPosition(body->id), position);
+}
+
+void alimerPhysicsBodyGetRotation(PhysicsBody* body, Quat* rotation)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterfaceNoLock();
+    FromJolt(bodyInterface.GetRotation(body->id), rotation);
 }
 
 void alimerPhysicsBodyGetTransform(PhysicsBody* body, PhysicsBodyTransform* transform)
@@ -1015,6 +1004,42 @@ void alimerPhysicsBodyGetWorldTransform(PhysicsBody* body, Matrix4x4* transform)
 
     JPH::RMat44 joltTransform = bodyInterface.GetWorldTransform(body->id);
     FromJolt(joltTransform, transform);
+}
+
+ALIMER_PHYSICS_API float alimerPhysicsBodyGetMass(PhysicsBody* body)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyLockRead bodyLock(body->world->system.GetBodyLockInterface(), body->id);
+    if (bodyLock.GetBody().IsDynamic())
+    {
+        const float fInverseMass = bodyLock.GetBody().GetMotionProperties()->GetInverseMass();
+        return fInverseMass > 0.0f ? 1.0f / fInverseMass : 0.0f;
+    }
+
+    return 0.0f; // Static or kinematic bodies have infinite mass
+}
+
+ALIMER_PHYSICS_API float alimerPhysicsBodyGetInverseMass(PhysicsBody* body)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    JPH::BodyLockRead bodyLock(body->world->system.GetBodyLockInterface(), body->id);
+    if (bodyLock.GetBody().IsDynamic())
+    {
+        return bodyLock.GetBody().GetMotionProperties()->GetInverseMass();
+    }
+
+    return  0.0f; // Static or kinematic bodies have infinite mass
+}
+
+void alimerPhysicsBodyGetCenterOfMassPosition(PhysicsBody* body, Vec3* position)
+{
+    JPH_ASSERT(!body->id.IsInvalid());
+
+    // Box3D: b3Body_GetWorldCenter
+    JPH::BodyInterface& bodyInterface = body->world->system.GetBodyInterfaceNoLock();
+    FromJolt(bodyInterface.GetCenterOfMassPosition(body->id), position);
 }
 
 bool alimerPhysicsBodyIsActive(PhysicsBody* body)

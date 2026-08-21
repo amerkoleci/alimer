@@ -1,7 +1,49 @@
+if (NOT ALIMER_PHYSICS)
+    return ()
+endif ()
+
 # Setup library
 if (${ALIMER_PHYSICS} MATCHES "Jolt")
-    set(SRC_FILE src/alimer_physics.cpp)
+    # Add Jolt dependency
+    CPMAddPackage(
+        NAME JoltPhysics
+        GITHUB_REPOSITORY jrouwe/JoltPhysics
+        GIT_TAG "v5.6.0"
+        SOURCE_SUBDIR Build
+        OPTIONS
+            "DOUBLE_PRECISION OFF"
+            "JPH_BUILD_SHARED_LIBS OFF"
+            "GENERATE_DEBUG_SYMBOLS OFF"            # Default: ON
+            "ENABLE_INSTALL OFF"                    # Default: ON
+            "ENABLE_ALL_WARNINGS OFF"               # Default: ON
+            "OBJECT_LAYER_BITS 32"                  # Default: 16 
+            "ENABLE_OBJECT_STREAM OFF"              # Default: ON
+            # Option to compile with DirectX 12 compute
+            "JPH_USE_DX12 ON"
+            # Option to compile with Vulkan compute
+            "JPH_USE_VK ON"
+            # Option to compile with Metal compute
+            "JPH_USE_MTL ON"
+            # Option to compile with CPU fallback compute
+            "JPH_USE_CPU_COMPUTE ON"
+            # Option to enable shader debug symbols
+            "JPH_SHADER_DEBUG_SYMBOLS OFF"
+            # Option to enable shader optimizations. When this is on, the shaders will be optimized for performance, otherwise they're suitable for debugging.
+            "JPH_SHADER_OPTIMIZATION ON"
+    )
+    set_property(TARGET Jolt PROPERTY FOLDER "ThirdParty")
+
+    set(SRC_FILE src/alimer_physics_jolt.cpp)
 elseif (${ALIMER_PHYSICS} MATCHES "Box3D")
+    # Add Box3D dependency
+    CPMAddPackage(
+        NAME box3d
+        GITHUB_REPOSITORY erincatto/box3d
+        GIT_TAG main
+        OPTIONS
+            "BOX3D_DOUBLE_PRECISION OFF"
+    )
+    set_property(TARGET box3d PROPERTY FOLDER "ThirdParty")
     set(SRC_FILE src/alimer_physics_box3d.cpp)
 else()
     message(FATAL_ERROR "Unknown physics engine: ${ALIMER_PHYSICS}")
