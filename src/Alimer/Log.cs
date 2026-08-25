@@ -14,6 +14,7 @@ namespace Alimer;
 public static class Log
 {
     private static readonly StringBuilder s_log = new();
+
     private static readonly LogAttribute[] s_logAttributes =
     [
         new("OFF", LogColor.White),
@@ -24,7 +25,7 @@ public static class Log
         new("ERROR", LogColor.Red),
         new("FATAL", LogColor.Red),
     ];
-    private static readonly bool s_colorEnabled;
+    private static bool s_colorEnabled;
 
 #if DEBUG
     public static LogLevel Level { get; set; } = LogLevel.Debug;
@@ -33,7 +34,7 @@ public static class Log
 #endif
     public static bool PrintToConsole { get; set; } = true;
 
-    static unsafe Log()
+    internal static unsafe void Init()
     {
         if (OperatingSystem.IsWindows())
         {
@@ -49,7 +50,6 @@ public static class Log
 
         alimerSetLogLevel(Level);
         alimerSetLogCallback(&OnNativeLogCallback, 0);
-        Info($"Logging Enabled ({Level})");
     }
 
     private static void LogInternalIf(

@@ -58,7 +58,6 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
     public readonly VkPhysicalDeviceFragmentShadingRatePropertiesKHR FragmentShadingRateProperties = default;
     public readonly VkPhysicalDeviceMeshShaderFeaturesEXT MeshShaderFeatures = default;
     public readonly VkPhysicalDeviceMeshShaderPropertiesEXT MeshShaderProperties = default;
-    public readonly VkPhysicalDeviceConditionalRenderingFeaturesEXT ConditionalRenderingFeatures = default;
     public readonly VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR UnifiedImageLayoutsFeatures = default;
     public readonly VkPhysicalDeviceDescriptorHeapFeaturesEXT DescriptorHeapFeaturesEXT = default;
     public readonly VkPhysicalDeviceDescriptorHeapPropertiesEXT DescriptorHeapPropertiesEXT = default;
@@ -116,7 +115,6 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         VkPhysicalDeviceFragmentShadingRatePropertiesKHR fragmentShadingRateProperties = default;
         VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures = default;
         VkPhysicalDeviceMeshShaderPropertiesEXT meshShaderProperties = default;
-        VkPhysicalDeviceConditionalRenderingFeaturesEXT conditionalRenderingFeatures = default;
         VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR unifiedImageLayoutsFeatures = default;
 
         VkPhysicalDeviceDescriptorHeapFeaturesEXT descriptorHeapFeaturesEXT = default;
@@ -295,12 +293,6 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
             AddToPropertiesChain(&meshShaderProperties);
         }
 
-        if (Extensions.ConditionalRendering)
-        {
-            conditionalRenderingFeatures = new();
-            AddToFeatureChain(&conditionalRenderingFeatures);
-        }
-
         if (Extensions.UnifiedImageLayouts)
         {
             unifiedImageLayoutsFeatures = new();
@@ -362,7 +354,6 @@ internal unsafe class VulkanGraphicsAdapter : GraphicsAdapter
         RayQueryFeatures = rayQueryFeatures;
         FragmentShadingRateFeatures = fragmentShadingRateFeatures;
         MeshShaderFeatures = meshShaderFeatures;
-        ConditionalRenderingFeatures = conditionalRenderingFeatures;
         UnifiedImageLayoutsFeatures = unifiedImageLayoutsFeatures;
         DescriptorHeapFeaturesEXT = descriptorHeapFeaturesEXT;
         // Core in 1.3

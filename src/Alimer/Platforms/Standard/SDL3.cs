@@ -239,19 +239,6 @@ internal unsafe static partial class SDL3
     [return: MarshalUsing(typeof(SDLOwnedStringMarshaller))]
     public static partial string SDL_GetCurrentVideoDriver();
 
-    [LibraryImport(LibraryName)]
-    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_HasClipboardText();
-
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
-    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_SetClipboardText(string text);
-
-    [LibraryImport(LibraryName)]
-    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [return: MarshalUsing(typeof(CallerOwnedStringMarshaller))]
-    public static partial string SDL_GetClipboardText();
-
     #region Macros
     public static int SDL_VERSIONNUM(int major, int minor, int patch) => ((major) * 1000000 + (minor) * 1000 + (patch));
     public static int SDL_VERSIONNUM_MAJOR(int version) => ((version) / 1000000);
@@ -654,10 +641,6 @@ internal unsafe static partial class SDL3
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDL_PowerState SDL_GetGamepadPowerInfo(SDL_Gamepad* gamepad, int* percent);
-
-    [LibraryImport(LibraryName)]
-    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDLBool SDL_GamepadConnected(SDL_Gamepad* gamepad);
 
     [LibraryImport(LibraryName)]
@@ -731,22 +714,6 @@ internal unsafe static partial class SDL3
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDLBool SDL_SendGamepadEffect(SDL_Gamepad* gamepad, nint data, int size);
-    #endregion
-
-    #region PowerStatus
-    public enum SDL_PowerState
-    {
-        SDL_POWERSTATE_ERROR = -1,
-        SDL_POWERSTATE_UNKNOWN,
-        SDL_POWERSTATE_ON_BATTERY,
-        SDL_POWERSTATE_NO_BATTERY,
-        SDL_POWERSTATE_CHARGING,
-        SDL_POWERSTATE_CHARGED,
-    }
-
-    [LibraryImport(LibraryName)]
-    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDL_PowerState SDL_GetPowerInfo(int* seconds, int* percent);
     #endregion
 
     #region Extensions

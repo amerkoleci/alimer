@@ -68,11 +68,6 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
             createInfo.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
         }
 
-        if ((descriptor.Usage & GraphicsBufferUsage.Predication) != 0)
-        {
-            createInfo.usage |= VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT;
-        }
-
         if ((descriptor.Usage & GraphicsBufferUsage.RayTracing) != 0)
         {
             needBufferDeviceAddress = true;

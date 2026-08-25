@@ -58,7 +58,6 @@ internal struct VulkanPhysicalDeviceExtensions
     public bool RayQuery;
     public bool FragmentShadingRate;
     public bool MeshShader;
-    public bool ConditionalRendering;
     public bool UnifiedImageLayouts;
     public bool MutableDescriptorType;
     public bool DescriptorHeap;
@@ -190,10 +189,6 @@ internal struct VulkanPhysicalDeviceExtensions
                 else if (extensionName == VK_EXT_MESH_SHADER_EXTENSION_NAME)
                 {
                     extensions.MeshShader = true;
-                }
-                else if (extensionName == VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME)
-                {
-                    extensions.ConditionalRendering = true;
                 }
                 else if (extensionName == VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME)
                 {

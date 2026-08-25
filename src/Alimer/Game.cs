@@ -9,6 +9,7 @@ using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Input;
 using Alimer.Rendering;
+using System.Runtime.CompilerServices;
 
 namespace Alimer;
 

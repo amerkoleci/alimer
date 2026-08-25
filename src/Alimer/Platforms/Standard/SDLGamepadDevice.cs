@@ -133,10 +133,11 @@ internal unsafe class SDLGamepadDevice : GamepadDevice
 
     public override BatteryStatus GetBatteryStatus(out int batteryLifePercent)
     {
-        int percent;
-        SDL_PowerState state = SDL_GetGamepadPowerInfo(Handle, &percent);
-        batteryLifePercent = percent;
-        return state.FromSDL();
+        //int percent;
+        //SDL_PowerState state = SDL_GetGamepadPowerInfo(Handle, &percent);
+        //batteryLifePercent = percent;
+        //return state.FromSDL();
+        throw new NotImplementedException();
     }
 
     /// <inheritdoc />

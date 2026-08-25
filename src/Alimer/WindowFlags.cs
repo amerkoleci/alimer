@@ -12,12 +12,11 @@ public enum WindowFlags
     /// <summary>
     /// None,
     /// </summary>
-    None = 0,
-
-    Fullscreen = 0x1,
-    Hidden = 0x2,
-    Borderless = 0x4,
-    Resizable = 0x8,
-    Maximized = 0x10,
-    AlwaysOnTop = 0x20,
+    None = 0x0000,
+    Fullscreen = 0x0001,
+    Hidden = 0x0002,
+    Borderless = 0x0004,
+    Resizable = 0x0008,
+    Maximized = 0x0010,
+    AlwaysOnTop = 0x0020,
 }

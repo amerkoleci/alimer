@@ -5,7 +5,6 @@ namespace Alimer.Graphics;
 
 public enum PresentMode
 {
-    Undefined = 0,
     Fifo,
     FifoRelaxed,
     Immediate,

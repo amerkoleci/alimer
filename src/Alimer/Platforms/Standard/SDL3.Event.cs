@@ -681,16 +681,16 @@ internal static unsafe partial class SDL3
         public SDL_JoystickID which;
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    public struct SDL_JoyBatteryEvent
-    {
-        public SDL_EventType type;
-        public uint reserved;
-        public ulong timestamp;
-        public SDL_JoystickID which;
-        public SDL_PowerState state;
-        public int percent;
-    }
+    //[StructLayout(LayoutKind.Sequential)]
+    //public struct SDL_JoyBatteryEvent
+    //{
+    //    public SDL_EventType type;
+    //    public uint reserved;
+    //    public ulong timestamp;
+    //    public SDL_JoystickID which;
+    //    public SDL_PowerState state;
+    //    public int percent;
+    //}
 
     [StructLayout(LayoutKind.Sequential)]
     public struct SDL_GamepadAxisEvent
@@ -974,8 +974,8 @@ internal static unsafe partial class SDL3
         public SDL_JoyHatEvent jhat;
         [FieldOffset(0)]
         public SDL_JoyButtonEvent jbutton;
-        [FieldOffset(0)]
-        public SDL_JoyBatteryEvent jbattery;
+        //[FieldOffset(0)]
+        //public SDL_JoyBatteryEvent jbattery;
         [FieldOffset(0)]
         public SDL_GamepadDeviceEvent gdevice;
         [FieldOffset(0)]

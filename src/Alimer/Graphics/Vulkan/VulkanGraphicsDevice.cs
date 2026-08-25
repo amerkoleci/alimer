@@ -480,14 +480,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             AddToFeatureChain(&meshShaderFeatures);
         }
 
-        if (_adapter.Extensions.ConditionalRendering)
-        {
-            enabledDeviceExtensions.Add(VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME);
-
-            VkPhysicalDeviceConditionalRenderingFeaturesEXT conditionalRenderingFeatures = _adapter.ConditionalRenderingFeatures;
-            AddToFeatureChain(&conditionalRenderingFeatures);
-        }
-
         if (_adapter.Extensions.UnifiedImageLayouts)
         {
             enabledDeviceExtensions.Add(VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME);
@@ -1239,8 +1231,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 return false;
 
 #endif
-            case Feature.Predication:
-                return _adapter.ConditionalRenderingFeatures.conditionalRendering;
 
             default:
                 return false;

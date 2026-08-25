@@ -5,6 +5,7 @@ namespace Alimer.Input;
 
 public enum MouseButton
 {
+    None,
     Left,
     Right,
     Middle,

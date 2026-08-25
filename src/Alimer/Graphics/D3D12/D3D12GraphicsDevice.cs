@@ -511,7 +511,6 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             case Feature.SamplerMirrorClampToEdge:
             case Feature.DepthResolveMinMax:
             case Feature.StencilResolveMinMax:
-            case Feature.Predication:
                 return true;
 
             // Always unsupported features

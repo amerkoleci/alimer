@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using static Alimer.AlimerApi;
 using static Alimer.SDL3;
 using static Alimer.SDL3.SDL_EventType;
 
@@ -20,10 +21,11 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
 
     public SDLPointerInputSource()
     {
-        _defaultCursor = new(SDL_GetDefaultCursor());
-        _currentCursor = new(SDL_GetCursor());
+        // TODO
+        //_defaultCursor = new(SDL_GetDefaultCursor());
+        //_currentCursor = new(SDL_GetCursor());
 
-        _ = SDL_GetGlobalMouseState(out float x, out float y);
+        alimerPlatformGetMousePosition(out float x, out float y);
         _position = new(x, y);
     }
 
@@ -106,8 +108,9 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         _ = SDL_CaptureMouse(false);
     }
 
-    public void HandleWindowMouseEnterOrLeaveEvent(in SDL_Event evt)
+    public void HandleWindowMouseEnterOrLeaveEvent(in PlatformEvent evt, bool enter)
     {
+#if TODO
         SDL_Keymod mod = SDL_GetModState();
         SDL_Window* window = SDL_GetWindowFromID(evt.window.windowID);
         bool isInContact = GetMousePosition(window, out Vector2 mousePosition);
@@ -121,10 +124,9 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         PointerEventArgs args = new()
         {
             CurrentPoint = pointerPoint,
-            KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
+            //KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
         };
 
-        bool enter = evt.type == SDL_EVENT_WINDOW_MOUSE_ENTER;
         if (enter)
         {
             OnPointerEntered(in args);
@@ -132,19 +134,20 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         else
         {
             OnPointerExited(in args);
-        }
+        } 
+#endif
     }
 
-    public void HandleMotionEvent(in SDL_MouseMotionEvent evt)
+    public void HandleMotionEvent(in MouseMotionEvent evt)
     {
         _position = new(evt.x, evt.y);
-        _delta.X += evt.xrel;
-        _delta.Y += evt.yrel;
+        _delta.X += evt.xRelative;
+        _delta.Y += evt.yRelative;
 
-        SDL_Keymod mod = SDL_GetModState();
+        //SDL_Keymod mod = SDL_GetModState();
         PointerPoint pointerPoint = new()
         {
-            IsInContact = evt.state != 0,
+            IsInContact = true, //evt.state != 0,
             PointerId = uint.MaxValue,
             Position = _position
         };
@@ -152,60 +155,60 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         PointerEventArgs args = new()
         {
             CurrentPoint = pointerPoint,
-            KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
+            //KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
         };
 
-        OnPointerMoved(in args);
+        OnPointerMoved(in args); 
     }
 
-    public void HandleWheelEvent(in SDL_MouseWheelEvent evt)
+    public void HandleWheelEvent(in MouseWheelEvent evt)
     {
-        _position = new(evt.mouse_x, evt.mouse_y);
+        //_position = new(evt.mouse_x, evt.mouse_y);
         _scroll.X += evt.x;
         _scroll.Y += evt.y;
 
-        SDL_Keymod mod = SDL_GetModState();
+        //SDL_Keymod mod = SDL_GetModState();
 
         PointerPoint pointerPoint = new()
         {
             IsInContact = false,
             Button = MouseButton.Left,
-            PointerId = (uint)evt.which, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
+            PointerId = 0, // (uint)evt.which, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
             Position = _position
         };
 
         PointerEventArgs args = new()
         {
             CurrentPoint = pointerPoint,
-            KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
+            //KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
         };
 
         OnPointerWheelChanged(in args);
     }
 
-    public void HandleButtonEvent(in SDL_MouseButtonEvent evt)
+    public void HandleButtonEvent(in MouseButtonEvent evt, bool down)
     {
         _position = new(evt.x, evt.y);
-        MouseButton button = ConvertButton(evt.button);
-        _currentButtons[(int)button] = evt.down;
+        MouseButton button = evt.button;
+        _currentButtons[(int)button] = down;
 
-        SDL_Keymod mod = SDL_GetModState();
+        //SDL_Keymod mod = SDL_GetModState();
 
         PointerPoint pointerPoint = new()
         {
             IsInContact = true,
             Button = button,
-            PointerId = (uint)evt.which, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
+            PointerId = 0, //(uint)evt.which, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
             Position = _position
         };
 
         PointerEventArgs args = new()
         {
             CurrentPoint = pointerPoint,
-            KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
+            //KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
         };
 
-        if (evt.down)
+        if (down)
         {
             OnPointerPressed(in args);
         }
@@ -267,19 +270,6 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         };
 
         OnPointerMoved(in args);
-    }
-
-    private static MouseButton ConvertButton(byte sdlButton)
-    {
-        return sdlButton switch
-        {
-            1 => MouseButton.Left,
-            2 => MouseButton.Middle,
-            3 => MouseButton.Right,
-            4 => MouseButton.X1,
-            5 => MouseButton.X2,
-            _ => MouseButton.Left,
-        };
     }
 
     private static bool GetMousePosition(SDL_Window* window, out Vector2 position)

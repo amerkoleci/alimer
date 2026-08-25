@@ -200,12 +200,6 @@ public abstract unsafe class GraphicsDevice : GraphicsBaseObject
         ArgumentOutOfRangeException.ThrowIfLessThan(descriptor.Size, 4u, nameof(GraphicsBufferDescriptor.Size));
 
 #if VALIDATE_USAGE
-        if ((descriptor.Usage & GraphicsBufferUsage.Predication) != 0 &&
-            !QueryFeatureSupport(Feature.Predication))
-        {
-            throw new GraphicsException($"Buffer cannot be created with {GraphicsBufferUsage.Predication} usage as adapter doesn't support it");
-        }
-
         if ((descriptor.Usage & GraphicsBufferUsage.RayTracing) != 0 &&
             Limits.RayTracingTier == RayTracingTier.NotSupported)
         {

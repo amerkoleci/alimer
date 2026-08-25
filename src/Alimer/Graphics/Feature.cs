@@ -24,5 +24,4 @@ public enum Feature
     StencilResolveMinMax,
 
     CacheCoherentUMA,
-    Predication,
 }

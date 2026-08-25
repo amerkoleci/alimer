@@ -42,8 +42,4 @@ public enum GraphicsBufferUsage
     /// Supports ray tracing acceleration structure usage.
     /// </summary>
     RayTracing = 1 << 6,
-    /// <summary>
-    /// Supports predication access for conditional rendering.
-    /// </summary>
-    Predication = 1 << 7,
 }

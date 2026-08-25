@@ -11,16 +11,18 @@ internal class SDLGamepadInputSource : GamepadInputSource
     
     public unsafe SDLGamepadInputSource()
     {
+#if TODO
         int count = 0;
         SDL_JoystickID* gamepads = SDL_GetGamepads(&count);
         if (gamepads != null && count > 0)
         {
-            for (int i = 0; i < count ; i++)
+            for (int i = 0; i < count; i++)
             {
                 OnGamepadAdded(gamepads[i]);
             }
         }
-        SDL_free(gamepads);
+        SDL_free(gamepads); 
+#endif
     }
 
     /// <inheritdoc />
@@ -28,7 +30,8 @@ internal class SDLGamepadInputSource : GamepadInputSource
 
     public void BeginFrame()
     {
-        SDL_UpdateGamepads();
+        // TODO
+        //SDL_UpdateGamepads();
 
         foreach (SDLGamepadDevice gamepad in _gamepads.Values)
         {

@@ -63,7 +63,7 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
             .AppendLine()
             .AppendLine($"namespace Alimer;")
             .AppendLine()
-            .AppendLine($"internal static class ModuleInit")
+            .AppendLine($"internal static partial class ModuleInit")
             .AppendOpenBracer()
                 .AppendLineNoIndent($"#pragma warning disable CA2255")
                 .AppendLine($"[ModuleInitializer]")
