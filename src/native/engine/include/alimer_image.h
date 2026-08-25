@@ -10,8 +10,7 @@
 typedef struct Image Image;
 
 /* Enums */
-typedef enum ImageType
-{
+typedef enum ImageType {
     ImageType2D = 0,
     ImageType1D,
     ImageType3D,
@@ -20,8 +19,7 @@ typedef enum ImageType
     _ImageType_Force32 = 0x7FFFFFFF
 } ImageType;
 
-typedef enum ImageFileType
-{
+typedef enum ImageFileType {
     ImageFileType_Unknown = 0,
     ImageFileType_BMP,
     ImageFileType_PNG,

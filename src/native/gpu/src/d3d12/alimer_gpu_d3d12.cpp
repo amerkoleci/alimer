@@ -3925,6 +3925,7 @@ GPUTexture* D3D12Device::CreateTexture(const GPUTextureDesc& desc, const GPUText
 GPUSampler* D3D12Device::CreateSampler(const GPUSamplerDesc& desc)
 {
     D3D12Sampler* sampler = new D3D12Sampler();
+    sampler->desc = desc;
     sampler->samplerDesc = ToD3D12SamplerDesc(desc);
     return sampler;
 }
@@ -4581,9 +4582,6 @@ bool D3D12Adapter::HasFeature(GPUFeature feature) const
 
         case GPUFeature_ShaderOutputViewportIndex:
             return shaderOutputViewportIndex;
-
-        case GPUFeature_Predication:
-            return true;
 
         case GPUFeature_DepthResolveMinMax:
         case GPUFeature_StencilResolveMinMax:

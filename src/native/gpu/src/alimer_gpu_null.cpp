@@ -458,9 +458,8 @@ GPUTexture* NullDevice::CreateTexture(const GPUTextureDesc& desc, const GPUTextu
 
 GPUSampler* NullDevice::CreateSampler(const GPUSamplerDesc& desc)
 {
-    ALIMER_UNUSED(desc);
-
     NullSampler* sampler = new NullSampler();
+    sampler->desc = desc;
     return sampler;
 }
 

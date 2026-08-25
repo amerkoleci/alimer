@@ -77,8 +77,8 @@ typedef int32_t GPUBindlessIndex;
 #define GPU_LOD_CLAMP_NONE (1000.0F)
 #define GPU_MAX_PUSH_CONSTANTS_SIZE (128u)  /* 128 bytes is the minimum guaranteed size for push constants in Vulkan */
 #define GPU_INVALID_BINDLESS_INDEX (-1)
-#define GPU_MAX_BINDLESS_RESOURCES (400'000)
-#define GPU_MAX_BINDLESS_SAMPLERS (2'000)
+#define GPU_MAX_BINDLESS_RESOURCES (400000)
+#define GPU_MAX_BINDLESS_SAMPLERS (2000)
 #define GPU_MAX_BINDLESS_ACCELERATION_STRUCTURES (8)
 
 /* Enums */
@@ -461,7 +461,6 @@ typedef enum GPUStoreAction {
 } GPUStoreAction;
 
 typedef enum GPUPresentMode {
-    GPUPresentMode_Undefined = 0,
     GPUPresentMode_Fifo,
     GPUPresentMode_FifoRelaxed,
     GPUPresentMode_Immediate,
@@ -491,7 +490,6 @@ typedef enum GPUVertexStepMode {
 } GPUVertexStepMode;
 
 typedef enum GPUFillMode {
-    _GPUFillMode_Default = 0,
     GPUFillMode_Solid,
     GPUFillMode_Wireframe,
 
@@ -499,16 +497,14 @@ typedef enum GPUFillMode {
 } GPUFillMode;
 
 typedef enum GPUCullMode {
-    _GPUCullMode_Default = 0,
-    GPUCullMode_None,
-    GPUCullMode_Front,
     GPUCullMode_Back,
+    GPUCullMode_Front,
+    GPUCullMode_None,
 
     _GPUCullMode_Force32 = 0x7FFFFFFF
 } GPUCullMode;
 
 typedef enum GPUFrontFace {
-    _GPUFrontFace_Default = 0,
     GPUFrontFace_CounterClockwise,
     GPUFrontFace_Clockwise,
 
@@ -516,7 +512,6 @@ typedef enum GPUFrontFace {
 } GPUFrontFace;
 
 typedef enum GPUDepthClipMode {
-    _GPUDepthClipMode_Default = 0,
     GPUDepthClipMode_Clip,
     GPUDepthClipMode_Clamp,
 
@@ -706,7 +701,6 @@ typedef enum GPUFeature {
     GPUFeature_CopyQueueTimestampQuery,
     GPUFeature_CacheCoherentUMA,
     GPUFeature_ShaderOutputViewportIndex,
-    GPUFeature_Predication,
     GPUFeature_DepthResolveMinMax,
     GPUFeature_StencilResolveMinMax,
 
@@ -724,10 +718,8 @@ static const GPUBufferUsage GPUBufferUsage_ShaderRead = (1 << 3);
 static const GPUBufferUsage GPUBufferUsage_ShaderWrite = (1 << 4);
 /// Supports indirect buffer access for indirect draw/dispatch.
 static const GPUBufferUsage GPUBufferUsage_Indirect = (1 << 5);
-/// Supports predication access for conditional rendering.
-static const GPUBufferUsage GPUBufferUsage_Predication = (1 << 6);
 /// Supports ray tracing acceleration structure usage.
-static const GPUBufferUsage GPUBufferUsage_RayTracing = (1 << 7);
+static const GPUBufferUsage GPUBufferUsage_RayTracing = (1 << 6);
 
 typedef uint32_t GPUTextureUsage;
 static const GPUTextureUsage GPUTextureUsage_None = 0;
@@ -1189,6 +1181,7 @@ ALIMER_GPU_API uint32_t agpuTextureGetLevelHeight(GPUTexture* texture, uint32_t 
 ALIMER_GPU_API GPUSampler* agpuSamplerCreate(GPUDevice device, const GPUSamplerDesc* desc);
 ALIMER_GPU_API void agpuSamplerDestroy(GPUSampler* sampler);
 ALIMER_GPU_API void agpuSamplerSetLabel(GPUSampler* sampler, const char* label);
+ALIMER_GPU_API void agpuSamplerGetDesc(GPUSampler* sampler, GPUSamplerDesc* desc);
 
 /* ShaderModule */
 ALIMER_GPU_API GPUShaderModule* agpuCreateShaderModule(GPUDevice device, const GPUShaderModuleDesc* desc);

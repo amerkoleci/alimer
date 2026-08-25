@@ -15,6 +15,7 @@ set(TARGET_NAME alimer_native)
 add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
 	include/alimer_platform.h
     include/alimer.h
+    include/alimer_types.h
     include/alimer_image.h
     include/alimer_font.h
     include/alimer_scene.h
@@ -74,6 +75,16 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     stb
 )
 
+if(EMSCRIPTEN)
+elseif(ANDROID)
+elseif (ALIMER_USE_SDL)
+    target_sources(${TARGET_NAME} PRIVATE
+        src/platforms/alimer_platform_sdl.cpp
+    )
+
+    target_link_libraries(${TARGET_NAME} PRIVATE SDL3-static)
+endif()
+
 if (ALIMER_IMAGE_KTX)
     target_link_libraries(${TARGET_NAME} PRIVATE
         ktx
@@ -89,12 +100,6 @@ if (NOT EMSCRIPTEN)
     )
 
     target_link_libraries(${TARGET_NAME} PRIVATE vulkan spirv_reflect)
-endif()
-
-if(EMSCRIPTEN)
-elseif (WIN32)
-elseif(APPLE)
-elseif(UNIX OR ANDROID)
 endif()
 
 if (ALIMER_AUDIO)

@@ -723,7 +723,7 @@ void agpuRenderPassEncoderSetPipeline(GPURenderPassEncoder renderPassEncoder, GP
     renderPassEncoder->SetPipeline(pipeline);
 }
 
-void agpuRenderPassEncoderSetPushConstants(GPURenderPassEncoder renderPassEncoder, const void* data, uint32_t size)
+void agpuRenderPassEncoderPushConstants(GPURenderPassEncoder renderPassEncoder, const void* data, uint32_t size)
 {
     ALIMER_ASSERT(data != nullptr);
     ALIMER_ASSERT(size > 0 && size <= GPU_MAX_PUSH_CONSTANTS_SIZE);
@@ -969,6 +969,12 @@ void agpuSamplerDestroy(GPUSampler* sampler)
 void agpuSamplerSetLabel(GPUSampler* sampler, const char* label)
 {
     sampler->SetLabel(label);
+}
+
+void agpuSamplerGetDesc(GPUSampler* sampler, GPUSamplerDesc* desc)
+{
+    ALIMER_ASSERT(desc);
+    memcpy(desc, &sampler->desc, sizeof(GPUSamplerDesc));
 }
 
 /* ShaderModule */

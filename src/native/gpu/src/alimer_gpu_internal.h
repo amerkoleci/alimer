@@ -195,7 +195,7 @@ struct GPUTextureView : public GPUResource
 
 struct GPUSampler : public GPUResource
 {
-
+    GPUSamplerDesc desc;
 };
 
 struct GPUQueryHeapImpl : public GPUResource

@@ -1064,7 +1064,6 @@ struct VulkanPhysicalDeviceExtensions final
     bool rayQuery;
     bool fragmentShadingRate;
     bool meshShader;
-    bool conditionalRendering;
     bool unifiedImageLayouts;
     bool mutableDescriptorType;
     bool descriptorHeap;
@@ -1482,7 +1481,6 @@ struct VulkanAdapter final : public GPUAdapterImpl
     VkPhysicalDeviceRayQueryFeaturesKHR rayQueryFeatures{};
     VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeatures{};
     VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{};
-    VkPhysicalDeviceConditionalRenderingFeaturesEXT conditionalRenderingFeatures{};
     VkPhysicalDeviceUnifiedImageLayoutsFeaturesKHR unifiedImageLayoutsFeatures{};
     VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableDescriptorTypeFeaturesEXT{};
     VkPhysicalDeviceDescriptorHeapFeaturesEXT descriptorHeapFeaturesEXT{};
@@ -3293,11 +3291,6 @@ bool VulkanDevice::Initialize(const GPUDeviceDesc& desc)
         enabledDeviceExtensions.push_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
     }
 
-    if (adapter->extensions.conditionalRendering)
-    {
-        enabledDeviceExtensions.push_back(VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME);
-    }
-
     if (adapter->extensions.unifiedImageLayouts)
     {
         enabledDeviceExtensions.push_back(VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME);
@@ -3849,13 +3842,6 @@ GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pIn
         needBufferDeviceAddress = true;
     }
 
-    if ((desc.usage & GPUBufferUsage_Predication)
-        /* && QueryFeatureSupport(RHIFeature::Predication)*/
-        )
-    {
-        createInfo.usage |= VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT;
-    }
-
     if ((desc.usage & GPUBufferUsage_RayTracing)
         /* && QueryFeatureSupport(RHIFeature::RayTracing) */
         )
@@ -4004,11 +3990,6 @@ GPUBuffer* VulkanDevice::CreateBuffer(const GPUBufferDesc& desc, const void* pIn
             if (desc.usage & GPUBufferUsage_Indirect)
             {
                 barrier.dstAccessMask |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
-            }
-
-            if (desc.usage & GPUBufferUsage_Predication)
-            {
-                barrier.dstAccessMask |= VK_ACCESS_2_CONDITIONAL_RENDERING_READ_BIT_EXT;
             }
 
             if (desc.usage & GPUBufferUsage_RayTracing)
@@ -4348,6 +4329,7 @@ GPUSampler* VulkanDevice::CreateSampler(const GPUSamplerDesc& desc)
 {
     VulkanSampler* sampler = new VulkanSampler();
     sampler->device = this;
+    sampler->desc = desc;
 
     VkSamplerCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -5423,12 +5405,6 @@ bool VulkanAdapter::Init(VkPhysicalDevice handle_)
         addToPropertiesChain(&meshShaderProperties);
     }
 
-    if (extensions.conditionalRendering)
-    {
-        conditionalRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT;
-        addToFeatureChain(&conditionalRenderingFeatures);
-    }
-
     if (extensions.unifiedImageLayouts)
     {
         unifiedImageLayoutsFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_UNIFIED_IMAGE_LAYOUTS_FEATURES_KHR;
@@ -5615,9 +5591,6 @@ bool VulkanAdapter::HasFeature(GPUFeature feature) const
             return
                 features12.shaderOutputLayer == VK_TRUE &&
                 features12.shaderOutputViewportIndex == VK_TRUE;
-
-        case GPUFeature_Predication:
-            return conditionalRenderingFeatures.conditionalRendering == VK_TRUE;
 
         case GPUFeature_DepthResolveMinMax:
             return
@@ -5923,10 +5896,6 @@ VulkanPhysicalDeviceExtensions VulkanGPUFactory::QueryPhysicalDeviceExtensions(V
         else if (strcmp(vk_extensions[i].extensionName, VK_EXT_MESH_SHADER_EXTENSION_NAME) == 0)
         {
             extensions.meshShader = true;
-        }
-        else if (strcmp(vk_extensions[i].extensionName, VK_EXT_CONDITIONAL_RENDERING_EXTENSION_NAME) == 0)
-        {
-            extensions.conditionalRendering = true;
         }
         else if (strcmp(vk_extensions[i].extensionName, VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME) == 0)
         {

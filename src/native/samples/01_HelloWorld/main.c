@@ -27,7 +27,7 @@
 
 #define ALIMER_UNUSED(x) (void)(x)
 
-#if defined(ALIMER_AUDIO)
+#if defined(ALIMER_AUDIO) && defined(TEST_AUDIO)
 static void OnAudioDeviceCallback(AudioDevice* device, void* userdata)
 {
     AudioDeviceType type = alimerAudioDeviceGetType(device);
@@ -40,8 +40,18 @@ static void OnAudioDeviceCallback(AudioDevice* device, void* userdata)
 }
 #endif
 
+typedef struct TestStruct {
+    bool isInitialized;
+    uint32_t a;
+} TestStruct;
+
 int main(void)
 {
+    if (!alimerPlatformInit())
+    {
+        return EXIT_FAILURE;
+    }
+
 #if defined(ALIMER_AUDIO) && defined(TEST_AUDIO)
     if (!alimerAudioInit())
     {
@@ -173,5 +183,8 @@ int main(void)
     alimerPhysicsWorldDestroy(physicsWorld);
     alimerPhysicsShutdown();
 #endif
+
+    alimerPlatformShutdown();
+
     return EXIT_SUCCESS;
 }

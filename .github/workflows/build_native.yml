@@ -62,7 +62,8 @@ jobs:
       run: cmake -S "src/native" -B "build_${{ matrix.rid }}" -G "${{ matrix.generator }}" ${{ matrix.extraArgs }} -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX="${{ matrix.rid }}-sdk" -DALIMER_SAMPLES=OFF
 
     - name: Build ${{ matrix.rid }}
-      run: cmake --build build_${{ matrix.rid }} --target install --config Distribution --verbose --parallel 
+      run: cmake --build build_${{ matrix.rid }} --target install --config Distribution --verbose --parallel
+
     - uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.rid }}-sdk
