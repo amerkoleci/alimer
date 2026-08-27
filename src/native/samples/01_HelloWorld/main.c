@@ -85,9 +85,9 @@ int main(void)
         .preferredBackend = GPUBackendType_Vulkan,
         .validationMode = GPUValidationMode_Enabled
     };
-    GPUFactory gpuFactory = agpuFactoryCreate(&factoryDesc);
-    GPUAdapter adapter = agpuFactoryGetBestAdapter(gpuFactory);
-    GPUDevice device = agpuAdapterCreateDevice(adapter, NULL);
+    GPUFactory* gpuFactory = agpuFactoryCreate(&factoryDesc);
+    GPUAdapter* adapter = agpuFactoryGetBestAdapter(gpuFactory);
+    GPUDevice device = agpuDeviceCreate(adapter, NULL);
     GPUSampler* sampler = agpuSamplerCreate(device, NULL);
 #endif
 
@@ -171,7 +171,7 @@ int main(void)
 #endif
 
 #if defined(ALIMER_GPU)
-    agpuSamplerDestroy(sampler);
+    agpuSamplerRelease(sampler);
     agpuDeviceRelease(device);
     agpuFactoryDestroy(gpuFactory);
 #endif

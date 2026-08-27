@@ -281,8 +281,12 @@ else()
     endif()
 
     if (EMSCRIPTEN)
+        set(CMAKE_EXECUTABLE_SUFFIX ".html")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Os")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
+        set(CMAKE_C_FLAGS_RELEASE "-Oz -DNDEBUG")
+        set(CMAKE_CXX_FLAGS_RELEASE "-Oz -DNDEBUG")
+
         #if(ALIMER_ENABLE_THREAD)
         #    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
         #    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")

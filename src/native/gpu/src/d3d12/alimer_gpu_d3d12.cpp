@@ -1181,10 +1181,9 @@ struct D3D12RenderPipeline final : public GPURenderPipelineImpl
     void SetLabel(const char* label) override;
 };
 
-struct D3D12QueryHeap final : public GPUQueryHeapImpl
+struct D3D12QueryHeap final : public GPUQueryHeap
 {
     D3D12Device* device = nullptr;
-    GPUQueryHeapDesc desc;
     ID3D12QueryHeap* handle = nullptr;
 
     ~D3D12QueryHeap() override;
@@ -1286,7 +1285,7 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
     void InsertUAVBarrier(const D3D12Resource* resource, bool commit = false);
     void CommitBarriers();
 
-    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
+    GPUTexture* AcquireSurfaceTexture(GPUSurface* surface) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
@@ -1296,7 +1295,7 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
     void FlushBindGroups(bool graphics);
 };
 
-struct D3D12Queue final : public GPUCommandQueueImpl
+struct D3D12Queue final : public GPUCommandQueue
 {
     D3D12Device* device = nullptr;
     GPUCommandQueueType queueType = _GPUCommandQueueType_Count;
@@ -1654,7 +1653,7 @@ struct D3D12Device final : public GPUDeviceImpl
     void SetLabel(const char* label) override;
     void GetLimits(GPUDeviceLimits* limits) const override;
     bool HasFeature(GPUFeature feature) const override;
-    GPUCommandQueue GetQueue(GPUCommandQueueType type) override;
+    GPUCommandQueue* GetQueue(GPUCommandQueueType type) override;
     void WaitIdle() override;
     uint64_t CommitFrame() override;
 
@@ -1672,10 +1671,10 @@ struct D3D12Device final : public GPUDeviceImpl
     GPUShaderModule* CreateShaderModule(const GPUShaderModuleDesc* desc) override;
     GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
-    GPUQueryHeap CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
+    GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
 };
 
-struct D3D12Surface final : public GPUSurfaceImpl
+struct D3D12Surface final : public GPUSurface
 {
     D3D12GPUFactory* factory = nullptr;
     D3D12Device* device = nullptr;
@@ -1689,17 +1688,17 @@ struct D3D12Surface final : public GPUSurfaceImpl
     uint32_t swapChainWidth = 0;
     uint32_t swapChainHeight = 0;
     uint32_t backBufferIndex = 0;
-    HANDLE frameLatencyWaitableObject = INVALID_HANDLE_VALUE;
+    //HANDLE frameLatencyWaitableObject = INVALID_HANDLE_VALUE;
     std::vector<D3D12Texture*> backbufferTextures;
 
     ~D3D12Surface() override;
-    void GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const override;
-    bool Configure(const GPUSurfaceConfig* config_) override;
+    void GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
+    bool Configure(GPUDevice device_, const GPUSwapChainDesc* config_) override;
     void Unconfigure() override;
     void Present();
 };
 
-struct D3D12Adapter final : public GPUAdapterImpl
+struct D3D12Adapter final : public GPUAdapter
 {
     D3D12GPUFactory* factory = nullptr;
     ComPtr<IDXGIAdapter1> handle;
@@ -1730,7 +1729,7 @@ private:
     uint32_t deviceID;
 };
 
-struct D3D12GPUFactory final : public GPUFactoryImpl
+struct D3D12GPUFactory final : public GPUFactory
 {
     ComPtr<IDXGIFactory4> dxgiFactory4;
     bool tearingSupported = false;
@@ -1741,8 +1740,8 @@ struct D3D12GPUFactory final : public GPUFactoryImpl
 
     GPUBackendType GetBackend() const override { return GPUBackendType_D3D12; }
     uint32_t GetAdapterCount() const override { return (uint32_t)adapters.size(); }
-    GPUAdapter GetAdapter(uint32_t index) const override;
-    GPUSurface CreateSurface(GPUSurfaceSource source) override;
+    GPUAdapter* GetAdapter(uint32_t index) const override;
+    GPUSurface* CreateSurface(GPUSurfaceSource* source) override;
 };
 
 /* D3D12Buffer */
@@ -2826,10 +2825,11 @@ void D3D12CommandBuffer::CommitBarriers()
     numBarriersToCommit = 0;
 }
 
-GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
+GPUTexture* D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface* surface)
 {
     D3D12Surface* backendSurface = static_cast<D3D12Surface*>(surface);
 
+#if TODO_WAITABLE
     DWORD result = WaitForSingleObjectEx(
         backendSurface->frameLatencyWaitableObject,
         1000, // 1 second timeout (shouldn't ever occur)
@@ -2851,17 +2851,18 @@ GPUAcquireSurfaceResult D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface sur
             agpuLogError("Unexpected wait status: 0x%08X", result);
             return GPUAcquireSurfaceResult_Lost;
     }
+#endif // TODO_WAITABLE
+
 
     // Fence and events?
     backendSurface->backBufferIndex = backendSurface->swapChain3->GetCurrentBackBufferIndex();
     D3D12Texture* currentTexture = backendSurface->backbufferTextures[backendSurface->backBufferIndex];
-    *surfaceTexture = currentTexture;
 
     // Barrier
     backendSurface->AddRef();
     presentSurfaces.push_back(backendSurface);
 
-    return GPUAcquireSurfaceResult_SuccessOptimal;
+    return currentTexture;
 }
 
 void D3D12CommandBuffer::PushDebugGroup(const char* groupLabel) const
@@ -3431,7 +3432,7 @@ bool D3D12Device::HasFeature(GPUFeature feature) const
     return adapter->HasFeature(feature);
 }
 
-GPUCommandQueue D3D12Device::GetQueue(GPUCommandQueueType type)
+GPUCommandQueue* D3D12Device::GetQueue(GPUCommandQueueType type)
 {
     return &queues[type];
 }
@@ -4236,7 +4237,7 @@ GPURenderPipeline D3D12Device::CreateRenderPipeline(const GPURenderPipelineDesc&
     return pipeline;
 }
 
-GPUQueryHeap D3D12Device::CreateQueryHeap(const GPUQueryHeapDesc& desc)
+GPUQueryHeap* D3D12Device::CreateQueryHeap(const GPUQueryHeapDesc& desc)
 {
     D3D12_QUERY_HEAP_DESC d3dDesc = {};
     d3dDesc.Type = ToD3D12(desc.queryType);
@@ -4270,7 +4271,7 @@ D3D12Surface::~D3D12Surface()
     Unconfigure();
 }
 
-void D3D12Surface::GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const
+void D3D12Surface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
 {
     capabilities->preferredFormat = GPUPixelFormat_BGRA8UnormSrgb;
     capabilities->supportedUsage = GPUTextureUsage_ShaderRead | GPUTextureUsage_RenderTarget;
@@ -4286,7 +4287,7 @@ void D3D12Surface::GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* c
     capabilities->formatCount = ALIMER_COUNT_OF(kSupportedFormats);
 }
 
-bool D3D12Surface::Configure(const GPUSurfaceConfig* config_)
+bool D3D12Surface::Configure(GPUDevice device_, const GPUSwapChainDesc* config_)
 {
     Unconfigure();
 
@@ -4295,7 +4296,7 @@ bool D3D12Surface::Configure(const GPUSurfaceConfig* config_)
     //ALIMER_ASSERT(config_->desiredMaximumFrameLatency <= 15);
 
     config = *config_;
-    device = static_cast<D3D12Device*>(config.device);
+    device = static_cast<D3D12Device*>(device_);
     device->AddRef();
 
     uint32_t maximumFrameLatency = device->maxFramesInFlight;
@@ -4312,13 +4313,20 @@ bool D3D12Surface::Configure(const GPUSurfaceConfig* config_)
     swapChainDesc.Stereo = FALSE;
     swapChainDesc.SampleDesc.Count = 1;
     swapChainDesc.SampleDesc.Quality = 0;
-    swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
     swapChainDesc.BufferCount = bufferCount;
     swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-    swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT |
-        (factory->tearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u);
+    swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+    if (config.presentMode == GPUPresentMode_Immediate)
+    {
+        swapChainDesc.Flags |= (factory->tearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u);
+    }
+
+#if TODO_WAITABLE
+    swapChainDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+#endif
 
     HRESULT hr = E_FAIL;
     ComPtr<IDXGISwapChain1> tempSwapChain;
@@ -4400,7 +4408,9 @@ bool D3D12Surface::Configure(const GPUSurfaceConfig* config_)
     }
 
     backBufferIndex = swapChain3->GetCurrentBackBufferIndex();
+#if TODO_WAITABLE
     frameLatencyWaitableObject = swapChain3->GetFrameLatencyWaitableObject();
+#endif
 
     return true;
 }
@@ -4421,11 +4431,13 @@ void D3D12Surface::Unconfigure()
     swapChainHeight = 0;
     backBufferIndex = 0;
     backbufferTextures.clear();
+#if TODO_WAITABLE
     if (frameLatencyWaitableObject != INVALID_HANDLE_VALUE)
     {
         CloseHandle(frameLatencyWaitableObject);
         frameLatencyWaitableObject = INVALID_HANDLE_VALUE;
     }
+#endif
 
     SafeRelease(swapChain3);
     SafeRelease(device);
@@ -4935,7 +4947,7 @@ GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
 D3D12GPUFactory::~D3D12GPUFactory()
 {}
 
-GPUAdapter D3D12GPUFactory::GetAdapter(uint32_t index) const
+GPUAdapter* D3D12GPUFactory::GetAdapter(uint32_t index) const
 {
     if (index >= adapters.size())
         return nullptr;
@@ -4943,7 +4955,7 @@ GPUAdapter D3D12GPUFactory::GetAdapter(uint32_t index) const
     return adapters[index];
 }
 
-GPUSurface D3D12GPUFactory::CreateSurface(GPUSurfaceSource source)
+GPUSurface* D3D12GPUFactory::CreateSurface(GPUSurfaceSource* source)
 {
     D3D12Surface* surface = new D3D12Surface();
     surface->factory = this;
@@ -5095,7 +5107,7 @@ bool D3D12_IsSupported(void)
     return false;
 }
 
-GPUFactory D3D12_CreateFactory(const GPUFactoryDesc* desc)
+GPUFactory* D3D12_CreateFactory(const GPUFactoryDesc* desc)
 {
     D3D12GPUFactory* factory = new D3D12GPUFactory();
     factory->validationMode = (desc != nullptr) ? desc->validationMode : GPUValidationMode_Disabled;

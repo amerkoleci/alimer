@@ -198,9 +198,9 @@ struct GPUSampler : public GPUResource
     GPUSamplerDesc desc;
 };
 
-struct GPUQueryHeapImpl : public GPUResource
+struct GPUQueryHeap : public GPUResource
 {
-
+    GPUQueryHeapDesc desc;
 };
 
 struct GPUShaderModule : public GPUResource
@@ -266,12 +266,12 @@ struct GPUCommandBufferImpl : public GPUResource
     virtual void PopDebugGroup() const = 0;
     virtual void InsertDebugMarker(const char* markerLabel) const = 0;
 
-    virtual GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) = 0;
+    virtual GPUTexture* AcquireSurfaceTexture(GPUSurface* surface) = 0;
     virtual GPUComputePassEncoder BeginComputePass(const GPUComputePassDesc& desc) = 0;
     virtual GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) = 0;
 };
 
-struct GPUCommandQueueImpl : public GPUResource
+struct GPUCommandQueue : public GPUResource
 {
     virtual GPUCommandQueueType GetType() const = 0;
 
@@ -284,7 +284,7 @@ struct GPUDeviceImpl : public GPUResource
 {
     virtual void GetLimits(GPUDeviceLimits* limits) const = 0;
     virtual bool HasFeature(GPUFeature feature) const = 0;
-    virtual GPUCommandQueue GetQueue(GPUCommandQueueType type) = 0;
+    virtual GPUCommandQueue* GetQueue(GPUCommandQueueType type) = 0;
     virtual void WaitIdle() = 0;
     virtual uint64_t CommitFrame() = 0;
 
@@ -298,11 +298,11 @@ struct GPUDeviceImpl : public GPUResource
     virtual GPUShaderModule* CreateShaderModule(const GPUShaderModuleDesc* desc) = 0;
     virtual GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) = 0;
     virtual GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) = 0;
-    virtual GPUQueryHeap CreateQueryHeap(const GPUQueryHeapDesc& desc) = 0;
+    virtual GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) = 0;
 
 };
 
-struct GPUSurfaceSourceImpl final
+struct GPUSurfaceSource final
 {
     enum class Type
     {
@@ -330,33 +330,37 @@ struct GPUSurfaceSourceImpl final
     void* hwnd = nullptr;
 };
 
-struct GPUSurfaceImpl : public GPUResource
+struct GPUSurface : public GPUResource
 {
-    virtual void GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const = 0;
-    virtual bool Configure(const GPUSurfaceConfig* config_) = 0;
+    virtual void GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const = 0;
+    virtual bool Configure(GPUDevice device, const GPUSwapChainDesc* config_) = 0;
     virtual void Unconfigure() = 0;
 
-    GPUSurfaceConfig config;
+    GPUSwapChainDesc config;
 };
 
-struct GPUAdapterImpl : public GPUResource
+struct GPUSwapChain : public GPUResource
+{
+    GPUSwapChainDesc desc;
+};
+
+struct GPUAdapter : public GPUResource
 {
     virtual GPUAdapterType GetType() const = 0;
     virtual void GetInfo(GPUAdapterInfo* info) const = 0;
     virtual GPUDevice CreateDevice(const GPUDeviceDesc& desc) = 0;
 };
 
-struct GPUFactoryImpl : public GPUResource
+struct GPUFactory : public GPUResource
 {
 public:
-    virtual ~GPUFactoryImpl() = default;
+    virtual ~GPUFactory() = default;
 
     virtual GPUBackendType GetBackend() const = 0;
     virtual uint32_t GetAdapterCount() const = 0;
-    virtual GPUAdapter GetAdapter(uint32_t index) const = 0;
-    virtual GPUSurface CreateSurface(GPUSurfaceSource source) = 0;
+    virtual GPUAdapter* GetAdapter(uint32_t index) const = 0;
+    virtual GPUSurface* CreateSurface(GPUSurfaceSource* source) = 0;
 };
-
 
 _ALIMER_EXTERN bool agpuShouldLog(GPULogLevel level);
 _ALIMER_EXTERN void agpuLogInfo(const char* format, ...);
@@ -585,16 +589,16 @@ namespace string
     }
 }
 
-_ALIMER_EXTERN GPUFactory Null_CreateFactory(const GPUFactoryDesc* desc);
+_ALIMER_EXTERN GPUFactory* Null_CreateFactory(const GPUFactoryDesc* desc);
 
 #if defined(ALIMER_GPU_VULKAN)
 _ALIMER_EXTERN bool Vulkan_IsSupported(void);
-_ALIMER_EXTERN GPUFactory Vulkan_CreateFactory(const GPUFactoryDesc* desc);
+_ALIMER_EXTERN GPUFactory* Vulkan_CreateFactory(const GPUFactoryDesc* desc);
 #endif
 
 #if defined(ALIMER_GPU_D3D12)
 _ALIMER_EXTERN bool D3D12_IsSupported(void);
-_ALIMER_EXTERN GPUFactory D3D12_CreateFactory(const GPUFactoryDesc* desc);
+_ALIMER_EXTERN GPUFactory* D3D12_CreateFactory(const GPUFactoryDesc* desc);
 #endif
 
 #if defined(ALIMER_GPU_WEBGPU)

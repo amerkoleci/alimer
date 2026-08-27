@@ -4,7 +4,7 @@
 #include "alimer_gpu_internal.h"
 #include <string>
 
-struct NullAdapter final : public GPUAdapterImpl
+struct NullAdapter final : public GPUAdapter
 {
 
     NullAdapter();
@@ -43,7 +43,7 @@ struct NullComputePipeline final : public GPUComputePipelineImpl
 struct NullRenderPipeline final : public GPURenderPipelineImpl
 {};
 
-struct NullQueryHeap final : public GPUQueryHeapImpl
+struct NullQueryHeap final : public GPUQueryHeap
 {};
 
 struct NullCommandBuffer;
@@ -105,7 +105,7 @@ struct NullCommandBuffer final : public GPUCommandBufferImpl
     NullComputePassEncoder* computePassEncoder = nullptr;
     NullRenderPassEncoder* renderPassEncoder = nullptr;
 
-    GPUAcquireSurfaceResult AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture) override;
+    GPUTexture* AcquireSurfaceTexture(GPUSurface* surface) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
@@ -114,7 +114,7 @@ struct NullCommandBuffer final : public GPUCommandBufferImpl
     GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) override;
 };
 
-struct NullCommandQueue final : public GPUCommandQueueImpl
+struct NullCommandQueue final : public GPUCommandQueue
 {
     GPUCommandQueueType queueType = _GPUCommandQueueType_Count;
 
@@ -136,7 +136,7 @@ struct NullDevice final : public GPUDeviceImpl
 
     void GetLimits(GPUDeviceLimits* limits) const override;
     bool HasFeature(GPUFeature feature) const override;
-    GPUCommandQueue GetQueue(GPUCommandQueueType type) override;
+    GPUCommandQueue* GetQueue(GPUCommandQueueType type) override;
     void WaitIdle() override;
     uint64_t CommitFrame() override;
 
@@ -149,27 +149,27 @@ struct NullDevice final : public GPUDeviceImpl
     GPUShaderModule* CreateShaderModule(const GPUShaderModuleDesc* desc) override;
     GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
-    GPUQueryHeap CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
+    GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
 };
 
-struct NullSurface final : public GPUSurfaceImpl
+struct NullSurface final : public GPUSurface
 {
     NullTexture* backbufferTexture = nullptr;
 
     ~NullSurface() override;
-    void GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const override;
-    bool Configure(const GPUSurfaceConfig* config_) override;
+    void GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
+    bool Configure(GPUDevice device_, const GPUSwapChainDesc* config_) override;
     void Unconfigure() override;
 };
 
-struct NullGPUFactory final : public GPUFactoryImpl
+struct NullGPUFactory final : public GPUFactory
 {
     std::vector<NullAdapter*> adapters;
 
     GPUBackendType GetBackend() const override { return GPUBackendType_Null; }
     uint32_t GetAdapterCount() const override { return (uint32_t)adapters.size(); }
-    GPUAdapter GetAdapter(uint32_t index) const override;
-    GPUSurface CreateSurface(GPUSurfaceSource source) override;
+    GPUAdapter* GetAdapter(uint32_t index) const override;
+    GPUSurface* CreateSurface(GPUSurfaceSource* source) override;
 };
 
 
@@ -347,12 +347,10 @@ void NullRenderPassEncoder::SetShadingRate(GPUShadingRate rate)
 }
 
 /* NullCommandBuffer */
-GPUAcquireSurfaceResult NullCommandBuffer::AcquireSurfaceTexture(GPUSurface surface, GPUTexture** surfaceTexture)
+GPUTexture* NullCommandBuffer::AcquireSurfaceTexture(GPUSurface* surface)
 {
     NullSurface* backendSurface = static_cast<NullSurface*>(surface);
-
-    *surfaceTexture = backendSurface->backbufferTexture;
-    return GPUAcquireSurfaceResult_SuccessOptimal;
+    return backendSurface->backbufferTexture;
 }
 
 void NullCommandBuffer::PushDebugGroup(const char* groupLabel) const
@@ -423,7 +421,7 @@ bool NullDevice::HasFeature(GPUFeature feature) const
     return false;
 }
 
-GPUCommandQueue NullDevice::GetQueue(GPUCommandQueueType type)
+GPUCommandQueue* NullDevice::GetQueue(GPUCommandQueueType type)
 {
     return &queues[type];
 }
@@ -487,11 +485,12 @@ GPURenderPipeline NullDevice::CreateRenderPipeline(const GPURenderPipelineDesc& 
     return pipeline;
 }
 
-GPUQueryHeap NullDevice::CreateQueryHeap(const GPUQueryHeapDesc& desc)
+GPUQueryHeap* NullDevice::CreateQueryHeap(const GPUQueryHeapDesc& desc)
 {
     ALIMER_UNUSED(desc);
 
     NullQueryHeap* queryHeap = new NullQueryHeap();
+    queryHeap->desc = desc;
     return queryHeap;
 }
 
@@ -501,7 +500,7 @@ NullSurface::~NullSurface()
     Unconfigure();
 }
 
-void NullSurface::GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* capabilities) const
+void NullSurface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
 {
     capabilities->preferredFormat = GPUPixelFormat_BGRA8Unorm;
     capabilities->supportedUsage = GPUTextureUsage_RenderTarget;
@@ -512,9 +511,10 @@ void NullSurface::GetCapabilities(GPUAdapter adapter, GPUSurfaceCapabilities* ca
     capabilities->formatCount = ALIMER_COUNT_OF(kSupportedFormats);
 }
 
-bool NullSurface::Configure(const GPUSurfaceConfig* config_)
+bool NullSurface::Configure(GPUDevice device_, const GPUSwapChainDesc* config_)
 {
     Unconfigure();
+    config = *config_;
     return true;
 }
 
@@ -550,7 +550,7 @@ GPUDevice NullAdapter::CreateDevice(const GPUDeviceDesc& desc)
 }
 
 /* NullGPUFactory */
-GPUAdapter NullGPUFactory::GetAdapter(uint32_t index) const
+GPUAdapter* NullGPUFactory::GetAdapter(uint32_t index) const
 {
     if (index >= adapters.size())
         return nullptr;
@@ -558,7 +558,7 @@ GPUAdapter NullGPUFactory::GetAdapter(uint32_t index) const
     return adapters[index];
 }
 
-GPUSurface NullGPUFactory::CreateSurface(GPUSurfaceSource source)
+GPUSurface* NullGPUFactory::CreateSurface(GPUSurfaceSource* source)
 {
     ALIMER_UNUSED(source);
 
@@ -567,7 +567,7 @@ GPUSurface NullGPUFactory::CreateSurface(GPUSurfaceSource source)
     return surface;
 }
 
-GPUFactory Null_CreateFactory(const GPUFactoryDesc* desc)
+GPUFactory* Null_CreateFactory(const GPUFactoryDesc* desc)
 {
     ALIMER_UNUSED(desc);
 

@@ -266,7 +266,7 @@ GPUBool agpuIsBackendSupport(GPUBackendType backend)
     }
 }
 
-GPUFactory agpuFactoryCreate(const GPUFactoryDesc* desc)
+GPUFactory* agpuFactoryCreate(const GPUFactoryDesc* desc)
 {
     GPUBackendType backend = (desc != nullptr ? desc->preferredBackend : GPUBackendType_Undefined);
     if (backend == GPUBackendType_Undefined)
@@ -289,7 +289,7 @@ GPUFactory agpuFactoryCreate(const GPUFactoryDesc* desc)
         }
     }
 
-    GPUFactoryImpl* factory = nullptr;
+    GPUFactory* factory = nullptr;
     switch (backend)
     {
         case GPUBackendType_Null:
@@ -344,34 +344,34 @@ GPUFactory agpuFactoryCreate(const GPUFactoryDesc* desc)
     return factory;
 }
 
-void agpuFactoryDestroy(GPUFactory factory)
+void agpuFactoryDestroy(GPUFactory* factory)
 {
     factory->Release();
 }
 
-GPUBackendType agpuFactoryGetBackend(GPUFactory factory)
+GPUBackendType agpuFactoryGetBackend(GPUFactory* factory)
 {
     return factory->GetBackend();
 }
 
-uint32_t agpuFactoryGetAdapterCount(GPUFactory factory)
+uint32_t agpuFactoryGetAdapterCount(GPUFactory* factory)
 {
     return factory->GetAdapterCount();
 }
 
-GPUAdapter agpuFactoryGetAdapter(GPUFactory factory, uint32_t index)
+GPUAdapter* agpuFactoryGetAdapter(GPUFactory* factory, uint32_t index)
 {
     return factory->GetAdapter(index);
 }
 
-GPUAdapter agpuFactoryGetBestAdapter(GPUFactory factory)
+GPUAdapter* agpuFactoryGetBestAdapter(GPUFactory* factory)
 {
-    GPUAdapter result = nullptr;
+    GPUAdapter* result = nullptr;
     uint32_t kind = (uint32_t)GPUAdapterType_Other + 1;
 
     for (uint32_t i = 0, count = factory->GetAdapterCount(); i < count; ++i)
     {
-        GPUAdapter adapter = factory->GetAdapter(i);
+        GPUAdapter* adapter = factory->GetAdapter(i);
         GPUAdapterType adapterType = adapter->GetType();
         if ((uint32_t)adapterType < kind)
         {
@@ -383,16 +383,8 @@ GPUAdapter agpuFactoryGetBestAdapter(GPUFactory factory)
     return result;
 }
 
-GPUSurface agpuFactoryCreateSurface(GPUFactory factory, GPUSurfaceSource source)
-{
-    ALIMER_ASSERT(factory);
-    ALIMER_ASSERT(source);
-
-    return factory->CreateSurface(source);
-}
-
 /* Adapter */
-void agpuAdapterGetInfo(GPUAdapter adapter, GPUAdapterInfo* info)
+void agpuAdapterGetInfo(GPUAdapter* adapter, GPUAdapterInfo* info)
 {
     if (!info)
         return;
@@ -400,6 +392,111 @@ void agpuAdapterGetInfo(GPUAdapter adapter, GPUAdapterInfo* info)
     adapter->GetInfo(info);
 }
 
+/* SurfaceSource */
+GPUSurfaceSource* agpuSurfaceSourceCreateFromWin32(void* hwnd)
+{
+    GPUSurfaceSource* handle = new GPUSurfaceSource();
+    handle->type = GPUSurfaceSource::Type::WindowsHWND;
+    handle->hwnd = hwnd;
+    return handle;
+}
+
+GPUSurfaceSource* agpuSurfaceSourceCreateFromAndroid(void* window)
+{
+    GPUSurfaceSource* handle = new GPUSurfaceSource();
+    handle->type = GPUSurfaceSource::Type::AndroidWindow;
+    handle->androidWindow = window;
+    return handle;
+}
+
+GPUSurfaceSource* agpuSurfaceSourceCreateFromMetalLayer(void* metalLayer)
+{
+    GPUSurfaceSource* handle = new GPUSurfaceSource();
+    handle->type = GPUSurfaceSource::Type::MetalLayer;
+    handle->metalLayer = metalLayer;
+    return handle;
+}
+
+GPUSurfaceSource* agpuSurfaceSourceCreateFromWaylandSurface(void* display, void* surface)
+{
+    GPUSurfaceSource* handle = new GPUSurfaceSource();
+    handle->type = GPUSurfaceSource::Type::WaylandSurface;
+    handle->waylandDisplay = display;
+    handle->waylandSurface = surface;
+    return handle;
+}
+
+GPUSurfaceSource* agpuSurfaceSourceCreateFromXlibWindow(void* display, uint64_t window)
+{
+    GPUSurfaceSource* handle = new GPUSurfaceSource();
+    handle->type = GPUSurfaceSource::Type::XlibWindow;
+    handle->xlibDisplay = display;
+    handle->xlibWindow = window;
+    return handle;
+}
+
+void agpuSurfaceSourceDestroy(GPUSurfaceSource* surfaceSource)
+{
+    delete surfaceSource;
+}
+
+/* Surface */
+GPUSurface* agpuSurfaceCreate(GPUFactory* factory, GPUSurfaceSource* surfaceSource)
+{
+    ALIMER_ASSERT(factory);
+    ALIMER_ASSERT(surfaceSource);
+
+    return factory->CreateSurface(surfaceSource);
+}
+
+void agpuSurfaceGetCapabilities(GPUSurface* surface, GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities)
+{
+    if (!surface || !adapter || !capabilities)
+        return;
+
+    surface->GetCapabilities(adapter, capabilities);
+}
+
+static GPUSwapChainDesc _GPUSurfaceConfig_Defaults(const GPUSwapChainDesc* desc)
+{
+    GPUSwapChainDesc descDesc = *desc;
+    descDesc.width = _ALIMER_DEF(descDesc.width, 1u);
+    descDesc.height = _ALIMER_DEF(descDesc.height, 1u);
+    descDesc.presentMode = _ALIMER_DEF(descDesc.presentMode, GPUPresentMode_Fifo);
+    return descDesc;
+}
+
+GPUBool agpuSurfaceConfigure(GPUSurface* surface, GPUDevice device, const GPUSwapChainDesc* desc)
+{
+    if (!desc)
+        return false;
+
+    if (!device)
+    {
+        agpuLogError("Surface configuration requires a valid GPUDevice");
+        return false;
+    }
+
+    GPUSwapChainDesc configDef = _GPUSurfaceConfig_Defaults(desc);
+    return surface->Configure(device, &configDef);
+}
+
+void agpuSurfaceUnconfigure(GPUSurface* surface)
+{
+    surface->Unconfigure();
+}
+
+uint32_t agpuSurfaceAddRef(GPUSurface* surface)
+{
+    return surface->AddRef();
+}
+
+uint32_t agpuSurfaceRelease(GPUSurface* surface)
+{
+    return surface->Release();
+}
+
+/* Device */
 static GPUDeviceDesc _GPUDeviceDesc_Defaults(const GPUDeviceDesc* desc)
 {
     GPUDeviceDesc def = {};
@@ -411,108 +508,12 @@ static GPUDeviceDesc _GPUDeviceDesc_Defaults(const GPUDeviceDesc* desc)
     return def;
 }
 
-GPUDevice agpuAdapterCreateDevice(GPUAdapter adapter, const GPUDeviceDesc* desc)
+GPUDevice agpuDeviceCreate(GPUAdapter* adapter, const GPUDeviceDesc* desc)
 {
     GPUDeviceDesc descDef = _GPUDeviceDesc_Defaults(desc);
     return adapter->CreateDevice(descDef);
 }
 
-/* SurfaceSource */
-GPUSurfaceSource agpuSurfaceSourceCreateFromWin32(void* hwnd)
-{
-    GPUSurfaceSourceImpl* handle = new GPUSurfaceSourceImpl();
-    handle->type = GPUSurfaceSourceImpl::Type::WindowsHWND;
-    handle->hwnd = hwnd;
-    return handle;
-}
-
-GPUSurfaceSource agpuSurfaceSourceCreateFromAndroid(void* window)
-{
-    GPUSurfaceSourceImpl* handle = new GPUSurfaceSourceImpl();
-    handle->type = GPUSurfaceSourceImpl::Type::AndroidWindow;
-    handle->androidWindow = window;
-    return handle;
-}
-
-GPUSurfaceSource agpuSurfaceSourceCreateFromMetalLayer(void* metalLayer)
-{
-    GPUSurfaceSourceImpl* handle = new GPUSurfaceSourceImpl();
-    handle->type = GPUSurfaceSourceImpl::Type::MetalLayer;
-    handle->metalLayer = metalLayer;
-    return handle;
-}
-
-GPUSurfaceSource agpuSurfaceSourceCreateFromWaylandSurface(void* display, void* surface)
-{
-    GPUSurfaceSourceImpl* handle = new GPUSurfaceSourceImpl();
-    handle->type = GPUSurfaceSourceImpl::Type::WaylandSurface;
-    handle->waylandDisplay = display;
-    handle->waylandSurface = surface;
-    return handle;
-}
-
-GPUSurfaceSource agpuSurfaceSourceCreateFromXlibWindow(void* display, uint64_t window)
-{
-    GPUSurfaceSourceImpl* handle = new GPUSurfaceSourceImpl();
-    handle->type = GPUSurfaceSourceImpl::Type::XlibWindow;
-    handle->xlibDisplay = display;
-    handle->xlibWindow = window;
-    return handle;
-}
-
-void agpuSurfaceSourceDestroy(GPUSurfaceSource surfaceSource)
-{
-    delete surfaceSource;
-}
-
-/* Surface */
-void agpuSurfaceGetCapabilities(GPUSurface surface, GPUAdapter adapter, GPUSurfaceCapabilities* capabilities)
-{
-    if (!surface || !adapter || !capabilities)
-        return;
-
-    surface->GetCapabilities(adapter, capabilities);
-}
-
-static GPUSurfaceConfig _GPUSurfaceConfig_Defaults(const GPUSurfaceConfig* config) {
-    GPUSurfaceConfig def = *config;
-    def.width = _ALIMER_DEF(def.width, 1u);
-    def.height = _ALIMER_DEF(def.height, 1u);
-    def.presentMode = _ALIMER_DEF(def.presentMode, GPUPresentMode_Fifo);
-    return def;
-}
-
-GPUBool agpuSurfaceConfigure(GPUSurface surface, const GPUSurfaceConfig* config)
-{
-    if (!config)
-        return false;
-
-    if (!config->device)
-    {
-        agpuLogError("Surface configuration requires a valid GPUDevice");
-        return false;
-    }
-
-    GPUSurfaceConfig configDef = _GPUSurfaceConfig_Defaults(config);
-    return surface->Configure(&configDef);
-}
-
-void agpuSurfaceUnconfigure(GPUSurface surface)
-{
-    surface->Unconfigure();
-}
-
-uint32_t agpuSurfaceAddRef(GPUSurface surface)
-{
-    return surface->AddRef();
-}
-
-uint32_t agpuSurfaceRelease(GPUSurface surface)
-{
-    return surface->Release();
-}
-
-/* Device */
 void agpuDeviceSetLabel(GPUDevice device, const char* label)
 {
     device->SetLabel(label);
@@ -541,7 +542,7 @@ GPUBool agpuDeviceHasFeature(GPUDevice device, GPUFeature feature)
     return device->HasFeature(feature);
 }
 
-GPUCommandQueue agpuDeviceGetCommandQueue(GPUDevice device, GPUCommandQueueType type)
+GPUCommandQueue* agpuDeviceGetCommandQueue(GPUDevice device, GPUCommandQueueType type)
 {
     return device->GetQueue(type);
 }
@@ -562,22 +563,22 @@ uint64_t agpuDeviceCommitFrame(GPUDevice device)
 }
 
 /* CommandQueue */
-GPUCommandQueueType agpuCommandQueueGetType(GPUCommandQueue queue)
+GPUCommandQueueType agpuCommandQueueGetType(GPUCommandQueue* queue)
 {
     return queue->GetType();
 }
 
-void agpuCommandQueueWaitIdle(GPUCommandQueue queue)
+void agpuCommandQueueWaitIdle(GPUCommandQueue* queue)
 {
     queue->WaitIdle();
 }
 
-GPUCommandBuffer agpuCommandQueueAcquireCommandBuffer(GPUCommandQueue queue, const GPUCommandBufferDesc* desc)
+GPUCommandBuffer agpuCommandQueueAcquireCommandBuffer(GPUCommandQueue* queue, const GPUCommandBufferDesc* desc)
 {
     return queue->AcquireCommandBuffer(desc);
 }
 
-void agpuCommandQueueSubmit(GPUCommandQueue queue, uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers)
+void agpuCommandQueueSubmit(GPUCommandQueue* queue, uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers)
 {
     queue->Submit(numCommandBuffers, commandBuffers);
 }
@@ -598,9 +599,9 @@ void agpuCommandBufferInsertDebugMarker(GPUCommandBuffer commandBuffer, const ch
     commandBuffer->InsertDebugMarker(markerLabel);
 }
 
-GPUAcquireSurfaceResult agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer commandBuffer, GPUSurface surface, GPUTexture** surfaceTexture)
+GPUTexture* agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer commandBuffer, GPUSurface* surface)
 {
-    return commandBuffer->AcquireSurfaceTexture(surface, surfaceTexture);
+    return commandBuffer->AcquireSurfaceTexture(surface);
 }
 
 GPUComputePassEncoder agpuCommandBufferBeginComputePass(GPUCommandBuffer commandBuffer, const GPUComputePassDesc* desc)
@@ -629,7 +630,7 @@ void agpuComputePassEncoderSetPipeline(GPUComputePassEncoder computePassEncoder,
     computePassEncoder->SetPipeline(pipeline);
 }
 
-void agpuComputePassEncoderPushConstants(GPUComputePassEncoder computePassEncoder,const void* data, uint32_t size)
+void agpuComputePassEncoderPushConstants(GPUComputePassEncoder computePassEncoder, const void* data, uint32_t size)
 {
     ALIMER_ASSERT(data != nullptr);
     ALIMER_ASSERT(size > 0 && size <= GPU_MAX_PUSH_CONSTANTS_SIZE);
@@ -810,19 +811,26 @@ GPUBuffer* agpuBufferCreate(GPUDevice device, const GPUBufferDesc* desc, const v
     return device->CreateBuffer(descDef, pInitialData);
 }
 
-void agpuBufferDestroy(GPUBuffer* buffer)
+uint32_t agpuBufferAddRef(GPUBuffer* buffer)
 {
-    buffer->Release();
+    return buffer->AddRef();
+}
+
+uint32_t agpuBufferRelease(GPUBuffer* buffer)
+{
+    return buffer->Release();
+}
+
+void agpuBufferGetDesc(GPUBuffer* buffer, GPUBufferDesc* desc)
+{
+    ALIMER_ASSERT(desc);
+
+    memcpy(desc, &buffer->desc, sizeof(GPUBufferDesc));
 }
 
 void agpuBufferSetLabel(GPUBuffer* buffer, const char* label)
 {
     buffer->SetLabel(label);
-}
-
-uint64_t agpuBufferGetSize(GPUBuffer* buffer)
-{
-    return buffer->desc.size;
 }
 
 GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer* buffer)
@@ -885,64 +893,26 @@ GPUTexture* agpuTextureCreate(GPUDevice device, const GPUTextureDesc* desc, cons
     return device->CreateTexture(descDef, pInitialData);
 }
 
-void agpuTextureDestroy(GPUTexture* texture)
+uint32_t agpuTextureAddRef(GPUTexture* texture)
 {
-    texture->Release();
+    return texture->AddRef();
+}
+
+uint32_t agpuTextureRelease(GPUTexture* texture)
+{
+    return texture->Release();
+}
+
+void agpuTextureGetDesc(GPUTexture* texture, GPUTextureDesc* desc)
+{
+    ALIMER_ASSERT(desc);
+
+    memcpy(desc, &texture->desc, sizeof(GPUTextureDesc));
 }
 
 void agpuTextureSetLabel(GPUTexture* texture, const char* label)
 {
     texture->SetLabel(label);
-}
-
-GPUTextureDimension agpuTextureGetDimension(GPUTexture* texture)
-{
-    return texture->desc.dimension;
-}
-
-GPUPixelFormat agpuTextureGetFormat(GPUTexture* texture)
-{
-    return texture->desc.format;
-}
-
-GPUTextureUsage agpuTextureGetUsage(GPUTexture* texture)
-{
-    return texture->desc.usage;
-}
-
-uint32_t agpuTextureGetWidth(GPUTexture* texture)
-{
-    return texture->desc.width;
-}
-
-uint32_t agpuTextureGetHeight(GPUTexture* texture)
-{
-    return texture->desc.height;
-}
-
-uint32_t agpuTextureGetDepthOrArrayLayers(GPUTexture* texture)
-{
-    return texture->desc.depthOrArrayLayers;
-}
-
-uint32_t agpuTextureGetMipLevelCount(GPUTexture* texture)
-{
-    return texture->desc.mipLevelCount;
-}
-
-uint32_t agpuTextureGetSampleCount(GPUTexture* texture)
-{
-    return texture->desc.sampleCount;
-}
-
-uint32_t agpuTextureGetLevelWidth(GPUTexture* texture, uint32_t mipLevel)
-{
-    return std::max(texture->desc.width >> mipLevel, 1u);
-}
-
-uint32_t agpuTextureGetLevelHeight(GPUTexture* texture, uint32_t mipLevel)
-{
-    return std::max(texture->desc.height >> mipLevel, 1u);
 }
 
 /* Sampler */
@@ -961,20 +931,25 @@ GPUSampler* agpuSamplerCreate(GPUDevice device, const GPUSamplerDesc* desc)
     return device->CreateSampler(descDef);
 }
 
-void agpuSamplerDestroy(GPUSampler* sampler)
+uint32_t agpuSamplerAddRef(GPUSampler* sampler)
 {
-    sampler->Release();
+    return sampler->AddRef();
 }
 
-void agpuSamplerSetLabel(GPUSampler* sampler, const char* label)
+uint32_t agpuSamplerRelease(GPUSampler* sampler)
 {
-    sampler->SetLabel(label);
+    return sampler->Release();
 }
 
 void agpuSamplerGetDesc(GPUSampler* sampler, GPUSamplerDesc* desc)
 {
     ALIMER_ASSERT(desc);
     memcpy(desc, &sampler->desc, sizeof(GPUSamplerDesc));
+}
+
+void agpuSamplerSetLabel(GPUSampler* sampler, const char* label)
+{
+    sampler->SetLabel(label);
 }
 
 /* ShaderModule */
@@ -1006,9 +981,14 @@ GPUShaderModule* agpuCreateShaderModule(GPUDevice device, const GPUShaderModuleD
     return device->CreateShaderModule(desc);
 }
 
-void agpuShaderModuleDestroy(GPUShaderModule* shaderModule)
+uint32_t agpuShaderModuleAddRef(GPUShaderModule* shaderModule)
 {
-    shaderModule->Release();
+    return shaderModule->AddRef();
+}
+
+uint32_t agpuShaderModuleRelease(GPUShaderModule* shaderModule)
+{
+    return shaderModule->Release();
 }
 
 void agpuShaderModuleSetLabel(GPUShaderModule* shaderModule, const char* label)
@@ -1131,7 +1111,7 @@ static GPUQueryHeapDesc _GPUQueryHeapDesc_Defaults(const GPUQueryHeapDesc* desc)
     return def;
 }
 
-GPUQueryHeap agpuCreateQueryHeap(GPUDevice device, const GPUQueryHeapDesc* desc)
+GPUQueryHeap* agpuQueryHeapCreate(GPUDevice device, const GPUQueryHeapDesc* desc)
 {
     if (!desc)
         return nullptr;
@@ -1140,19 +1120,26 @@ GPUQueryHeap agpuCreateQueryHeap(GPUDevice device, const GPUQueryHeapDesc* desc)
     return device->CreateQueryHeap(descDef);
 }
 
-void agpuQueryHeapSetLabel(GPUQueryHeap queryHeap, const char* label)
-{
-    queryHeap->SetLabel(label);
-}
-
-uint32_t agpuQueryHeapAddRef(GPUQueryHeap queryHeap)
+uint32_t agpuQueryHeapAddRef(GPUQueryHeap* queryHeap)
 {
     return queryHeap->AddRef();
 }
 
-uint32_t agpuQueryHeapRelease(GPUQueryHeap queryHeap)
+uint32_t agpuQueryHeapRelease(GPUQueryHeap* queryHeap)
 {
     return queryHeap->Release();
+}
+
+void agpuQueryHeapGetDesc(GPUQueryHeap* queryHeap, GPUQueryHeapDesc* desc)
+{
+    ALIMER_ASSERT(desc);
+
+    memcpy(desc, &queryHeap->desc, sizeof(GPUQueryHeapDesc));
+}
+
+void agpuQueryHeapSetLabel(GPUQueryHeap* queryHeap, const char* label)
+{
+    queryHeap->SetLabel(label);
 }
 
 /* Other */

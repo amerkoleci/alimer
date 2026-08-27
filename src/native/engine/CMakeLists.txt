@@ -76,6 +76,9 @@ target_link_libraries(${TARGET_NAME} PRIVATE
 )
 
 if(EMSCRIPTEN)
+    target_sources(${TARGET_NAME} PRIVATE
+        src/platforms/alimer_platform_web.cpp
+    )
 elseif(ANDROID)
 elseif (ALIMER_USE_SDL)
     target_sources(${TARGET_NAME} PRIVATE
