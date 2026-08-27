@@ -1098,6 +1098,7 @@ struct D3D12CommandBuffer;
 struct D3D12Queue;
 struct D3D12Device;
 struct D3D12Surface;
+struct D3D12SwapChain;
 struct D3D12Adapter;
 struct D3D12GPUFactory;
 
@@ -1274,7 +1275,7 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
     std::vector<D3D12_BUFFER_BARRIER> bufferBarriers;
     // Legacy barriers
     D3D12_RESOURCE_BARRIER barriers[kMaxBarrierCount] = {};
-    std::vector<D3D12Surface*> presentSurfaces;
+    std::vector<D3D12SwapChain*> presentSwapChains;
 
     ~D3D12CommandBuffer() override;
     void Clear();
@@ -1285,7 +1286,6 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
     void InsertUAVBarrier(const D3D12Resource* resource, bool commit = false);
     void CommitBarriers();
 
-    GPUTexture* AcquireSurfaceTexture(GPUSurface* surface) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
@@ -1672,6 +1672,7 @@ struct D3D12Device final : public GPUDeviceImpl
     GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
     GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
+    GPUSwapChain* CreateSwapChain(GPUSurface* surface, const GPUSwapChainDesc& desc) override;
 };
 
 struct D3D12Surface final : public GPUSurface
@@ -1682,19 +1683,29 @@ struct D3D12Surface final : public GPUSurface
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
     HWND hwnd = nullptr;
 #endif
+
+    ~D3D12Surface() override;
+    void GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
+
+};
+
+
+struct D3D12SwapChain final : public GPUSwapChain
+{
+    D3D12Device* device = nullptr;
+    D3D12Surface* surface = nullptr;
     uint32_t width = 0;
     uint32_t height = 0;
-    IDXGISwapChain3* swapChain3 = nullptr;
+    IDXGISwapChain3* handle = nullptr;
     uint32_t swapChainWidth = 0;
     uint32_t swapChainHeight = 0;
     uint32_t backBufferIndex = 0;
     //HANDLE frameLatencyWaitableObject = INVALID_HANDLE_VALUE;
     std::vector<D3D12Texture*> backbufferTextures;
 
-    ~D3D12Surface() override;
-    void GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
-    bool Configure(GPUDevice device_, const GPUSwapChainDesc* config_) override;
-    void Unconfigure() override;
+    ~D3D12SwapChain() override;
+    void Resize(uint32_t width, uint32_t height) override;
+    GPUTexture* AcquireNextTexture() override;
     void Present();
 };
 
@@ -2589,12 +2600,12 @@ D3D12CommandBuffer::~D3D12CommandBuffer()
 
 void D3D12CommandBuffer::Clear()
 {
-    for (auto& surface : presentSurfaces)
+    for (auto& swapChain : presentSwapChains)
     {
-        surface->Release();
+        swapChain->Release();
     }
 
-    presentSurfaces.clear();
+    presentSwapChains.clear();
     globalBarriers.clear();
     textureBarriers.clear();
     bufferBarriers.clear();
@@ -2665,9 +2676,9 @@ void D3D12CommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc* 
 
 ID3D12CommandList* D3D12CommandBuffer::End()
 {
-    for (auto& surface : presentSurfaces)
+    for (auto& swapChain : presentSwapChains)
     {
-        TextureBarrier(surface->backbufferTextures[surface->backBufferIndex], TextureLayout::Present);
+        TextureBarrier(swapChain->backbufferTextures[swapChain->backBufferIndex], TextureLayout::Present);
     }
     CommitBarriers();
 
@@ -2823,46 +2834,6 @@ void D3D12CommandBuffer::CommitBarriers()
     }
 
     numBarriersToCommit = 0;
-}
-
-GPUTexture* D3D12CommandBuffer::AcquireSurfaceTexture(GPUSurface* surface)
-{
-    D3D12Surface* backendSurface = static_cast<D3D12Surface*>(surface);
-
-#if TODO_WAITABLE
-    DWORD result = WaitForSingleObjectEx(
-        backendSurface->frameLatencyWaitableObject,
-        1000, // 1 second timeout (shouldn't ever occur)
-        true
-    );
-
-    switch (result)
-    {
-        case WAIT_ABANDONED:
-        case WAIT_FAILED:
-            return GPUAcquireSurfaceResult_Lost;
-        case WAIT_OBJECT_0:
-            // OK
-            break;
-        case WAIT_TIMEOUT:
-            return GPUAcquireSurfaceResult_SuccessOptimal;
-
-        default:
-            agpuLogError("Unexpected wait status: 0x%08X", result);
-            return GPUAcquireSurfaceResult_Lost;
-    }
-#endif // TODO_WAITABLE
-
-
-    // Fence and events?
-    backendSurface->backBufferIndex = backendSurface->swapChain3->GetCurrentBackBufferIndex();
-    D3D12Texture* currentTexture = backendSurface->backbufferTextures[backendSurface->backBufferIndex];
-
-    // Barrier
-    backendSurface->AddRef();
-    presentSurfaces.push_back(backendSurface);
-
-    return currentTexture;
 }
 
 void D3D12CommandBuffer::PushDebugGroup(const char* groupLabel) const
@@ -3042,13 +3013,13 @@ void D3D12Queue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer* commandBuf
     {
         D3D12CommandBuffer* commandBuffer = static_cast<D3D12CommandBuffer*>(commandBuffers[i]);
 
-        for (auto& surface : commandBuffer->presentSurfaces)
+        for (auto& swapChain : commandBuffer->presentSwapChains)
         {
-            surface->Present();
-            surface->Release();
+            swapChain->Present();
+            swapChain->Release();
         }
 
-        commandBuffer->presentSurfaces.clear();
+        commandBuffer->presentSwapChains.clear();
     }
 }
 
@@ -4265,11 +4236,20 @@ GPUQueryHeap* D3D12Device::CreateQueryHeap(const GPUQueryHeapDesc& desc)
     return queryHeap;
 }
 
+GPUSwapChain* D3D12Device::CreateSwapChain(GPUSurface* surface, const GPUSwapChainDesc& desc)
+{
+    D3D12SwapChain* swapChain = new D3D12SwapChain();
+    swapChain->device = this;
+    swapChain->desc = desc;
+    swapChain->surface = static_cast<D3D12Surface*>(surface);
+    swapChain->surface->AddRef();
+    swapChain->Resize(desc.width, desc.height);
+    return swapChain;
+}
+
 /* D3D12Surface */
 D3D12Surface::~D3D12Surface()
-{
-    Unconfigure();
-}
+{}
 
 void D3D12Surface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
 {
@@ -4287,145 +4267,15 @@ void D3D12Surface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* 
     capabilities->formatCount = ALIMER_COUNT_OF(kSupportedFormats);
 }
 
-bool D3D12Surface::Configure(GPUDevice device_, const GPUSwapChainDesc* config_)
+/* D3D12SwapChain */
+D3D12SwapChain::~D3D12SwapChain()
 {
-    Unconfigure();
-
-    // The range for `SetMaximumFrameLatency` is 1-16 so the maximum latency requested should be 15 because we add 1.
-    // https://learn.microsoft.com/en-us/windows/win32/api/dxgi/nf-dxgi-idxgidevice1-setmaximumframelatency
-    //ALIMER_ASSERT(config_->desiredMaximumFrameLatency <= 15);
-
-    config = *config_;
-    device = static_cast<D3D12Device*>(device_);
-    device->AddRef();
-
-    uint32_t maximumFrameLatency = device->maxFramesInFlight;
-
-    // Nvidia recommends to use 1-2 more buffers than the maximum latency
-    // https://developer.nvidia.com/blog/advanced-api-performance-swap-chains/
-    // For high latency extra buffers seems excessive, so go with a minimum of 3 and beyond that add 1.
-    uint32_t bufferCount = std::min(maximumFrameLatency + 1, 16u);
-
-    DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-    swapChainDesc.Width = config.width;
-    swapChainDesc.Height = config.height;
-    swapChainDesc.Format = ToDxgiSwapChainFormat(config.format);
-    swapChainDesc.Stereo = FALSE;
-    swapChainDesc.SampleDesc.Count = 1;
-    swapChainDesc.SampleDesc.Quality = 0;
-    swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
-    swapChainDesc.BufferCount = bufferCount;
-    swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
-    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-    swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-    swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-    if (config.presentMode == GPUPresentMode_Immediate)
-    {
-        swapChainDesc.Flags |= (factory->tearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u);
-    }
-
-#if TODO_WAITABLE
-    swapChainDesc.Flags |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
-#endif
-
-    HRESULT hr = E_FAIL;
-    ComPtr<IDXGISwapChain1> tempSwapChain;
-
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-    DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {};
-    fullscreenDesc.Windowed = TRUE; // !desc.fullscreen;
-
-    hr = factory->dxgiFactory4->CreateSwapChainForHwnd(
-        device->queues[GPUCommandQueueType_Graphics].handle,
-        hwnd,
-        &swapChainDesc,
-        &fullscreenDesc,
-        nullptr,
-        tempSwapChain.GetAddressOf()
-    );
-
-    // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
-    VHR(factory->dxgiFactory4->MakeWindowAssociation(hwnd, DXGI_MWA_NO_WINDOW_CHANGES | DXGI_MWA_NO_ALT_ENTER));
-#endif
-
-    if (FAILED(hr))
-    {
-        return false;
-    }
-
-    hr = tempSwapChain->QueryInterface(&swapChain3);
-    if (FAILED(hr))
-    {
-        return false;
-    }
-
-    VHR(swapChain3->SetMaximumFrameLatency(maximumFrameLatency));
-
-    VHR(swapChain3->GetDesc1(&swapChainDesc));
-    swapChainWidth = swapChainDesc.Width;
-    swapChainHeight = swapChainDesc.Height;
-
-    backBufferIndex = 0;
-    backbufferTextures.resize(swapChainDesc.BufferCount);
-
-    GPUTextureDesc textureDesc{};
-    textureDesc.format = config.format;
-    textureDesc.width = swapChainWidth;
-    textureDesc.height = swapChainHeight;
-    textureDesc.usage = GPUTextureUsage_ShaderRead | GPUTextureUsage_RenderTarget;
-
-    for (uint32_t i = 0; i < swapChainDesc.BufferCount; ++i)
-    {
-        D3D12Texture* texture = new D3D12Texture();
-        texture->device = device;
-        texture->desc = textureDesc;
-        texture->dxgiFormat = ToDxgiFormat(config.format);
-
-        VHR(swapChain3->GetBuffer(i, IID_PPV_ARGS(&texture->handle)));
-
-        D3D12_RESOURCE_DESC resourceDesc = texture->handle->GetDesc();
-
-        texture->allocatedSize = 0;
-        texture->numSubResources = resourceDesc.MipLevels * resourceDesc.DepthOrArraySize;
-        texture->subResourcesStates.resize(texture->numSubResources);
-        texture->subResourcesStates[0] = TextureLayout::Present;
-
-        texture->footPrints.resize(texture->numSubResources);
-        texture->rowSizesInBytes.resize(texture->footPrints.size());
-        texture->numRows.resize(texture->footPrints.size());
-        device->handle->GetCopyableFootprints(
-            &resourceDesc,
-            0,
-            (UINT)texture->footPrints.size(),
-            0,
-            texture->footPrints.data(),
-            texture->numRows.data(),
-            texture->rowSizesInBytes.data(),
-            &texture->allocatedSize
-        );
-
-        backbufferTextures[i] = texture;
-    }
-
-    backBufferIndex = swapChain3->GetCurrentBackBufferIndex();
-#if TODO_WAITABLE
-    frameLatencyWaitableObject = swapChain3->GetFrameLatencyWaitableObject();
-#endif
-
-    return true;
-}
-
-void D3D12Surface::Unconfigure()
-{
-    if (device)
-    {
-        device->WaitIdle();
-    }
-
     for (size_t i = 0; i < backbufferTextures.size(); ++i)
     {
         backbufferTextures[i]->Release();
     }
+
+    device->WaitIdle();
 
     swapChainWidth = 0;
     swapChainHeight = 0;
@@ -4439,14 +4289,56 @@ void D3D12Surface::Unconfigure()
     }
 #endif
 
-    SafeRelease(swapChain3);
-    SafeRelease(device);
+    SafeRelease(handle);
+    SafeRelease(surface);
 }
 
-void D3D12Surface::Present()
+void D3D12SwapChain::Resize(uint32_t width, uint32_t height)
+{
+}
+
+GPUTexture* D3D12SwapChain::AcquireNextTexture()
+{
+#if TODO_WAITABLE
+    DWORD result = WaitForSingleObjectEx(
+        backendSurface->frameLatencyWaitableObject,
+        1000, // 1 second timeout (shouldn't ever occur)
+        true
+    );
+
+    switch (result)
+    {
+        case WAIT_ABANDONED:
+        case WAIT_FAILED:
+            return GPUAcquireSurfaceResult_Lost;
+        case WAIT_OBJECT_0:
+            // OK
+            break;
+        case WAIT_TIMEOUT:
+            return GPUAcquireSurfaceResult_SuccessOptimal;
+
+        default:
+            agpuLogError("Unexpected wait status: 0x%08X", result);
+            return GPUAcquireSurfaceResult_Lost;
+    }
+#endif // TODO_WAITABLE
+
+
+    // Fence and events?
+    backBufferIndex = handle->GetCurrentBackBufferIndex();
+    D3D12Texture* currentTexture = backbufferTextures[backBufferIndex];
+
+    // Barrier
+    //backendSurface->AddRef();
+    //presentSurfaces.push_back(backendSurface);
+
+    return currentTexture;
+}
+
+void D3D12SwapChain::Present()
 {
     UINT syncInterval, presentFlags;
-    switch (config.presentMode)
+    switch (desc.presentMode)
     {
         default:
         case GPUPresentMode_Fifo:
@@ -4457,7 +4349,7 @@ void D3D12Surface::Present()
 
         case GPUPresentMode_Immediate:
             syncInterval = 0;
-            presentFlags = factory->tearingSupported ? DXGI_PRESENT_ALLOW_TEARING : 0;
+            presentFlags = device->adapter->factory->tearingSupported ? DXGI_PRESENT_ALLOW_TEARING : 0;
             break;
 
         case GPUPresentMode_Mailbox:
@@ -4466,7 +4358,7 @@ void D3D12Surface::Present()
             break;
     }
 
-    const HRESULT hr = swapChain3->Present(syncInterval, presentFlags);
+    const HRESULT hr = handle->Present(syncInterval, presentFlags);
 
     // If the device was reset we must completely reinitialize the renderer.
     if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
@@ -4969,11 +4861,6 @@ GPUSurface* D3D12GPUFactory::CreateSurface(GPUSurfaceSource* source)
         return nullptr;
     }
     surface->hwnd = hwnd;
-
-    RECT windowRect;
-    GetClientRect(hwnd, &windowRect);
-    surface->width = static_cast<uint32_t>(windowRect.right - windowRect.left);
-    surface->height = static_cast<uint32_t>(windowRect.bottom - windowRect.top);
 #endif
 
     return surface;

@@ -1071,8 +1071,6 @@ ALIMER_GPU_API void agpuSurfaceSourceDestroy(GPUSurfaceSource* surfaceSource);
 /* Surface */
 ALIMER_GPU_API GPUSurface* agpuSurfaceCreate(GPUFactory* factory, GPUSurfaceSource* surfaceSource);
 ALIMER_GPU_API void agpuSurfaceGetCapabilities(GPUSurface* surface, GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities);
-ALIMER_GPU_API GPUBool agpuSurfaceConfigure(GPUSurface* surface, GPUDevice device, const GPUSwapChainDesc* desc);
-ALIMER_GPU_API void agpuSurfaceUnconfigure(GPUSurface* surface);
 ALIMER_GPU_API uint32_t agpuSurfaceAddRef(GPUSurface* surface);
 ALIMER_GPU_API uint32_t agpuSurfaceRelease(GPUSurface* surface);
 
@@ -1100,7 +1098,6 @@ ALIMER_GPU_API void agpuCommandQueueSubmit(GPUCommandQueue* queue, uint32_t numC
 ALIMER_GPU_API void agpuCommandBufferPushDebugGroup(GPUCommandBuffer commandBuffer, const char* groupLabel);
 ALIMER_GPU_API void agpuCommandBufferPopDebugGroup(GPUCommandBuffer commandBuffer);
 ALIMER_GPU_API void agpuCommandBufferInsertDebugMarker(GPUCommandBuffer commandBuffer, const char* markerLabel);
-ALIMER_GPU_API GPUTexture* agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer commandBuffer, GPUSurface* surface);
 ALIMER_GPU_API GPUComputePassEncoder agpuCommandBufferBeginComputePass(GPUCommandBuffer commandBuffer, const GPUComputePassDesc* desc);
 ALIMER_GPU_API GPURenderPassEncoder agpuCommandBufferBeginRenderPass(GPUCommandBuffer commandBuffer, const GPURenderPassDesc* desc);
 
@@ -1183,6 +1180,13 @@ ALIMER_GPU_API uint32_t agpuQueryHeapAddRef(GPUQueryHeap* queryHeap);
 ALIMER_GPU_API uint32_t agpuQueryHeapRelease(GPUQueryHeap* queryHeap);
 ALIMER_GPU_API void agpuQueryHeapGetDesc(GPUQueryHeap* queryHeap, GPUQueryHeapDesc* desc);
 ALIMER_GPU_API void agpuQueryHeapSetLabel(GPUQueryHeap* queryHeap, const char* label);
+
+/* SwapChain */
+ALIMER_GPU_API GPUSwapChain* agpuSwapChainCreate(GPUDevice device, GPUSurface* surface, const GPUSwapChainDesc* desc);
+ALIMER_GPU_API uint32_t agpuSwapChainAddRef(GPUSwapChain* swapChain);
+ALIMER_GPU_API uint32_t agpuSwapChainRelease(GPUSwapChain* swapChain);
+ALIMER_GPU_API void agpuSwapChainSetLabel(GPUSwapChain* swapChain, const char* label);
+ALIMER_GPU_API GPUTexture* agpuSwapChainAcquireNextTexture(GPUSwapChain* swapChain);
 
 /* Other */
 ALIMER_GPU_API uint32_t agpuGetVertexFormatByteSize(GPUVertexFormat format);

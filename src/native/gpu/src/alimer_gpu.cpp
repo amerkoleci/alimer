@@ -457,35 +457,6 @@ void agpuSurfaceGetCapabilities(GPUSurface* surface, GPUAdapter* adapter, GPUSur
     surface->GetCapabilities(adapter, capabilities);
 }
 
-static GPUSwapChainDesc _GPUSurfaceConfig_Defaults(const GPUSwapChainDesc* desc)
-{
-    GPUSwapChainDesc descDesc = *desc;
-    descDesc.width = _ALIMER_DEF(descDesc.width, 1u);
-    descDesc.height = _ALIMER_DEF(descDesc.height, 1u);
-    descDesc.presentMode = _ALIMER_DEF(descDesc.presentMode, GPUPresentMode_Fifo);
-    return descDesc;
-}
-
-GPUBool agpuSurfaceConfigure(GPUSurface* surface, GPUDevice device, const GPUSwapChainDesc* desc)
-{
-    if (!desc)
-        return false;
-
-    if (!device)
-    {
-        agpuLogError("Surface configuration requires a valid GPUDevice");
-        return false;
-    }
-
-    GPUSwapChainDesc configDef = _GPUSurfaceConfig_Defaults(desc);
-    return surface->Configure(device, &configDef);
-}
-
-void agpuSurfaceUnconfigure(GPUSurface* surface)
-{
-    surface->Unconfigure();
-}
-
 uint32_t agpuSurfaceAddRef(GPUSurface* surface)
 {
     return surface->AddRef();
@@ -597,11 +568,6 @@ void agpuCommandBufferPopDebugGroup(GPUCommandBuffer commandBuffer)
 void agpuCommandBufferInsertDebugMarker(GPUCommandBuffer commandBuffer, const char* markerLabel)
 {
     commandBuffer->InsertDebugMarker(markerLabel);
-}
-
-GPUTexture* agpuCommandBufferAcquireSurfaceTexture(GPUCommandBuffer commandBuffer, GPUSurface* surface)
-{
-    return commandBuffer->AcquireSurfaceTexture(surface);
 }
 
 GPUComputePassEncoder agpuCommandBufferBeginComputePass(GPUCommandBuffer commandBuffer, const GPUComputePassDesc* desc)
@@ -1140,6 +1106,50 @@ void agpuQueryHeapGetDesc(GPUQueryHeap* queryHeap, GPUQueryHeapDesc* desc)
 void agpuQueryHeapSetLabel(GPUQueryHeap* queryHeap, const char* label)
 {
     queryHeap->SetLabel(label);
+}
+/* SwapChain */
+static GPUSwapChainDesc _GPUSurfaceConfig_Defaults(const GPUSwapChainDesc* desc)
+{
+    GPUSwapChainDesc descDesc = *desc;
+    descDesc.width = _ALIMER_DEF(descDesc.width, 1u);
+    descDesc.height = _ALIMER_DEF(descDesc.height, 1u);
+    descDesc.presentMode = _ALIMER_DEF(descDesc.presentMode, GPUPresentMode_Fifo);
+    return descDesc;
+}
+
+GPUSwapChain* agpuSwapChainCreate(GPUDevice device, GPUSurface* surface, const GPUSwapChainDesc* desc)
+{
+    if (!desc)
+        return nullptr;
+
+    if (!surface)
+    {
+        agpuLogError("Cannot create SwapChain withouta valid surface");
+        return nullptr;
+    }
+
+    GPUSwapChainDesc descDef = *desc;
+    return device->CreateSwapChain(surface, descDef);
+}
+
+uint32_t agpuSwapChainAddRef(GPUSwapChain* swapChain)
+{
+    return swapChain->AddRef();
+}
+
+uint32_t agpuSwapChainRelease(GPUSwapChain* swapChain)
+{
+    return swapChain->Release();
+}
+
+void agpuSwapChainSetLabel(GPUSwapChain* swapChain, const char* label)
+{
+    swapChain->SetLabel(label);
+}
+
+GPUTexture* agpuSwapChainAcquireNextTexture(GPUSwapChain* swapChain)
+{
+    return swapChain->AcquireNextTexture();
 }
 
 /* Other */

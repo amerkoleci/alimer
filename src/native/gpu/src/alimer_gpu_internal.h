@@ -266,7 +266,6 @@ struct GPUCommandBufferImpl : public GPUResource
     virtual void PopDebugGroup() const = 0;
     virtual void InsertDebugMarker(const char* markerLabel) const = 0;
 
-    virtual GPUTexture* AcquireSurfaceTexture(GPUSurface* surface) = 0;
     virtual GPUComputePassEncoder BeginComputePass(const GPUComputePassDesc& desc) = 0;
     virtual GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) = 0;
 };
@@ -278,6 +277,14 @@ struct GPUCommandQueue : public GPUResource
     virtual void WaitIdle() = 0;
     virtual GPUCommandBuffer AcquireCommandBuffer(const GPUCommandBufferDesc* desc) = 0;
     virtual void Submit(uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers) = 0;
+};
+
+struct GPUSwapChain : public GPUResource
+{
+    GPUSwapChainDesc desc;
+
+    virtual void Resize(uint32_t width, uint32_t height) = 0;
+    virtual GPUTexture* AcquireNextTexture() = 0;
 };
 
 struct GPUDeviceImpl : public GPUResource
@@ -299,6 +306,7 @@ struct GPUDeviceImpl : public GPUResource
     virtual GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) = 0;
     virtual GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) = 0;
     virtual GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) = 0;
+    virtual GPUSwapChain* CreateSwapChain(GPUSurface* surface, const GPUSwapChainDesc& desc) = 0;
 
 };
 
@@ -333,15 +341,6 @@ struct GPUSurfaceSource final
 struct GPUSurface : public GPUResource
 {
     virtual void GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const = 0;
-    virtual bool Configure(GPUDevice device, const GPUSwapChainDesc* config_) = 0;
-    virtual void Unconfigure() = 0;
-
-    GPUSwapChainDesc config;
-};
-
-struct GPUSwapChain : public GPUResource
-{
-    GPUSwapChainDesc desc;
 };
 
 struct GPUAdapter : public GPUResource

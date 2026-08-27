@@ -3,8 +3,37 @@
 
 #if defined(ALIMER_GPU_VULKAN)
 #include "alimer_gpu_internal.h"
+
+#if defined(_WIN32)
+#ifndef VK_USE_PLATFORM_WIN32_KHR
+#define VK_USE_PLATFORM_WIN32_KHR
+#endif
+#elif defined(__APPLE__)
+#define VK_USE_PLATFORM_METAL_EXT
+#define VK_ENABLE_BETA_EXTENSIONS
+#elif defined(__ANDROID__)
+#define VK_USE_PLATFORM_ANDROID_KHR
+#elif defined(__linux__)
+#ifndef VK_USE_PLATFORM_XLIB_KHR
+#define VK_USE_PLATFORM_XLIB_KHR
+#endif
+#ifndef VK_USE_PLATFORM_WAYLAND_KHR
+#define VK_USE_PLATFORM_WAYLAND_KHR
+#endif
+
+#ifdef VK_USE_PLATFORM_XLIB_KHR
+#undef Success
+#undef None
+#undef Always
+#undef Bool
+#undef Status
+#undef False
+#undef True
+#endif
+#endif /* defined(_WIN32) */
+
 #define VK_NO_PROTOTYPES
-#include <vulkan/vulkan.h>
+#include "vulkan/vulkan.h"
 
 ALIMER_DISABLE_WARNINGS()
 #define VMA_IMPLEMENTATION
@@ -54,7 +83,7 @@ ALIMER_ENABLE_WARNINGS()
         _tail = (const void**)&(desc).pNext; \
     } while (0)
 
-namespace
+    namespace
 {
     static_assert(sizeof(GPUViewport) == sizeof(VkViewport), "Viewport mismatch");
     static_assert(offsetof(GPUViewport, x) == offsetof(VkViewport, x), "Viewport layout mismatch");
@@ -1006,7 +1035,7 @@ namespace
 #include "alimer_gpu_vulkan_funcs.h"
 
 struct VK_State {
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
+#if defined(_WIN32)
     HMODULE vk_module;
 #else
     void* vk_module;
@@ -1017,7 +1046,7 @@ struct VK_State {
     {
         if (vk_module)
         {
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
+#if defined(_WIN32)
             FreeLibrary(vk_module);
 #else
             dlclose(vk_module);
@@ -1111,8 +1140,9 @@ struct VulkanCommandBuffer;
 struct VulkanQueue;
 struct VulkanDevice;
 struct VulkanSurface;
+struct VulkanSwapChain;
 struct VulkanAdapter;
-struct VulkanGPUFactory;
+struct VulkanFactory;
 
 struct VulkanBuffer final : public GPUBuffer
 {
@@ -1267,7 +1297,7 @@ struct VulkanCommandBuffer final : public GPUCommandBufferImpl
     std::vector<VkMemoryBarrier2> memoryBarriers;
     std::vector<VkImageMemoryBarrier2> imageBarriers;
     std::vector<VkBufferMemoryBarrier2> bufferBarriers;
-    std::vector<VulkanSurface*> presentSurfaces;
+    std::vector<VulkanSwapChain*> presentSwapChains;
 
     ~VulkanCommandBuffer() override;
     void Clear();
@@ -1277,7 +1307,6 @@ struct VulkanCommandBuffer final : public GPUCommandBufferImpl
     void TextureBarrier(const VulkanTexture* texture, TextureLayout newLayout, uint32_t baseMiplevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount, GPUTextureAspect aspect = GPUTextureAspect_All);
     void CommitBarriers();
 
-    GPUTexture* AcquireSurfaceTexture(GPUSurface* surface) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
@@ -1405,6 +1434,7 @@ struct VulkanDevice final : public GPUDeviceImpl
     GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
     GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
+    GPUSwapChain* CreateSwapChain(GPUSurface* surface, const GPUSwapChainDesc& desc) override;
 
     void SetObjectName(VkObjectType type, uint64_t handle_, const char* label) const;
     void FillBufferSharingIndices(VkBufferCreateInfo& info, uint32_t* sharingIndices) const;
@@ -1413,29 +1443,37 @@ struct VulkanDevice final : public GPUDeviceImpl
 
 struct VulkanSurface final : public GPUSurface
 {
-    VulkanGPUFactory* factory = nullptr;
-    VulkanDevice* device = nullptr;
+    VulkanFactory* factory = nullptr;
     VkSurfaceKHR handle = VK_NULL_HANDLE;
-    VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-    VkExtent2D swapchainExtent = {};
-    uint32_t backBufferIndex = 0;
-    std::vector<VulkanTexture*> backbufferTextures;
-    std::mutex locker;
-    size_t swapChainAcquireSemaphoreIndex = 0;
-    std::vector<VkSemaphore> swapchainAcquireSemaphores;
-    std::vector<VkSemaphore> swapchainReleaseSemaphores;
     mutable std::vector<GPUPixelFormat> supportedFormats;
     mutable std::vector<GPUPresentMode> supportedPresentModes;
 
     ~VulkanSurface() override;
     void GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
-    bool Configure(GPUDevice device_, const GPUSwapChainDesc* config_) override;
-    void Unconfigure() override;
+};
+
+struct VulkanSwapChain final : public GPUSwapChain
+{
+    VulkanDevice* device = nullptr;
+    VulkanSurface* surface = nullptr;
+    VkSwapchainKHR handle = VK_NULL_HANDLE;
+    VkExtent2D extent = {};
+    uint32_t backBufferIndex = 0;
+    std::vector<VulkanTexture*> backbufferTextures;
+    std::mutex locker;
+    size_t acquireSemaphoreIndex = 0;
+    std::vector<VkSemaphore> acquireSemaphores;
+    std::vector<VkSemaphore> releaseSemaphores;
+
+    ~VulkanSwapChain() override;
+    void SetLabel(const char* label) override;
+    GPUTexture* AcquireNextTexture() override;
+    void Resize(uint32_t width, uint32_t height) override;
 };
 
 struct VulkanAdapter final : public GPUAdapter
 {
-    VulkanGPUFactory* factory = nullptr;
+    VulkanFactory* factory = nullptr;
     bool debugUtils = false;
     VkPhysicalDevice handle = nullptr;
     VulkanPhysicalDeviceExtensions extensions;
@@ -1510,14 +1548,12 @@ struct VulkanAdapter final : public GPUAdapter
     GPUDevice CreateDevice(const GPUDeviceDesc& desc) override;
 };
 
-struct VulkanGPUFactory final : public GPUFactory
+struct VulkanFactory final : public GPUFactory
 {
 #define VULKAN_INSTANCE_FUNCTION(name) PFN_##name name = nullptr;
 #include "alimer_gpu_vulkan_funcs.h"
 
     bool debugUtils = false;
-    bool win32Surface = false;
-    bool xcbSurface = false;
     bool xlibSurface = false;
     bool waylandSurface = false;
 
@@ -1525,7 +1561,7 @@ struct VulkanGPUFactory final : public GPUFactory
     VkDebugUtilsMessengerEXT debugUtilsMessenger = VK_NULL_HANDLE;
     std::vector<VulkanAdapter*> adapters;
 
-    ~VulkanGPUFactory() override;
+    ~VulkanFactory() override;
 
     GPUBackendType GetBackend() const override { return GPUBackendType_Vulkan; }
     uint32_t GetAdapterCount() const override { return static_cast<uint32_t>(adapters.size()); }
@@ -2302,11 +2338,11 @@ VulkanCommandBuffer::~VulkanCommandBuffer()
 
 void VulkanCommandBuffer::Clear()
 {
-    for (auto& surface : presentSurfaces)
+    for (auto& swapChain : presentSwapChains)
     {
-        surface->Release();
+        swapChain->Release();
     }
-    presentSurfaces.clear();
+    presentSwapChains.clear();
     memoryBarriers.clear();
     imageBarriers.clear();
     bufferBarriers.clear();
@@ -2387,7 +2423,7 @@ void VulkanCommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc*
 
 VkCommandBuffer VulkanCommandBuffer::End()
 {
-    for (auto& surface : presentSurfaces)
+    for (auto& surface : presentSwapChains)
     {
         VulkanTexture* swapChainTexture = surface->backbufferTextures[surface->backBufferIndex];
         TextureBarrier(swapChainTexture, TextureLayout::Present, 0, 1, 0, 1);
@@ -2479,42 +2515,6 @@ void VulkanCommandBuffer::CommitBarriers()
     numBarriersToCommit = 0;
 }
 
-GPUTexture* VulkanCommandBuffer::AcquireSurfaceTexture(GPUSurface* surface)
-{
-    VulkanSurface* backendSurface = static_cast<VulkanSurface*>(surface);
-    size_t swapChainAcquireSemaphoreIndex = backendSurface->swapChainAcquireSemaphoreIndex;
-
-    backendSurface->locker.lock();
-    VkResult result = queue->device->vkAcquireNextImageKHR(
-        queue->device->handle,
-        backendSurface->swapchain,
-        UINT64_MAX,
-        backendSurface->swapchainAcquireSemaphores[swapChainAcquireSemaphoreIndex],
-        VK_NULL_HANDLE,
-        &backendSurface->backBufferIndex
-    );
-    backendSurface->locker.unlock();
-
-    if (result != VK_SUCCESS)
-    {
-        // Handle outdated error in acquire
-        if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
-        {
-            if (backendSurface->Configure(queue->device, &backendSurface->config))
-            {
-                return AcquireSurfaceTexture(backendSurface);
-            }
-        }
-    }
-
-    VulkanTexture* currentTexture = backendSurface->backbufferTextures[backendSurface->backBufferIndex];
-
-    // Barrier
-    backendSurface->AddRef();
-    presentSurfaces.push_back(backendSurface);
-
-    return currentTexture;
-}
 
 void VulkanCommandBuffer::PushDebugGroup(const char* groupLabel) const
 {
@@ -2650,31 +2650,31 @@ void VulkanQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer* commandBu
         commandBufferSubmitInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
         commandBufferSubmitInfo.commandBuffer = commandBuffer->End();
 
-        for (auto& surface : commandBuffer->presentSurfaces)
+        for (auto& swapChain : commandBuffer->presentSwapChains)
         {
             VkSemaphoreSubmitInfo& waitSemaphore = submitWaitSemaphoreInfos.emplace_back();
             waitSemaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-            waitSemaphore.semaphore = surface->swapchainAcquireSemaphores[surface->swapChainAcquireSemaphoreIndex];
+            waitSemaphore.semaphore = swapChain->acquireSemaphores[swapChain->acquireSemaphoreIndex];
             waitSemaphore.value = 0; // not a timeline semaphore
             waitSemaphore.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
 
             VkSemaphoreSubmitInfo& signalSemaphore = submitSignalSemaphoreInfos.emplace_back();
             signalSemaphore.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-            signalSemaphore.semaphore = surface->swapchainReleaseSemaphores[surface->backBufferIndex];
+            signalSemaphore.semaphore = swapChain->releaseSemaphores[swapChain->backBufferIndex];
             signalSemaphore.value = 0; // not a timeline semaphore
 
-            submitSwapchains.push_back(surface->swapchain);
-            submitSwapchainImageIndices.push_back(surface->backBufferIndex);
+            submitSwapchains.push_back(swapChain->handle);
+            submitSwapchainImageIndices.push_back(swapChain->backBufferIndex);
             swapchainWaitSemaphores.push_back(signalSemaphore.semaphore);
 
             // Advance surface frame index
-            surface->swapChainAcquireSemaphoreIndex = (surface->swapChainAcquireSemaphoreIndex + 1) % surface->swapchainAcquireSemaphores.size();
-            surface->Release();
+            swapChain->acquireSemaphoreIndex = (swapChain->acquireSemaphoreIndex + 1) % swapChain->acquireSemaphores.size();
+            swapChain->Release();
 
             submitPresent = true;
         }
 
-        commandBuffer->presentSurfaces.clear();
+        commandBuffer->presentSwapChains.clear();
     }
 
     VkSubmitInfo2 submitInfo = {};
@@ -3133,40 +3133,40 @@ VulkanDevice::~VulkanDevice()
 
 bool VulkanDevice::Initialize(const GPUDeviceDesc& desc)
 {
-    std::vector<const char*> enabledDeviceExtensions;
-    enabledDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    std::vector<const char*> enabledExtensions;
+    enabledExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
     // Core in 1.3
     if (adapter->properties2.properties.apiVersion < VK_API_VERSION_1_3)
     {
         if (adapter->extensions.maintenance4)
         {
-            enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_4_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_MAINTENANCE_4_EXTENSION_NAME);
         }
 
         if (adapter->extensions.dynamicRendering)
         {
-            enabledDeviceExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
         }
 
         if (adapter->extensions.synchronization2)
         {
-            enabledDeviceExtensions.push_back(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
         }
 
         if (adapter->extensions.extendedDynamicState)
         {
-            enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
         }
 
         if (adapter->extensions.extendedDynamicState2)
         {
-            enabledDeviceExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
         }
 
         if (adapter->extensions.textureCompressionAstcHdr)
         {
-            enabledDeviceExtensions.push_back(VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME);
         }
     }
     else
@@ -3176,85 +3176,85 @@ bool VulkanDevice::Initialize(const GPUDeviceDesc& desc)
         {
             if (adapter->extensions.maintenance6)
             {
-                enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_6_EXTENSION_NAME);
+                enabledExtensions.push_back(VK_KHR_MAINTENANCE_6_EXTENSION_NAME);
             }
 
             if (adapter->extensions.pushDescriptor)
             {
-                enabledDeviceExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+                enabledExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
             }
         }
     }
 
     if (adapter->extensions.memoryBudget)
     {
-        enabledDeviceExtensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
     }
 
     if (adapter->extensions.AMD_device_coherent_memory)
     {
-        enabledDeviceExtensions.push_back(VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME);
     }
 
     if (adapter->extensions.EXT_memory_priority)
     {
-        enabledDeviceExtensions.push_back(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
     }
 
     if (adapter->extensions.deferredHostOperations)
     {
-        enabledDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
     }
 
     if (adapter->extensions.portabilitySubset)
     {
-        enabledDeviceExtensions.push_back("VK_KHR_portability_subset");
+        enabledExtensions.push_back("VK_KHR_portability_subset");
     }
 
     if (adapter->extensions.depthClipEnable)
     {
-        enabledDeviceExtensions.push_back(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
     }
 
     if (adapter->extensions.maintenance5)
     {
-        enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
     }
 
     if (adapter->extensions.shaderViewportIndexLayer)
     {
-        enabledDeviceExtensions.push_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
     }
 
     if (adapter->extensions.conservativeRasterization)
     {
-        enabledDeviceExtensions.push_back(VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME);
     }
 
     if (adapter->extensions.externalMemory)
     {
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
+#if defined(_WIN32)
+        enabledExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME);
 #else
-        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
 #endif
     }
 
     if (adapter->extensions.externalSemaphore)
     {
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
+#if defined(_WIN32)
+        enabledExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME);
 #else
-        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME);
 #endif
     }
 
     if (adapter->extensions.externalFence)
     {
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME);
+#if defined(_WIN32)
+        enabledExtensions.push_back(VK_KHR_EXTERNAL_FENCE_WIN32_EXTENSION_NAME);
 #else
-        enabledDeviceExtensions.push_back(VK_KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_KHR_EXTERNAL_FENCE_FD_EXTENSION_NAME);
 #endif
     }
 
@@ -3263,81 +3263,81 @@ bool VulkanDevice::Initialize(const GPUDeviceDesc& desc)
         ALIMER_ASSERT(adapter->extensions.deferredHostOperations);
 
         // Required by VK_KHR_acceleration_structure
-        enabledDeviceExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
-        enabledDeviceExtensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME);
 
         if (adapter->extensions.raytracingPipeline)
         {
             // Required by VK_KHR_pipeline_library
-            enabledDeviceExtensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
-            enabledDeviceExtensions.push_back(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME);
         }
 
         if (adapter->extensions.rayQuery)
         {
-            enabledDeviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
         }
     }
 
     if (adapter->extensions.fragmentShadingRate)
     {
-        enabledDeviceExtensions.push_back(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
     }
 
     if (adapter->extensions.meshShader)
     {
-        enabledDeviceExtensions.push_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
     }
 
     if (adapter->extensions.unifiedImageLayouts)
     {
-        enabledDeviceExtensions.push_back(VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_KHR_UNIFIED_IMAGE_LAYOUTS_EXTENSION_NAME);
     }
 
     if (adapter->extensions.mutableDescriptorType)
     {
-        enabledDeviceExtensions.push_back(VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME);
     }
 
     if (adapter->extensions.descriptorHeap)
     {
         // Promoted to 1.4 but needed by VK_EXT_descriptor_heap
-        enabledDeviceExtensions.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
-        enabledDeviceExtensions.push_back(VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME);
     }
 
     if (adapter->extensions.video.queue)
     {
-        enabledDeviceExtensions.push_back(VK_KHR_VIDEO_QUEUE_EXTENSION_NAME);
+        enabledExtensions.push_back(VK_KHR_VIDEO_QUEUE_EXTENSION_NAME);
 
         if (adapter->extensions.video.decode_queue)
         {
-            enabledDeviceExtensions.push_back(VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME);
 
             if (adapter->extensions.video.decode_h264)
             {
-                enabledDeviceExtensions.push_back(VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME);
+                enabledExtensions.push_back(VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME);
             }
 
             if (adapter->extensions.video.decode_h265)
             {
-                enabledDeviceExtensions.push_back(VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME);
+                enabledExtensions.push_back(VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME);
             }
         }
 
 #if defined(RHI_VIDEO_ENCODE)
         if (adapter->extensions.video.encode_queue)
         {
-            enabledDeviceExtensions.push_back(VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME);
+            enabledExtensions.push_back(VK_KHR_VIDEO_ENCODE_QUEUE_EXTENSION_NAME);
 
             if (adapter->extensions.video.encode_h264)
             {
-                enabledDeviceExtensions.push_back(VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME);
+                enabledExtensions.push_back(VK_KHR_VIDEO_ENCODE_H264_EXTENSION_NAME);
             }
 
             if (adapter->extensions.video.encode_h265)
             {
-                enabledDeviceExtensions.push_back(VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME);
+                enabledExtensions.push_back(VK_KHR_VIDEO_ENCODE_H265_EXTENSION_NAME);
             }
         }
 #endif // RHI_VIDEO_ENCODE
@@ -3389,8 +3389,8 @@ bool VulkanDevice::Initialize(const GPUDeviceDesc& desc)
     createInfo.enabledLayerCount = 0;
     createInfo.ppEnabledLayerNames = nullptr;
     createInfo.pEnabledFeatures = nullptr;
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(enabledDeviceExtensions.size());
-    createInfo.ppEnabledExtensionNames = enabledDeviceExtensions.data();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(enabledExtensions.size());
+    createInfo.ppEnabledExtensionNames = enabledExtensions.data();
     VkResult result = adapter->factory->vkCreateDevice(adapter->handle, &createInfo, nullptr, &handle);
 
     if (result != VK_SUCCESS)
@@ -3637,7 +3637,7 @@ bool VulkanDevice::Initialize(const GPUDeviceDesc& desc)
     if (adapter->extensions.externalMemory)
     {
         std::vector<VkExternalMemoryHandleTypeFlags> externalMemoryHandleTypes;
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
+#if defined(_WIN32)
         externalMemoryHandleTypes.resize(adapter->memoryProperties2.memoryProperties.memoryTypeCount, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);
 #else
         externalMemoryHandleTypes.resize(adapter->memoryProperties2.memoryProperties.memoryTypeCount, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT);
@@ -4798,6 +4798,17 @@ GPUQueryHeap* VulkanDevice::CreateQueryHeap(const GPUQueryHeapDesc& desc)
     return queryHeap;
 }
 
+GPUSwapChain* VulkanDevice::CreateSwapChain(GPUSurface* surface, const GPUSwapChainDesc& desc)
+{
+    VulkanSwapChain* swapChain = new VulkanSwapChain();
+    swapChain->device = this;
+    swapChain->surface = static_cast<VulkanSurface*>(surface);
+    swapChain->surface->AddRef();
+    swapChain->desc = desc;
+    swapChain->Resize(desc.width, desc.height);
+    return swapChain;
+}
+
 static void AddUniqueFamily(uint32_t* sharing_indices, uint32_t& count, uint32_t family)
 {
     if (family == VK_QUEUE_FAMILY_IGNORED)
@@ -4873,39 +4884,7 @@ void VulkanDevice::FillImageSharingIndices(VkImageCreateInfo& info, uint32_t* sh
 /* VulkanSurface */
 VulkanSurface::~VulkanSurface()
 {
-    for (size_t i = 0; i < backbufferTextures.size(); ++i)
-    {
-        backbufferTextures[i]->Release();
-    }
-
-    const uint64_t frameCount = device->frameCount;
-    device->destroyMutex.lock();
-
-    for (size_t i = 0; i < backbufferTextures.size(); ++i)
-    {
-        device->destroyedSemaphores.push_back(std::make_pair(swapchainAcquireSemaphores[i], frameCount));
-        device->destroyedSemaphores.push_back(std::make_pair(swapchainReleaseSemaphores[i], frameCount));
-    }
-
-    if (swapchain)
-    {
-        device->destroyedSwapchains.push_back(std::make_pair(swapchain, frameCount));
-        swapchain = VK_NULL_HANDLE;
-    }
-
-    if (handle != VK_NULL_HANDLE)
-    {
-        device->destroyedSurfaces.push_back(std::make_pair(handle, frameCount));
-        handle = VK_NULL_HANDLE;
-    }
-
-
-    device->destroyMutex.unlock();
-
-    backBufferIndex = 0;
-    backbufferTextures.clear();
-    swapchainExtent = {};
-    SafeRelease(device);
+    //SafeRelease(device);
 }
 
 void VulkanSurface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
@@ -4978,237 +4957,59 @@ void VulkanSurface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities*
     capabilities->presentModes = supportedPresentModes.data();
 }
 
-bool VulkanSurface::Configure(GPUDevice device_, const GPUSwapChainDesc* config_)
+/* VulkanSwapChain */
+VulkanSwapChain::~VulkanSwapChain()
 {
-    Unconfigure();
-
-    VulkanDevice* device = static_cast<VulkanDevice*>(device_);
-    VkPhysicalDevice physicalDevice = device->adapter->handle;
-    const VulkanQueueFamilyIndices& queueFamilyIndices = device->adapter->queueFamilyIndices;
-
-    VkBool32 presentSupport = false;
-    uint32_t queuePresentSupport = 0;
-
-    for (auto& index : queueFamilyIndices.familyIndices)
-    {
-        if (index == VK_QUEUE_FAMILY_IGNORED)
-        {
-            continue;
-        }
-
-        if (factory->vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, index, handle, &presentSupport) == VK_SUCCESS
-            && presentSupport)
-        {
-            queuePresentSupport |= 1u << index;
-        }
-    }
-
-    // Present family not found, we cannot create SwapChain
-    if ((queuePresentSupport & (1u << queueFamilyIndices.familyIndices[GPUCommandQueueType_Graphics])) == 0)
-    {
-        agpuLogError("No presentation queue found for GPU.");
-        return false;
-    }
-
-    config = *config_;
-    this->device = device;
-    device->AddRef();
-
-    VkSurfaceCapabilitiesKHR surfaceCaps;
-    VK_CHECK(factory->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, handle, &surfaceCaps));
-
-    uint32_t formatCount;
-    VK_CHECK(factory->vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, handle, &formatCount, nullptr));
-
-    std::vector<VkSurfaceFormatKHR> swapchainFormats(formatCount);
-    VK_CHECK(factory->vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, handle, &formatCount, swapchainFormats.data()));
-
-    uint32_t presentModeCount;
-    VK_CHECK(factory->vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, handle, &presentModeCount, nullptr));
-    std::vector<VkPresentModeKHR> swapchainPresentModes(presentModeCount);
-    VK_CHECK(factory->vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, handle, &presentModeCount, swapchainPresentModes.data()));
-
-    VkPresentModeKHR vkPresentMode = VK_PRESENT_MODE_FIFO_KHR;
-
-    // Determine the number of images
-    uint32_t imageCount = MinImageCountForPresentMode(vkPresentMode);
-    if (surfaceCaps.maxImageCount != 0
-        && imageCount > surfaceCaps.maxImageCount)
-    {
-        imageCount = surfaceCaps.maxImageCount;
-    }
-
-    if (imageCount < surfaceCaps.minImageCount)
-    {
-        imageCount = surfaceCaps.minImageCount;
-    }
-
-    if (imageCount > device->maxFramesInFlight)
-    {
-        imageCount = device->maxFramesInFlight;
-    }
-
-    // Format and color space
-    VkSurfaceFormatKHR surfaceFormat = {};
-    surfaceFormat.format = device->adapter->ToVkFormat(_ALIMER_DEF(config.format, GPUPixelFormat_BGRA8UnormSrgb));
-    surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-
-    bool valid = false;
-    bool allowHDR = true;
-    for (const auto& format : swapchainFormats)
-    {
-        if (!allowHDR && format.colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-            continue;
-
-        if (format.format == surfaceFormat.format)
-        {
-            surfaceFormat = format;
-            valid = true;
-            break;
-        }
-    }
-
-    if (!valid)
-    {
-        surfaceFormat.format = VK_FORMAT_B8G8R8A8_UNORM;
-        surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-    }
-
-    if (surfaceCaps.currentExtent.width != 0xFFFFFFFF &&
-        surfaceCaps.currentExtent.height != 0xFFFFFFFF)
-    {
-        swapchainExtent = surfaceCaps.currentExtent;
-    }
-    else
-    {
-        swapchainExtent.width = std::clamp(config.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
-        swapchainExtent.height = std::clamp(config.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);
-    }
-
-    VkSwapchainCreateInfoKHR createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = handle;
-    createInfo.minImageCount = imageCount;
-    createInfo.imageFormat = surfaceFormat.format;
-    createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    createInfo.imageExtent = { swapchainExtent.width, swapchainExtent.height };
-    createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-    if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
-        createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-
-    if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
-        createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-
-    if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)
-        createInfo.imageUsage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-
-    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    createInfo.queueFamilyIndexCount = 0;
-    createInfo.pQueueFamilyIndices = nullptr;
-    if (surfaceCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
-    {
-        createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    }
-    else
-    {
-        createInfo.preTransform = surfaceCaps.currentTransform;
-    }
-
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    createInfo.presentMode = vkPresentMode;
-    createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = swapchain;
-
-    VK_CHECK(device->vkCreateSwapchainKHR(device->handle, &createInfo, nullptr, &swapchain));
-
-    if (createInfo.oldSwapchain != VK_NULL_HANDLE)
-    {
-        device->vkDestroySwapchainKHR(device->handle, createInfo.oldSwapchain, nullptr);
-    }
-
-    VK_CHECK(device->vkGetSwapchainImagesKHR(device->handle, swapchain, &imageCount, nullptr));
-    std::vector<VkImage> swapchainImages(imageCount);
-    VK_CHECK(device->vkGetSwapchainImagesKHR(device->handle, swapchain, &imageCount, swapchainImages.data()));
-
-    // Destroy all semaphores
-    if (!swapchainAcquireSemaphores.empty())
-    {
-        // we need to create a new semaphore or jump through a few hoops to
-        // wait for the current one to be unsignalled before we can use it again
-        // creating a new one is easiest. See also:
-        // https://github.com/KhronosGroup/Vulkan-Docs/issues/152
-        // https://www.khronos.org/blog/resolving-longstanding-issues-with-wsi
-        const uint64_t frameCount = device->frameCount;
-        device->destroyMutex.lock();
-        for (auto& x : swapchainAcquireSemaphores)
-        {
-            device->destroyedSemaphores.emplace_back(x, frameCount);
-        }
-        for (auto& x : swapchainReleaseSemaphores)
-        {
-            device->destroyedSemaphores.emplace_back(x, frameCount);
-        }
-        device->destroyMutex.unlock();
-
-        swapchainAcquireSemaphores.clear();
-        swapchainReleaseSemaphores.clear();
-    }
-
-    VkSemaphoreCreateInfo semaphoreInfo = {};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    for (size_t i = 0; i < swapchainImages.size(); ++i)
-    {
-        VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &swapchainAcquireSemaphores.emplace_back()));
-        VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &swapchainReleaseSemaphores.emplace_back()));
-    }
-
-    swapChainAcquireSemaphoreIndex = 0;
-    backBufferIndex = 0;
-    backbufferTextures.resize(imageCount);
-
-    GPUTextureDesc textureDesc{};
-    textureDesc.format = FromVkFormat(createInfo.imageFormat);
-    textureDesc.width = createInfo.imageExtent.width;
-    textureDesc.height = createInfo.imageExtent.height;
-    textureDesc.usage = GPUTextureUsage_RenderTarget;
-
-    for (uint32_t i = 0; i < imageCount; ++i)
-    {
-        VulkanTexture* texture = new VulkanTexture();
-        texture->device = device;
-        texture->desc = textureDesc;
-        texture->vkFormat = createInfo.imageFormat;
-        texture->handle = swapchainImages[i];
-        //texture->allocatedSize = 0;
-        texture->numSubResources = 1;
-        texture->imageLayouts.resize(1);
-        texture->imageLayouts[0] = TextureLayout::Undefined;
-
-        backbufferTextures[i] = texture;
-    }
-
-    return true;
-}
-
-void VulkanSurface::Unconfigure()
-{
-    if (device)
-    {
-        device->WaitIdle();
-    }
-
     for (size_t i = 0; i < backbufferTextures.size(); ++i)
     {
         backbufferTextures[i]->Release();
     }
 
+    const uint64_t frameCount = device->frameCount;
+    device->destroyMutex.lock();
+
+    for (size_t i = 0; i < acquireSemaphores.size(); ++i)
+    {
+        device->destroyedSemaphores.push_back(std::make_pair(acquireSemaphores[i], frameCount));
+    }
+
+    for (size_t i = 0; i < releaseSemaphores.size(); ++i)
+    {
+        device->destroyedSemaphores.push_back(std::make_pair(releaseSemaphores[i], frameCount));
+    }
+
+    if (handle)
+    {
+        device->destroyedSwapchains.push_back(std::make_pair(handle, frameCount));
+        handle = VK_NULL_HANDLE;
+    }
+
+    if (surface->handle != VK_NULL_HANDLE)
+    {
+        device->destroyedSurfaces.push_back(std::make_pair(surface->handle, frameCount));
+        surface->handle = VK_NULL_HANDLE;
+    }
+
     backBufferIndex = 0;
     backbufferTextures.clear();
-    swapchainExtent = {};
-    SafeRelease(device);
+    extent = {};
+    SafeRelease(surface);
+    device = nullptr;
+}
+
+void VulkanSwapChain::SetLabel(const char* label)
+{
+    device->SetObjectName(VK_OBJECT_TYPE_SWAPCHAIN_KHR, reinterpret_cast<uint64_t>(handle), label);
+}
+
+GPUTexture* VulkanSwapChain::AcquireNextTexture()
+{
+    return nullptr;
+}
+
+void VulkanSwapChain::Resize(uint32_t width, uint32_t height)
+{
+
 }
 
 /* VulkanAdapter */
@@ -5651,8 +5452,8 @@ GPUDevice VulkanAdapter::CreateDevice(const GPUDeviceDesc& desc)
     return device;
 }
 
-/* VulkanGPUFactory */
-VulkanGPUFactory::~VulkanGPUFactory()
+/* VulkanFactory */
+VulkanFactory::~VulkanFactory()
 {
     if (debugUtilsMessenger != VK_NULL_HANDLE)
     {
@@ -5667,7 +5468,7 @@ VulkanGPUFactory::~VulkanGPUFactory()
     }
 }
 
-GPUAdapter* VulkanGPUFactory::GetAdapter(uint32_t index) const
+GPUAdapter* VulkanFactory::GetAdapter(uint32_t index) const
 {
     if (index >= adapters.size())
         return nullptr;
@@ -5675,40 +5476,33 @@ GPUAdapter* VulkanGPUFactory::GetAdapter(uint32_t index) const
     return adapters[index];
 }
 
-GPUSurface* VulkanGPUFactory::CreateSurface(GPUSurfaceSource* source)
+GPUSurface* VulkanFactory::CreateSurface(GPUSurfaceSource* source)
 {
     VkResult result = VK_ERROR_UNKNOWN;
     VkSurfaceKHR vk_surface = VK_NULL_HANDLE;
 
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-    if (!win32Surface)
-    {
-        agpuLogError("Vulkan: surface creation from Win32 window is not supported");
-        return nullptr;
-    }
-
+#if defined(_WIN32)
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
     surfaceCreateInfo.hwnd = static_cast<HWND>(source->hwnd);
 
     result = vkCreateWin32SurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+#elif defined(__ANDROID__)
     VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
     surfaceCreateInfo.window = static_cast<ANativeWindow*>(source->androidWindow);
 
     result = vkCreateAndroidSurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
-#elif defined(VK_USE_PLATFORM_METAL_EXT)
+#elif defined(__APPLE__)
     VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
     surfaceCreateInfo.pLayer = source->metalLayer;
 
     result = vkCreateMetalSurfaceEXT(handle, &surfaceCreateInfo, nullptr, &vk_surface);
-#else
-
+#elif defined(__linux__)
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
-    if (source->type == GPUSurfaceSourceImpl::Type::XlibWindow)
+    if (source->type == GPUSurfaceSource::Type::XlibWindow)
     {
         if (!xlibSurface)
         {
@@ -5722,10 +5516,10 @@ GPUSurface* VulkanGPUFactory::CreateSurface(GPUSurfaceSource* source)
         surfaceCreateInfo.window = static_cast<Window>(source->xlibWindow);
         result = vkCreateXlibSurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
     }
-#endif
+#endif /* VK_USE_PLATFORM_XLIB_KHR */
 
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR)
-    if (source->type == GPUSurfaceSourceImpl::Type::WaylandSurface)
+    if (source->type == GPUSurfaceSource::Type::WaylandSurface)
     {
         if (!waylandSurface)
         {
@@ -5739,10 +5533,8 @@ GPUSurface* VulkanGPUFactory::CreateSurface(GPUSurfaceSource* source)
         surfaceCreateInfo.surface = static_cast<struct wl_surface*>(source->waylandSurface);
         result = vkCreateWaylandSurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
     }
+#endif /* VK_USE_PLATFORM_WAYLAND_KHR */
 #endif
-
-#endif
-
 
     if (result != VK_SUCCESS)
     {
@@ -5761,26 +5553,20 @@ GPUSurface* VulkanGPUFactory::CreateSurface(GPUSurfaceSource* source)
     return surface;
 }
 
-bool VulkanGPUFactory::GetPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex) const
+bool VulkanFactory::GetPresentationSupport(VkPhysicalDevice physicalDevice, uint32_t queueFamilyIndex) const
 {
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-    //PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR vkGetPhysicalDeviceWin32PresentationSupportKHR = (PFN_vkGetPhysicalDeviceWin32PresentationSupportKHR)vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceWin32PresentationSupportKHR");
-    if (!vkGetPhysicalDeviceWin32PresentationSupportKHR)
-    {
-        return false;
-    }
-
+#if defined(_WIN32)
     return vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, queueFamilyIndex) == VK_TRUE;
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+#elif defined(__ANDROID__)
     return true;
-#elif defined(VK_USE_PLATFORM_METAL_EXT)
+#elif defined(__APPLE__)
     return true;
 #else
     return true;
 #endif
 }
 
-VulkanPhysicalDeviceExtensions VulkanGPUFactory::QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice) const
+VulkanPhysicalDeviceExtensions VulkanFactory::QueryPhysicalDeviceExtensions(VkPhysicalDevice physicalDevice) const
 {
     uint32_t count = 0;
     VkResult result = vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &count, nullptr);
@@ -5936,7 +5722,7 @@ VulkanPhysicalDeviceExtensions VulkanGPUFactory::QueryPhysicalDeviceExtensions(V
             extensions.video.encode_h265 = true;
         }
 
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
+#if defined(_WIN32)
         if (strcmp(vk_extensions[i].extensionName, VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME) == 0)
         {
             extensions.externalMemory = true;
@@ -5995,7 +5781,7 @@ VulkanPhysicalDeviceExtensions VulkanGPUFactory::QueryPhysicalDeviceExtensions(V
     return extensions;
 }
 
-VulkanQueueFamilyIndices VulkanGPUFactory::QueryQueueFamilies(VkPhysicalDevice physicalDevice, bool supportsVideoQueue)
+VulkanQueueFamilyIndices VulkanFactory::QueryQueueFamilies(VkPhysicalDevice physicalDevice, bool supportsVideoQueue)
 {
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice, &queueFamilyCount, nullptr);
@@ -6143,7 +5929,7 @@ bool Vulkan_IsSupported(void)
     }
 
     available_initialized = true;
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
+#if defined(_WIN32)
     vk_state.vk_module = LoadLibraryA("vulkan-1.dll");
     if (!vk_state.vk_module)
         return false;
@@ -6169,7 +5955,7 @@ bool Vulkan_IsSupported(void)
         return false;
 
     vk_state.vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)dlsym(vk_state.vk_module, "vkGetInstanceProcAddr");
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+#elif defined(__ANDROID__)
     vk_state.vk_module = dlopen("libvulkan.so.1", RTLD_NOW | RTLD_LOCAL);
     if (!vk_state.vk_module)
         vk_state.vk_module = dlopen("libvulkan.so", RTLD_NOW | RTLD_LOCAL);
@@ -6226,7 +6012,7 @@ bool Vulkan_IsSupported(void)
 
 GPUFactory* Vulkan_CreateFactory(const GPUFactoryDesc* desc)
 {
-    VulkanGPUFactory* factory = new VulkanGPUFactory();
+    VulkanFactory* factory = new VulkanFactory();
 
     uint32_t instanceLayerCount;
     VK_CHECK(vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr));
@@ -6252,14 +6038,6 @@ GPUFactory* Vulkan_CreateFactory(const GPUFactoryDesc* desc)
         {
             instanceExtensions.push_back(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME);
         }
-        else if (strcmp(availableExtension.extensionName, "VK_KHR_win32_surface") == 0)
-        {
-            factory->win32Surface = true;
-        }
-        else if (strcmp(availableExtension.extensionName, "VK_KHR_xcb_surface") == 0)
-        {
-            factory->xcbSurface = true;
-        }
         else if (strcmp(availableExtension.extensionName, "VK_KHR_xlib_surface") == 0)
         {
             factory->xlibSurface = true;
@@ -6273,11 +6051,11 @@ GPUFactory* Vulkan_CreateFactory(const GPUFactoryDesc* desc)
     instanceExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 
     // Enable surface extensions depending on os
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
+#if defined(_WIN32)
     instanceExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+#elif defined(__ANDROID__)
     instanceExtensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_METAL_EXT)
+#elif defined(__APPLE__)
     instanceExtensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
     instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
     instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
@@ -6292,14 +6070,9 @@ GPUFactory* Vulkan_CreateFactory(const GPUFactoryDesc* desc)
             break;
         }
     }
-#else
-    if (factory->xcbSurface)
+#elif defined(__linux__)
+    if (factory->xlibSurface)
     {
-        instanceExtensions.push_back("VK_KHR_xcb_surface");
-    }
-    else
-    {
-        ALIMER_ASSERT(factory->xlibSurface);
         instanceExtensions.push_back("VK_KHR_xlib_surface");
     }
 

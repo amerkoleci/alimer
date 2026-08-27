@@ -54,26 +54,18 @@ if (ALIMER_GPU_VULKAN)
 
     target_link_libraries(${TARGET_NAME} PRIVATE vulkan)
     #target_link_libraries(${TARGET_NAME} PRIVATE spirv_reflect)
-        
-    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_GPU_VULKAN)
 
-    target_compile_definitions(${TARGET_NAME} PRIVATE
-        $<$<BOOL:${ANDROID}>:
-            VK_USE_PLATFORM_ANDROID_KHR
-        >
-        $<$<BOOL:${WIN32}>:
-            VK_USE_PLATFORM_WIN32_KHR
-        >
-        $<$<BOOL:${APPLE}>:
-            VK_USE_PLATFORM_METAL_EXT;VK_ENABLE_BETA_EXTENSIONS
-        >
-        $<$<BOOL:${ALIMER_ENABLE_XLIB_SUPPORT}>:
-            VK_USE_PLATFORM_XLIB_KHR
-        >
-        $<$<BOOL:${ALIMER_ENABLE_WAYLAND_SUPPORT}>:
-            VK_USE_PLATFORM_WAYLAND_KHR
-        >
-    )
+    # Test packages availability ("find_package" works only for X11)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        find_path(XLIB_HEADERS NAMES "X11/Xlib.h")
+        #find_path(WAYLAND_HEADERS NAMES "wayland-client.h")
+
+        if (XLIB_HEADERS)
+            target_compile_definitions(${TARGET_NAME} PRIVATE VK_USE_PLATFORM_XLIB_KHR)
+        endif()
+    endif()
+
+    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_GPU_VULKAN)
 endif()
 
 if (ALIMER_GPU_D3D12)

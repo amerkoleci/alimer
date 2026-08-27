@@ -46,6 +46,14 @@ struct NullRenderPipeline final : public GPURenderPipelineImpl
 struct NullQueryHeap final : public GPUQueryHeap
 {};
 
+struct NullSwapChain final : public GPUSwapChain
+{
+    GPUSwapChainDesc desc{};
+
+    void Resize(uint32_t width, uint32_t height) override;
+    GPUTexture* AcquireNextTexture() override;
+};
+
 struct NullCommandBuffer;
 
 struct NullComputePassEncoder final : public GPUComputePassEncoderImpl
@@ -105,7 +113,6 @@ struct NullCommandBuffer final : public GPUCommandBufferImpl
     NullComputePassEncoder* computePassEncoder = nullptr;
     NullRenderPassEncoder* renderPassEncoder = nullptr;
 
-    GPUTexture* AcquireSurfaceTexture(GPUSurface* surface) override;
     void PushDebugGroup(const char* groupLabel) const override;
     void PopDebugGroup() const override;
     void InsertDebugMarker(const char* markerLabel) const override;
@@ -150,16 +157,14 @@ struct NullDevice final : public GPUDeviceImpl
     GPUComputePipeline CreateComputePipeline(const GPUComputePipelineDesc& desc) override;
     GPURenderPipeline CreateRenderPipeline(const GPURenderPipelineDesc& desc) override;
     GPUQueryHeap* CreateQueryHeap(const GPUQueryHeapDesc& desc) override;
+    GPUSwapChain* CreateSwapChain(GPUSurface* surface, const GPUSwapChainDesc& desc) override;
 };
 
 struct NullSurface final : public GPUSurface
 {
     NullTexture* backbufferTexture = nullptr;
 
-    ~NullSurface() override;
     void GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const override;
-    bool Configure(GPUDevice device_, const GPUSwapChainDesc* config_) override;
-    void Unconfigure() override;
 };
 
 struct NullGPUFactory final : public GPUFactory
@@ -347,12 +352,6 @@ void NullRenderPassEncoder::SetShadingRate(GPUShadingRate rate)
 }
 
 /* NullCommandBuffer */
-GPUTexture* NullCommandBuffer::AcquireSurfaceTexture(GPUSurface* surface)
-{
-    NullSurface* backendSurface = static_cast<NullSurface*>(surface);
-    return backendSurface->backbufferTexture;
-}
-
 void NullCommandBuffer::PushDebugGroup(const char* groupLabel) const
 {
     ALIMER_UNUSED(groupLabel);
@@ -394,7 +393,7 @@ GPURenderPassEncoder NullCommandBuffer::BeginRenderPass(const GPURenderPassDesc&
     return renderPassEncoder;
 }
 
-/* D3D12Queue */
+/* NullCommandQueue */
 GPUCommandBuffer NullCommandQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
 {
     // TODO:
@@ -424,6 +423,17 @@ bool NullDevice::HasFeature(GPUFeature feature) const
 GPUCommandQueue* NullDevice::GetQueue(GPUCommandQueueType type)
 {
     return &queues[type];
+}
+
+void NullSwapChain::Resize(uint32_t width, uint32_t height)
+{
+    ALIMER_UNUSED(width);
+    ALIMER_UNUSED(height);
+}
+
+GPUTexture* NullSwapChain::AcquireNextTexture()
+{
+    return nullptr;
 }
 
 void NullDevice::WaitIdle()
@@ -494,12 +504,14 @@ GPUQueryHeap* NullDevice::CreateQueryHeap(const GPUQueryHeapDesc& desc)
     return queryHeap;
 }
 
-/* NullSurface */
-NullSurface::~NullSurface()
+GPUSwapChain* NullDevice::CreateSwapChain(GPUSurface* surface, const GPUSwapChainDesc& desc)
 {
-    Unconfigure();
+    NullSwapChain* swapChain = new NullSwapChain();
+    swapChain->desc = desc;
+    return swapChain;
 }
 
+/* NullSurface */
 void NullSurface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities) const
 {
     capabilities->preferredFormat = GPUPixelFormat_BGRA8Unorm;
@@ -510,16 +522,6 @@ void NullSurface::GetCapabilities(GPUAdapter* adapter, GPUSurfaceCapabilities* c
     capabilities->formats = kSupportedFormats;
     capabilities->formatCount = ALIMER_COUNT_OF(kSupportedFormats);
 }
-
-bool NullSurface::Configure(GPUDevice device_, const GPUSwapChainDesc* config_)
-{
-    Unconfigure();
-    config = *config_;
-    return true;
-}
-
-void NullSurface::Unconfigure()
-{}
 
 /* NullAdapter */
 NullAdapter::NullAdapter()
