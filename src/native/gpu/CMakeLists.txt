@@ -53,7 +53,6 @@ if (ALIMER_GPU_VULKAN)
     )
 
     target_link_libraries(${TARGET_NAME} PRIVATE vulkan)
-    #target_link_libraries(${TARGET_NAME} PRIVATE spirv_reflect)
 
     # Test packages availability ("find_package" works only for X11)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")

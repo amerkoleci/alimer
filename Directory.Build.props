@@ -14,14 +14,13 @@
 
   <!-- Version -->
   <PropertyGroup>
-    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionPrefix>0.1.0</VersionPrefix>
     <VersionSuffix Condition="'$(VersionSuffix)' == ''">beta</VersionSuffix>
   </PropertyGroup>
 
   <PropertyGroup>
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <LangVersion>14</LangVersion>
+    <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <!-- Local builds should embed PDBs so we never lose them when a subsequent build occurs. -->
@@ -50,7 +49,6 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_RUN_ID)' != ''">true</ContinuousIntegrationBuild>
-    <UseSharedCompilation>true</UseSharedCompilation>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -5,9 +5,7 @@
 #include "alimer_gpu_internal.h"
 
 #if defined(_WIN32)
-#ifndef VK_USE_PLATFORM_WIN32_KHR
 #define VK_USE_PLATFORM_WIN32_KHR
-#endif
 #elif defined(__APPLE__)
 #define VK_USE_PLATFORM_METAL_EXT
 #define VK_ENABLE_BETA_EXTENSIONS
@@ -17,9 +15,8 @@
 #ifndef VK_USE_PLATFORM_XLIB_KHR
 #define VK_USE_PLATFORM_XLIB_KHR
 #endif
-#ifndef VK_USE_PLATFORM_WAYLAND_KHR
+
 #define VK_USE_PLATFORM_WAYLAND_KHR
-#endif
 
 #ifdef VK_USE_PLATFORM_XLIB_KHR
 #undef Success
@@ -5004,12 +5001,242 @@ void VulkanSwapChain::SetLabel(const char* label)
 
 GPUTexture* VulkanSwapChain::AcquireNextTexture()
 {
-    return nullptr;
+    locker.lock();
+    VkResult result = device->vkAcquireNextImageKHR(
+        device->handle,
+        handle,
+        UINT64_MAX,
+        acquireSemaphores[acquireSemaphoreIndex],
+        VK_NULL_HANDLE,
+        &backBufferIndex
+    );
+    locker.unlock();
+
+    if (result != VK_SUCCESS)
+    {
+        // Handle outdated error in acquire
+        if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
+        {
+            //if (backendSurface->Configure(queue->device, &backendSurface->config))
+            //{
+            //    return AcquireSurfaceTexture(backendSurface);
+            //}
+        }
+    }
+
+    VulkanTexture* currentTexture = backbufferTextures[backBufferIndex];
+
+    // Barrier
+    //AddRef();
+    //presentSurfaces.push_back(this);
+
+    return currentTexture;
 }
 
 void VulkanSwapChain::Resize(uint32_t width, uint32_t height)
 {
+    VkPhysicalDevice physicalDevice = device->adapter->handle;
+    const VulkanQueueFamilyIndices& queueFamilyIndices = device->adapter->queueFamilyIndices;
 
+    VkBool32 presentSupport = false;
+    uint32_t queuePresentSupport = 0;
+
+    for (auto& index : queueFamilyIndices.familyIndices)
+    {
+        if (index == VK_QUEUE_FAMILY_IGNORED)
+        {
+            continue;
+        }
+
+        if (device->adapter->factory->vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, index, surface->handle, &presentSupport) == VK_SUCCESS
+            && presentSupport)
+        {
+            queuePresentSupport |= 1u << index;
+        }
+    }
+
+    // Present family not found, we cannot create SwapChain
+    if ((queuePresentSupport & (1u << queueFamilyIndices.familyIndices[GPUCommandQueueType_Graphics])) == 0)
+    {
+        agpuLogError("No presentation queue found for GPU.");
+        return;
+    }
+
+    VkSurfaceCapabilitiesKHR surfaceCaps;
+    VK_CHECK(device->adapter->factory->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface->handle, &surfaceCaps));
+
+    uint32_t formatCount;
+    VK_CHECK(device->adapter->factory->vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface->handle, &formatCount, nullptr));
+
+    std::vector<VkSurfaceFormatKHR> swapchainFormats(formatCount);
+    VK_CHECK(device->adapter->factory->vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface->handle, &formatCount, swapchainFormats.data()));
+
+    uint32_t presentModeCount;
+    VK_CHECK(device->adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface->handle, &presentModeCount, nullptr));
+    std::vector<VkPresentModeKHR> swapchainPresentModes(presentModeCount);
+    VK_CHECK(device->adapter->factory->vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface->handle, &presentModeCount, swapchainPresentModes.data()));
+
+    VkPresentModeKHR vkPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+
+    // Determine the number of images
+    uint32_t imageCount = MinImageCountForPresentMode(vkPresentMode);
+    if (surfaceCaps.maxImageCount != 0
+        && imageCount > surfaceCaps.maxImageCount)
+    {
+        imageCount = surfaceCaps.maxImageCount;
+    }
+
+    if (imageCount < surfaceCaps.minImageCount)
+    {
+        imageCount = surfaceCaps.minImageCount;
+    }
+
+    if (imageCount > device->maxFramesInFlight)
+    {
+        imageCount = device->maxFramesInFlight;
+    }
+
+    // Format and color space
+    VkSurfaceFormatKHR surfaceFormat = {};
+    surfaceFormat.format = device->adapter->ToVkFormat(_ALIMER_DEF(desc.format, GPUPixelFormat_BGRA8UnormSrgb));
+    surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+
+    bool valid = false;
+    bool allowHDR = true;
+    for (const auto& format : swapchainFormats)
+    {
+        if (!allowHDR && format.colorSpace != VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            continue;
+
+        if (format.format == surfaceFormat.format)
+        {
+            surfaceFormat = format;
+            valid = true;
+            break;
+        }
+    }
+
+    if (!valid)
+    {
+        surfaceFormat.format = VK_FORMAT_B8G8R8A8_UNORM;
+        surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+    }
+
+    if (surfaceCaps.currentExtent.width != 0xFFFFFFFF &&
+        surfaceCaps.currentExtent.height != 0xFFFFFFFF)
+    {
+        extent = surfaceCaps.currentExtent;
+    }
+    else
+    {
+        extent.width = std::clamp(desc.width, surfaceCaps.minImageExtent.width, surfaceCaps.maxImageExtent.width);
+        extent.height = std::clamp(desc.height, surfaceCaps.minImageExtent.height, surfaceCaps.maxImageExtent.height);
+    }
+
+    VkSwapchainCreateInfoKHR createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = surface->handle;
+    createInfo.minImageCount = imageCount;
+    createInfo.imageFormat = surfaceFormat.format;
+    createInfo.imageColorSpace = surfaceFormat.colorSpace;
+    createInfo.imageExtent = { extent.width, extent.height };
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+        createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+    if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+        createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+    if (surfaceCaps.supportedUsageFlags & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)
+        createInfo.imageUsage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+
+    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    createInfo.queueFamilyIndexCount = 0;
+    createInfo.pQueueFamilyIndices = nullptr;
+    if (surfaceCaps.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
+    {
+        createInfo.preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    }
+    else
+    {
+        createInfo.preTransform = surfaceCaps.currentTransform;
+    }
+
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode = vkPresentMode;
+    createInfo.clipped = VK_TRUE;
+    createInfo.oldSwapchain = handle;
+
+    VK_CHECK(device->vkCreateSwapchainKHR(device->handle, &createInfo, nullptr, &handle));
+
+    if (createInfo.oldSwapchain != VK_NULL_HANDLE)
+    {
+        device->vkDestroySwapchainKHR(device->handle, createInfo.oldSwapchain, nullptr);
+    }
+
+    VK_CHECK(device->vkGetSwapchainImagesKHR(device->handle, handle, &imageCount, nullptr));
+    std::vector<VkImage> swapchainImages(imageCount);
+    VK_CHECK(device->vkGetSwapchainImagesKHR(device->handle, handle, &imageCount, swapchainImages.data()));
+
+    // Destroy all semaphores
+    if (!acquireSemaphores.empty())
+    {
+        // we need to create a new semaphore or jump through a few hoops to
+        // wait for the current one to be unsignalled before we can use it again
+        // creating a new one is easiest. See also:
+        // https://github.com/KhronosGroup/Vulkan-Docs/issues/152
+        // https://www.khronos.org/blog/resolving-longstanding-issues-with-wsi
+        const uint64_t frameCount = device->frameCount;
+        device->destroyMutex.lock();
+        for (auto& x : acquireSemaphores)
+        {
+            device->destroyedSemaphores.emplace_back(x, frameCount);
+        }
+        for (auto& x : releaseSemaphores)
+        {
+            device->destroyedSemaphores.emplace_back(x, frameCount);
+        }
+        device->destroyMutex.unlock();
+
+        acquireSemaphores.clear();
+        releaseSemaphores.clear();
+    }
+
+    VkSemaphoreCreateInfo semaphoreInfo = {};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    for (size_t i = 0; i < swapchainImages.size(); ++i)
+    {
+        VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &acquireSemaphores.emplace_back()));
+        VK_CHECK(device->vkCreateSemaphore(device->handle, &semaphoreInfo, nullptr, &releaseSemaphores.emplace_back()));
+    }
+
+    acquireSemaphoreIndex = 0;
+    backBufferIndex = 0;
+    backbufferTextures.resize(imageCount);
+
+    GPUTextureDesc textureDesc{};
+    textureDesc.format = FromVkFormat(createInfo.imageFormat);
+    textureDesc.width = createInfo.imageExtent.width;
+    textureDesc.height = createInfo.imageExtent.height;
+    textureDesc.usage = GPUTextureUsage_RenderTarget;
+
+    for (uint32_t i = 0; i < imageCount; ++i)
+    {
+        VulkanTexture* texture = new VulkanTexture();
+        texture->device = device;
+        texture->desc = textureDesc;
+        texture->vkFormat = createInfo.imageFormat;
+        texture->handle = swapchainImages[i];
+        //texture->allocatedSize = 0;
+        texture->numSubResources = 1;
+        texture->imageLayouts.resize(1);
+        texture->imageLayouts[0] = TextureLayout::Undefined;
+
+        backbufferTextures[i] = texture;
+    }
 }
 
 /* VulkanAdapter */
@@ -5488,13 +5715,13 @@ GPUSurface* VulkanFactory::CreateSurface(GPUSurfaceSource* source)
     surfaceCreateInfo.hwnd = static_cast<HWND>(source->hwnd);
 
     result = vkCreateWin32SurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
     VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
     surfaceCreateInfo.window = static_cast<ANativeWindow*>(source->androidWindow);
 
     result = vkCreateAndroidSurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
-#elif defined(__APPLE__)
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
     VkMetalSurfaceCreateInfoEXT surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
     surfaceCreateInfo.pLayer = source->metalLayer;
@@ -5557,9 +5784,9 @@ bool VulkanFactory::GetPresentationSupport(VkPhysicalDevice physicalDevice, uint
 {
 #if defined(_WIN32)
     return vkGetPhysicalDeviceWin32PresentationSupportKHR(physicalDevice, queueFamilyIndex) == VK_TRUE;
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
     return true;
-#elif defined(__APPLE__)
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
     return true;
 #else
     return true;
@@ -6053,9 +6280,9 @@ GPUFactory* Vulkan_CreateFactory(const GPUFactoryDesc* desc)
     // Enable surface extensions depending on os
 #if defined(_WIN32)
     instanceExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#elif defined(__ANDROID__)
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
     instanceExtensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
-#elif defined(__APPLE__)
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
     instanceExtensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
     instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
     instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);

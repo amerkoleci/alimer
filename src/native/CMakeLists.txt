@@ -5,12 +5,6 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
 	return()
 endif()
 
-# Only 64 bit is supported
-if (CMAKE_SIZEOF_VOID_P EQUAL 4)
-	message(FATAL_ERROR "32 bit isn't supported")
-    return()
-endif()
-
 # Determine if engine is built as a subproject (using add_subdirectory)
 # or if it is the master project.
 if (NOT DEFINED ALIMER_MASTER_PROJECT)
@@ -81,34 +75,6 @@ set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Distribution")
 if (ALIMER_MASTER_PROJECT AND NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "The default build type" FORCE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${CMAKE_CONFIGURATION_TYPES})
-endif ()
-
-execute_process(COMMAND git rev-list --count HEAD
-    OUTPUT_VARIABLE ALIMER_REVISION_ID
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-if ("${ALIMER_REVISION_ID}" STREQUAL "")
-    # We don't have any source control so just hard-code all of this information to empty
-    set (ALIMER_REVISION_ID 0)
-    set (ALIMER_SHORT_CHANGE_SET 0)
-    set (ALIMER_CHANGE_SET 0)
-    set (ALIMER_CHANGE_SET_DATE "")
-else ()
-    execute_process(COMMAND git rev-parse --short HEAD
-        OUTPUT_VARIABLE ALIMER_SHORT_CHANGE_SET
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-    execute_process(COMMAND git rev-parse HEAD
-        OUTPUT_VARIABLE ALIMER_CHANGE_SET
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-    execute_process(COMMAND git log -1 --abbrev=12 --date=format:%Y-%m-%d --pretty=format:%cd
-        OUTPUT_VARIABLE ALIMER_CHANGE_SET_DATE
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
 endif ()
 
 # Setting Platform
@@ -295,10 +261,6 @@ set(CMAKE_EXE_LINKER_FLAGS_DISTRIBUTION "${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
 
 # Print current build configuration
 message(STATUS "Engine version: ${ALIMER_VERSION}")
-message(STATUS "GIT Revision ID: ${ALIMER_REVISION_ID}")
-message(STATUS "GIT Short ChangeSet: ${ALIMER_SHORT_CHANGE_SET}")
-message(STATUS "GIT ChangeSet: ${ALIMER_CHANGE_SET}")
-message(STATUS "GIT ChangeSet Date: ${ALIMER_CHANGE_SET_DATE}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
 

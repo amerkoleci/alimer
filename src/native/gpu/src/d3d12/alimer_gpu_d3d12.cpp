@@ -4281,13 +4281,6 @@ D3D12SwapChain::~D3D12SwapChain()
     swapChainHeight = 0;
     backBufferIndex = 0;
     backbufferTextures.clear();
-#if TODO_WAITABLE
-    if (frameLatencyWaitableObject != INVALID_HANDLE_VALUE)
-    {
-        CloseHandle(frameLatencyWaitableObject);
-        frameLatencyWaitableObject = INVALID_HANDLE_VALUE;
-    }
-#endif
 
     SafeRelease(handle);
     SafeRelease(surface);
@@ -4295,35 +4288,115 @@ D3D12SwapChain::~D3D12SwapChain()
 
 void D3D12SwapChain::Resize(uint32_t width, uint32_t height)
 {
+    if (swapChainWidth == width && swapChainHeight == height)
+        return;
+
+    uint32_t maximumFrameLatency = device->maxFramesInFlight;
+
+    // Nvidia recommends to use 1-2 more buffers than the maximum latency
+    // https://developer.nvidia.com/blog/advanced-api-performance-swap-chains/
+    // For high latency extra buffers seems excessive, so go with a minimum of 3 and beyond that add 1.
+    uint32_t bufferCount = std::min(maximumFrameLatency + 1, 16u);
+
+    DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
+    swapChainDesc.Width = width;
+    swapChainDesc.Height = height;
+    swapChainDesc.Format = ToDxgiSwapChainFormat(desc.format);
+    swapChainDesc.Stereo = FALSE;
+    swapChainDesc.SampleDesc.Count = 1;
+    swapChainDesc.SampleDesc.Quality = 0;
+    swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
+    swapChainDesc.BufferCount = bufferCount;
+    swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
+    swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+    swapChainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+    if (desc.presentMode == GPUPresentMode_Immediate)
+    {
+        swapChainDesc.Flags |= (device->adapter->factory->tearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u);
+    }
+
+    HRESULT hr = E_FAIL;
+    ComPtr<IDXGISwapChain1> tempSwapChain;
+
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+    DXGI_SWAP_CHAIN_FULLSCREEN_DESC fullscreenDesc = {};
+    fullscreenDesc.Windowed = TRUE; // !desc.fullscreen;
+
+    hr = device->adapter->factory->dxgiFactory4->CreateSwapChainForHwnd(
+        device->queues[GPUCommandQueueType_Graphics].handle,
+        surface->hwnd,
+        &swapChainDesc,
+        &fullscreenDesc,
+        nullptr,
+        tempSwapChain.GetAddressOf()
+    );
+
+    // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
+    VHR(device->adapter->factory->dxgiFactory4->MakeWindowAssociation(surface->hwnd, DXGI_MWA_NO_WINDOW_CHANGES | DXGI_MWA_NO_ALT_ENTER));
+#endif
+
+    if (FAILED(hr))
+    {
+        return;
+    }
+
+    hr = tempSwapChain->QueryInterface(&handle);
+    if (FAILED(hr))
+    {
+        return;
+    }
+
+    VHR(handle->SetMaximumFrameLatency(maximumFrameLatency));
+
+    VHR(handle->GetDesc1(&swapChainDesc));
+    swapChainWidth = swapChainDesc.Width;
+    swapChainHeight = swapChainDesc.Height;
+    backBufferIndex = handle->GetCurrentBackBufferIndex();
+    backbufferTextures.resize(swapChainDesc.BufferCount);
+
+    GPUTextureDesc textureDesc{};
+    textureDesc.format = desc.format;
+    textureDesc.width = swapChainWidth;
+    textureDesc.height = swapChainHeight;
+    textureDesc.usage = GPUTextureUsage_ShaderRead | GPUTextureUsage_RenderTarget;
+
+    for (uint32_t i = 0; i < swapChainDesc.BufferCount; ++i)
+    {
+        D3D12Texture* texture = new D3D12Texture();
+        texture->device = device;
+        texture->desc = textureDesc;
+        texture->dxgiFormat = ToDxgiFormat(desc.format);
+
+        VHR(handle->GetBuffer(i, IID_PPV_ARGS(&texture->handle)));
+
+        D3D12_RESOURCE_DESC resourceDesc = texture->handle->GetDesc();
+
+        texture->allocatedSize = 0;
+        texture->numSubResources = resourceDesc.MipLevels * resourceDesc.DepthOrArraySize;
+        texture->subResourcesStates.resize(texture->numSubResources);
+        texture->subResourcesStates[0] = TextureLayout::Present;
+
+        texture->footPrints.resize(texture->numSubResources);
+        texture->rowSizesInBytes.resize(texture->footPrints.size());
+        texture->numRows.resize(texture->footPrints.size());
+        device->handle->GetCopyableFootprints(
+            &resourceDesc,
+            0,
+            (UINT)texture->footPrints.size(),
+            0,
+            texture->footPrints.data(),
+            texture->numRows.data(),
+            texture->rowSizesInBytes.data(),
+            &texture->allocatedSize
+        );
+
+        backbufferTextures[i] = texture;
+    }
 }
 
 GPUTexture* D3D12SwapChain::AcquireNextTexture()
 {
-#if TODO_WAITABLE
-    DWORD result = WaitForSingleObjectEx(
-        backendSurface->frameLatencyWaitableObject,
-        1000, // 1 second timeout (shouldn't ever occur)
-        true
-    );
-
-    switch (result)
-    {
-        case WAIT_ABANDONED:
-        case WAIT_FAILED:
-            return GPUAcquireSurfaceResult_Lost;
-        case WAIT_OBJECT_0:
-            // OK
-            break;
-        case WAIT_TIMEOUT:
-            return GPUAcquireSurfaceResult_SuccessOptimal;
-
-        default:
-            agpuLogError("Unexpected wait status: 0x%08X", result);
-            return GPUAcquireSurfaceResult_Lost;
-    }
-#endif // TODO_WAITABLE
-
-
     // Fence and events?
     backBufferIndex = handle->GetCurrentBackBufferIndex();
     D3D12Texture* currentTexture = backbufferTextures[backBufferIndex];

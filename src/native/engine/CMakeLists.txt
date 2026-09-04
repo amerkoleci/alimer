@@ -102,7 +102,7 @@ if (NOT EMSCRIPTEN)
         src/alimer_vma_exports.cpp
     )
 
-    target_link_libraries(${TARGET_NAME} PRIVATE vulkan spirv_reflect)
+    target_link_libraries(${TARGET_NAME} PRIVATE vulkan)
 endif()
 
 if (ALIMER_AUDIO)

@@ -8,9 +8,9 @@ partial class PlatformInfo
     static PlatformInfo()
     {
         DeviceFamily = $"{Environment.OSVersion.Platform}.Desktop";
+        Family = PlatformFamily.Desktop;
         if (OperatingSystem.IsWindows())
         {
-            DeviceFamily = "Windows.Desktop";
             ID = PlatformID.Windows;
         }
         else if (OperatingSystem.IsMacCatalyst())

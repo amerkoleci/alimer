@@ -26,5 +26,6 @@ public static partial class PlatformInfo
 	/// </summary>
     public static string DeviceFamily { get; }
 
+    public static Architecture OSArchitecture => RuntimeInformation.OSArchitecture;
     public static Architecture ProcessArchitecture { get; private set; } = RuntimeInformation.ProcessArchitecture;
 }

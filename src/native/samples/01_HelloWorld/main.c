@@ -52,6 +52,16 @@ int main(void)
         return EXIT_FAILURE;
     }
 
+    Window* window = alimerWindowCreate(&(WindowDesc) {
+        .title = "Alimer Test",
+        .width = 800,
+        .height = 600,
+        .flags = WindowFlags_Resizable | WindowFlags_Hidden
+    });
+
+    // Create SwapChain
+    alimerWindowShow(window);
+
 #if defined(ALIMER_AUDIO) && defined(TEST_AUDIO)
     if (!alimerAudioInit())
     {
@@ -82,7 +92,7 @@ int main(void)
 
 #if defined(ALIMER_GPU)
     const GPUFactoryDesc factoryDesc = {
-        .preferredBackend = GPUBackendType_Vulkan,
+        .preferredBackend = GPUBackendType_D3D12,
         .validationMode = GPUValidationMode_Enabled
     };
     GPUFactory* gpuFactory = agpuFactoryCreate(&factoryDesc);
@@ -90,6 +100,23 @@ int main(void)
     GPUDevice device = agpuDeviceCreate(adapter, NULL);
     GPUSampler* sampler = agpuSamplerCreate(device, NULL);
 #endif
+
+    // Main message loop
+    bool quit = false;
+    while (!quit)
+    {
+        PlatformEvent evt;
+        while (alimerPlatformPollEvent(&evt))
+        {
+            if (evt.type == EventType_Quit)
+            {
+                quit = true;
+                break;
+            }
+        }
+
+        // Tick
+    }
 
 #if defined(ALIMER_PHYSICS)
     // Physics
@@ -184,6 +211,7 @@ int main(void)
     alimerPhysicsShutdown();
 #endif
 
+    alimerWindowDestroy(window);
     alimerPlatformShutdown();
 
     return EXIT_SUCCESS;

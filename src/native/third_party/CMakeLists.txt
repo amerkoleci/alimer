@@ -102,7 +102,7 @@ if (ALIMER_USE_SDL AND NOT (EMSCRIPTEN OR ANDROID))
     CPMAddPackage(
         NAME SDL
         GITHUB_REPOSITORY libsdl-org/SDL
-        GIT_TAG release-3.4.14
+        GIT_TAG release-3.4.16
         OPTIONS
             "SDL_SHARED OFF"
             "SDL_STATIC ON"
@@ -138,16 +138,6 @@ target_sources(vulkan INTERFACE
     ${VULKAN_INCLUDE_DIR}/vulkan/vulkan.h
 )
 target_include_directories(vulkan INTERFACE ${VULKAN_INCLUDE_DIR})
-
-# spirv_reflect
-set(SPIRV_REFLECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/spirv_reflect")
-add_library(spirv_reflect STATIC 
-    "${SPIRV_REFLECT_DIR}/spirv_reflect.c"
-    "${SPIRV_REFLECT_DIR}/spirv_reflect.h"
-)
-set_target_properties(spirv_reflect PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_include_directories(spirv_reflect SYSTEM PUBLIC ${SPIRV_REFLECT_DIR})
-set_target_properties(spirv_reflect PROPERTIES FOLDER "ThirdParty")
 
 # DirectX-Headers
 add_library(DirectX-Headers INTERFACE)

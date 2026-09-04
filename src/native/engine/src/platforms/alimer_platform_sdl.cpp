@@ -460,7 +460,7 @@ Window* alimerWindowCreate(const WindowDesc* desc)
 
     const bool fullscreen = desc->flags & WindowFlags_Fullscreen;
 
-    SDL_WindowFlags windowFlags = SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN;
+    SDL_WindowFlags windowFlags = SDL_WINDOW_HIGH_PIXEL_DENSITY;
 
     if (fullscreen)
     {

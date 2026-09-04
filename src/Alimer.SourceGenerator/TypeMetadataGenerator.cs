@@ -19,14 +19,14 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
 
         IncrementalValuesProvider<TypeMetadataGenerate> classDeclarations = context.SyntaxProvider
             .ForAttributeWithMetadataName(
-           fullyQualifiedMetadataName: AlimerTypes.MetaAttribute,
-           predicate: IsTypeCandidate,
-           transform: static (context, token) =>
-           {
+            fullyQualifiedMetadataName: AlimerTypes.MetaAttribute,
+            predicate: IsTypeCandidate,
+            transform: static (context, token) =>
+            {
                INamedTypeSymbol classSymbol = (INamedTypeSymbol)context.TargetSymbol;
 
                return new TypeMetadataGenerate((BaseTypeDeclarationSyntax)context.TargetNode, classSymbol, context.SemanticModel, context.Attributes);
-           });
+            });
 
         IncrementalValueProvider<(Compilation Left, ImmutableArray<TypeMetadataGenerate> Right)> valueProvider =
             context

@@ -6,7 +6,7 @@ using Alimer.Input;
 
 namespace Alimer;
 
-internal abstract partial class GamePlatform 
+internal abstract partial class GamePlatform
 {
     /// <summary>
     /// Gets the main window.
@@ -29,12 +29,12 @@ internal abstract partial class GamePlatform
     public abstract void RequestExit();
     public abstract void Destroy();
 
-    protected internal void OnReady()
+    protected void OnReady()
     {
         Game.OnPlatformReady();
     }
 
-    protected internal void OnTick()
+    protected void OnTick()
     {
         Game.Tick();
     }
