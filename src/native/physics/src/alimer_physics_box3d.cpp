@@ -5,6 +5,7 @@
 #include "alimer_physics.h"
 
 #include "box3d/box3d.h"
+#include <string.h> // memset
 #include <atomic>
 
 #ifdef ALIMER_ENABLE_ASSERTS
@@ -33,25 +34,19 @@ namespace
         }
     }
 
-    static void FromBox3D(const b3Vec3& value, Vec3* result)
+    static void FromBox3D(const b3Vec3& value, Vector3* result)
     {
         result->x = value.x;
         result->y = value.y;
         result->z = value.z;
     }
 
-    static void FromBox3D(const b3Quat& quat, Quat* result)
+    static void FromBox3D(const b3Quat& quat, Quaternion* result)
     {
         result->x = quat.v.x;
         result->y = quat.v.y;
         result->z = quat.v.z;
         result->w = quat.s;
-    }
-
-    [[maybe_unused]] static void FromBox3D(const b3Transform& value, Matrix4x4* result)
-    {
-        //JPH::Mat44 temp = value.Transposed();
-        //memcpy(result, &temp, sizeof(Matrix4x4));
     }
 
     constexpr b3BodyType ToBox3D(PhysicsBodyType value)
@@ -68,12 +63,12 @@ namespace
         }
     }
 
-    static b3Vec3 ToBox3D(const Vec3* value)
+    static b3Vec3 ToBox3D(const Vector3* value)
     {
         return { value->x, value->y, value->z };
     }
 
-    static b3Quat ToBox3D(const Quat* value)
+    static b3Quat ToBox3D(const Quaternion* value)
     {
         return { value->x, value->y, value->z, value->w };
     }
@@ -118,7 +113,7 @@ struct PhysicsShape final
 {
     std::atomic_uint32_t refCount;
     PhysicsShapeType type;
-    Vec3 size;
+    Vector3 size;
     PhysicsBody* body;
     PhysicsMaterial* material;
     b3ShapeId id;
@@ -203,12 +198,12 @@ uint32_t alimerPhysicsWorldGetActiveBodyCount(PhysicsWorld* world)
     return 0;
 }
 
-void alimerPhysicsWorldGetGravity(PhysicsWorld* world, Vec3* gravity)
+void alimerPhysicsWorldGetGravity(PhysicsWorld* world, Vector3* gravity)
 {
     FromBox3D(b3World_GetGravity(world->id), gravity);
 }
 
-void alimerPhysicsWorldSetGravity(PhysicsWorld* world, const Vec3* gravity)
+void alimerPhysicsWorldSetGravity(PhysicsWorld* world, const Vector3* gravity)
 {
     b3World_SetGravity(world->id, ToBox3D(gravity));
 }
@@ -315,7 +310,7 @@ float alimerPhysicsShapeGetMass(PhysicsShape* shape)
     return 0.f;
 }
 
-PhysicsShape* alimerPhysicsShapeCreateBox(const Vec3* size, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsShapeCreateBox(const Vector3* size, PhysicsMaterial* material)
 {
     ALIMER_ASSERT(size);
     ALIMER_ASSERT(size->x > 0.f && size->y > 0.f && size->z > 0.f);
@@ -390,7 +385,7 @@ PhysicsShape* alimerPhysicsShapeCreateCylinder(float height, float radius, Physi
     return shape;
 }
 
-PhysicsShape* alimerPhysicsShapeCreateConvexHull(const Vec3* points, uint32_t pointsCount, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsShapeCreateConvexHull(const Vector3* points, uint32_t pointsCount, PhysicsMaterial* material)
 {
     PhysicsShape* shape = new PhysicsShape();
     shape->refCount.store(1);
@@ -399,7 +394,7 @@ PhysicsShape* alimerPhysicsShapeCreateConvexHull(const Vec3* points, uint32_t po
     return shape;
 }
 
-PhysicsShape* alimerPhysicsShapeCreateMesh(const Vec3* vertices, uint32_t verticesCount, const uint32_t* indices, uint32_t indicesCount)
+PhysicsShape* alimerPhysicsShapeCreateMesh(const Vector3* vertices, uint32_t verticesCount, const uint32_t* indices, uint32_t indicesCount)
 {
     PhysicsShape* shape = new PhysicsShape();
     shape->refCount.store(1);
@@ -408,7 +403,7 @@ PhysicsShape* alimerPhysicsShapeCreateMesh(const Vec3* vertices, uint32_t vertic
     return shape;
 }
 
-PhysicsShape* alimerPhysicsShapeCreateTerrain(const float* samples, const Vec3* offset, const Vec3* scale, uint32_t sampleCount)
+PhysicsShape* alimerPhysicsShapeCreateTerrain(const float* samples, const Vector3* offset, const Vector3* scale, uint32_t sampleCount)
 {
     PhysicsShape* shape = new PhysicsShape();
     shape->refCount.store(1);
@@ -528,7 +523,11 @@ PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, const PhysicsBodyDesc*
     bodyDef.type = ToBox3D(desc->type);
     bodyDef.position = ToBox3D(&desc->initialTransform.position);
     bodyDef.rotation = ToBox3D(&desc->initialTransform.rotation);
+    bodyDef.linearVelocity = ToBox3D(&desc->linearVelocity);
+    bodyDef.angularVelocity = ToBox3D(&desc->angularVelocity);
     bodyDef.linearDamping = desc->linearDamping;
+    bodyDef.angularDamping = desc->angularDamping;
+    bodyDef.gravityScale = desc->gravityScale;
 
     PhysicsBody* body = new PhysicsBody();
     body->refCount.store(1);
@@ -602,15 +601,27 @@ void alimerPhysicsBodySetType(PhysicsBody* body, PhysicsBodyType value)
     b3Body_SetType(body->id, ToBox3D(value));
 }
 
+void alimerPhysicsBodyGetPosition(PhysicsBody* body, Vector3* position)
+{
+    ALIMER_ASSERT(b3Body_IsValid(body->id));
+
+    FromBox3D(b3Body_GetPosition(body->id), position);
+}
+
+void alimerPhysicsBodyGetRotation(PhysicsBody* body, Quaternion* rotation)
+{
+    ALIMER_ASSERT(b3Body_IsValid(body->id));
+
+    FromBox3D(b3Body_GetRotation(body->id), rotation);
+}
+
 void alimerPhysicsBodyGetTransform(PhysicsBody* body, PhysicsBodyTransform* transform)
 {
     ALIMER_ASSERT(b3Body_IsValid(body->id));
 
-    b3Vec3 position = b3Body_GetPosition(body->id);
-    b3Quat rotation = b3Body_GetRotation(body->id);
-
-    FromBox3D(position, &transform->position);
-    FromBox3D(rotation, &transform->rotation);
+    b3WorldTransform boxTransform = b3Body_GetTransform(body->id);
+    FromBox3D(boxTransform.p, &transform->position);
+    FromBox3D(boxTransform.q, &transform->rotation);
 }
 
 void alimerPhysicsBodySetTransform(PhysicsBody* body, const PhysicsBodyTransform* transform)
@@ -618,14 +629,6 @@ void alimerPhysicsBodySetTransform(PhysicsBody* body, const PhysicsBodyTransform
     ALIMER_ASSERT(b3Body_IsValid(body->id));
 
     b3Body_SetTransform(body->id, ToBox3D(&transform->position), ToBox3D(&transform->rotation));
-}
-
-void alimerPhysicsBodyGetWorldTransform(PhysicsBody* body, Matrix4x4* transform)
-{
-    ALIMER_ASSERT(b3Body_IsValid(body->id));
-
-    b3WorldTransform worldTransform = b3Body_GetTransform(body->id);
-    FromBox3D(worldTransform, transform);
 }
 
 float alimerPhysicsBodyGetMass(PhysicsBody* body)
@@ -642,7 +645,7 @@ float alimerPhysicsBodyGetInverseMass(PhysicsBody* body)
     return b3Body_GetInverseMass(body->id);
 }
 
-void alimerPhysicsBodyGetCenterOfMassPosition(PhysicsBody* body, Vec3* position)
+void alimerPhysicsBodyGetCenterOfMassPosition(PhysicsBody* body, Vector3* position)
 {
     ALIMER_ASSERT(b3Body_IsValid(body->id));
 
@@ -670,85 +673,119 @@ void alimerPhysicsBodyDeactivateBody(PhysicsBody* body)
     b3Body_SetAwake(body->id, false);
 }
 
-void alimerPhysicsBodyGetLinearVelocity(PhysicsBody* body, Vec3* velocity)
+float alimerPhysicsBodyGetLinearDamping(PhysicsBody* body)
+{
+    ALIMER_ASSERT(b3Body_IsValid(body->id));
+
+    return b3Body_GetLinearDamping(body->id);
+}
+
+void alimerPhysicsBodySetLinearDamping(PhysicsBody* body, float value)
+{
+    ALIMER_ASSERT(b3Body_IsValid(body->id));
+
+    b3Body_SetLinearDamping(body->id, value);
+}
+
+float alimerPhysicsBodyGetAngularDamping(PhysicsBody* body)
+{
+    ALIMER_ASSERT(b3Body_IsValid(body->id));
+
+    return b3Body_GetAngularDamping(body->id);
+}
+
+void alimerPhysicsBodySetAngularDamping(PhysicsBody* body, float value)
+{
+    ALIMER_ASSERT(b3Body_IsValid(body->id));
+
+    b3Body_SetAngularDamping(body->id, value);
+}
+
+float alimerPhysicsBodyGetGravityScale(PhysicsBody* body)
+{
+    ALIMER_ASSERT(b3Body_IsValid(body->id));
+
+    return b3Body_GetGravityScale(body->id);
+}
+
+void alimerPhysicsBodySetGravityScale(PhysicsBody* body, float value)
+{
+    ALIMER_ASSERT(b3Body_IsValid(body->id));
+
+    b3Body_SetGravityScale(body->id, value);
+}
+
+void alimerPhysicsBodyGetLinearVelocity(PhysicsBody* body, Vector3* velocity)
 {
     ALIMER_ASSERT(b3Body_IsValid(body->id));
 
     FromBox3D(b3Body_GetLinearVelocity(body->id), velocity);
 }
 
-void alimerPhysicsBodySetLinearVelocity(PhysicsBody* body, const Vec3* velocity)
+void alimerPhysicsBodySetLinearVelocity(PhysicsBody* body, const Vector3* velocity)
 {
     ALIMER_ASSERT(b3Body_IsValid(body->id));
 
     b3Body_SetLinearVelocity(body->id, ToBox3D(velocity));
 }
 
-void alimerPhysicsBodyGetAngularVelocity(PhysicsBody* body, Vec3* velocity)
+void alimerPhysicsBodyGetAngularVelocity(PhysicsBody* body, Vector3* velocity)
 {
     ALIMER_ASSERT(b3Body_IsValid(body->id));
 
     FromBox3D(b3Body_GetAngularVelocity(body->id), velocity);
 }
 
-void alimerPhysicsBodySetAngularVelocity(PhysicsBody* body, const Vec3* velocity)
+void alimerPhysicsBodySetAngularVelocity(PhysicsBody* body, const Vector3* velocity)
 {
     ALIMER_ASSERT(b3Body_IsValid(body->id));
 
     b3Body_SetAngularVelocity(body->id, ToBox3D(velocity));
 }
 
-void alimerPhysicsBodyAddForce(PhysicsBody* body, const Vec3* force)
+void alimerPhysicsBodyAddForce(PhysicsBody* body, const Vector3* force)
 {
     ALIMER_ASSERT(b3Body_IsValid(body->id));
 
     b3Body_ApplyForceToCenter(body->id, ToBox3D(force), true);
 }
 
-void alimerPhysicsBodyAddForceAtPosition(PhysicsBody* body, const Vec3* force, const Vec3* position)
+void alimerPhysicsBodyAddForceAtPosition(PhysicsBody* body, const Vector3* force, const Vector3* position)
 {
     ALIMER_ASSERT(b3Body_IsValid(body->id));
 
     b3Body_ApplyForce(body->id, ToBox3D(force), ToBox3D(position), true);
 }
 
-void alimerPhysicsBodyAddTorque(PhysicsBody* body, const Vec3* torque)
+void alimerPhysicsBodyAddTorque(PhysicsBody* body, const Vector3* torque)
 {
     ALIMER_ASSERT(b3Body_IsValid(body->id));
 
     b3Body_ApplyTorque(body->id, ToBox3D(torque), true);
 }
 
-void alimerPhysicsBodyAddForceAndTorque(PhysicsBody* body, const Vec3* force, const Vec3* torque)
-{
-    ALIMER_ASSERT(b3Body_IsValid(body->id));
-
-    b3Body_ApplyForceToCenter(body->id, ToBox3D(force), true);
-    b3Body_ApplyTorque(body->id, ToBox3D(torque), true);
-}
-
-void alimerPhysicsBodyAddImpulse(PhysicsBody* body, const Vec3* impulse)
+void alimerPhysicsBodyAddImpulse(PhysicsBody* body, const Vector3* impulse)
 {
     ALIMER_ASSERT(b3Body_IsValid(body->id));
 
     b3Body_ApplyLinearImpulseToCenter(body->id, ToBox3D(impulse), true);
 }
 
-void alimerPhysicsBodyAddImpulseAtPosition(PhysicsBody* body, const Vec3* impulse, const Vec3* position)
+void alimerPhysicsBodyAddImpulseAtPosition(PhysicsBody* body, const Vector3* impulse, const Vector3* position)
 {
     ALIMER_ASSERT(b3Body_IsValid(body->id));
 
     b3Body_ApplyLinearImpulse(body->id, ToBox3D(impulse), ToBox3D(position), true);
 }
 
-void alimerPhysicsBodyAddAngularImpulse(PhysicsBody* body, const Vec3* angularImpulse)
+void alimerPhysicsBodyAddAngularImpulse(PhysicsBody* body, const Vector3* angularImpulse)
 {
     ALIMER_ASSERT(b3Body_IsValid(body->id));
 
     b3Body_ApplyAngularImpulse(body->id, ToBox3D(angularImpulse), true);
 }
 
-bool alimerPhysicsBodyApplyBuoyancyImpulse(PhysicsBody* body, const Vec3* surfacePosition, const Vec3* surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vec3* fluidVelocity, const Vec3* gravity, float deltaTime)
+bool alimerPhysicsBodyApplyBuoyancyImpulse(PhysicsBody* body, const Vector3* surfacePosition, const Vector3* surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vector3* fluidVelocity, const Vector3* gravity, float deltaTime)
 {
     ALIMER_ASSERT(b3Body_IsValid(body->id));
 
