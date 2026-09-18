@@ -188,12 +188,6 @@ typedef enum PixelFormat {
 } PixelFormat;
 
 /* Common types */
-typedef struct Vector3 {
-    float x;
-    float y;
-    float z;
-} Vector3;
-
 typedef struct Blob {
     uint32_t ref;
     void* data;

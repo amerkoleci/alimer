@@ -71,14 +71,14 @@ typedef struct Vector3 {
     float x;
     float y;
     float z;
-} Vec3;
+} Vector3;
 
 typedef struct Quaternion {
     float x;
     float y;
     float z;
     float w;
-} Quat;
+} Quaternion;
 
 typedef struct PhysicsWorldConfig {
     uint32_t maxBodies;
@@ -187,17 +187,17 @@ ALIMER_PHYSICS_API float alimerPhysicsBodyGetGravityScale(PhysicsBody* body);
 ALIMER_PHYSICS_API void alimerPhysicsBodySetGravityScale(PhysicsBody* body, float value);
 
 ALIMER_PHYSICS_API void alimerPhysicsBodyGetLinearVelocity(PhysicsBody* body, Vector3* velocity);
-ALIMER_PHYSICS_API void alimerPhysicsBodySetLinearVelocity(PhysicsBody* body, const Vec3* velocity);
+ALIMER_PHYSICS_API void alimerPhysicsBodySetLinearVelocity(PhysicsBody* body, const Vector3* velocity);
 ALIMER_PHYSICS_API void alimerPhysicsBodyGetAngularVelocity(PhysicsBody* body, Vector3* velocity);
-ALIMER_PHYSICS_API void alimerPhysicsBodySetAngularVelocity(PhysicsBody* body, const Vec3* velocity);
+ALIMER_PHYSICS_API void alimerPhysicsBodySetAngularVelocity(PhysicsBody* body, const Vector3* velocity);
 
 ALIMER_PHYSICS_API void alimerPhysicsBodyAddForce(PhysicsBody* body, const Vector3* force);
 ALIMER_PHYSICS_API void alimerPhysicsBodyAddForceAtPosition(PhysicsBody* body, const Vector3* force, const Vector3* position);
 ALIMER_PHYSICS_API void alimerPhysicsBodyAddTorque(PhysicsBody* body, const Vector3* torque);
 
-ALIMER_PHYSICS_API void alimerPhysicsBodyAddImpulse(PhysicsBody* body, const Vec3* impulse);
+ALIMER_PHYSICS_API void alimerPhysicsBodyAddImpulse(PhysicsBody* body, const Vector3* impulse);
 ALIMER_PHYSICS_API void alimerPhysicsBodyAddImpulseAtPosition(PhysicsBody* body, const Vector3* impulse, const Vector3* position);
 ALIMER_PHYSICS_API void alimerPhysicsBodyAddAngularImpulse(PhysicsBody* body, const Vector3* angularImpulse);
-ALIMER_PHYSICS_API bool alimerPhysicsBodyApplyBuoyancyImpulse(PhysicsBody* body, const Vector3* surfacePosition, const Vector3* surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vec3* fluidVelocity, const Vector3* gravity, float deltaTime);
+ALIMER_PHYSICS_API bool alimerPhysicsBodyApplyBuoyancyImpulse(PhysicsBody* body, const Vector3* surfacePosition, const Vector3* surfaceNormal, float buoyancy, float linearDrag, float angularDrag, const Vector3* fluidVelocity, const Vector3* gravity, float deltaTime);
 
 #endif /* ALIMER_PHYSICS_H_ */

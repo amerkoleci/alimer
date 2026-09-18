@@ -130,10 +130,10 @@ int main(void)
     PhysicsWorld* physicsWorld = alimerPhysicsWorldCreate(&physicsWorldConfig);
 
     // Create floor
-    PhysicsShape* floorShape = alimerPhysicsShapeCreateBox(&(Vec3) { 100.0f, 1.0f, 100.0f }, NULL);
+    PhysicsShape* floorShape = alimerPhysicsShapeCreateBox(&(Vector3) { 100.0f, 1.0f, 100.0f }, NULL);
     PhysicsBodyDesc floorBodyDesc;
     alimerPhysicsBodyDescInit(&floorBodyDesc);
-    floorBodyDesc.initialTransform.position = (Vec3){ 0.0f, -1.0f, 0.0f };
+    floorBodyDesc.initialTransform.position = (Vector3){ 0.0f, -1.0f, 0.0f };
     floorBodyDesc.type = PhysicsBodyType_Static;
     floorBodyDesc.shapeCount = 1;
     floorBodyDesc.shapes = &floorShape;
@@ -143,12 +143,12 @@ int main(void)
     PhysicsShape* sphereShape = alimerPhysicsShapeCreateSphere(0.5f, NULL);
     PhysicsBodyDesc sphereBodyDesc;
     alimerPhysicsBodyDescInit(&sphereBodyDesc);
-    sphereBodyDesc.initialTransform.position = (Vec3){ 0.0f, 2.0f, 0.0f };
+    sphereBodyDesc.initialTransform.position = (Vector3){ 0.0f, 2.0f, 0.0f };
     sphereBodyDesc.type = PhysicsBodyType_Dynamic;
     sphereBodyDesc.shapeCount = 1;
     sphereBodyDesc.shapes = &sphereShape;
     PhysicsBody* sphereBody = alimerPhysicsBodyCreate(physicsWorld, &sphereBodyDesc);
-    alimerPhysicsBodySetLinearVelocity(sphereBody, &(Vec3){ 0.0f, -5.0f, 0.0f });
+    alimerPhysicsBodySetLinearVelocity(sphereBody, &(Vector3){ 0.0f, -5.0f, 0.0f });
 
     float density = alimerPhysicsShapeGetDensity(sphereShape);
     float volume = alimerPhysicsShapeGetVolume(sphereShape);
@@ -172,7 +172,7 @@ int main(void)
 
 
         // Output current position and velocity of the sphere
-        Vec3 position, velocity;
+        Vector3 position, velocity;
         alimerPhysicsBodyGetCenterOfMassPosition(sphereBody, &position);
         alimerPhysicsBodyGetLinearVelocity(sphereBody, &velocity);
         printf("Step %u: Position = (%f, %f, %f), Velocity = (%f, %f, %f)\n", step, position.x, position.y, position.z, velocity.x, velocity.y, velocity.z);

@@ -41,8 +41,6 @@ namespace
     static_assert(AudioEngineState_Starting == (int)ma_device_state_starting);
     static_assert(AudioEngineState_Stopping == (int)ma_device_state_stopping);
 
-    static_assert(sizeof(ma_vec3f) == sizeof(Vector3));
-
     constexpr AudioDeviceType FromMiniaudio(ma_device_type value)
     {
         switch (value)
@@ -130,18 +128,18 @@ namespace
         }
     }
 
-    static void FromMiniaudio(const ma_vec3f& value, Vector3* result)
+    static void FromMiniaudio(const ma_vec3f& value, float result[3])
     {
         ALIMER_ASSERT(result);
 
-        result->x = value.x;
-        result->y = value.y;
-        result->z = value.z;
+        result[0] = value.x;
+        result[1] = value.y;
+        result[2] = value.z;
     }
 
-    constexpr ma_vec3f ToMiniaudio(const Vector3& value)
+    constexpr ma_vec3f ToMiniaudio(const float value[3])
     {
-        return ma_vec3f{ value.x, value.y, value.z };
+        return ma_vec3f{ value[0], value[1], value[2] };
     }
 
     constexpr ma_pan_mode ToMiniaudio(AudioPanMode value)
@@ -491,16 +489,14 @@ uint32_t alimerAudioEngineGetListenerCount(AudioEngine* engine)
     return engine->listenerCount;
 }
 
-void alimerAudioEngineListenerSetPosition(AudioEngine* engine, uint32_t listenerIndex, const Vector3* position)
+void alimerAudioEngineListenerSetPosition(AudioEngine* engine, uint32_t listenerIndex, const float position[3])
 {
-    ALIMER_ASSERT(position);
-
-    ma_engine_listener_set_position(&engine->handle, listenerIndex, position->x, position->y, position->z);
+    ma_engine_listener_set_position(&engine->handle, listenerIndex, position[0], position[1], position[2]);
 }
 
-void alimerAudioEngineListenerGetPosition(const AudioEngine* engine, uint32_t listenerIndex, Vector3* result)
+void alimerAudioEngineListenerGetPosition(const AudioEngine* engine, uint32_t listenerIndex, float position[3])
 {
-    FromMiniaudio(ma_engine_listener_get_position(&engine->handle, listenerIndex), result);
+    FromMiniaudio(ma_engine_listener_get_position(&engine->handle, listenerIndex), position);
 }
 
 bool alimerAudioEngineListenerIsEnabled(AudioEngine* engine, uint32_t listenerIndex)
@@ -749,40 +745,34 @@ void alimerAudioSourceSetSpatializationEnabled(AudioSource* source, bool enabled
     ma_sound_set_spatialization_enabled(source->handle, enabled ? MA_TRUE : MA_FALSE);
 }
 
-void alimerAudioSourceGetPosition(const AudioSource* source, Vector3* result)
+void alimerAudioSourceGetPosition(const AudioSource* source, float position[3])
 {
-    FromMiniaudio(ma_sound_get_position(source->handle), result);
+    FromMiniaudio(ma_sound_get_position(source->handle), position);
 }
 
-void alimerAudioSourceSetPosition(AudioSource* source, const Vector3* value)
+void alimerAudioSourceSetPosition(AudioSource* source, float position[3])
 {
-    ALIMER_ASSERT(value);
-
-    ma_sound_set_position(source->handle, value->x, value->y, value->z);
+    ma_sound_set_position(source->handle, position[0], position[1], position[2]);
 }
 
-void alimerAudioSourceGetDirection(const AudioSource* source, Vector3* result)
+void alimerAudioSourceGetDirection(const AudioSource* source, float direction[3])
 {
-    FromMiniaudio(ma_sound_get_direction(source->handle), result);
+    FromMiniaudio(ma_sound_get_direction(source->handle), direction);
 }
 
-void alimerAudioSourceSetDirection(AudioSource* source, const Vector3* value)
+void alimerAudioSourceSetDirection(AudioSource* source, const float direction[3])
 {
-    ALIMER_ASSERT(value);
-
-    ma_sound_set_direction(source->handle, value->x, value->y, value->z);
+    ma_sound_set_direction(source->handle, direction[0], direction[1], direction[2]);
 }
 
-void alimerAudioSourceGetVelocity(const AudioSource* source, Vector3* result)
+void alimerAudioSourceGetVelocity(const AudioSource* source, float velocity[3])
 {
-    FromMiniaudio(ma_sound_get_velocity(source->handle), result);
+    FromMiniaudio(ma_sound_get_velocity(source->handle), velocity);
 }
 
-void alimerAudioSourceSetVelocity(AudioSource* source, const Vector3* value)
+void alimerAudioSourceSetVelocity(AudioSource* source, const float velocity[3])
 {
-    ALIMER_ASSERT(value);
-
-    ma_sound_set_velocity(source->handle, value->x, value->y, value->z);
+    ma_sound_set_velocity(source->handle, velocity[0], velocity[1], velocity[2]);
 }
 
 AudioAttenuationModel alimerAudioSourceGetAttenuationModel(const AudioSource* source)

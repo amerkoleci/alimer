@@ -125,8 +125,8 @@ ALIMER_API void alimerAudioEngineSetTimeInMilliseconds(AudioEngine* engine, uint
 
 /* AudioListener */
 ALIMER_API uint32_t alimerAudioEngineGetListenerCount(AudioEngine* engine);
-ALIMER_API void alimerAudioEngineListenerSetPosition(AudioEngine* engine, uint32_t listenerIndex, const Vector3* position);
-ALIMER_API void alimerAudioEngineListenerGetPosition(const AudioEngine* engine, uint32_t listenerIndex, Vector3* result);
+ALIMER_API void alimerAudioEngineListenerSetPosition(AudioEngine* engine, uint32_t listenerIndex, const float position[3]);
+ALIMER_API void alimerAudioEngineListenerGetPosition(const AudioEngine* engine, uint32_t listenerIndex, float position[3]);
 ALIMER_API bool alimerAudioEngineListenerIsEnabled(AudioEngine* engine, uint32_t listenerIndex);
 ALIMER_API void alimerAudioEngineListenerSetEnabled(AudioEngine* engine, uint32_t listenerIndex, bool enabled);
 
@@ -165,14 +165,14 @@ ALIMER_API void alimerAudioSourceSetPitch(AudioSource* source, float value);
 ALIMER_API bool alimerAudioSourceIsSpatializationEnabled(const AudioSource* source);
 ALIMER_API void alimerAudioSourceSetSpatializationEnabled(AudioSource* source, bool enabled);
 
-ALIMER_API void alimerAudioSourceGetPosition(const AudioSource* source, Vector3* result);
-ALIMER_API void alimerAudioSourceSetPosition(AudioSource* source, const Vector3* value);
+ALIMER_API void alimerAudioSourceGetPosition(const AudioSource* source, float position[3]);
+ALIMER_API void alimerAudioSourceSetPosition(AudioSource* source, const float position[3]);
 
-ALIMER_API void alimerAudioSourceGetDirection(const AudioSource* source, Vector3* result);
-ALIMER_API void alimerAudioSourceSetDirection(AudioSource* source, const Vector3* value);
+ALIMER_API void alimerAudioSourceGetDirection(const AudioSource* source, float direction[3]);
+ALIMER_API void alimerAudioSourceSetDirection(AudioSource* source, const float direction[3]);
 
-ALIMER_API void alimerAudioSourceGetVelocity(const AudioSource* source, Vector3* result);
-ALIMER_API void alimerAudioSourceSetVelocity(AudioSource* source, const Vector3* value);
+ALIMER_API void alimerAudioSourceGetVelocity(const AudioSource* source, float velocity[3]);
+ALIMER_API void alimerAudioSourceSetVelocity(AudioSource* source, const float velocity[3]);
 
 ALIMER_API AudioAttenuationModel alimerAudioSourceGetAttenuationModel(const AudioSource* source);
 ALIMER_API void alimerAudioSourceSetAttenuationModel(AudioSource* source, AudioAttenuationModel value);
