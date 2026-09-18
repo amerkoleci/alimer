@@ -52,7 +52,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <_AlimerDotNetVersionMajor Condition="'$(_AlimerDotNetVersionMajor)' == ''">11</_AlimerDotNetVersionMajor>
+    <_AlimerDotNetVersionMajor Condition="'$(_AlimerDotNetVersionMajor)' == ''">10</_AlimerDotNetVersionMajor>
     <_AlimerDotNetVersionMinor Condition="'$(_AlimerDotNetVersionMinor)' == ''">0</_AlimerDotNetVersionMinor>
     <_AlimerDotNetVersion Condition="'$(_AlimerDotNetVersion)' == ''">$(_AlimerDotNetVersionMajor).$(_AlimerDotNetVersionMinor)</_AlimerDotNetVersion>
     <_AlimerDotNetTfm Condition="'$(_AlimerDotNetTfm)' == ''">net$(_AlimerDotNetVersion)</_AlimerDotNetTfm>
@@ -88,10 +88,10 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <AlimerWindowsPlatforms Condition="'$(AlimerWindowsPlatforms)' == ''">net10.0-windows10.0.22621.0</AlimerWindowsPlatforms>
+    <AlimerWindowsPlatforms Condition="'$(AlimerWindowsPlatforms)' == ''">net$(_AlimerDotNetVersion)-windows10.0.22621.0</AlimerWindowsPlatforms>
 
     <AlimerPlatforms Condition="'$(IncludeWindowsTargetFrameworks)' == 'true'">$(AlimerWindowsPlatforms);$(AlimerPlatforms)</AlimerPlatforms>
-    <AlimerPlatforms Condition="'$(IncludeAndroidTargetFrameworks)' == 'true'">net10.0-android;$(AlimerPlatforms)</AlimerPlatforms>
+    <AlimerPlatforms Condition="'$(IncludeAndroidTargetFrameworks)' == 'true'">net$(_AlimerDotNetVersion)-android;$(AlimerPlatforms)</AlimerPlatforms>
   </PropertyGroup>
 
 </Project>
