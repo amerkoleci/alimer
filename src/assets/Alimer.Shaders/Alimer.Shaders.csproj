@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFrameworks>$(_AlimerDotNetTfm)</TargetFrameworks>
     <!-- Ignore platform compatibility warnings -->
     <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>

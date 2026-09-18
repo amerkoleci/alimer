@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFrameworks>$(_AlimerDotNetTfm);$(AlimerPlatforms)</TargetFrameworks>
     <RootNamespace>Alimer.Navigation</RootNamespace>
   </PropertyGroup>
 

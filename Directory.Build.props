@@ -52,6 +52,11 @@
   </PropertyGroup>
 
   <PropertyGroup>
+    <_AlimerDotNetVersionMajor Condition="'$(_AlimerDotNetVersionMajor)' == ''">11</_AlimerDotNetVersionMajor>
+    <_AlimerDotNetVersionMinor Condition="'$(_AlimerDotNetVersionMinor)' == ''">0</_AlimerDotNetVersionMinor>
+    <_AlimerDotNetVersion Condition="'$(_AlimerDotNetVersion)' == ''">$(_AlimerDotNetVersionMajor).$(_AlimerDotNetVersionMinor)</_AlimerDotNetVersion>
+    <_AlimerDotNetTfm Condition="'$(_AlimerDotNetTfm)' == ''">net$(_AlimerDotNetVersion)</_AlimerDotNetTfm>
+
     <_AlimerTargetPlatformIdentifier>$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)'))</_AlimerTargetPlatformIdentifier>
     <_AlimerNoTargetPlatform>false</_AlimerNoTargetPlatform>
     <_AlimerNoTargetPlatform Condition="'$(_AlimerTargetPlatformIdentifier)' == ''">True</_AlimerNoTargetPlatform>

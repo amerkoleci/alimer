@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0;$(AlimerPlatforms)</TargetFrameworks>
+    <TargetFrameworks>$(_AlimerDotNetTfm);$(AlimerPlatforms)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <DefineConstants>$(DefineConstants);VALIDATE_USAGE</DefineConstants>
