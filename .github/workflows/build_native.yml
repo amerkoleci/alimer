@@ -47,6 +47,126 @@ jobs:
         name: libs_windows
         path: bin
 
+  linux:
+    name: Linux and Android
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+
+    - name: Get CMake and Ninja
+      uses: lukka/get-cmake@latest
+
+    - name: Install dependencies
+      run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git make \
+            pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev \
+            libaudio-dev libfribidi-dev libjack-dev libsndio-dev libx11-dev libxext-dev \
+            libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev \
+            libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
+            libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev \
+            libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev
+          sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+    # Linux
+    - name: Configure linux-x64
+      run: cmake -S "src/native" -B "build_linux_64" -G Ninja -DCMAKE_BUILD_TYPE:String=Release -DCMAKE_INSTALL_PREFIX="linux-x64-sdk"
+    - name: Build linux-x64
+      run: cmake --build build_linux_64 --config Release --target install --verbose --parallel
+
+    - name: Configure linux-arm64
+      run: cmake -S "src/native" -B "build_linux_arm64" -G Ninja -DCMAKE_BUILD_TYPE:String=Release -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ -DCMAKE_SYSTEM_PROCESSOR=aarch64 -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_INSTALL_PREFIX="linux-arm64-sdk"
+    - name: Build linux-arm64
+      run: cmake --build build_linux_arm64 --config Release --target install --verbose --parallel
+
+    # Android
+    - name: Setup Android NDK
+      id: setup-ndk
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r28
+        add-to-path: false
+      env:
+        ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+    - name: Configure (android-arm64-v8a)
+      run: >
+        cmake -S "src/native" -B "build_android_arm64_v8a"
+        -DANDROID_ABI=arm64-v8a
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_INSTALL_PREFIX="android-arm64_v8a-sdk"
+        -DANDROID_NDK=${{ steps.setup-ndk.outputs.ndk-path }}
+        -DCMAKE_TOOLCHAIN_FILE="${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake"
+    - name: CMake Build (android-arm64-v8a)
+      run: cmake --build build_android_arm64_v8a --config Release --target install --verbose --parallel
+
+    - name: CMake Configure (android-armeabi-v7a)
+      run: >
+        cmake -S "src/native" -B "build_android_armeabi_v7a"
+        -DANDROID_ABI=armeabi-v7a
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_INSTALL_PREFIX="android-armeabi_v7a-sdk"
+        -DANDROID_NDK=${{ steps.setup-ndk.outputs.ndk-path }}
+        -DCMAKE_TOOLCHAIN_FILE="${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake"
+    - name: CMake Build (android-armeabi-v7a)
+      run: cmake --build build_android_armeabi_v7a --config Release --target install --verbose --parallel
+
+    - name: CMake Configure (android-x86_64)
+      run: >
+        cmake -S "src/native" -B "build_android_x86_64"
+        -DANDROID_ABI=x86_64
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_INSTALL_PREFIX="android-x86_64-sdk"
+        -DANDROID_NDK=${{ steps.setup-ndk.outputs.ndk-path }}
+        -DCMAKE_TOOLCHAIN_FILE="${{ steps.setup-ndk.outputs.ndk-path }}/build/cmake/android.toolchain.cmake"
+    - name: CMake Build (android-x86_64)
+      run: cmake --build build_android_x86_64 --config Release --target install --verbose --parallel
+
+    # Linux and Android artifacts
+    - name: Package Linux and Android
+      run: |
+        mkdir -p bin/linux-x64
+        mkdir -p bin/linux-arm64
+        mkdir -p bin/android-arm64
+        mkdir -p bin/android-arm
+        mkdir -p bin/android-x64
+        mv linux-x64-sdk/lib/*.* bin/linux-x64
+        mv linux-arm64-sdk/lib/*.* bin/linux-arm64
+        mv android-arm64_v8a-sdk/lib/*.* bin/android-arm64
+        mv android-armeabi_v7a-sdk/lib/*.* bin/android-arm
+        mv android-x86_64-sdk/lib/*.* bin/android-x64
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: libs_linux
+        path: bin
+
+  macos:
+    name: macOS
+    runs-on: macos-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+
+    - name: Get CMake and Ninja
+      uses: lukka/get-cmake@latest
+
+    - name: CMake Configure osx-universal
+      run: cmake -S "." -B "build_osx" -G Ninja -DCMAKE_BUILD_TYPE:String=Release -DCMAKE_INSTALL_PREFIX="osx-universal-sdk" -D"CMAKE_OSX_ARCHITECTURES=x86_64;arm64"
+    - name: CMake Build osx-universal
+      run: cmake --build build_osx --config Release --target install
+
+    - name: Package macos
+      run: |
+        mkdir -p bin/osx
+        mv osx-universal-sdk/lib/*.* bin/osx
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: libs_osx
+        path: bin
+
   macos:
     name: macOS
     runs-on: macos-latest
@@ -75,7 +195,7 @@ jobs:
   combine:
     name: Combine artifacts
     runs-on: ubuntu-latest
-    needs:  [windows, macos]
+    needs:  [windows, linux, macos]
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v8
@@ -90,6 +210,7 @@ jobs:
         run: |
           mkdir native_libs
           cp -r artifacts/libs_windows/* native_libs
+          cp -r artifacts/libs_linux/* native_libs
           cp -r artifacts/libs_osx/* native_libs
 
       - uses: edgarrc/action-7z@v1
@@ -104,4 +225,5 @@ jobs:
         with:
           name: |
             libs_windows
+            libs_linux
             libs_osx
