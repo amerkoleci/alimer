@@ -178,7 +178,7 @@ cmake_dependent_option(ALIMER_GPU_D3D12 "Enable D3D12 GPU backend" ON "ALIMER_GP
 cmake_dependent_option(ALIMER_GPU_WEBGPU "Enable WebGPU GPU backend" ON "ALIMER_GPU_HAS_WEBGPU" OFF)
 
 if (NOT ALIMER_PHYSICS)
-    set(ALIMER_PHYSICS "Jolt" CACHE BOOL "Enable Physics support (using Jolt)" FORCE)
+    set(ALIMER_PHYSICS "Box3D" CACHE BOOL "Enable Physics support (using Box3D)" FORCE)
 endif()
 
 # Set general compiler flags
