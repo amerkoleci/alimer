@@ -153,31 +153,6 @@ jobs:
       uses: lukka/get-cmake@latest
 
     - name: CMake Configure osx-universal
-      run: cmake -S "." -B "build_osx" -G Ninja -DCMAKE_BUILD_TYPE:String=Release -DCMAKE_INSTALL_PREFIX="osx-universal-sdk" -D"CMAKE_OSX_ARCHITECTURES=x86_64;arm64"
-    - name: CMake Build osx-universal
-      run: cmake --build build_osx --config Release --target install
-
-    - name: Package macos
-      run: |
-        mkdir -p bin/osx
-        mv osx-universal-sdk/lib/*.* bin/osx
-
-    - uses: actions/upload-artifact@v7
-      with:
-        name: libs_osx
-        path: bin
-
-  macos:
-    name: macOS
-    runs-on: macos-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v7
-
-    - name: Get CMake and Ninja
-      uses: lukka/get-cmake@latest
-
-    - name: CMake Configure osx-universal
       run: cmake -S "src/native" -B "build_osx" -G Ninja -DCMAKE_BUILD_TYPE:String=Distribution -DCMAKE_INSTALL_PREFIX="osx-universal-sdk" -D"CMAKE_OSX_ARCHITECTURES=x86_64;arm64"
     - name: CMake Build osx-universal
       run: cmake --build build_osx --config Distribution --target install
