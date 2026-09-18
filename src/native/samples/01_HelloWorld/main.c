@@ -3,6 +3,7 @@
 
 //#define TEST_PHYSICS
 
+#include "alimer_platform.h"
 #include "alimer_image.h"
 #if defined(ALIMER_AUDIO)
 #include "alimer_audio.h"
@@ -161,8 +162,7 @@ int main(void)
     (void)bodyInverseMass;
 
     const float cDeltaTime = 1.0f / 60.0f;
-
-    alimerPhysicsWorldOptimizeBroadPhase(physicsWorld);
+    //alimerPhysicsWorldOptimizeBroadPhase(physicsWorld);
 
     uint32_t step = 0;
     while (alimerPhysicsBodyIsActive(sphereBody))
@@ -205,8 +205,8 @@ int main(void)
 
 
 #if defined(ALIMER_PHYSICS)
-    alimerPhysicsBodyDestroy(sphereBody);
-    alimerPhysicsBodyDestroy(floorBody);
+    alimerPhysicsBodyRelease(sphereBody);
+    alimerPhysicsBodyRelease(floorBody);
     alimerPhysicsWorldDestroy(physicsWorld);
     alimerPhysicsShutdown();
 #endif

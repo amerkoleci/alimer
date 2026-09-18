@@ -219,11 +219,6 @@ bool alimerPhysicsWorldUpdate(PhysicsWorld* world, float deltaTime, int collisio
     return true;
 }
 
-void alimerPhysicsWorldOptimizeBroadPhase(PhysicsWorld* world)
-{
-    ALIMER_UNUSED(world);
-}
-
 /* Material */
 PhysicsMaterial* alimerPhysicsMaterialCreate(const char* name, float friction, float restitution)
 {
@@ -320,7 +315,7 @@ float alimerPhysicsShapeGetMass(PhysicsShape* shape)
     return 0.f;
 }
 
-PhysicsShape* alimerPhysicsCreateBoxShape(const Vec3* size, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsShapeCreateBox(const Vec3* size, PhysicsMaterial* material)
 {
     ALIMER_ASSERT(size);
     ALIMER_ASSERT(size->x > 0.f && size->y > 0.f && size->z > 0.f);
@@ -339,7 +334,7 @@ PhysicsShape* alimerPhysicsCreateBoxShape(const Vec3* size, PhysicsMaterial* mat
     return shape;
 }
 
-PhysicsShape* alimerPhysicsCreateSphereShape(float radius, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsShapeCreateSphere(float radius, PhysicsMaterial* material)
 {
     ALIMER_ASSERT(radius > 0.f);
 
@@ -357,7 +352,7 @@ PhysicsShape* alimerPhysicsCreateSphereShape(float radius, PhysicsMaterial* mate
     return shape;
 }
 
-PhysicsShape* alimerPhysicsCreateCapsuleShape(float height, float radius, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsShapeCreateCapsule(float height, float radius, PhysicsMaterial* material)
 {
     ALIMER_ASSERT(height > 0.f);
     ALIMER_ASSERT(radius > 0.f);
@@ -376,7 +371,7 @@ PhysicsShape* alimerPhysicsCreateCapsuleShape(float height, float radius, Physic
     return shape;
 }
 
-PhysicsShape* alimerPhysicsCreateCylinderShape(float height, float radius, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsShapeCreateCylinder(float height, float radius, PhysicsMaterial* material)
 {
     ALIMER_ASSERT(height > 0.f);
     ALIMER_ASSERT(radius > 0.f);
@@ -395,7 +390,7 @@ PhysicsShape* alimerPhysicsCreateCylinderShape(float height, float radius, Physi
     return shape;
 }
 
-PhysicsShape* alimerPhysicsCreateConvexHullShape(const Vec3* points, uint32_t pointsCount, PhysicsMaterial* material)
+PhysicsShape* alimerPhysicsShapeCreateConvexHull(const Vec3* points, uint32_t pointsCount, PhysicsMaterial* material)
 {
     PhysicsShape* shape = new PhysicsShape();
     shape->refCount.store(1);
@@ -404,7 +399,7 @@ PhysicsShape* alimerPhysicsCreateConvexHullShape(const Vec3* points, uint32_t po
     return shape;
 }
 
-PhysicsShape* alimerPhysicsCreateMeshShape(const Vec3* vertices, uint32_t verticesCount, const uint32_t* indices, uint32_t indicesCount)
+PhysicsShape* alimerPhysicsShapeCreateMesh(const Vec3* vertices, uint32_t verticesCount, const uint32_t* indices, uint32_t indicesCount)
 {
     PhysicsShape* shape = new PhysicsShape();
     shape->refCount.store(1);
@@ -413,7 +408,7 @@ PhysicsShape* alimerPhysicsCreateMeshShape(const Vec3* vertices, uint32_t vertic
     return shape;
 }
 
-PhysicsShape* alimerPhysicsCreateTerrainShape(const float* samples, const Vec3* offset, const Vec3* scale, uint32_t sampleCount)
+PhysicsShape* alimerPhysicsShapeCreateTerrain(const float* samples, const Vec3* offset, const Vec3* scale, uint32_t sampleCount)
 {
     PhysicsShape* shape = new PhysicsShape();
     shape->refCount.store(1);
@@ -631,6 +626,27 @@ void alimerPhysicsBodyGetWorldTransform(PhysicsBody* body, Matrix4x4* transform)
 
     b3WorldTransform worldTransform = b3Body_GetTransform(body->id);
     FromBox3D(worldTransform, transform);
+}
+
+float alimerPhysicsBodyGetMass(PhysicsBody* body)
+{
+    ALIMER_ASSERT(b3Body_IsValid(body->id));
+
+    return b3Body_GetMass(body->id);
+}
+
+float alimerPhysicsBodyGetInverseMass(PhysicsBody* body)
+{
+    ALIMER_ASSERT(b3Body_IsValid(body->id));
+
+    return b3Body_GetInverseMass(body->id);
+}
+
+void alimerPhysicsBodyGetCenterOfMassPosition(PhysicsBody* body, Vec3* position)
+{
+    ALIMER_ASSERT(b3Body_IsValid(body->id));
+
+    FromBox3D(b3Body_GetWorldCenter(body->id), position);
 }
 
 bool alimerPhysicsBodyIsActive(PhysicsBody* body)

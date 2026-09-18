@@ -183,30 +183,6 @@ namespace
                 return ma_positioning_relative;
         }
     }
-
-    static void log_callback(void* pUserData, ma_uint32 level, const char* message)
-    {
-        ALIMER_UNUSED(pUserData);
-
-        switch (level)
-        {
-            case MA_LOG_LEVEL_DEBUG:
-                alimerLogFormat(LogCategory_Audio, LogLevel_Debug, "[MiniAudio] %s", message);
-                break;
-
-            case MA_LOG_LEVEL_INFO:
-                alimerLogFormat(LogCategory_Audio, LogLevel_Info, "[MiniAudio] %s", message);
-                break;
-
-            case MA_LOG_LEVEL_WARNING:
-                alimerLogFormat(LogCategory_Audio, LogLevel_Warn, "[MiniAudio] %s", message);
-                break;
-
-            case MA_LOG_LEVEL_ERROR:
-                alimerLogFormat(LogCategory_Audio, LogLevel_Error, "[MiniAudio] %s", message);
-                break;
-        }
-    }
 }
 
 struct AudioDevice final
@@ -218,6 +194,7 @@ struct AudioDevice final
 struct AudioEngine final
 {
     std::atomic_uint32_t refCount;
+    AudioContext* context;
     std::mutex readMutex;
     ma_device device;
     ma_engine handle;
@@ -243,60 +220,53 @@ struct AudioSource final
     ma_sound* handle = nullptr;
 };
 
-static struct
+struct AudioContext final
 {
     std::atomic_uint32_t refCount;
-    ma_log log;
-    ma_context context;
-} state;
+    ma_context* handle = nullptr;
+};
 
-bool alimerAudioInit(void)
+AudioContext* alimerContextCreate(const AudioContextConfig* config)
 {
-    if (state.refCount > 0)
-        return true;
-
-    ma_result result = ma_log_init(nullptr, &state.log);
-    if (result != MA_SUCCESS)
-    {
-        alimerLogError(LogCategory_Audio, "ma_log_init failed: %s", ma_result_description(result));
-        return false;
-    }
-
-    result = ma_log_register_callback(&state.log, ma_log_callback_init(log_callback, nullptr));
-    if (result != MA_SUCCESS)
-    {
-        ma_log_uninit(&state.log);
-        alimerLogError(LogCategory_Audio, "ma_log_register_callback failed: %s", ma_result_description(result));
-        return false;
-    }
+    // Custom log
+    AudioContext* context = new AudioContext();
+    context->refCount.store(1);
+    context->handle = (ma_context*)ma_malloc(sizeof(ma_context), nullptr);
 
     ma_context_config contextConfig = ma_context_config_init();
-    contextConfig.pLog = &state.log;
 
-    result = ma_context_init(nullptr, 0, &contextConfig, &state.context);
+    const bool noAudio = (config != nullptr && config->noAudio);
+    ma_backend nullBackend = ma_backend_null;
+    ma_result result = ma_context_init((noAudio) ? &nullBackend : nullptr, noAudio ? 1 : 0, &contextConfig, context->handle);
     if (result != MA_SUCCESS)
     {
-        ma_log_uninit(&state.log);
         alimerLogError(LogCategory_Audio, "ma_context_init failed: %s", ma_result_description(result));
-        return false;
+        ma_free(context->handle, nullptr);
+        delete context;
+        return nullptr;
     }
 
-    state.refCount.store(1);
-    return true;
+    return context;
 }
 
-void alimerAudioShutdown(void)
+void alimerAudioContextAddRef(AudioContext* context)
 {
-    uint32_t newCount = --state.refCount;
+    ++context->refCount;
+}
+
+void alimerAudioContextRelease(AudioContext* context)
+{
+    uint32_t newCount = --context->refCount;
     if (newCount == 0)
     {
-        ma_result result = ma_context_uninit(&state.context);
+        ma_result result = ma_context_uninit(context->handle);
         if (result != MA_SUCCESS)
         {
             alimerLogError(LogCategory_Audio, "ma_context_uninit failed: %s", ma_result_description(result));
         }
 
-        memset(&state, 0, sizeof(state));
+        ma_free(context->handle, nullptr);
+        delete context;
     }
 }
 
@@ -310,10 +280,10 @@ static ma_bool32 enumDevicesCallback(ma_context* context, ma_device_type type, c
     return MA_TRUE;
 }
 
-void alimerAudioEnumerateDevices(AudioDeviceCallback* callback, void* userdata)
+void alimerAudioContextEnumerateDevices(AudioContext* context, AudioDeviceCallback* callback, void* userdata)
 {
     s_enumerateCallback = callback;
-    ma_result result = ma_context_enumerate_devices(&state.context, enumDevicesCallback, userdata);
+    ma_result result = ma_context_enumerate_devices(context->handle, enumDevicesCallback, userdata);
     if (result != MA_SUCCESS)
     {
         alimerLogError(LogCategory_Audio, "ma_context_enumerate_devices failed: %s", ma_result_description(result));
@@ -354,10 +324,12 @@ static void DataCallback(ma_device* pDevice, void* pOutput, const void* pInput, 
     ma_engine_read_pcm_frames(&thisEngine.handle, pOutput, frameCount, nullptr);
 }
 
-AudioEngine* alimerAudioEngineCreate(const AudioConfig* config)
+AudioEngine* alimerAudioEngineCreate(AudioContext* context, const AudioEngineConfig* config)
 {
     AudioEngine* engine = new AudioEngine();
     engine->refCount.store(1);
+    engine->context = context;
+    ++engine->context->refCount;
 
     ma_device_config deviceConfig = ma_device_config_init(ma_device_type_playback);
     if (config && config->playbackDevice)
@@ -370,7 +342,7 @@ AudioEngine* alimerAudioEngineCreate(const AudioConfig* config)
     deviceConfig.dataCallback = DataCallback;
     deviceConfig.pUserData = engine;
 
-    ma_result result = ma_device_init(&state.context, &deviceConfig, &engine->device);
+    ma_result result = ma_device_init(context->handle, &deviceConfig, &engine->device);
     if (result != MA_SUCCESS)
     {
         alimerLogError(LogCategory_Audio, "Failed to initialize audio device");
@@ -407,6 +379,7 @@ void alimerAudioEngineDestroy(AudioEngine* engine)
     if (newCount == 0)
     {
         ma_engine_uninit(&engine->handle);
+        --engine->context->refCount;
         delete engine;
     }
 }
@@ -607,12 +580,12 @@ AudioClip* alimerAudioClipCreateFromMemory(const void* pData, size_t dataSize)
 
 }
 
-uint32_t alimerAudioClipAddRef(AudioClip* clip)
+void alimerAudioClipAddRef(AudioClip* clip)
 {
-    return ++clip->refCount;
+    ++clip->refCount;
 }
 
-uint32_t alimerAudioClipRelease(AudioClip* clip)
+void alimerAudioClipRelease(AudioClip* clip)
 {
     uint32_t newCount = --clip->refCount;
     if (newCount == 0)
@@ -625,7 +598,6 @@ uint32_t alimerAudioClipRelease(AudioClip* clip)
 
         delete clip;
     }
-    return newCount;
 }
 
 AudioFormat alimerAudioClipGetFormat(AudioClip* clip)
@@ -659,7 +631,7 @@ AudioSource* alimerAudioSourceCreate(AudioEngine* engine, AudioClip* clip)
     AudioSource* source = new AudioSource();
     source->refCount.store(1);
     source->clip = clip;
-    alimerAudioClipAddRef(clip);
+    alimerAudioClipAddRef(source->clip);
     source->handle = (ma_sound*)ma_malloc(sizeof(ma_sound), nullptr);
 
     ma_uint32 soundFlags = 0; // MA_SOUND_FLAG_STREAM
@@ -675,12 +647,12 @@ AudioSource* alimerAudioSourceCreate(AudioEngine* engine, AudioClip* clip)
     return source;
 }
 
-uint32_t alimerAudioSourceAddRef(AudioSource* source)
+void alimerAudioSourceAddRef(AudioSource* source)
 {
-    return ++source->refCount;
+    ++source->refCount;
 }
 
-uint32_t alimerAudioSourceRelease(AudioSource* source)
+void alimerAudioSourceRelease(AudioSource* source)
 {
     uint32_t newCount = --source->refCount;
     if (newCount == 0)
@@ -695,7 +667,6 @@ uint32_t alimerAudioSourceRelease(AudioSource* source)
         alimerAudioClipRelease(source->clip);
         delete source;
     }
-    return newCount;
 }
 
 void alimerAudioSourcePlay(AudioSource* source)

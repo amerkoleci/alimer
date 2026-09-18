@@ -697,7 +697,7 @@ void alimerPixelFormatGetInfo(PixelFormat format, PixelFormatInfo* pInfo)
     *pInfo = kPixelFormatInfo[format];
 }
 
-bool alimerPixelFormatIsDepth(PixelFormat format)
+Bool32 alimerPixelFormatIsDepth(PixelFormat format)
 {
     switch (format)
     {
@@ -711,7 +711,7 @@ bool alimerPixelFormatIsDepth(PixelFormat format)
     }
 }
 
-bool alimerPixelFormatIsStencil(PixelFormat format)
+Bool32 alimerPixelFormatIsStencil(PixelFormat format)
 {
     switch (format)
     {
@@ -724,7 +724,7 @@ bool alimerPixelFormatIsStencil(PixelFormat format)
     }
 }
 
-bool alimerPixelFormatIsDepthStencil(PixelFormat format)
+Bool32 alimerPixelFormatIsDepthStencil(PixelFormat format)
 {
     switch (format)
     {
@@ -739,7 +739,7 @@ bool alimerPixelFormatIsDepthStencil(PixelFormat format)
     }
 }
 
-bool alimerPixelFormatIsDepthOnly(PixelFormat format)
+Bool32 alimerPixelFormatIsDepthOnly(PixelFormat format)
 {
     switch (format)
     {
@@ -751,13 +751,13 @@ bool alimerPixelFormatIsDepthOnly(PixelFormat format)
     }
 }
 
-bool alimerPixelFormatIsCompressed(PixelFormat format)
+Bool32 alimerPixelFormatIsCompressed(PixelFormat format)
 {
     const PixelFormatInfo& formatInfo = GetPixelFormatInfo(format);
     return formatInfo.blockWidth > 1 || formatInfo.blockHeight > 1;
 }
 
-bool alimerPixelFormatIsCompressedBC(PixelFormat format)
+Bool32 alimerPixelFormatIsCompressedBC(PixelFormat format)
 {
     switch (format)
     {
@@ -781,7 +781,7 @@ bool alimerPixelFormatIsCompressedBC(PixelFormat format)
     }
 }
 
-bool alimerPixelFormatIsCompressedASTC(PixelFormat format)
+Bool32 alimerPixelFormatIsCompressedASTC(PixelFormat format)
 {
     switch (format)
     {
@@ -853,13 +853,13 @@ PixelFormatKind alimerPixelFormatGetKind(PixelFormat format)
     return formatInfo.kind;
 }
 
-bool alimerPixelFormatIsInteger(PixelFormat format)
+Bool32 alimerPixelFormatIsInteger(PixelFormat format)
 {
     const PixelFormatInfo& formatInfo = GetPixelFormatInfo(format);
     return formatInfo.kind == PixelFormatKind_Uint || formatInfo.kind == PixelFormatKind_Sint;
 }
 
-bool alimerPixelFormatIsSrgb(PixelFormat format)
+Bool32 alimerPixelFormatIsSrgb(PixelFormat format)
 {
     const PixelFormatInfo& formatInfo = GetPixelFormatInfo(format);
     return formatInfo.kind == PixelFormatKind_UnormSrgb;

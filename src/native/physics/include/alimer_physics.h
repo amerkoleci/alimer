@@ -136,7 +136,6 @@ ALIMER_PHYSICS_API uint32_t alimerPhysicsWorldGetBodyCount(PhysicsWorld* world);
 ALIMER_PHYSICS_API uint32_t alimerPhysicsWorldGetActiveBodyCount(PhysicsWorld* world);
 ALIMER_PHYSICS_API void alimerPhysicsWorldGetGravity(PhysicsWorld* world, Vec3* gravity);
 ALIMER_PHYSICS_API void alimerPhysicsWorldSetGravity(PhysicsWorld* world, const Vec3* gravity);
-ALIMER_PHYSICS_API void alimerPhysicsWorldOptimizeBroadPhase(PhysicsWorld* world);
 ALIMER_PHYSICS_API bool alimerPhysicsWorldUpdate(PhysicsWorld* world, float deltaTime, int collisionSteps);
 
 /* Material */
@@ -162,7 +161,8 @@ ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateTerrain(const float* sa
 /* Body */
 ALIMER_PHYSICS_API void alimerPhysicsBodyDescInit(PhysicsBodyDesc* desc);
 ALIMER_PHYSICS_API PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, const PhysicsBodyDesc* desc);
-ALIMER_PHYSICS_API void alimerPhysicsBodyDestroy(PhysicsBody* body);
+ALIMER_PHYSICS_API void alimerPhysicsBodyAddRef(PhysicsBody* body);
+ALIMER_PHYSICS_API void alimerPhysicsBodyRelease(PhysicsBody* body);
 ALIMER_PHYSICS_API bool alimerPhysicsBodyIsValid(PhysicsBody* body);
 
 ALIMER_PHYSICS_API PhysicsWorld* alimerPhysicsBodyGetWorld(PhysicsBody* body);

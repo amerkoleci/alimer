@@ -98,27 +98,27 @@ ALIMER_API void alimerBlobDestroy(Blob* blob);
 /* PixelFormat */
 ALIMER_API void alimerPixelFormatGetInfo(PixelFormat format, PixelFormatInfo* pInfo);
 /// Check if the format has a depth component
-ALIMER_API bool alimerPixelFormatIsDepth(PixelFormat format);
+ALIMER_API Bool32 alimerPixelFormatIsDepth(PixelFormat format);
 /// Check if the format has a stencil component
-ALIMER_API bool alimerPixelFormatIsStencil(PixelFormat format);
+ALIMER_API Bool32 alimerPixelFormatIsStencil(PixelFormat format);
 /// Check if the format has depth or stencil components
-ALIMER_API bool alimerPixelFormatIsDepthStencil(PixelFormat format);
+ALIMER_API Bool32 alimerPixelFormatIsDepthStencil(PixelFormat format);
 /// Check if the format has a depth only component.
-ALIMER_API bool alimerPixelFormatIsDepthOnly(PixelFormat format);
+ALIMER_API Bool32 alimerPixelFormatIsDepthOnly(PixelFormat format);
 /// Check if the format is a compressed format.
-ALIMER_API bool alimerPixelFormatIsCompressed(PixelFormat format);
+ALIMER_API Bool32 alimerPixelFormatIsCompressed(PixelFormat format);
 /// Check if the format is a BC-compressed format.
-ALIMER_API bool alimerPixelFormatIsCompressedBC(PixelFormat format);
+ALIMER_API Bool32 alimerPixelFormatIsCompressedBC(PixelFormat format);
 /// Check if the format is a ASTC-compressed format.
-ALIMER_API bool alimerPixelFormatIsCompressedASTC(PixelFormat format);
+ALIMER_API Bool32 alimerPixelFormatIsCompressedASTC(PixelFormat format);
 /// Get the number of bytes per format.
 ALIMER_API uint32_t alimerPixelFormatGetBytesPerBlock(PixelFormat format);
 /// Get the pixel format kind
 ALIMER_API PixelFormatKind alimerPixelFormatGetKind(PixelFormat format);
 /// Check if a format is an integer type.
-ALIMER_API bool alimerPixelFormatIsInteger(PixelFormat format);
+ALIMER_API Bool32 alimerPixelFormatIsInteger(PixelFormat format);
 /// Check if a format represents sRGB color space
-ALIMER_API bool alimerPixelFormatIsSrgb(PixelFormat format);
+ALIMER_API Bool32 alimerPixelFormatIsSrgb(PixelFormat format);
 
 /// Convert an SRGB format to linear. If the format is already linear, will return it
 ALIMER_API PixelFormat alimerPixelFormatSrgbToLinear(PixelFormat format);

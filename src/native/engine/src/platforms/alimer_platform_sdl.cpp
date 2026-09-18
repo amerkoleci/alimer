@@ -384,7 +384,7 @@ static bool PopEvent(PlatformEvent* e) noexcept
     return false;
 }
 
-bool alimerPlatformInit(void)
+Bool32 alimerPlatformInit(void)
 {
     if (state.initialized)
         return true;
@@ -435,7 +435,7 @@ void alimerPlatformShutdown(void)
     memset(&state, 0, sizeof(state));
 }
 
-bool alimerPlatformPollEvent(PlatformEvent* evt)
+Bool32 alimerPlatformPollEvent(PlatformEvent* evt)
 {
     ALIMER_ASSERT(state.initialized);
 
@@ -537,7 +537,7 @@ uint32_t alimerWindowGetID(Window* window)
     return window->id;
 }
 
-bool alimerWindowIsOpen(Window* window)
+Bool32 alimerWindowIsOpen(Window* window)
 {
     ALIMER_ASSERT(window != nullptr);
 
@@ -617,7 +617,7 @@ float alimerWindowGetDisplayScale(Window* window)
     return SDL_GetWindowDisplayScale(window->handle);
 }
 
-bool alimerWindowGetMousePosition(Window* window, float* x, float* y)
+Bool32 alimerWindowGetMousePosition(Window* window, float* x, float* y)
 {
     ALIMER_ASSERT(window != nullptr);
 
@@ -635,7 +635,7 @@ bool alimerWindowGetMousePosition(Window* window, float* x, float* y)
     return flags != 0;
 }
 
-bool alimerWindowIsMinimized(Window* window)
+Bool32 alimerWindowIsMinimized(Window* window)
 {
     ALIMER_ASSERT(window != nullptr);
 
@@ -643,7 +643,7 @@ bool alimerWindowIsMinimized(Window* window)
     return (flags & SDL_WINDOW_MINIMIZED) != 0;
 }
 
-bool alimerWindowIsMaximized(Window* window)
+Bool32 alimerWindowIsMaximized(Window* window)
 {
     ALIMER_ASSERT(window != nullptr);
 
@@ -651,7 +651,7 @@ bool alimerWindowIsMaximized(Window* window)
     return (flags & SDL_WINDOW_MAXIMIZED) != 0;
 }
 
-bool alimerWindowIsFullscreen(Window* window)
+Bool32 alimerWindowIsFullscreen(Window* window)
 {
     ALIMER_ASSERT(window != nullptr);
 
@@ -666,7 +666,7 @@ void alimerWindowSetFullscreen(Window* window, bool value)
     SDL_SetWindowFullscreen(window->handle, value);
 }
 
-bool alimerWindowHasFocus(Window* window)
+Bool32 alimerWindowHasFocus(Window* window)
 {
     ALIMER_ASSERT(window != nullptr);
     const SDL_WindowFlags flags = SDL_GetWindowFlags(window->handle);
@@ -765,7 +765,7 @@ void* alimerWindowGetNativeHandle(Window* window)
 }
 
 /* Clipboard */
-bool alimerHasClipboardText(void)
+Bool32 alimerHasClipboardText(void)
 {
     return SDL_HasClipboardText();
 }
