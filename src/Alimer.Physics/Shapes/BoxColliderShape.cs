@@ -12,7 +12,7 @@ public class BoxColliderShape : ColliderShape
     {
         Size = size;
 
-        Handle = alimerPhysicsCreateBoxShape(size, PhysicsMaterial.Null);
+        Handle = alimerPhysicsShapeCreateBox(size, PhysicsMaterial.Null);
     }
 
     public Vector3 Size { get; }

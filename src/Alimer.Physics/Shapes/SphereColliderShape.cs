@@ -12,7 +12,7 @@ public class SphereColliderShape : ColliderShape
     {
         Radius = radius;
 
-        Handle = alimerPhysicsCreateSphereShape(radius, PhysicsMaterial.Null);
+        Handle = alimerPhysicsShapeCreateSphere(radius, PhysicsMaterial.Null);
     }
 
     public float Radius { get; }

@@ -30,6 +30,12 @@
 
 #define ALIMER_PHYSICS_API _ALIMER_EXTERN _ALIMER_EXPORT
 
+#ifdef __cplusplus
+#   define ALIMER_PHYSICS_DEFAULT_INITIALIZER(x) = x
+#else
+#   define ALIMER_PHYSICS_DEFAULT_INITIALIZER(x)
+#endif
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -61,7 +67,6 @@ typedef enum PhysicsShapeType {
     PhysicsShapeType_Cylinder,
     PhysicsShapeType_ConvexHull,
     PhysicsShapeType_Mesh,
-    PhysicsShapeType_Terrain,
 
     PhysicsShapeType_Count,
     _PhysicsShapeType_Force32 = 0x7FFFFFFF
@@ -81,18 +86,21 @@ typedef struct Quaternion {
 } Quaternion;
 
 typedef struct PhysicsWorldConfig {
-    uint32_t maxBodies;
-    uint32_t maxBodyPairs;
+    uint32_t maxPhysicsBodies ALIMER_PHYSICS_DEFAULT_INITIALIZER(65536);
+    uint32_t maxPhysicsContactConstraints ALIMER_PHYSICS_DEFAULT_INITIALIZER(131072);
+    Vector3 gravity;
 } PhysicsWorldConfig;
 
-typedef struct PhysicsBodyTransform {
-    Vector3 position;
-    Quaternion rotation;
-} PhysicsBodyTransform;
+typedef struct PhysicsMaterialDesc {
+    const char* name;
+    float friction;
+    float restitution;
+} PhysicsMaterialDesc;
 
 typedef struct PhysicsBodyDesc {
     PhysicsBodyType type;
-    PhysicsBodyTransform initialTransform;
+    Vector3 position;
+    Quaternion rotation;
     Vector3 linearVelocity;
     Vector3 angularVelocity;
     float mass;
@@ -101,7 +109,7 @@ typedef struct PhysicsBodyDesc {
     float gravityScale;
     bool isSensor;
     bool allowSleeping;
-    bool continuous;
+    bool useContinuousCollision;
     uint32_t shapeCount;
     PhysicsShape** shapes;
 } PhysicsBodyDesc;
@@ -115,16 +123,17 @@ ALIMER_PHYSICS_API bool alimerPhysicsInit(void);
 ALIMER_PHYSICS_API void alimerPhysicsShutdown(void);
 
 /* World */
+ALIMER_PHYSICS_API PhysicsWorldConfig alimerPhysicsWorldConfigDefault(void);
 ALIMER_PHYSICS_API PhysicsWorld* alimerPhysicsWorldCreate(const PhysicsWorldConfig* config);
 ALIMER_PHYSICS_API void alimerPhysicsWorldDestroy(PhysicsWorld* world);
 ALIMER_PHYSICS_API uint32_t alimerPhysicsWorldGetBodyCount(PhysicsWorld* world);
 ALIMER_PHYSICS_API uint32_t alimerPhysicsWorldGetActiveBodyCount(PhysicsWorld* world);
 ALIMER_PHYSICS_API void alimerPhysicsWorldGetGravity(PhysicsWorld* world, Vector3* gravity);
 ALIMER_PHYSICS_API void alimerPhysicsWorldSetGravity(PhysicsWorld* world, const Vector3* gravity);
-ALIMER_PHYSICS_API void alimerPhysicsWorldUpdate(PhysicsWorld* world, float deltaTime, int collisionSteps);
+ALIMER_PHYSICS_API void alimerPhysicsWorldUpdate(PhysicsWorld* world, float timeStep, int collisionSteps);
 
 /* Material */
-ALIMER_PHYSICS_API PhysicsMaterial* alimerPhysicsMaterialCreate(const char* name, float friction, float restitution);
+ALIMER_PHYSICS_API PhysicsMaterial* alimerPhysicsMaterialCreate(const PhysicsMaterialDesc* desc);
 ALIMER_PHYSICS_API void alimerPhysicsMaterialAddRef(PhysicsMaterial* material);
 ALIMER_PHYSICS_API void alimerPhysicsMaterialRelease(PhysicsMaterial* material);
 
@@ -133,9 +142,10 @@ ALIMER_PHYSICS_API void alimerPhysicsShapeAddRef(PhysicsShape* shape);
 ALIMER_PHYSICS_API void alimerPhysicsShapeRelease(PhysicsShape* shape);
 ALIMER_PHYSICS_API bool alimerPhysicsShapeIsValid(PhysicsShape* shape);
 ALIMER_PHYSICS_API PhysicsShapeType alimerPhysicsShapeGetType(PhysicsShape* shape);
+ALIMER_PHYSICS_API PhysicsBody* alimerPhysicsShapeGetBody(PhysicsShape* shape);
+
 ALIMER_PHYSICS_API float alimerPhysicsShapeGetVolume(PhysicsShape* shape);
 ALIMER_PHYSICS_API float alimerPhysicsShapeGetDensity(PhysicsShape* shape);
-ALIMER_PHYSICS_API float alimerPhysicsShapeGetMass(PhysicsShape* shape);
 
 ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateBox(const Vector3* size, PhysicsMaterial* material);
 ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateSphere(float radius, PhysicsMaterial* material);
@@ -143,7 +153,6 @@ ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateCapsule(float height, f
 ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateCylinder(float height, float radius, PhysicsMaterial* material);
 ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateConvexHull(const Vector3* points, uint32_t pointsCount, PhysicsMaterial* material);
 ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateMesh(const Vector3* vertices, uint32_t verticesCount, const uint32_t* indices, uint32_t indicesCount);
-ALIMER_PHYSICS_API PhysicsShape* alimerPhysicsShapeCreateTerrain(const float* samples, const Vector3* offset, const Vector3* scale, uint32_t sampleCount);
 
 /* Body */
 ALIMER_PHYSICS_API PhysicsBodyDesc alimerPhysicsBodyDescDefault(void);
@@ -161,8 +170,7 @@ ALIMER_PHYSICS_API void alimerPhysicsBodySetType(PhysicsBody* body, PhysicsBodyT
 ALIMER_PHYSICS_API void alimerPhysicsBodyGetPosition(PhysicsBody* body, Vector3* position);
 ALIMER_PHYSICS_API void alimerPhysicsBodyGetRotation(PhysicsBody* body, Quaternion* rotation);
 
-ALIMER_PHYSICS_API void alimerPhysicsBodyGetTransform(PhysicsBody* body, PhysicsBodyTransform* transform);
-ALIMER_PHYSICS_API void alimerPhysicsBodySetTransform(PhysicsBody* body, const PhysicsBodyTransform* transform);
+ALIMER_PHYSICS_API void alimerPhysicsBodySetTransform(PhysicsBody* body, const Vector3* position, const Quaternion* rotation);
 
 ALIMER_PHYSICS_API float alimerPhysicsBodyGetMass(PhysicsBody* body);
 ALIMER_PHYSICS_API float alimerPhysicsBodyGetInverseMass(PhysicsBody* body);

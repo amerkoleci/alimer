@@ -92,7 +92,7 @@ ALIMER_API void alimerLogDebug(LogCategory category, const char* format, ...);
 ALIMER_API void alimerLogTrace(LogCategory category, const char* format, ...);
 
 /* Blog */
-ALIMER_API Blob* alimerBlobCreate(void* data, size_t size, const char* name);
+ALIMER_API Blob* alimerBlobCreate(void* data, size_t size, const char* name DEFAULT_INITIALIZER(nullptr));
 ALIMER_API void alimerBlobDestroy(Blob* blob);
 
 /* PixelFormat */

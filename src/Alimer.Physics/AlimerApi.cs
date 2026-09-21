@@ -203,17 +203,17 @@ unsafe partial class AlimerApi
 
     #region PhysicsShape
     [LibraryImport(LibraryName)]
-    public static partial PhysicsShape alimerPhysicsCreateBoxShape(in Vector3 size, PhysicsMaterial material);
+    public static partial PhysicsShape alimerPhysicsShapeCreateBox(in Vector3 size, PhysicsMaterial material);
     [LibraryImport(LibraryName)]
-    public static partial PhysicsShape alimerPhysicsCreateSphereShape(float radius, PhysicsMaterial material);
+    public static partial PhysicsShape alimerPhysicsShapeCreateSphere(float radius, PhysicsMaterial material);
     [LibraryImport(LibraryName)]
-    public static partial PhysicsShape alimerPhysicsCreateCapsuleShape(float height, float radius, PhysicsMaterial material);
+    public static partial PhysicsShape alimerPhysicsShapeCreateCapsule(float height, float radius, PhysicsMaterial material);
     [LibraryImport(LibraryName)]
-    public static partial PhysicsShape alimerPhysicsCreateCylinderShape(float height, float radius, PhysicsMaterial material);
+    public static partial PhysicsShape alimerPhysicsShapeCreateCylinder(float height, float radius, PhysicsMaterial material);
     [LibraryImport(LibraryName)]
-    public static partial PhysicsShape alimerPhysicsCreateConvexHullShape(Vector3* points, uint pointsCount, PhysicsMaterial material);
+    public static partial PhysicsShape alimerPhysicsShapeCreateConvexHull(Vector3* points, uint pointsCount, PhysicsMaterial material);
     [LibraryImport(LibraryName)]
-    public static partial PhysicsShape alimerPhysicsCreateMeshShape(Vector3* vertices, uint verticesCount, uint* indices, uint indicesCount);
+    public static partial PhysicsShape alimerPhysicsShapeCreateMesh(Vector3* vertices, uint verticesCount, uint* indices, uint indicesCount);
 
     [LibraryImport(LibraryName)]
     public static partial void alimerPhysicsShapeAddRef(PhysicsShape shape);
@@ -227,15 +227,9 @@ unsafe partial class AlimerApi
     [LibraryImport(LibraryName)]
     public static partial PhysicsBody* alimerPhysicsShapeGetBody(PhysicsShape shape);
     [LibraryImport(LibraryName)]
-    public static partial void* alimerPhysicsShapeGetUserData(PhysicsShape shape);
-    [LibraryImport(LibraryName)]
-    public static partial void alimerPhysicsShapeSetUserData(PhysicsShape shape, void* userdata);
-    [LibraryImport(LibraryName)]
     public static partial float alimerPhysicsShapeGetVolume(PhysicsShape shape);
     [LibraryImport(LibraryName)]
     public static partial float alimerPhysicsShapeGetDensity(PhysicsShape shape);
-    [LibraryImport(LibraryName)]
-    public static partial float alimerPhysicsShapeGetMass(PhysicsShape shape);
     #endregion
 
     #region PhysicsBody

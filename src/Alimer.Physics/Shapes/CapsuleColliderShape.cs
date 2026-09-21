@@ -9,7 +9,7 @@ public class CapsuleColliderShape : ColliderShape
 {
     public CapsuleColliderShape(float height, float radius)
     {
-        Handle = alimerPhysicsCreateCapsuleShape(height, radius, PhysicsMaterial.Null);
+        Handle = alimerPhysicsShapeCreateCapsule(height, radius, PhysicsMaterial.Null);
     }
 
     internal override PhysicsShape Handle { get; }
