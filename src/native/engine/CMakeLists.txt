@@ -67,6 +67,8 @@ endif()
 if(WIN32)
     target_compile_definitions(${TARGET_NAME} PRIVATE _UNICODE UNICODE _CRT_SECURE_NO_WARNINGS)
 elseif(ANDROID)
+    target_link_libraries (${TARGET_NAME} PRIVATE log android)
+
     # Android specific 16 KB page sizes
     target_link_options(${TARGET_NAME} PRIVATE "-Wl,-z,max-page-size=16384")
 endif ()
