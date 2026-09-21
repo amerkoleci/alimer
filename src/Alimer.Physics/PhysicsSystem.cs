@@ -64,8 +64,7 @@ public class PhysicsSystem : EntitySystem<PhysicsComponent>
     [ModuleInitializer]
     public static void Register()
     {
-        PhysicsConfig config = default;
-        if (alimerPhysicsInit(in config) == false)
+        if (alimerPhysicsInit() == false)
         {
             throw new InvalidOperationException("[JoltPhysics] Failed to initialize Foundation");
         }

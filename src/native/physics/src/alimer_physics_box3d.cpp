@@ -1,21 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-//#include "alimer_internal.h"
-#include "alimer_physics.h"
-
+#include "alimer_physics_internal.h"
 #include "box3d/box3d.h"
-#include <string.h> // memset
-#include <atomic>
-
-#ifdef ALIMER_ENABLE_ASSERTS
-#   include <assert.h>
-#   define ALIMER_ASSERT(c) assert(c)
-#else
-#   define ALIMER_ASSERT(...) ((void)0)
-#endif
-
-#define ALIMER_UNUSED(x) (void)(x)
 
 namespace
 {
@@ -82,9 +69,30 @@ namespace
     //}
 }
 
+void* physics_default_alloc(size_t size, void* userData)
+{
+    ALIMER_UNUSED(userData);
+    return malloc(size);
+}
+
+void physics_default_free(void* ptr, void* userData)
+{
+    ALIMER_UNUSED(userData);
+    free(ptr);
+}
+
+PhysicsAllocator g_physics_allocator = { physics_default_alloc, physics_default_free, nullptr };
+
+void alimerPhysicsSetAllocationCallbacks(PhysicsAllocCallback alloc, PhysicsFreeCallback free, void* userData)
+{
+    g_physics_allocator.alloc = alloc ? alloc : physics_default_alloc;
+    g_physics_allocator.free = free ? free : physics_default_free;
+    g_physics_allocator.userData = userData;
+}
+
 static struct
 {
-    bool initialized;
+    std::atomic_bool initialized;
 } physics_state = {};
 
 struct PhysicsWorld final
@@ -119,24 +127,25 @@ struct PhysicsShape final
     b3ShapeId id;
 };
 
-bool alimerPhysicsInit(const PhysicsConfig* config)
+bool alimerPhysicsInit(void)
 {
     //ALIMER_ASSERT(config);
 
-    if (physics_state.initialized)
+    if (physics_state.initialized.load())
         return true;
 
-    physics_state.initialized = true;
+    //b3SetAllocator(&Box3DAllocate, &Box3DFree);
+
+    physics_state.initialized.store(true);
     return true;
 }
 
 void alimerPhysicsShutdown(void)
 {
-    if (!physics_state.initialized)
+    if (!physics_state.initialized.load())
         return;
 
-    physics_state.initialized = false;
-    memset(&physics_state, 0, sizeof(physics_state));
+    physics_state.initialized.store(false);
 }
 
 static PhysicsWorldConfig PhysicsWorldConfig_Defaults(const PhysicsWorldConfig* pConfig)
@@ -208,10 +217,9 @@ void alimerPhysicsWorldSetGravity(PhysicsWorld* world, const Vector3* gravity)
     b3World_SetGravity(world->id, ToBox3D(gravity));
 }
 
-bool alimerPhysicsWorldUpdate(PhysicsWorld* world, float deltaTime, int collisionSteps)
+void alimerPhysicsWorldUpdate(PhysicsWorld* world, float deltaTime, int collisionSteps)
 {
     b3World_Step(world->id, deltaTime, collisionSteps);
-    return true;
 }
 
 /* Material */
@@ -226,20 +234,18 @@ PhysicsMaterial* alimerPhysicsMaterialCreate(const char* name, float friction, f
     return material;
 }
 
-uint32_t alimerPhysicsMaterialAddRef(PhysicsMaterial* material)
+void alimerPhysicsMaterialAddRef(PhysicsMaterial* material)
 {
-    return ++material->refCount;
+    ++material->refCount;
 }
 
-uint32_t alimerPhysicsMaterialRelease(PhysicsMaterial* material)
+void alimerPhysicsMaterialRelease(PhysicsMaterial* material)
 {
     uint32_t newCount = --material->refCount;
     if (newCount == 0)
     {
         delete material;
     }
-
-    return newCount;
 }
 
 void alimerPhysicsShapeAddRef(PhysicsShape* shape)
@@ -485,20 +491,24 @@ static bool AttachShapeToBody(b3BodyId bodyId, PhysicsShape* shape)
 }
 
 /* Body */
-void alimerPhysicsBodyDescInit(PhysicsBodyDesc* desc)
+PhysicsBodyDesc alimerPhysicsBodyDescDefault(void)
 {
-    memset(desc, 0, sizeof(PhysicsBodyDesc));
-
-    desc->type = PhysicsBodyType_Dynamic;
-    desc->mass = 1.0f;
-    desc->linearDamping = 0.05f;
-    desc->angularDamping = 0.05f;
-    desc->gravityScale = 1.0f;
-    desc->isSensor = false;
-    desc->allowSleeping = true;
-    desc->continuous = false;
-    desc->shapeCount = 0;
-    desc->shapes = nullptr;
+    PhysicsBodyDesc desc = {};
+    desc.type = PhysicsBodyType_Dynamic;
+    desc.initialTransform.position = { 0.0f, 0.0f, 0.0f };
+    desc.initialTransform.rotation = { 0.0f, 0.0f, 0.0f, 1.0f };
+    desc.linearVelocity = { 0.0f, 0.0f, 0.0f };
+    desc.angularVelocity = { 0.0f, 0.0f, 0.0f };
+    desc.mass = 1.0f;
+    desc.linearDamping = 0.05f;
+    desc.angularDamping = 0.05f;
+    desc.gravityScale = 1.0f;
+    desc.isSensor = false;
+    desc.allowSleeping = true;
+    desc.continuous = false;
+    desc.shapeCount = 0;
+    desc.shapes = nullptr;
+    return desc;
 }
 
 PhysicsBody* alimerPhysicsBodyCreate(PhysicsWorld* world, const PhysicsBodyDesc* desc)

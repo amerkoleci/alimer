@@ -17,9 +17,9 @@ public record struct VertexPositionNormalTexture : IMeshVertex
     public Vector2 TextureCoordinate;
 
     public static VertexAttribute[] VertexAttributes { get; } = [
-        new(VertexAttributeSemantic.Position, VertexAttributeFormat.Float32x3),
-        new(VertexAttributeSemantic.Normal, VertexAttributeFormat.Float32x3),
-        new(VertexAttributeSemantic.TexCoord, VertexAttributeFormat.Float32x2)
+        new(VertexAttributeSemantic.Position, VertexAttributeFormat.Float3),
+        new(VertexAttributeSemantic.Normal, VertexAttributeFormat.Float3),
+        new(VertexAttributeSemantic.TexCoord, VertexAttributeFormat.Float2)
     ];
 
     public VertexPositionNormalTexture(in Vector3 position, in Vector3 normal, in Vector2 textureCoordinate)

@@ -146,7 +146,12 @@ option(ALIMER_ENABLE_ASAN_UBSAN "Enable Address and Undefined Behavior Sanitizer
 option(ALIMER_ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 
 option(ALIMER_INSTALL "Generate the install target" ${ALIMER_MASTER_PROJECT})
-option(ALIMER_SAMPLES "Build samples" ${ALIMER_MASTER_PROJECT})
+
+if (IOS OR ANDROID)
+    set(ALIMER_SAMPLES OFF CACHE BOOL "Always Disable samples on (IOS, ANDROID)" FORCE)
+else()
+    option(ALIMER_SAMPLES "Build samples" ${ALIMER_MASTER_PROJECT})
+endif()
 
 option(ALIMER_USE_SDL "Use SDL for desktop windows" ON)
 option(ALIMER_AUDIO "Enable Audio support" ON)

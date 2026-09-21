@@ -119,6 +119,9 @@ int main(void)
         // Tick
     }
 
+    size_t sizes = sizeof(AudioContextConfig);
+    ALIMER_UNUSED(sizes);
+
 #if defined(ALIMER_PHYSICS)
     // Physics
     if (!alimerPhysicsInit(NULL))

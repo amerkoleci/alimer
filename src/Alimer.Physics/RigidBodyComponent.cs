@@ -129,8 +129,7 @@ public partial class RigidBodyComponent : PhysicsComponent
 
         Matrix4x4.Decompose(Entity!.Transform.WorldMatrix, out _, out Quaternion rotation, out Vector3 translation);
 
-        PhysicsBodyDesc bodyDesc = default;
-        alimerPhysicsBodyDescInit(ref bodyDesc);
+        PhysicsBodyDesc bodyDesc = alimerPhysicsBodyDescDefault();
 
         bodyDesc.initialTransform = new PhysicsBodyTransform
         {

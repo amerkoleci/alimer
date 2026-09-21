@@ -64,8 +64,6 @@
     <_AlimerTargetPlatformIsWindows Condition="$(_AlimerTargetPlatformIdentifier.Contains('windows')) == 'True'">True</_AlimerTargetPlatformIsWindows>
     <_AlimerTargetPlatformIsWinUI>false</_AlimerTargetPlatformIsWinUI>
     <_AlimerTargetPlatformIsWinUI Condition="'$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10'))">True</_AlimerTargetPlatformIsWinUI>
-    <_AlimerTargetPlatformIsWindowsClassic>false</_AlimerTargetPlatformIsWindowsClassic>
-    <_AlimerTargetPlatformIsWindowsClassic Condition=" '$(_AlimerTargetPlatformIsWindows)' == 'True' AND $(TargetFramework.Contains('-windows10')) != 'True' ">True</_AlimerTargetPlatformIsWindowsClassic>
     <_AlimerTargetPlatformIsAndroid>false</_AlimerTargetPlatformIsAndroid>
     <_AlimerTargetPlatformIsAndroid Condition="'$(_AlimerTargetPlatformIdentifier)' == 'android'">True</_AlimerTargetPlatformIsAndroid>
   </PropertyGroup>

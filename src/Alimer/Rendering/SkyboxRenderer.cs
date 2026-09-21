@@ -41,7 +41,7 @@ public sealed class SkyboxRenderer : IDisposable
         _vertexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_VERTS, GraphicsBufferUsage.Vertex);
         _indexBuffer = renderSystem.Device.CreateBuffer(SKYBOX_INDICES, GraphicsBufferUsage.Index);
 
-        VertexBufferLayout gpuLayout = new(12, [new VertexAttribute(VertexAttributeSemantic.Position, VertexAttributeFormat.Float32x3)]);
+        VertexBufferLayout gpuLayout = new(12, [new VertexAttribute(VertexAttributeSemantic.Position, VertexAttributeFormat.Float3)]);
         Span<VertexBufferLayout> geometryLayout = [gpuLayout];
 
         RenderPipelineDescriptor descriptor = new(geometryLayout, [RenderSystem.ColorFormat], RenderSystem.DepthStencilFormat)

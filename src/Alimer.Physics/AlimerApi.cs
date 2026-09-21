@@ -11,7 +11,7 @@ namespace Alimer;
 
 unsafe partial class AlimerApi
 {
-    public const string LibraryName = "alimer_native";
+    public const string LibraryName = "alimer_physics";
 
     #region Enums
     public enum PhysicsShapeType
@@ -39,6 +39,8 @@ unsafe partial class AlimerApi
     {
         public RigidBodyType type;
         public PhysicsBodyTransform initialTransform;
+        public Vector3 linearVelocity;
+        public Vector3 angularVelocity;
         public float mass;
         public float linearDamping;
         public float angularDamping;
@@ -50,17 +52,17 @@ unsafe partial class AlimerApi
         public PhysicsShape* shapes;
     }
 
-    public struct PhysicsAllocationCallbacks
-    {
-        public delegate* unmanaged<nuint, nint, void*> allocate;
-        public delegate* unmanaged<void*, nint, void> free;
-        public nint userData;
-    }
-
-    public struct PhysicsConfig
-    {
-        public PhysicsAllocationCallbacks* allocationCallbacks;
-    }
+    //public struct PhysicsAllocationCallbacks
+    //{
+    //    public delegate* unmanaged<nuint, nint, void*> allocate;
+    //    public delegate* unmanaged<void*, nint, void> free;
+    //    public nint userData;
+    //}
+    //
+    //public struct PhysicsConfig
+    //{
+    //    public PhysicsAllocationCallbacks* allocationCallbacks;
+    //}
 
     public struct PhysicsWorldConfig
     {
@@ -165,7 +167,7 @@ unsafe partial class AlimerApi
 
     [LibraryImport(LibraryName)]
     [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool alimerPhysicsInit(in PhysicsConfig config);
+    public static partial bool alimerPhysicsInit();
 
     [LibraryImport(LibraryName)]
     public static partial void alimerPhysicsShutdown();
@@ -187,11 +189,7 @@ unsafe partial class AlimerApi
     public static partial void alimerPhysicsWorldSetGravity(PhysicsWorld world, in Vector3 gravity);
 
     [LibraryImport(LibraryName)]
-    public static partial void alimerPhysicsWorldOptimizeBroadPhase(PhysicsWorld world);
-
-    [LibraryImport(LibraryName)]
-    [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool alimerPhysicsWorldUpdate(PhysicsWorld world, float deltaTime, int collisionSteps);
+    public static partial void alimerPhysicsWorldUpdate(PhysicsWorld world, float deltaTime, int collisionSteps);
     #endregion
 
     #region PhysicsMaterial
@@ -243,7 +241,7 @@ unsafe partial class AlimerApi
     #region PhysicsBody
     /* Body */
     [LibraryImport(LibraryName)]
-    public static partial void alimerPhysicsBodyDescInit(ref PhysicsBodyDesc desc);
+    public static partial PhysicsBodyDesc alimerPhysicsBodyDescDefault();
     [LibraryImport(LibraryName)]
     public static partial PhysicsBody alimerPhysicsBodyCreate(PhysicsWorld world, in PhysicsBodyDesc desc);
     [LibraryImport(LibraryName)]

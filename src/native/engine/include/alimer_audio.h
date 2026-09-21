@@ -88,7 +88,7 @@ typedef struct AudioEngineConfig {
 } AudioEngineConfig;
 
 typedef struct AudioContextConfig {
-    bool noAudio DEFAULT_INITIALIZER(false);
+    Bool32 noAudio DEFAULT_INITIALIZER(false);
 } AudioContextConfig;
 
 /* Callbacks */

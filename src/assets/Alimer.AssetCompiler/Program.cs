@@ -6,6 +6,15 @@ using XenoAtom.CommandLine;
 
 namespace Alimer.Shaders;
 
+public enum TargetPlatform
+{
+    Windows,
+    Linux,
+    MacOS,
+    Android,
+    Browser,
+}
+
 public partial class AssetCompilerApp
 {
     private readonly Stack<AssetCompilerContext> _contexts = new();
@@ -26,7 +35,7 @@ public partial class AssetCompilerApp
     /// </summary>
     public int? MaxThreadCount { get; set; }
 
-    public PlatformID TargetPlatform { get; set; } = PlatformID.Windows;
+    public TargetPlatform TargetPlatform { get; set; } = TargetPlatform.Windows;
 
     /// <summary>
     /// Gets the list of input directories.
@@ -194,7 +203,7 @@ public partial class AssetCompilerApp
             new VersionOption(),
             { "i=|input=", "Adds the specified {<directory>} to the search path for processing folders.", app.InputDirectories },
             { "o=", "The output directory.", v => app.OutputDirectory = v},
-            { "p|platform=", $"The target platform {{ENUM}} accepting the following values: {EnumWrapper<PlatformID>.Names}", (EnumWrapper<PlatformID> v)  => app.TargetPlatform = v},
+            { "p|platform=", $"The target platform {{ENUM}} accepting the following values: {EnumWrapper<TargetPlatform>.Names}", (EnumWrapper<TargetPlatform> v)  => app.TargetPlatform = v},
             new ResponseFileSource(),
             // Run the command
             async (CommandRunContext context, string[] _) =>

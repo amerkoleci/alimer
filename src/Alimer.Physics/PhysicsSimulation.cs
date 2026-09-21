@@ -10,7 +10,6 @@ public sealed class PhysicsSimulation : DisposableObject
 {
     private const int MaxBodies = 65536;
     private const int MaxBodyPairs = 65536;
-    private bool _optimizeBroadPhase = true;
 
     internal readonly PhysicsWorld World;
     internal Dictionary<PhysicsBody, RigidBodyComponent> RigidBodies { get; } = [];
@@ -48,12 +47,6 @@ public sealed class PhysicsSimulation : DisposableObject
 
     public void Step(float deltaTime)
     {
-        if (_optimizeBroadPhase)
-        {
-            alimerPhysicsWorldOptimizeBroadPhase(World);
-            _optimizeBroadPhase = false;
-        }
-
         // When running below 55 Hz, do 2 steps instead of 1
         int numSteps = 1; // deltaTime > 1.0 / 55.0 ? 2 : 1;
 
@@ -61,7 +54,7 @@ public sealed class PhysicsSimulation : DisposableObject
 
         //PhysicsUpdateError error = alimerPhysicsWorldUpdate(_world, deltaTime, numSteps);
         //Debug.Assert(error == PhysicsUpdateError.None);
-        _ = alimerPhysicsWorldUpdate(World, deltaTime, numSteps);
+        alimerPhysicsWorldUpdate(World, deltaTime, numSteps);
     }
 
 #if TODO_Events

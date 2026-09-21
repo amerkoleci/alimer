@@ -14,19 +14,6 @@
     <Compile Include="Platforms\Apple\**\*.cs" />
   </ItemGroup>
 
-  <!-- Windows WPF -->
-  <ItemGroup Condition=" '$(_AlimerTargetPlatformIsWindowsClassic)' == 'True' ">
-    <Using Include="System.IO" />
-    <Using Include="System.Net.Http" />
-    
-    <None Remove="Platforms\Windows\**\*.cs" />
-    <Compile Include="Platforms\Windows\**\*.cs" />
-  </ItemGroup>
-  <PropertyGroup Condition=" '$(_AlimerTargetPlatformIsWindowsClassic)' == 'True' ">
-    <UseWindowsForms>true</UseWindowsForms>
-    <UseWPF>true</UseWPF>
-  </PropertyGroup>
-
   <!-- WinUI -->
   <ItemGroup Condition=" '$(_AlimerTargetPlatformIsWinUI)' == 'True' ">
     <None Remove="Platforms\WinUI\**\*.cs" />

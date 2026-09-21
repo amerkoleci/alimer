@@ -52,6 +52,7 @@ endif()
 set(TARGET_NAME alimer_physics)
 add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
 	include/alimer_physics.h
+    src/alimer_physics_internal.h
     ${SRC_FILE}
 )
 
