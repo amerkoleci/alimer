@@ -384,16 +384,14 @@ typedef struct PlatformEvent {
 } PlatformEvent;
 
 /* Platform */
-ALIMER_API Bool32 alimerPlatformInit(void);
+ALIMER_API bool alimerPlatformInit(void);
 ALIMER_API void alimerPlatformShutdown(void);
-ALIMER_API Bool32 alimerPlatformPollEvent(PlatformEvent* evt);
-ALIMER_API void alimerPlatformGetMousePosition(float* x, float* y);
+ALIMER_API bool alimerPlatformPollEvent(PlatformEvent* evt);
 
 /* Window */
 ALIMER_API Window* alimerWindowCreate(const WindowDesc* desc);
 ALIMER_API void alimerWindowDestroy(Window* window);
 ALIMER_API uint32_t alimerWindowGetID(Window* window);
-ALIMER_API Bool32 alimerWindowIsOpen(Window* window);
 ALIMER_API void alimerWindowSetPosition(Window* window, int32_t x, int32_t y);
 ALIMER_API void alimerWindowGetPosition(Window* window, int32_t* x, int32_t* y);
 ALIMER_API void alimerWindowSetCentered(Window* window);
@@ -403,13 +401,13 @@ ALIMER_API void alimerWindowGetSizeInPixels(Window* window, uint32_t* width, uin
 ALIMER_API void alimerWindowSetTitle(Window* window, const char* title);
 ALIMER_API const char* alimerWindowGetTitle(Window* window);
 ALIMER_API float alimerWindowGetDisplayScale(Window* window);
-ALIMER_API Bool32 alimerWindowGetMousePosition(Window* window, float* x, float* y);
+ALIMER_API bool alimerWindowGetMousePosition(Window* window, float* x, float* y);
 
-ALIMER_API Bool32 alimerWindowIsMinimized(Window* window);
-ALIMER_API Bool32 alimerWindowIsMaximized(Window* window);
-ALIMER_API Bool32 alimerWindowIsFullscreen(Window* window);
-ALIMER_API void alimerWindowSetFullscreen(Window* window, Bool32 value);
-ALIMER_API Bool32 alimerWindowHasFocus(Window* window);
+ALIMER_API bool alimerWindowIsMinimized(Window* window);
+ALIMER_API bool alimerWindowIsMaximized(Window* window);
+ALIMER_API bool alimerWindowIsFullscreen(Window* window);
+ALIMER_API void alimerWindowSetFullscreen(Window* window, bool value);
+ALIMER_API bool alimerWindowHasFocus(Window* window);
 ALIMER_API void alimerWindowShow(Window* window);
 ALIMER_API void alimerWindowHide(Window* window);
 ALIMER_API void alimerWindowMaximize(Window* window);
@@ -421,9 +419,12 @@ ALIMER_API void* alimerWindowGetNativeDisplay(Window* window);
 ALIMER_API void* alimerWindowGetNativeHandle(Window* window);
 
 /* Clipboard */
-ALIMER_API Bool32 alimerHasClipboardText(void);
+ALIMER_API bool alimerHasClipboardText(void);
 ALIMER_API const char* alimerClipboardGetText(void);
 ALIMER_API void alimerClipboardSetText(const char* text);
+
+/* Mouse */
+ALIMER_API bool alimerMouseGetGlobalPosition(float* x, float* y);
 
 /* PowerStatus */
 ALIMER_API PowerLineStatus alimerGetPowerLineStatus(void);

@@ -7,7 +7,6 @@
 #include "alimer.h"
 #include <stdlib.h> // malloc, free
 #include <string.h> // memset
-#include <stdbool.h>
 
 // Compilers
 #define ALIMER_COMPILER_CLANG 0

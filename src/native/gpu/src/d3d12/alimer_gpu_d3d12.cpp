@@ -181,20 +181,20 @@ namespace
         }
     }
 
-    [[nodiscard]] constexpr D3D12_COMMAND_LIST_TYPE ToD3D12(GPUCommandQueueType type)
+    [[nodiscard]] constexpr D3D12_COMMAND_LIST_TYPE ToD3D12(GPUQueueType type)
     {
         switch (type)
         {
-            case GPUCommandQueueType_Graphics:
+            case GPUQueueType_Graphics:
                 return D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-            case GPUCommandQueueType_Compute:
+            case GPUQueueType_Compute:
                 return D3D12_COMMAND_LIST_TYPE_COMPUTE;
 
-            case GPUCommandQueueType_Copy:
+            case GPUQueueType_Copy:
                 return D3D12_COMMAND_LIST_TYPE_COPY;
 
-                //case GPUCommandQueueType_VideoDecode:
+                //case GPUQueueType_VideoDecode:
                 //    return D3D12_COMMAND_LIST_TYPE_VIDEO_DECODE;
 
             default:
@@ -1295,10 +1295,10 @@ struct D3D12CommandBuffer final : public GPUCommandBufferImpl
     void FlushBindGroups(bool graphics);
 };
 
-struct D3D12Queue final : public GPUCommandQueue
+struct D3D12Queue final : public GPUQueueImpl
 {
     D3D12Device* device = nullptr;
-    GPUCommandQueueType queueType = _GPUCommandQueueType_Count;
+    GPUQueueType queueType = _GPUQueueType_Count;
     ID3D12CommandQueue* handle = nullptr;
     ID3D12Fence* fence = nullptr;
     uint64_t nextFenceValue = 0;
@@ -1310,7 +1310,7 @@ struct D3D12Queue final : public GPUCommandQueue
     uint32_t cmdBuffersCount = 0;
     std::mutex cmdBuffersLocker;
 
-    GPUCommandQueueType GetType() const override { return queueType; }
+    GPUQueueType GetType() const override { return queueType; }
     GPUCommandBuffer AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
 
     uint64_t IncrementFenceValue();
@@ -1621,7 +1621,7 @@ struct D3D12Device final : public GPUDeviceImpl
     ID3D12DeviceConfiguration* deviceConfiguration = nullptr;
 #endif
 
-    D3D12Queue queues[_GPUCommandQueueType_Count];
+    D3D12Queue queues[_GPUQueueType_Count];
     ComPtr<D3D12MA::Allocator> allocator;
     D3D12CopyAllocator copyAllocator;
 
@@ -1653,7 +1653,7 @@ struct D3D12Device final : public GPUDeviceImpl
     void SetLabel(const char* label) override;
     void GetLimits(GPUDeviceLimits* limits) const override;
     bool HasFeature(GPUFeature feature) const override;
-    GPUCommandQueue* GetQueue(GPUCommandQueueType type) override;
+    GPUQueue GetQueue(GPUQueueType type) override;
     void WaitIdle() override;
     uint64_t CommitFrame() override;
 
@@ -2656,7 +2656,7 @@ void D3D12CommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc* 
     }
 #endif // TODO
 
-    if (queue->queueType == GPUCommandQueueType_Graphics)
+    if (queue->queueType == GPUQueueType_Graphics)
     {
         D3D12_RECT scissorRects[D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 1];
         for (size_t i = 0; i < std::size(scissorRects); ++i)
@@ -2736,7 +2736,7 @@ void D3D12CommandBuffer::TextureBarrier(const D3D12Texture* resource, TextureLay
         const D3D12_RESOURCE_STATES oldState = ConvertTextureLayoutLegacy(currentLayout);
         const D3D12_RESOURCE_STATES newState = ConvertTextureLayoutLegacy(newLayout);
 
-        if (queue->queueType == GPUCommandQueueType_Compute)
+        if (queue->queueType == GPUQueueType_Compute)
         {
             ALIMER_ASSERT((oldState & VALID_COMPUTE_QUEUE_RESOURCE_STATES) == oldState);
             ALIMER_ASSERT((newState & VALID_COMPUTE_QUEUE_RESOURCE_STATES) == newState);
@@ -3137,10 +3137,10 @@ void D3D12CopyAllocator::Submit(D3D12UploadContext context)
     queue->ExecuteCommandLists(1, commandLists);
     VHR(queue->Signal(context.fence, context.fenceValueSignaled));
 
-    VHR(device->queues[GPUCommandQueueType_Graphics].handle->Wait(context.fence, context.fenceValueSignaled));
-    VHR(device->queues[GPUCommandQueueType_Compute].handle->Wait(context.fence, context.fenceValueSignaled));
-    VHR(device->queues[GPUCommandQueueType_Copy].handle->Wait(context.fence, context.fenceValueSignaled));
-    //if (device->queues[GPUCommandQueueType_VideoDecode].handle)
+    VHR(device->queues[GPUQueueType_Graphics].handle->Wait(context.fence, context.fenceValueSignaled));
+    VHR(device->queues[GPUQueueType_Compute].handle->Wait(context.fence, context.fenceValueSignaled));
+    VHR(device->queues[GPUQueueType_Copy].handle->Wait(context.fence, context.fenceValueSignaled));
+    //if (device->queues[GPUQueueType_VideoDecode].handle)
     //{
     //    VHR(device->queues[GPUCommandQueueType_VideoDecode].handle->Wait(context.fence, context.fenceValueSignaled));
     //}
@@ -3303,7 +3303,7 @@ D3D12Device::~D3D12Device()
     ProcessDeletionQueue(true);
     frameCount = 0;
 
-    for (uint32_t index = 0; index < _GPUCommandQueueType_Count; ++index)
+    for (uint32_t index = 0; index < _GPUQueueType_Count; ++index)
     {
         D3D12Queue& queue = queues[index];
         if (!queue.handle)
@@ -3403,14 +3403,14 @@ bool D3D12Device::HasFeature(GPUFeature feature) const
     return adapter->HasFeature(feature);
 }
 
-GPUCommandQueue* D3D12Device::GetQueue(GPUCommandQueueType type)
+GPUQueue D3D12Device::GetQueue(GPUQueueType type)
 {
     return &queues[type];
 }
 
 void D3D12Device::WaitIdle()
 {
-    for (uint32_t i = 0; i < _GPUCommandQueueType_Count; ++i)
+    for (uint32_t i = 0; i < _GPUQueueType_Count; ++i)
     {
         if (queues[i].handle == nullptr)
             continue;
@@ -3424,7 +3424,7 @@ void D3D12Device::WaitIdle()
 uint64_t D3D12Device::CommitFrame()
 {
     // Mark the completion of queues for this frame:
-    for (uint32_t i = 0; i < _GPUCommandQueueType_Count; ++i)
+    for (uint32_t i = 0; i < _GPUQueueType_Count; ++i)
     {
         D3D12Queue& queue = queues[i];
         if (queue.handle == nullptr)
@@ -3439,7 +3439,7 @@ uint64_t D3D12Device::CommitFrame()
     frameIndex = frameCount % maxFramesInFlight;
 
     // Initiate stalling CPU when GPU is not yet finished with next frame
-    for (uint32_t i = 0; i < _GPUCommandQueueType_Count; ++i)
+    for (uint32_t i = 0; i < _GPUQueueType_Count; ++i)
     {
         D3D12Queue& queue = queues[i];
 
@@ -4324,7 +4324,7 @@ void D3D12SwapChain::Resize(uint32_t width, uint32_t height)
     fullscreenDesc.Windowed = TRUE; // !desc.fullscreen;
 
     hr = device->adapter->factory->dxgiFactory4->CreateSwapChainForHwnd(
-        device->queues[GPUCommandQueueType_Graphics].handle,
+        device->queues[GPUQueueType_Graphics].handle,
         surface->hwnd,
         &swapChainDesc,
         &fullscreenDesc,
@@ -4784,10 +4784,10 @@ GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
 #endif
 
     // Create command queues
-    for (uint32_t queue = 0; queue < _GPUCommandQueueType_Count; ++queue)
+    for (uint32_t queue = 0; queue < _GPUQueueType_Count; ++queue)
     {
-        GPUCommandQueueType queueType = (GPUCommandQueueType)queue;
-        //if (queueType >= GPUCommandQueueType_VideoDecode && device->videoDevice == nullptr)
+        GPUQueueType queueType = (GPUQueueType)queue;
+        //if (queueType >= GPUQueueType_VideoDecode && device->videoDevice == nullptr)
         //    continue;
 
         device->queues[queue].device = device;
@@ -4806,19 +4806,19 @@ GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
 
         switch (queueType)
         {
-            case GPUCommandQueueType_Graphics:
+            case GPUQueueType_Graphics:
                 device->queues[queue].handle->SetName(L"Graphics Queue");
                 device->queues[queue].fence->SetName(L"GraphicsQueue - Fence");
                 break;
-            case GPUCommandQueueType_Compute:
+            case GPUQueueType_Compute:
                 device->queues[queue].handle->SetName(L"Compute Queue");
                 device->queues[queue].fence->SetName(L"ComputeQueue - Fence");
                 break;
-            case GPUCommandQueueType_Copy:
+            case GPUQueueType_Copy:
                 device->queues[queue].handle->SetName(L"CopyQueue");
                 device->queues[queue].fence->SetName(L"CopyQueue - Fence");
                 break;
-                //case GPUCommandQueueType_VideoDecode:
+                //case GPUQueueType_VideoDecode:
                 //    device->queues[queue].handle->SetName(L"VideoDecode");
                 //    device->queues[queue].fence->SetName(L"VideoDecode - Fence");
                 //    break;
@@ -4839,16 +4839,16 @@ GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
 
             switch (queueType)
             {
-                case GPUCommandQueueType_Graphics:
+                case GPUQueueType_Graphics:
                     swprintf(fenceName, 64, L"GraphicsQueue - Frame Fence %u", frameIndex);
                     break;
-                case GPUCommandQueueType_Compute:
+                case GPUQueueType_Compute:
                     swprintf(fenceName, 64, L"ComputeQueue - Frame Fence %u", frameIndex);
                     break;
-                case GPUCommandQueueType_Copy:
+                case GPUQueueType_Copy:
                     swprintf(fenceName, 64, L"CopyQueue - Frame Fence %u", frameIndex);
                     break;
-                    //case GPUCommandQueueType_VideoDecode:
+                    //case GPUQueueType_VideoDecode:
                     //    swprintf(fenceName, 64, L"VideoDecode - Frame Fence %u", frameIndex);
                     //    break;
                 default:
@@ -4861,7 +4861,7 @@ GPUDevice D3D12Adapter::CreateDevice(const GPUDeviceDesc& desc)
     }
 
     // Get timestamp frequency from graphics queue
-    VHR(device->queues[GPUCommandQueueType_Graphics].handle->GetTimestampFrequency(&device->timestampFrequency));
+    VHR(device->queues[GPUQueueType_Graphics].handle->GetTimestampFrequency(&device->timestampFrequency));
 
     // Create allocator
     D3D12MA::ALLOCATOR_DESC allocatorDesc = {};
@@ -4926,7 +4926,7 @@ GPUSurface* D3D12GPUFactory::CreateSurface(GPUSurfaceSource* source)
     surface->factory = this;
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
-    HWND hwnd = static_cast<HWND>(source->hwnd);
+    HWND hwnd = static_cast<HWND>(source->window);
     if (!IsWindow(hwnd))
     {
         delete surface;

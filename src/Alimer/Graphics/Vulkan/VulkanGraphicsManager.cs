@@ -44,7 +44,6 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         HashSet<Utf8String> instanceExtensions = [];
         HashSet<Utf8String> instanceLayers = [];
         bool validationFeatures = false;
-        bool hasPortability = false;
         for (int i = 0; i < extensionCount; i++)
         {
             Utf8String extensionName = new(availableInstanceExtensions[i].extensionName);
@@ -56,11 +55,6 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
             else if (extensionName == VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME)
             {
                 instanceExtensions.Add(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-            }
-            else if (extensionName == VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME)
-            {
-                hasPortability = true;
-                instanceExtensions.Add(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
             }
             else if (extensionName == VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME)
             {
@@ -169,7 +163,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
 
         VkInstanceCreateInfo createInfo = new()
         {
-            flags = hasPortability ? VkInstanceCreateFlags.EnumeratePortabilityKHR : VkInstanceCreateFlags.None,
+            flags = (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst()) ? VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR : 0,
             pApplicationInfo = &appInfo,
             enabledLayerCount = vkLayerNames.Length,
             ppEnabledLayerNames = vkLayerNames,

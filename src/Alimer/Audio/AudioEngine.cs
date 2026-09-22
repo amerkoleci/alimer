@@ -2,7 +2,6 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using static Alimer.AlimerApi;
-using System.Runtime.InteropServices;
 
 namespace Alimer.Audio;
 
@@ -13,7 +12,7 @@ public sealed class AudioEngine : DisposableObject
     public unsafe AudioEngine(in AudioDeviceOptions options)
     {
         // Create audio engine
-        Handle = alimerAudioEngineCreate(null);
+        Handle = alimerAudioEngineCreate(AudioSystem.Context, null);
         _masterVolume = alimerAudioEngineGetMasterVolume(Handle, VolumeUnit.Linear);
         OutputChannels = alimerAudioEngineGetChannelCount(Handle);
         OutputSampleRate = alimerAudioEngineGetSampleRate(Handle);

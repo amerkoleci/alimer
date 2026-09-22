@@ -215,80 +215,84 @@ partial class AlimerApi
 
     [LibraryImport(LibraryName)]
     [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool alimerPlatformGetMousePosition(out float x, out float y);
+    public static partial bool alimerMouseGetGlobalPosition(out float x, out float y);
 
     #region Window
-    [LibraryImport(LibraryName)]
-    public static partial nint alimerWindowCreate(in WindowDesc desc);
+    public readonly struct NativeWindow(uint handle)
+    {
+        public readonly nuint Handle = handle;
+        public readonly bool IsNull => Handle == 0;
+        public readonly bool IsNotNull => Handle != 0;
+    }
 
     [LibraryImport(LibraryName)]
-    public static partial void alimerWindowDestroy(nint window);
+    public static partial NativeWindow alimerWindowCreate(in WindowDesc desc);
+
     [LibraryImport(LibraryName)]
-    public static partial uint alimerWindowGetID(nint window);
+    public static partial void alimerWindowDestroy(NativeWindow window);
     [LibraryImport(LibraryName)]
-    [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool alimerWindowIsOpen(nint window);
+    public static partial uint alimerWindowGetID(NativeWindow window);
     [LibraryImport(LibraryName)]
-    public static partial void alimerWindowSetPosition(nint window, int x, int y);
+    public static partial void alimerWindowSetPosition(NativeWindow window, int x, int y);
     [LibraryImport(LibraryName)]
-    public static partial void alimerWindowGetPosition(nint window, out int x, out int y);
+    public static partial void alimerWindowGetPosition(NativeWindow window, out int x, out int y);
     [LibraryImport(LibraryName)]
-    public static partial void alimerWindowSetCentered(nint window);
+    public static partial void alimerWindowSetCentered(NativeWindow window);
     [LibraryImport(LibraryName)]
-    public static partial void alimerWindowSetSize(nint window, int width, int height);
+    public static partial void alimerWindowSetSize(NativeWindow window, int width, int height);
     [LibraryImport(LibraryName)]
-    public static partial void alimerWindowGetSize(nint window, out int width, out int height);
+    public static partial void alimerWindowGetSize(NativeWindow window, out int width, out int height);
     [LibraryImport(LibraryName)]
-    public static partial void alimerWindowGetSizeInPixels(nint window, out int width, out int height);
+    public static partial void alimerWindowGetSizeInPixels(NativeWindow window, out int width, out int height);
     [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
-    public static partial void alimerWindowSetTitle(nint window, string title);
+    public static partial void alimerWindowSetTitle(NativeWindow window, string title);
     [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
-    public static partial string? alimerWindowGetTitle(nint window);
+    public static partial string? alimerWindowGetTitle(NativeWindow window);
 
 
     [LibraryImport(LibraryName)]
-    public static partial float alimerWindowGetDisplayScale(nint window);
-
-    [LibraryImport(LibraryName)]
-    [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool alimerWindowGetMousePosition(nint window, out float x, float y);
+    public static partial float alimerWindowGetDisplayScale(NativeWindow window);
 
     [LibraryImport(LibraryName)]
     [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool alimerWindowIsMinimized(nint window);
+    public static partial bool alimerWindowGetMousePosition(NativeWindow window, out float x, out float y);
 
     [LibraryImport(LibraryName)]
     [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool alimerWindowIsMaximized(nint window);
+    public static partial bool alimerWindowIsMinimized(NativeWindow window);
 
     [LibraryImport(LibraryName)]
     [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool alimerWindowIsFullscreen(nint window);
-
-    [LibraryImport(LibraryName)]
-    public static partial void alimerWindowSetFullscreen(nint window, [MarshalAs(UnmanagedType.U1)] bool value);
+    public static partial bool alimerWindowIsMaximized(NativeWindow window);
 
     [LibraryImport(LibraryName)]
     [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool alimerWindowHasFocus(nint window);
-    [LibraryImport(LibraryName)]
-    public static partial void alimerWindowShow(nint window);
-    [LibraryImport(LibraryName)]
-    public static partial void alimerWindowHide(nint window);
-    [LibraryImport(LibraryName)]
-    public static partial void alimerWindowMaximize(nint window);
-    [LibraryImport(LibraryName)]
-    public static partial void alimerWindowMinimize(nint window);
-    [LibraryImport(LibraryName)]
-    public static partial void alimerWindowRestore(nint window);
-    [LibraryImport(LibraryName)]
-    public static partial void alimerWindowFocus(nint window);
+    public static partial bool alimerWindowIsFullscreen(NativeWindow window);
 
     [LibraryImport(LibraryName)]
-    public static partial nint alimerWindowGetNativeDisplay(nint window);
+    public static partial void alimerWindowSetFullscreen(NativeWindow window, [MarshalAs(UnmanagedType.U1)] bool value);
 
     [LibraryImport(LibraryName)]
-    public static partial nint alimerWindowGetNativeHandle(nint window);
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static partial bool alimerWindowHasFocus(NativeWindow window);
+    [LibraryImport(LibraryName)]
+    public static partial void alimerWindowShow(NativeWindow window);
+    [LibraryImport(LibraryName)]
+    public static partial void alimerWindowHide(NativeWindow window);
+    [LibraryImport(LibraryName)]
+    public static partial void alimerWindowMaximize(NativeWindow window);
+    [LibraryImport(LibraryName)]
+    public static partial void alimerWindowMinimize(NativeWindow window);
+    [LibraryImport(LibraryName)]
+    public static partial void alimerWindowRestore(NativeWindow window);
+    [LibraryImport(LibraryName)]
+    public static partial void alimerWindowFocus(NativeWindow window);
+
+    [LibraryImport(LibraryName)]
+    public static partial nint alimerWindowGetNativeDisplay(NativeWindow window);
+
+    [LibraryImport(LibraryName)]
+    public static partial nint alimerWindowGetNativeHandle(NativeWindow window);
     #endregion
 
     #region Clipboard

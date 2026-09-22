@@ -42,7 +42,7 @@ static void OnAudioDeviceCallback(AudioDevice* device, void* userdata)
 #endif
 
 #if defined(ALIMER_PHYSICS)
-static void TestPhysics()
+static void TestPhysics(void)
 {
     // Physics
     if (!alimerPhysicsInit())

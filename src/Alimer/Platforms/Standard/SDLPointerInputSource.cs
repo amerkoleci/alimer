@@ -25,7 +25,7 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         //_defaultCursor = new(SDL_GetDefaultCursor());
         //_currentCursor = new(SDL_GetCursor());
 
-        alimerPlatformGetMousePosition(out float x, out float y);
+        alimerMouseGetGlobalPosition(out float x, out float y);
         _position = new(x, y);
     }
 
@@ -274,10 +274,10 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
 
     private static bool GetMousePosition(SDL_Window* window, out Vector2 position)
     {
-        SDL_MouseButtonFlags flags = SDL_GetGlobalMouseState(out float globalX, out float globalY);
+        Bool8 anyPressed = alimerMouseGetGlobalPosition(out float globalX, out float globalY);
 
         SDL_GetWindowPosition(window, out int windowX, out int windowY);
         position = new(globalX - windowX, globalY - windowY);
-        return flags != 0;
+        return anyPressed;
     }
 }

@@ -270,9 +270,9 @@ struct GPUCommandBufferImpl : public GPUResource
     virtual GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) = 0;
 };
 
-struct GPUCommandQueue : public GPUResource
+struct GPUQueueImpl : public GPUResource
 {
-    virtual GPUCommandQueueType GetType() const = 0;
+    virtual GPUQueueType GetType() const = 0;
 
     virtual void WaitIdle() = 0;
     virtual GPUCommandBuffer AcquireCommandBuffer(const GPUCommandBufferDesc* desc) = 0;
@@ -291,7 +291,7 @@ struct GPUDeviceImpl : public GPUResource
 {
     virtual void GetLimits(GPUDeviceLimits* limits) const = 0;
     virtual bool HasFeature(GPUFeature feature) const = 0;
-    virtual GPUCommandQueue* GetQueue(GPUCommandQueueType type) = 0;
+    virtual GPUQueue GetQueue(GPUQueueType type) = 0;
     virtual void WaitIdle() = 0;
     virtual uint64_t CommitFrame() = 0;
 
@@ -324,8 +324,8 @@ struct GPUSurfaceSource final
 
     // MetalLayer
     void* metalLayer = nullptr;
-    // ANativeWindow
-    void* androidWindow = nullptr;
+    // WindowsHwnd/ANativeWindow
+    void* window = nullptr;
 
     // Wayland
     void* waylandDisplay = nullptr;
@@ -333,9 +333,6 @@ struct GPUSurfaceSource final
     // Xlib
     void* xlibDisplay = nullptr;
     uint64_t xlibWindow = 0;
-
-    // WindowsHwnd
-    void* hwnd = nullptr;
 };
 
 struct GPUSurface : public GPUResource
@@ -361,10 +358,10 @@ public:
     virtual GPUSurface* CreateSurface(GPUSurfaceSource* source) = 0;
 };
 
-_ALIMER_EXTERN bool agpuShouldLog(GPULogLevel level);
-_ALIMER_EXTERN void agpuLogInfo(const char* format, ...);
-_ALIMER_EXTERN void agpuLogWarn(const char* format, ...);
-_ALIMER_EXTERN void agpuLogError(const char* format, ...);
+_AGPU_EXTERN bool agpuShouldLog(GPULogLevel level);
+_AGPU_EXTERN void agpuLogInfo(const char* format, ...);
+_AGPU_EXTERN void agpuLogWarn(const char* format, ...);
+_AGPU_EXTERN void agpuLogError(const char* format, ...);
 
 typedef enum GPUPixelFormatKind {
     /// Unsigned normalized formats
@@ -393,7 +390,7 @@ typedef struct GPUPixelFormatInfo {
     GPUPixelFormatKind kind;
 } GPUPixelFormatInfo;
 
-_ALIMER_EXTERN GPUPixelFormatInfo agpuPixelFormatGetInfo(GPUPixelFormat format);
+_AGPU_EXTERN GPUPixelFormatInfo agpuPixelFormatGetInfo(GPUPixelFormat format);
 
 namespace
 {
@@ -588,21 +585,21 @@ namespace string
     }
 }
 
-_ALIMER_EXTERN GPUFactory* Null_CreateFactory(const GPUFactoryDesc* desc);
+_AGPU_EXTERN GPUFactory* Null_CreateFactory(const GPUFactoryDesc* desc);
 
 #if defined(ALIMER_GPU_VULKAN)
-_ALIMER_EXTERN bool Vulkan_IsSupported(void);
-_ALIMER_EXTERN GPUFactory* Vulkan_CreateFactory(const GPUFactoryDesc* desc);
+_AGPU_EXTERN bool Vulkan_IsSupported(void);
+_AGPU_EXTERN GPUFactory* Vulkan_CreateFactory(const GPUFactoryDesc* desc);
 #endif
 
 #if defined(ALIMER_GPU_D3D12)
-_ALIMER_EXTERN bool D3D12_IsSupported(void);
-_ALIMER_EXTERN GPUFactory* D3D12_CreateFactory(const GPUFactoryDesc* desc);
+_AGPU_EXTERN bool D3D12_IsSupported(void);
+_AGPU_EXTERN GPUFactory* D3D12_CreateFactory(const GPUFactoryDesc* desc);
 #endif
 
 #if defined(ALIMER_GPU_WEBGPU)
-_ALIMER_EXTERN bool WGPU_IsSupported(void);
-_ALIMER_EXTERN GPUFactory WGPU_CreateInstance(const GPUFactoryDesc* desc);
+_AGPU_EXTERN bool WGPU_IsSupported(void);
+_AGPU_EXTERN GPUFactory* WGPU_CreateInstance(const GPUFactoryDesc* desc);
 #endif
 
 #endif /* ALIMER_GPU_INTERNAL_H_ */

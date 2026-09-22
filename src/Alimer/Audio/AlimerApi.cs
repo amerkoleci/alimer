@@ -26,30 +26,30 @@ unsafe partial class AlimerApi
         /// </summary>
         public uint sampleRate;
     }
+
+    public struct AudioContextConfig
+    {
+        public Bool8 noAudio;
+    }
     #endregion
 
     #region Handles
-    [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public readonly partial struct AudioDevice(nint handle) : IEquatable<AudioDevice>
+    public readonly struct AudioContext(nint handle)
+    {
+        public nint Handle { get; } = handle;
+        public readonly bool IsNull => Handle == 0;
+        public readonly bool IsNotNull => Handle != 0;
+
+        public static AudioContext Null => new(0);
+    }
+
+    public readonly  struct AudioDevice(nint handle) 
     {
         public nint Handle { get; } = handle;
         public readonly bool IsNull => Handle == 0;
         public readonly bool IsNotNull => Handle != 0;
 
         public static AudioDevice Null => new(0);
-        public static implicit operator AudioDevice(nint handle) => new(handle);
-        public static implicit operator nint(AudioDevice handle) => handle.Handle;
-
-        public static bool operator ==(AudioDevice left, AudioDevice right) => left.Handle == right.Handle;
-        public static bool operator !=(AudioDevice left, AudioDevice right) => left.Handle != right.Handle;
-        public static bool operator ==(AudioDevice left, nint right) => left.Handle == right;
-        public static bool operator !=(AudioDevice left, nint right) => left.Handle != right;
-        public bool Equals(AudioDevice other) => Handle == other.Handle;
-        /// <inheritdoc/>
-        public override bool Equals([NotNullWhen(true)] object? obj) => obj is AudioDevice handle && Equals(handle);
-        /// <inheritdoc/>
-        public override readonly int GetHashCode() => Handle.GetHashCode();
-        private readonly string DebuggerDisplay => $"{nameof(AudioDevice)} [0x{Handle:X}]";
     }
 
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
@@ -77,14 +77,16 @@ unsafe partial class AlimerApi
     #endregion
 
     [LibraryImport(LibraryName)]
-    [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool alimerAudioInit();
+    public static partial AudioContext alimerContextCreate(in AudioContextConfig config);
 
     [LibraryImport(LibraryName)]
-    public static partial void alimerAudioShutdown();
+    public static partial void alimerAudioContextAddRef(AudioContext context);
 
     [LibraryImport(LibraryName)]
-    public static partial void alimerAudioEnumerateDevices(delegate* unmanaged<AudioDevice, nint, void> callback, nint userdata);
+    public static partial void alimerAudioContextRelease(AudioContext context);
+
+    [LibraryImport(LibraryName)]
+    public static partial void alimerAudioContextEnumerateDevices(AudioContext context, delegate* unmanaged<AudioDevice, nint, void> callback, nint userdata);
 
     [LibraryImport(LibraryName)]
     public static partial AudioDeviceType alimerAudioDeviceGetType(AudioDevice device);
@@ -97,7 +99,7 @@ unsafe partial class AlimerApi
     public static partial bool alimerAudioDeviceIsDefault(AudioDevice device);
 
     [LibraryImport(LibraryName)]
-    public static partial AudioEngine alimerAudioEngineCreate(AudioConfig* config);
+    public static partial AudioEngine alimerAudioEngineCreate(AudioContext context, AudioConfig* config);
     [LibraryImport(LibraryName)]
     public static partial void alimerAudioEngineDestroy(AudioEngine engine);
     [LibraryImport(LibraryName)]

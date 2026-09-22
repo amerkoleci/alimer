@@ -55,11 +55,6 @@ public partial class RigidBodyComponent : PhysicsComponent
         set
         {
             field = MathF.Max(value, 0.001f);
-
-            // TODO: Update Jolt mass?
-            if (Handle != null)
-            {
-            }
         }
     } = 1.0f;
 

@@ -13,7 +13,6 @@ unsafe partial class Window
     private readonly SDLPlatform _platform;
     private readonly SurfaceSource _surfaceSource;
     private bool _isFullscreen;
-    private nint _handle;
 
     internal Window(SDLPlatform platform, WindowFlags flags)
     {
@@ -28,16 +27,16 @@ unsafe partial class Window
             flags = flags
         };
 
-        _handle = alimerWindowCreate(in desc);
-        if (_handle == 0)
+        Handle = alimerWindowCreate(in desc);
+        if (Handle.IsNull)
         {
             throw new InvalidOperationException($"Alimer: alimerWindowCreate failed");
         }
 
         _isFullscreen = flags.HasFlag(WindowFlags.Fullscreen);
-        Id = alimerWindowGetID(_handle);
-        alimerWindowSetCentered(_handle);
-        alimerWindowGetSize(_handle, out int width, out int height);
+        Id = alimerWindowGetID(Handle);
+        alimerWindowSetCentered(Handle);
+        alimerWindowGetSize(Handle, out int width, out int height);
 
         // https://github.com/eliemichel/sdl3webgpu/blob/main/sdl3webgpu.c
         // https://github.com/eliemichel/glfw3webgpu/blob/main/glfw3webgpu.c
@@ -45,12 +44,12 @@ unsafe partial class Window
         // Native handle
         if (OperatingSystem.IsWindows())
         {
-            nint hwnd = alimerWindowGetNativeHandle(_handle);
+            nint hwnd = alimerWindowGetNativeHandle(Handle);
             _surfaceSource = SurfaceSource.CreateWin32(hwnd);
         }
         else if (OperatingSystem.IsAndroid())
         {
-            nint androidWindow = alimerWindowGetNativeHandle(_handle);
+            nint androidWindow = alimerWindowGetNativeHandle(Handle);
             _surfaceSource = SurfaceSource.CreateAndroid(androidWindow);
         }
 #if TODO
@@ -74,7 +73,7 @@ unsafe partial class Window
 #endif
         else if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
         {
-            NSWindow nsWindow = alimerWindowGetNativeHandle(_handle);
+            NSWindow nsWindow = alimerWindowGetNativeHandle(Handle);
 
             NSView contentView = nsWindow.contentView;
 
@@ -118,6 +117,7 @@ unsafe partial class Window
         }
     }
 
+    internal NativeWindow Handle { get; private set; }
     internal uint Id { get; }
 
     /// <inheritdoc />
@@ -128,10 +128,7 @@ unsafe partial class Window
     {
         get
         {
-            if (_handle == null)
-                return true;
-
-            return alimerWindowIsMinimized(_handle);
+            return alimerWindowIsMinimized(Handle);
         }
     }
 
@@ -144,7 +141,7 @@ unsafe partial class Window
             if (_isFullscreen != value)
             {
                 _isFullscreen = value;
-                alimerWindowSetFullscreen(_handle, value);
+                alimerWindowSetFullscreen(Handle, value);
             }
         }
     }
@@ -154,12 +151,12 @@ unsafe partial class Window
     {
         get
         {
-            alimerWindowGetPosition(_handle, out int x, out int y);
+            alimerWindowGetPosition(Handle, out int x, out int y);
             return new(x, y);
         }
         set
         {
-            alimerWindowSetPosition(_handle, value.X, value.Y);
+            alimerWindowSetPosition(Handle, value.X, value.Y);
         }
     }
 
@@ -168,12 +165,12 @@ unsafe partial class Window
     {
         get
         {
-            alimerWindowGetSize(_handle, out int width, out int height);
+            alimerWindowGetSize(Handle, out int width, out int height);
             return new(width, height);
         }
         set
         {
-            alimerWindowSetSize(_handle, value.Width, value.Height);
+            alimerWindowSetSize(Handle, value.Width, value.Height);
         }
     }
 
@@ -182,7 +179,7 @@ unsafe partial class Window
     {
         get
         {
-            alimerWindowGetSizeInPixels(_handle, out int width, out int height);
+            alimerWindowGetSizeInPixels(Handle, out int width, out int height);
             return new(width, height);
         }
     }
@@ -191,41 +188,41 @@ unsafe partial class Window
     {
         Surface?.Dispose();
 
-        if (_handle != 0)
+        if (Handle.IsNotNull)
         {
-            alimerWindowDestroy(_handle);
-            _handle = 0;
+            alimerWindowDestroy(Handle);
+            Handle = default;
         }
     }
 
     public void Show()
     {
-        alimerWindowShow(_handle);
+        alimerWindowShow(Handle);
     }
 
     public void Hide()
     {
-        alimerWindowHide(_handle);
+        alimerWindowHide(Handle);
     }
 
     public void Minimize()
     {
-        alimerWindowMinimize(_handle);
+        alimerWindowMinimize(Handle);
     }
 
     public void Maximize()
     {
-        alimerWindowMaximize(_handle);
+        alimerWindowMaximize(Handle);
     }
 
     public void Restore()
     {
-        alimerWindowRestore(_handle);
+        alimerWindowRestore(Handle);
     }
 
     private partial void SetTitle(string title)
     {
-        alimerWindowSetTitle(_handle, title);
+        alimerWindowSetTitle(Handle, title);
     }
 
     internal void HandleEvent(in WindowEvent evt)

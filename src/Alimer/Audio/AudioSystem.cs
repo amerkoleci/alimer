@@ -9,16 +9,20 @@ namespace Alimer.Audio;
 
 public static class AudioSystem
 {
+    private static AudioContext s_context;
     private static AudioAdapter[] s_playbackAdapters = [];
     private static AudioAdapter[] s_captureAdapters = [];
+
+    internal static AudioContext Context => s_context;
 
     public static unsafe void ScanDevices()
     {
         // Re-enumerate devices
         EnumAdaptersCallbackData data = new();
         GCHandle callbackHandle = GCHandle.Alloc(data);
-        alimerAudioEnumerateDevices(
-            &EnumeratePlaybackDevicesCallback,
+        alimerAudioContextEnumerateDevices(
+            s_context,
+            & EnumeratePlaybackDevicesCallback,
             GCHandle.ToIntPtr(callbackHandle)
             );
         callbackHandle.Free();
@@ -28,7 +32,8 @@ public static class AudioSystem
 
     internal static void Shutdown()
     {
-        alimerAudioShutdown();
+        alimerAudioContextRelease(s_context);
+        s_context = default;
     }
 
     /// <summary>
@@ -68,7 +73,8 @@ public static class AudioSystem
     [ModuleInitializer]
     public static void Register()
     {
-        if (!alimerAudioInit())
+        s_context = alimerContextCreate(new AudioContextConfig { noAudio = false });
+        if (s_context.IsNull)
         {
             throw new InvalidOperationException("Failed to initialize Alimer audio.");
         }

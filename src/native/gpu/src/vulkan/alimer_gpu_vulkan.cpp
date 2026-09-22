@@ -1073,7 +1073,6 @@ struct VulkanPhysicalDeviceExtensions final
     bool AMD_device_coherent_memory;
     bool EXT_memory_priority;
     bool deferredHostOperations;
-    bool portabilitySubset;
     bool depthClipEnable;
     bool textureCompressionAstcHdr;
     bool shaderViewportIndexLayer;
@@ -1110,9 +1109,9 @@ struct VulkanPhysicalDeviceExtensions final
 struct VulkanQueueFamilyIndices final
 {
     uint32_t queueFamilyCount = 0;
-    uint32_t familyIndices[_GPUCommandQueueType_Count] = {};
-    uint32_t queueIndices[_GPUCommandQueueType_Count] = {};
-    uint32_t counts[_GPUCommandQueueType_Count] = {};
+    uint32_t familyIndices[_GPUQueueType_Count] = {};
+    uint32_t queueIndices[_GPUQueueType_Count] = {};
+    uint32_t counts[_GPUQueueType_Count] = {};
 
     uint32_t timestampValidBits = 0;
 
@@ -1129,7 +1128,7 @@ struct VulkanQueueFamilyIndices final
 
     bool IsComplete() const
     {
-        return familyIndices[GPUCommandQueueType_Graphics] != VK_QUEUE_FAMILY_IGNORED;
+        return familyIndices[GPUQueueType_Graphics] != VK_QUEUE_FAMILY_IGNORED;
     }
 };
 
@@ -1312,10 +1311,10 @@ struct VulkanCommandBuffer final : public GPUCommandBufferImpl
     GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) override;
 };
 
-struct VulkanQueue final : public GPUCommandQueue
+struct VulkanQueue final : public GPUQueueImpl
 {
     VulkanDevice* device = nullptr;
-    GPUCommandQueueType queueType = _GPUCommandQueueType_Count;
+    GPUQueueType queueType = _GPUQueueType_Count;
     VkQueue handle = VK_NULL_HANDLE;
     std::vector<VkFence> frameFences = {};
     std::mutex mutex;
@@ -1324,7 +1323,7 @@ struct VulkanQueue final : public GPUCommandQueue
     uint32_t cmdBuffersCount = 0;
     std::mutex cmdBuffersLocker;
 
-    GPUCommandQueueType GetType() const override { return queueType; }
+    GPUQueueType GetType() const override { return queueType; }
 
     void WaitIdle() override;
     GPUCommandBuffer AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
@@ -1377,7 +1376,7 @@ struct VulkanDevice final : public GPUDeviceImpl
     VulkanAdapter* adapter = nullptr;
     GPUDeviceLimits limits{};
     VkDevice handle = VK_NULL_HANDLE;
-    VulkanQueue queues[_GPUCommandQueueType_Count];
+    VulkanQueue queues[_GPUQueueType_Count];
     VkPipelineCache pipelineCache = VK_NULL_HANDLE;
     VmaAllocator allocator = nullptr;
     VmaAllocator externalAllocator = nullptr;
@@ -1416,7 +1415,7 @@ struct VulkanDevice final : public GPUDeviceImpl
 
     void GetLimits(GPUDeviceLimits* limits) const override;
     bool HasFeature(GPUFeature feature) const override;
-    GPUCommandQueue* GetQueue(GPUCommandQueueType type) override;
+    GPUQueue GetQueue(GPUQueueType type) override;
     void WaitIdle() override;
     uint64_t CommitFrame() override;
     void ProcessDeletionQueue(bool force);
@@ -1579,7 +1578,7 @@ VulkanBuffer::~VulkanBuffer()
     if (handle != VK_NULL_HANDLE)
     {
         device->destroyedBuffers.push_back(std::make_pair(std::make_pair(handle, allocation), frameCount));
-        handle = nullptr;
+        handle = VK_NULL_HANDLE;
     }
     else if (allocation != nullptr)
     {
@@ -1608,24 +1607,21 @@ VulkanTexture::~VulkanTexture()
     }
     views.clear();
 
-    if (allocation != VK_NULL_HANDLE)
+    if (allocation != VK_NULL_HANDLE && handle != VK_NULL_HANDLE)
     {
-        if (handle)
-        {
-            device->destroyedImages.push_back(std::make_pair(std::make_pair(handle, allocation), frameCount));
-        }
-        //else if (stagingResource)
-        //{
-        //    device->destroyedBuffers.push_back(std::make_pair(std::make_pair(stagingResource, allocation), frameCount));
-        //}
-        else if (allocation)
-        {
-            device->destroyedAllocations.push_back(std::make_pair(allocation, frameCount));
-        }
+        device->destroyedImages.push_back(std::make_pair(std::make_pair(handle, allocation), frameCount));
+    }
+    //else if (stagingResource)
+    //{
+    //    device->destroyedBuffers.push_back(std::make_pair(std::make_pair(stagingResource, allocation), frameCount));
+    //}
+    else if (allocation)
+    {
+        device->destroyedAllocations.push_back(std::make_pair(allocation, frameCount));
     }
     //stagingResource = VK_NULL_HANDLE;
     handle = VK_NULL_HANDLE;
-    allocation = nullptr;
+    allocation = VK_NULL_HANDLE;
 
     device->destroyMutex.unlock();
 }
@@ -2383,7 +2379,7 @@ void VulkanCommandBuffer::Begin(uint32_t frameIndex, const GPUCommandBufferDesc*
     }
 #endif
 
-    if (queue->queueType == GPUCommandQueueType_Graphics)
+    if (queue->queueType == GPUQueueType_Graphics)
     {
         VkRect2D scissors[16];
         for (uint32_t i = 0; i < 16; ++i)
@@ -2695,7 +2691,7 @@ void VulkanQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer* commandBu
     presentInfo.pSwapchains = submitSwapchains.data();
     presentInfo.pImageIndices = submitSwapchainImageIndices.data();
 
-    const VkResult result = device->vkQueuePresentKHR(device->queues[GPUCommandQueueType_Graphics].handle, &presentInfo);
+    const VkResult result = device->vkQueuePresentKHR(device->queues[GPUQueueType_Graphics].handle, &presentInfo);
     if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
     {
         // Handle outdated error in present
@@ -2784,7 +2780,7 @@ void VulkanCopyAllocator::Init(VulkanDevice* device_)
 
 void VulkanCopyAllocator::Shutdown()
 {
-    device->vkQueueWaitIdle(device->queues[GPUCommandQueueType_Copy].handle);
+    device->vkQueueWaitIdle(device->queues[GPUQueueType_Copy].handle);
     for (auto& context : freeList)
     {
         device->vkDestroyCommandPool(device->handle, context.transferCommandPool, nullptr);
@@ -2827,10 +2823,10 @@ VulkanUploadContext VulkanCopyAllocator::Allocate(uint64_t size)
         VkCommandPoolCreateInfo poolCreateInfo = {};
         poolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolCreateInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-        poolCreateInfo.queueFamilyIndex = device->adapter->queueFamilyIndices.familyIndices[GPUCommandQueueType_Copy];
+        poolCreateInfo.queueFamilyIndex = device->adapter->queueFamilyIndices.familyIndices[GPUQueueType_Copy];
         VK_CHECK(device->vkCreateCommandPool(device->handle, &poolCreateInfo, nullptr, &context.transferCommandPool));
 
-        poolCreateInfo.queueFamilyIndex = device->adapter->queueFamilyIndices.familyIndices[GPUCommandQueueType_Graphics];
+        poolCreateInfo.queueFamilyIndex = device->adapter->queueFamilyIndices.familyIndices[GPUQueueType_Graphics];
         VK_CHECK(device->vkCreateCommandPool(device->handle, &poolCreateInfo, nullptr, &context.transitionCommandPool));
 
         VkCommandBufferAllocateInfo commandBufferInfo = {};
@@ -2913,8 +2909,8 @@ void VulkanCopyAllocator::Submit(VulkanUploadContext context)
         submitInfo.signalSemaphoreInfoCount = 1;
         submitInfo.pSignalSemaphoreInfos = &signalSemaphoreInfo;
 
-        std::scoped_lock lock(device->queues[GPUCommandQueueType_Copy].mutex);
-        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUCommandQueueType_Copy].handle, 1, &submitInfo, VK_NULL_HANDLE));
+        std::scoped_lock lock(device->queues[GPUQueueType_Copy].mutex);
+        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUQueueType_Copy].handle, 1, &submitInfo, VK_NULL_HANDLE));
     }
 
     // Graphics queue
@@ -2951,8 +2947,8 @@ void VulkanCopyAllocator::Submit(VulkanUploadContext context)
         }
         submitInfo.pSignalSemaphoreInfos = signalSemaphoreInfos;
 
-        std::scoped_lock lock(device->queues[GPUCommandQueueType_Graphics].mutex);
-        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUCommandQueueType_Graphics].handle, 1, &submitInfo, VK_NULL_HANDLE));
+        std::scoped_lock lock(device->queues[GPUQueueType_Graphics].mutex);
+        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUQueueType_Graphics].handle, 1, &submitInfo, VK_NULL_HANDLE));
     }
 
     //if (device->queues[QUEUE_VIDEO_DECODE].queue != VK_NULL_HANDLE)
@@ -2987,8 +2983,8 @@ void VulkanCopyAllocator::Submit(VulkanUploadContext context)
         submitInfo.pSignalSemaphoreInfos = nullptr;
 
         // Final submit also signals fence!
-        std::scoped_lock lock(device->queues[GPUCommandQueueType_Compute].mutex);
-        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUCommandQueueType_Compute].handle, 1, &submitInfo, context.fence));
+        std::scoped_lock lock(device->queues[GPUQueueType_Compute].mutex);
+        VK_CHECK(device->vkQueueSubmit2(device->queues[GPUQueueType_Compute].handle, 1, &submitInfo, context.fence));
     }
 
     std::scoped_lock lock(locker);
@@ -3053,7 +3049,7 @@ VulkanDevice::~VulkanDevice()
 {
     VK_CHECK(vkDeviceWaitIdle(handle));
 
-    for (uint32_t index = 0; index < _GPUCommandQueueType_Count; ++index)
+    for (uint32_t index = 0; index < _GPUQueueType_Count; ++index)
     {
         if (queues[index].handle == VK_NULL_HANDLE)
             continue;
@@ -3201,11 +3197,6 @@ bool VulkanDevice::Initialize(const GPUDeviceDesc& desc)
     if (adapter->extensions.deferredHostOperations)
     {
         enabledExtensions.push_back(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
-    }
-
-    if (adapter->extensions.portabilitySubset)
-    {
-        enabledExtensions.push_back("VK_KHR_portability_subset");
     }
 
     if (adapter->extensions.depthClipEnable)
@@ -3539,12 +3530,12 @@ bool VulkanDevice::Initialize(const GPUDeviceDesc& desc)
     VkFenceCreateInfo fenceInfo = {};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-    for (uint32_t i = 0; i < _GPUCommandQueueType_Count; i++)
+    for (uint32_t i = 0; i < _GPUQueueType_Count; i++)
     {
         if (adapter->queueFamilyIndices.familyIndices[i] != VK_QUEUE_FAMILY_IGNORED)
         {
             queues[i].device = this;
-            queues[i].queueType = (GPUCommandQueueType)i;
+            queues[i].queueType = (GPUQueueType)i;
 
             vkGetDeviceQueue(handle, adapter->queueFamilyIndices.familyIndices[i], adapter->queueFamilyIndices.queueIndices[i], &queues[i].handle);
             adapter->queueFamilyIndices.counts[i] = adapter->queueFamilyIndices.queueOffsets[adapter->queueFamilyIndices.familyIndices[i]];
@@ -3706,7 +3697,7 @@ bool VulkanDevice::HasFeature(GPUFeature feature) const
     return adapter->HasFeature(feature);
 }
 
-GPUCommandQueue* VulkanDevice::GetQueue(GPUCommandQueueType type)
+GPUQueue VulkanDevice::GetQueue(GPUQueueType type)
 {
     return &queues[type];
 }
@@ -3723,7 +3714,7 @@ void VulkanDevice::WaitIdle()
 uint64_t VulkanDevice::CommitFrame()
 {
     // Final submits with fences.
-    for (uint32_t i = 0; i < _GPUCommandQueueType_Count; ++i)
+    for (uint32_t i = 0; i < _GPUQueueType_Count; ++i)
     {
         queues[i].Submit(queues[i].frameFences[frameIndex]);
         queues[i].cmdBuffersCount = 0;
@@ -3736,7 +3727,7 @@ uint64_t VulkanDevice::CommitFrame()
     // Initiate stalling CPU when GPU is not yet finished with next frame
     if (frameCount >= maxFramesInFlight)
     {
-        for (uint32_t i = 0; i < _GPUCommandQueueType_Count; ++i)
+        for (uint32_t i = 0; i < _GPUQueueType_Count; ++i)
         {
             if (queues[i].handle == VK_NULL_HANDLE)
                 continue;
@@ -5056,7 +5047,7 @@ void VulkanSwapChain::Resize(uint32_t width, uint32_t height)
     }
 
     // Present family not found, we cannot create SwapChain
-    if ((queuePresentSupport & (1u << queueFamilyIndices.familyIndices[GPUCommandQueueType_Graphics])) == 0)
+    if ((queuePresentSupport & (1u << queueFamilyIndices.familyIndices[GPUQueueType_Graphics])) == 0)
     {
         agpuLogError("No presentation queue found for GPU.");
         return;
@@ -5712,13 +5703,13 @@ GPUSurface* VulkanFactory::CreateSurface(GPUSurfaceSource* source)
     VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     surfaceCreateInfo.hinstance = GetModuleHandleW(nullptr);
-    surfaceCreateInfo.hwnd = static_cast<HWND>(source->hwnd);
+    surfaceCreateInfo.hwnd = static_cast<HWND>(source->window);
 
     result = vkCreateWin32SurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
     VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
     surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-    surfaceCreateInfo.window = static_cast<ANativeWindow*>(source->androidWindow);
+    surfaceCreateInfo.window = static_cast<ANativeWindow*>(source->window);
 
     result = vkCreateAndroidSurfaceKHR(handle, &surfaceCreateInfo, nullptr, &vk_surface);
 #elif defined(VK_USE_PLATFORM_METAL_EXT)
@@ -5859,10 +5850,6 @@ VulkanPhysicalDeviceExtensions VulkanFactory::QueryPhysicalDeviceExtensions(VkPh
         else if (strcmp(vk_extensions[i].extensionName, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME) == 0)
         {
             extensions.deferredHostOperations = true;
-        }
-        else if (strcmp(vk_extensions[i].extensionName, "VK_KHR_portability_subset") == 0) // VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
-        {
-            extensions.portabilitySubset = true;
         }
         else if (strcmp(vk_extensions[i].extensionName, VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME) == 0)
         {
@@ -6033,18 +6020,19 @@ VulkanQueueFamilyIndices VulkanFactory::QueryQueueFamilies(VkPhysicalDevice phys
     indices.queueOffsets.resize(queueFamilyCount);
     indices.queuePriorities.resize(queueFamilyCount);
 
-    const auto FindVacantQueue = [&](GPUCommandQueueType type, VkQueueFlags requiredFlags, VkQueueFlags ignoreFlags, float priority) -> bool
+    const auto FindVacantQueue = [&](GPUQueueType type, VkQueueFlags requiredFlags, VkQueueFlags ignoreFlags, float priority) -> bool
         {
             for (uint32_t familyIndex = 0; familyIndex < queueFamilyCount; familyIndex++)
             {
                 if ((queueFamilies[familyIndex].queueFamilyProperties.queueFlags & ignoreFlags) != 0)
                     continue;
 
+                bool supportPresentation = GetPresentationSupport(physicalDevice, familyIndex);
+
                 // A graphics queue candidate must support present for us to select it.
                 if ((requiredFlags & VK_QUEUE_GRAPHICS_BIT) != 0)
                 {
-                    bool supported = GetPresentationSupport(physicalDevice, familyIndex);
-                    if (!supported)
+                    if (!supportPresentation)
                         continue;
                 }
 
@@ -6088,43 +6076,43 @@ VulkanQueueFamilyIndices VulkanFactory::QueryQueueFamilies(VkPhysicalDevice phys
             return false;
         };
 
-    if (!FindVacantQueue(GPUCommandQueueType_Graphics, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 0.5f))
+    if (!FindVacantQueue(GPUQueueType_Graphics, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0, 0.5f))
     {
         agpuLogError("Vulkan: Could not find suitable graphics queue.");
         return indices;
     }
 
     // XXX: This assumes timestamp valid bits is the same for all queue types.
-    indices.timestampValidBits = queueFamilies[indices.familyIndices[GPUCommandQueueType_Graphics]].queueFamilyProperties.timestampValidBits;
+    indices.timestampValidBits = queueFamilies[indices.familyIndices[GPUQueueType_Graphics]].queueFamilyProperties.timestampValidBits;
 
     // Prefer standalone compute queue. If not, fall back to another graphics queue.
-    if (!FindVacantQueue(GPUCommandQueueType_Compute, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f)
-        && !FindVacantQueue(GPUCommandQueueType_Compute, VK_QUEUE_COMPUTE_BIT, 0, 1.0f))
+    if (!FindVacantQueue(GPUQueueType_Compute, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f)
+        && !FindVacantQueue(GPUQueueType_Compute, VK_QUEUE_COMPUTE_BIT, 0, 1.0f))
     {
         // Fallback to the graphics queue if we must.
-        indices.familyIndices[GPUCommandQueueType_Compute] = indices.familyIndices[GPUCommandQueueType_Graphics];
-        indices.queueIndices[GPUCommandQueueType_Compute] = indices.queueIndices[GPUCommandQueueType_Graphics];
+        indices.familyIndices[GPUQueueType_Compute] = indices.familyIndices[GPUQueueType_Graphics];
+        indices.queueIndices[GPUQueueType_Compute] = indices.queueIndices[GPUQueueType_Graphics];
     }
 
     // For transfer, try to find a queue which only supports transfer, e.g. DMA queue.
     // If not, fallback to a dedicated compute queue.
     // Finally, fallback to same queue as compute.
-    if (!FindVacantQueue(GPUCommandQueueType_Copy, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.5f)
-        && !FindVacantQueue(GPUCommandQueueType_Copy, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f))
+    if (!FindVacantQueue(GPUQueueType_Copy, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0.5f)
+        && !FindVacantQueue(GPUQueueType_Copy, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT, 0.5f))
     {
-        indices.familyIndices[GPUCommandQueueType_Copy] = indices.familyIndices[GPUCommandQueueType_Compute];
-        indices.queueIndices[GPUCommandQueueType_Copy] = indices.queueIndices[GPUCommandQueueType_Compute];
+        indices.familyIndices[GPUQueueType_Copy] = indices.familyIndices[GPUQueueType_Compute];
+        indices.queueIndices[GPUQueueType_Copy] = indices.queueIndices[GPUQueueType_Compute];
     }
 
     if (supportsVideoQueue)
     {
 #if TODO_VIDEO
-        if (!FindVacantQueue(indices.familyIndices[GPUCommandQueueType_VideoDecode],
-            indices.queueIndices[GPUCommandQueueType_VideoDecode],
+        if (!FindVacantQueue(indices.familyIndices[GPUQueueType_VideoDecode],
+            indices.queueIndices[GPUQueueType_VideoDecode],
             VK_QUEUE_VIDEO_DECODE_BIT_KHR, 0, 0.5f))
         {
-            indices.familyIndices[GPUCommandQueueType_VideoDecode] = VK_QUEUE_FAMILY_IGNORED;
-            indices.queueIndices[GPUCommandQueueType_VideoDecode] = UINT32_MAX;
+            indices.familyIndices[GPUQueueType_VideoDecode] = VK_QUEUE_FAMILY_IGNORED;
+            indices.queueIndices[GPUQueueType_VideoDecode] = UINT32_MAX;
         }
 #endif // TODO_VIDEO
 
@@ -6280,9 +6268,9 @@ GPUFactory* Vulkan_CreateFactory(const GPUFactoryDesc* desc)
     // Enable surface extensions depending on os
 #if defined(_WIN32)
     instanceExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+#elif defined(__ANDROID__)
     instanceExtensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
-#elif defined(VK_USE_PLATFORM_METAL_EXT)
+#elif defined(__APPLE__)
     instanceExtensions.push_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
     instanceExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
     instanceExtensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);

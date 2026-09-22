@@ -384,7 +384,7 @@ static bool PopEvent(PlatformEvent* e) noexcept
     return false;
 }
 
-Bool32 alimerPlatformInit(void)
+bool alimerPlatformInit(void)
 {
     if (state.initialized)
         return true;
@@ -435,7 +435,7 @@ void alimerPlatformShutdown(void)
     memset(&state, 0, sizeof(state));
 }
 
-Bool32 alimerPlatformPollEvent(PlatformEvent* evt)
+bool alimerPlatformPollEvent(PlatformEvent* evt)
 {
     ALIMER_ASSERT(state.initialized);
 
@@ -449,9 +449,10 @@ Bool32 alimerPlatformPollEvent(PlatformEvent* evt)
     return PopEvent(evt);
 }
 
-void alimerPlatformGetMousePosition(float* x, float* y)
+bool alimerMouseGetGlobalPosition(float* x, float* y)
 {
-    SDL_GetGlobalMouseState(x, y);
+    SDL_MouseButtonFlags flags = SDL_GetGlobalMouseState(x, y);
+    return flags != 0;
 }
 
 Window* alimerWindowCreate(const WindowDesc* desc)
@@ -537,13 +538,6 @@ uint32_t alimerWindowGetID(Window* window)
     return window->id;
 }
 
-Bool32 alimerWindowIsOpen(Window* window)
-{
-    ALIMER_ASSERT(window != nullptr);
-
-    return window->handle != nullptr;
-}
-
 void alimerWindowSetPosition(Window* window, int32_t x, int32_t y)
 {
     ALIMER_ASSERT(window != nullptr);
@@ -617,7 +611,7 @@ float alimerWindowGetDisplayScale(Window* window)
     return SDL_GetWindowDisplayScale(window->handle);
 }
 
-Bool32 alimerWindowGetMousePosition(Window* window, float* x, float* y)
+bool alimerWindowGetMousePosition(Window* window, float* x, float* y)
 {
     ALIMER_ASSERT(window != nullptr);
 
@@ -635,7 +629,7 @@ Bool32 alimerWindowGetMousePosition(Window* window, float* x, float* y)
     return flags != 0;
 }
 
-Bool32 alimerWindowIsMinimized(Window* window)
+bool alimerWindowIsMinimized(Window* window)
 {
     ALIMER_ASSERT(window != nullptr);
 
@@ -643,7 +637,7 @@ Bool32 alimerWindowIsMinimized(Window* window)
     return (flags & SDL_WINDOW_MINIMIZED) != 0;
 }
 
-Bool32 alimerWindowIsMaximized(Window* window)
+bool alimerWindowIsMaximized(Window* window)
 {
     ALIMER_ASSERT(window != nullptr);
 
@@ -651,7 +645,7 @@ Bool32 alimerWindowIsMaximized(Window* window)
     return (flags & SDL_WINDOW_MAXIMIZED) != 0;
 }
 
-Bool32 alimerWindowIsFullscreen(Window* window)
+bool alimerWindowIsFullscreen(Window* window)
 {
     ALIMER_ASSERT(window != nullptr);
 
@@ -666,7 +660,7 @@ void alimerWindowSetFullscreen(Window* window, bool value)
     SDL_SetWindowFullscreen(window->handle, value);
 }
 
-Bool32 alimerWindowHasFocus(Window* window)
+bool alimerWindowHasFocus(Window* window)
 {
     ALIMER_ASSERT(window != nullptr);
     const SDL_WindowFlags flags = SDL_GetWindowFlags(window->handle);
@@ -765,7 +759,7 @@ void* alimerWindowGetNativeHandle(Window* window)
 }
 
 /* Clipboard */
-Bool32 alimerHasClipboardText(void)
+bool alimerHasClipboardText(void)
 {
     return SDL_HasClipboardText();
 }

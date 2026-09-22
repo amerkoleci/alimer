@@ -34,7 +34,7 @@ bool agpuShouldLog(GPULogLevel level)
     if (s_LogLevel == GPULogLevel_Off || s_LogFunc == nullptr)
         return false;
 
-    return level <= s_LogLevel;
+    return level >= s_LogLevel;
 }
 
 void agpuLogInfo(const char* format, ...)
@@ -230,7 +230,7 @@ GPUPixelFormatInfo agpuPixelFormatGetInfo(GPUPixelFormat format)
     return kPixelFormatInfo[size_t(format)];
 }
 
-GPUBool agpuIsBackendSupport(GPUBackendType backend)
+bool agpuIsBackendSupport(GPUBackendType backend)
 {
     switch (backend)
     {
@@ -397,7 +397,7 @@ GPUSurfaceSource* agpuSurfaceSourceCreateFromWin32(void* hwnd)
 {
     GPUSurfaceSource* handle = new GPUSurfaceSource();
     handle->type = GPUSurfaceSource::Type::WindowsHWND;
-    handle->hwnd = hwnd;
+    handle->window = hwnd;
     return handle;
 }
 
@@ -405,7 +405,7 @@ GPUSurfaceSource* agpuSurfaceSourceCreateFromAndroid(void* window)
 {
     GPUSurfaceSource* handle = new GPUSurfaceSource();
     handle->type = GPUSurfaceSource::Type::AndroidWindow;
-    handle->androidWindow = window;
+    handle->window = window;
     return handle;
 }
 
@@ -513,7 +513,7 @@ GPUBool agpuDeviceHasFeature(GPUDevice device, GPUFeature feature)
     return device->HasFeature(feature);
 }
 
-GPUCommandQueue* agpuDeviceGetCommandQueue(GPUDevice device, GPUCommandQueueType type)
+GPUQueue agpuDeviceGetQueue(GPUDevice device, GPUQueueType type)
 {
     return device->GetQueue(type);
 }
@@ -533,23 +533,23 @@ uint64_t agpuDeviceCommitFrame(GPUDevice device)
     return device->CommitFrame();
 }
 
-/* CommandQueue */
-GPUCommandQueueType agpuCommandQueueGetType(GPUCommandQueue* queue)
+/* Queue */
+GPUQueueType agpuQueueGetType(GPUQueue queue)
 {
     return queue->GetType();
 }
 
-void agpuCommandQueueWaitIdle(GPUCommandQueue* queue)
+void agpuQueueWaitIdle(GPUQueue queue)
 {
     queue->WaitIdle();
 }
 
-GPUCommandBuffer agpuCommandQueueAcquireCommandBuffer(GPUCommandQueue* queue, const GPUCommandBufferDesc* desc)
+GPUCommandBuffer agpuQueueAcquireCommandBuffer(GPUQueue queue, const GPUCommandBufferDesc* desc)
 {
     return queue->AcquireCommandBuffer(desc);
 }
 
-void agpuCommandQueueSubmit(GPUCommandQueue* queue, uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers)
+void agpuQueueSubmit(GPUQueue queue, uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers)
 {
     queue->Submit(numCommandBuffers, commandBuffers);
 }

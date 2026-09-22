@@ -121,11 +121,11 @@ struct NullCommandBuffer final : public GPUCommandBufferImpl
     GPURenderPassEncoder BeginRenderPass(const GPURenderPassDesc& desc) override;
 };
 
-struct NullCommandQueue final : public GPUCommandQueue
+struct NullQueue final : public GPUQueueImpl
 {
-    GPUCommandQueueType queueType = _GPUCommandQueueType_Count;
+    GPUQueueType queueType = _GPUQueueType_Count;
 
-    GPUCommandQueueType GetType() const override { return queueType; }
+    GPUQueueType GetType() const override { return queueType; }
     GPUCommandBuffer AcquireCommandBuffer(const GPUCommandBufferDesc* desc) override;
     void WaitIdle() override;
     void Submit(uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers) override;
@@ -135,7 +135,7 @@ struct NullDevice final : public GPUDeviceImpl
 {
     NullAdapter* adapter = nullptr;
     GPUDeviceLimits limits{};
-    NullCommandQueue queues[_GPUCommandQueueType_Count];
+    NullQueue queues[_GPUQueueType_Count];
     uint64_t frameCount = 0;
     uint32_t frameIndex = 0;
     uint32_t maxFramesInFlight = 0;
@@ -143,7 +143,7 @@ struct NullDevice final : public GPUDeviceImpl
 
     void GetLimits(GPUDeviceLimits* limits) const override;
     bool HasFeature(GPUFeature feature) const override;
-    GPUCommandQueue* GetQueue(GPUCommandQueueType type) override;
+    GPUQueue GetQueue(GPUQueueType type) override;
     void WaitIdle() override;
     uint64_t CommitFrame() override;
 
@@ -393,17 +393,17 @@ GPURenderPassEncoder NullCommandBuffer::BeginRenderPass(const GPURenderPassDesc&
     return renderPassEncoder;
 }
 
-/* NullCommandQueue */
-GPUCommandBuffer NullCommandQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
+/* NullQueue */
+GPUCommandBuffer NullQueue::AcquireCommandBuffer(const GPUCommandBufferDesc* desc)
 {
     // TODO:
     return nullptr;
 }
 
-void NullCommandQueue::WaitIdle()
+void NullQueue::WaitIdle()
 {}
 
-void NullCommandQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers)
+void NullQueue::Submit(uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers)
 {
     ALIMER_UNUSED(numCommandBuffers);
     ALIMER_UNUSED(commandBuffers);
@@ -420,7 +420,7 @@ bool NullDevice::HasFeature(GPUFeature feature) const
     return false;
 }
 
-GPUCommandQueue* NullDevice::GetQueue(GPUCommandQueueType type)
+GPUQueue NullDevice::GetQueue(GPUQueueType type)
 {
     return &queues[type];
 }

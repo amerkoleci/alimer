@@ -72,96 +72,33 @@ unsafe partial class AlimerApi
     #endregion
 
     #region Handles
-    [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public readonly partial struct PhysicsWorld(nint handle) : IEquatable<PhysicsWorld>
+    public readonly struct PhysicsWorld(nint handle)
     {
         public nint Handle { get; } = handle;
         public readonly bool IsNull => Handle == 0;
         public readonly bool IsNotNull => Handle != 0;
-
-        public static PhysicsWorld Null => new(0);
-        public static implicit operator PhysicsWorld(nint handle) => new(handle);
-        public static implicit operator nint(PhysicsWorld handle) => handle.Handle;
-
-        public static bool operator ==(PhysicsWorld left, PhysicsWorld right) => left.Handle == right.Handle;
-        public static bool operator !=(PhysicsWorld left, PhysicsWorld right) => left.Handle != right.Handle;
-        public static bool operator ==(PhysicsWorld left, nint right) => left.Handle == right;
-        public static bool operator !=(PhysicsWorld left, nint right) => left.Handle != right;
-        public bool Equals(PhysicsWorld other) => Handle == other.Handle;
-        /// <inheritdoc/>
-        public override bool Equals([NotNullWhen(true)] object? obj) => obj is PhysicsWorld handle && Equals(handle);
-        /// <inheritdoc/>
-        public override readonly int GetHashCode() => Handle.GetHashCode();
-        private readonly string DebuggerDisplay => $"{nameof(PhysicsWorld)} [0x{Handle:X}]";
     }
 
-    [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public readonly partial struct PhysicsMaterial(nint handle) : IEquatable<PhysicsMaterial>
+    public readonly struct PhysicsMaterial(nint handle)
     {
         public nint Handle { get; } = handle;
         public readonly bool IsNull => Handle == 0;
         public readonly bool IsNotNull => Handle != 0;
-
         public static PhysicsMaterial Null => new(0);
-        public static implicit operator PhysicsMaterial(nint handle) => new(handle);
-        public static implicit operator nint(PhysicsMaterial handle) => handle.Handle;
-
-        public static bool operator ==(PhysicsMaterial left, PhysicsMaterial right) => left.Handle == right.Handle;
-        public static bool operator !=(PhysicsMaterial left, PhysicsMaterial right) => left.Handle != right.Handle;
-        public static bool operator ==(PhysicsMaterial left, nint right) => left.Handle == right;
-        public static bool operator !=(PhysicsMaterial left, nint right) => left.Handle != right;
-        public bool Equals(PhysicsMaterial other) => Handle == other.Handle;
-        /// <inheritdoc/>
-        public override bool Equals([NotNullWhen(true)] object? obj) => obj is PhysicsMaterial handle && Equals(handle);
-        /// <inheritdoc/>
-        public override readonly int GetHashCode() => Handle.GetHashCode();
-        private readonly string DebuggerDisplay => $"{nameof(PhysicsMaterial)} [0x{Handle:X}]";
     }
 
-    [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public readonly partial struct PhysicsShape(nint handle) : IEquatable<PhysicsShape>
+    public readonly struct PhysicsShape(nint handle)
     {
         public nint Handle { get; } = handle;
         public readonly bool IsNull => Handle == 0;
         public readonly bool IsNotNull => Handle != 0;
-
-        public static PhysicsShape Null => new(0);
-        public static implicit operator PhysicsShape(nint handle) => new(handle);
-        public static implicit operator nint(PhysicsShape handle) => handle.Handle;
-
-        public static bool operator ==(PhysicsShape left, PhysicsShape right) => left.Handle == right.Handle;
-        public static bool operator !=(PhysicsShape left, PhysicsShape right) => left.Handle != right.Handle;
-        public static bool operator ==(PhysicsShape left, nint right) => left.Handle == right;
-        public static bool operator !=(PhysicsShape left, nint right) => left.Handle != right;
-        public bool Equals(PhysicsShape other) => Handle == other.Handle;
-        /// <inheritdoc/>
-        public override bool Equals([NotNullWhen(true)] object? obj) => obj is PhysicsShape handle && Equals(handle);
-        /// <inheritdoc/>
-        public override readonly int GetHashCode() => Handle.GetHashCode();
-        private readonly string DebuggerDisplay => $"{nameof(PhysicsShape)} [0x{Handle:X}]";
     }
 
-    [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    public readonly partial struct PhysicsBody(nint handle) : IEquatable<PhysicsBody>
+    public readonly struct PhysicsBody(nint handle)
     {
         public nint Handle { get; } = handle;
         public readonly bool IsNull => Handle == 0;
         public readonly bool IsNotNull => Handle != 0;
-
-        public static PhysicsBody Null => new(0);
-        public static implicit operator PhysicsBody(nint handle) => new(handle);
-        public static implicit operator nint(PhysicsBody handle) => handle.Handle;
-
-        public static bool operator ==(PhysicsBody left, PhysicsBody right) => left.Handle == right.Handle;
-        public static bool operator !=(PhysicsBody left, PhysicsBody right) => left.Handle != right.Handle;
-        public static bool operator ==(PhysicsBody left, nint right) => left.Handle == right;
-        public static bool operator !=(PhysicsBody left, nint right) => left.Handle != right;
-        public bool Equals(PhysicsBody other) => Handle == other.Handle;
-        /// <inheritdoc/>
-        public override bool Equals([NotNullWhen(true)] object? obj) => obj is PhysicsBody handle && Equals(handle);
-        /// <inheritdoc/>
-        public override readonly int GetHashCode() => Handle.GetHashCode();
-        private readonly string DebuggerDisplay => $"{nameof(PhysicsBody)} [0x{Handle:X}]";
     }
     #endregion
 

@@ -23,12 +23,12 @@
 #endif
 
 #ifdef __cplusplus
-#    define _ALIMER_EXTERN extern "C"
+#    define _AGPU_EXTERN  extern "C"
 #else
-#    define _ALIMER_EXTERN extern
+#    define _AGPU_EXTERN  extern
 #endif
 
-#define ALIMER_GPU_API _ALIMER_EXTERN _ALIMER_EXPORT
+#define AGPU_API _AGPU_EXTERN _ALIMER_EXPORT
 
 #ifdef __cplusplus
 #   define DEFAULT_INITIALIZER(x) = x
@@ -38,6 +38,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Version API */
 #define ALIMER_GPU_VERSION_MAJOR    1
@@ -50,7 +51,7 @@ typedef struct GPUAdapter                   GPUAdapter;
 typedef struct GPUSurfaceSource             GPUSurfaceSource;
 typedef struct GPUSurface                   GPUSurface;
 typedef struct GPUDeviceImpl*               GPUDevice;
-typedef struct GPUCommandQueue              GPUCommandQueue;
+typedef struct GPUQueueImpl*                GPUQueue;
 typedef struct GPUCommandBufferImpl*        GPUCommandBuffer;
 typedef struct GPUComputePassEncoderImpl*   GPUComputePassEncoder;
 typedef struct GPURenderPassEncoderImpl*    GPURenderPassEncoder;
@@ -84,12 +85,13 @@ typedef int32_t GPUBindlessIndex;
 
 /* Enums */
 typedef enum GPULogLevel {
-    GPULogLevel_Off = 0,
-    GPULogLevel_Error = 1,
-    GPULogLevel_Warn = 2,
-    GPULogLevel_Info = 3,
-    GPULogLevel_Debug = 4,
-    VGPULogLevel_Trace = 5,
+    GPULogLevel_Trace = 0,
+    GPULogLevel_Debug = 1,
+    GPULogLevel_Info = 2,
+    GPULogLevel_Warn = 3,
+    GPULogLevel_Error = 4,
+    GPULogLevel_Critical = 5,
+    GPULogLevel_Off = 6,
 
     _GPULogLevel_Count,
     _GPULogLevel_Force32 = 0x7FFFFFFF
@@ -138,15 +140,15 @@ typedef enum GPUValidationMode {
     _GPUValidationMode_Force32 = 0x7FFFFFFF
 } GPUValidationMode;
 
-typedef enum GPUCommandQueueType {
-    GPUCommandQueueType_Graphics = 0,
-    GPUCommandQueueType_Compute,
-    GPUCommandQueueType_Copy,
-    //GPUCommandQueueType_VideoDecode,
+typedef enum GPUQueueType {
+    GPUQueueType_Graphics = 0,
+    GPUQueueType_Compute,
+    GPUQueueType_Copy,
+    //GPUQueueType_VideoDecode,
 
-    _GPUCommandQueueType_Count,
-    _GPUCommandQueueType_Force32 = 0x7FFFFFFF
-} GPUCommandQueueType;
+    _GPUQueueType_Count,
+    _GPUQueueType_Force32 = 0x7FFFFFFF
+} GPUQueueType;
 
 typedef enum GPUPixelFormat {
     GPUPixelFormat_Undefined = 0,
@@ -1044,154 +1046,155 @@ typedef struct GPUDrawIndirectCommand {
     uint32_t firstInstance;
 } GPUDrawIndirectCommand;
 
+/* Log */
 typedef void (*GPULogCallback)(GPULogLevel level, const char* message, void* userData);
-ALIMER_GPU_API GPULogLevel agpuGetLogLevel(void);
-ALIMER_GPU_API void agpuSetLogLevel(GPULogLevel level);
-ALIMER_GPU_API void agpuSetLogCallback(GPULogCallback func, void* userData);
+AGPU_API GPULogLevel agpuGetLogLevel(void);
+AGPU_API void agpuSetLogLevel(GPULogLevel level);
+AGPU_API void agpuSetLogCallback(GPULogCallback func, void* userData);
 
-ALIMER_GPU_API GPUBool agpuIsBackendSupport(GPUBackendType backend);
-ALIMER_GPU_API GPUFactory* agpuFactoryCreate(const GPUFactoryDesc* desc);
-ALIMER_GPU_API void agpuFactoryDestroy(GPUFactory* factory);
-ALIMER_GPU_API GPUBackendType agpuFactoryGetBackend(GPUFactory* factory);
-ALIMER_GPU_API uint32_t agpuFactoryGetAdapterCount(GPUFactory* factory);
-ALIMER_GPU_API GPUAdapter* agpuFactoryGetAdapter(GPUFactory* factory, uint32_t index);
-ALIMER_GPU_API GPUAdapter* agpuFactoryGetBestAdapter(GPUFactory* factory);
+AGPU_API bool agpuIsBackendSupport(GPUBackendType backend);
+AGPU_API GPUFactory* agpuFactoryCreate(const GPUFactoryDesc* desc);
+AGPU_API void agpuFactoryDestroy(GPUFactory* factory);
+AGPU_API GPUBackendType agpuFactoryGetBackend(GPUFactory* factory);
+AGPU_API uint32_t agpuFactoryGetAdapterCount(GPUFactory* factory);
+AGPU_API GPUAdapter* agpuFactoryGetAdapter(GPUFactory* factory, uint32_t index);
+AGPU_API GPUAdapter* agpuFactoryGetBestAdapter(GPUFactory* factory);
 
 /* Adapter */
-ALIMER_GPU_API void agpuAdapterGetInfo(GPUAdapter* adapter, GPUAdapterInfo* info);
+AGPU_API void agpuAdapterGetInfo(GPUAdapter* adapter, GPUAdapterInfo* info);
 
 /* SurfaceSource */
-ALIMER_GPU_API GPUSurfaceSource* agpuSurfaceSourceCreateFromWin32(void* hwnd);
-ALIMER_GPU_API GPUSurfaceSource* agpuSurfaceSourceCreateFromAndroid(void* window);
-ALIMER_GPU_API GPUSurfaceSource* agpuSurfaceSourceCreateFromMetalLayer(void* metalLayer);
-ALIMER_GPU_API GPUSurfaceSource* agpuSurfaceSourceCreateFromWaylandSurface(void* display, void* surface);
-ALIMER_GPU_API GPUSurfaceSource* agpuSurfaceSourceCreateFromXlibWindow(void* display, uint64_t window);
-ALIMER_GPU_API void agpuSurfaceSourceDestroy(GPUSurfaceSource* surfaceSource);
+AGPU_API GPUSurfaceSource* agpuSurfaceSourceCreateFromWin32(void* hwnd);
+AGPU_API GPUSurfaceSource* agpuSurfaceSourceCreateFromAndroid(void* window);
+AGPU_API GPUSurfaceSource* agpuSurfaceSourceCreateFromMetalLayer(void* metalLayer);
+AGPU_API GPUSurfaceSource* agpuSurfaceSourceCreateFromWaylandSurface(void* display, void* surface);
+AGPU_API GPUSurfaceSource* agpuSurfaceSourceCreateFromXlibWindow(void* display, uint64_t window);
+AGPU_API void agpuSurfaceSourceDestroy(GPUSurfaceSource* surfaceSource);
 
 /* Surface */
-ALIMER_GPU_API GPUSurface* agpuSurfaceCreate(GPUFactory* factory, GPUSurfaceSource* surfaceSource);
-ALIMER_GPU_API void agpuSurfaceGetCapabilities(GPUSurface* surface, GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities);
-ALIMER_GPU_API uint32_t agpuSurfaceAddRef(GPUSurface* surface);
-ALIMER_GPU_API uint32_t agpuSurfaceRelease(GPUSurface* surface);
+AGPU_API GPUSurface* agpuSurfaceCreate(GPUFactory* factory, GPUSurfaceSource* surfaceSource);
+AGPU_API void agpuSurfaceGetCapabilities(GPUSurface* surface, GPUAdapter* adapter, GPUSurfaceCapabilities* capabilities);
+AGPU_API uint32_t agpuSurfaceAddRef(GPUSurface* surface);
+AGPU_API uint32_t agpuSurfaceRelease(GPUSurface* surface);
 
 /* Device */
-ALIMER_GPU_API GPUDevice agpuDeviceCreate(GPUAdapter* adapter, const GPUDeviceDesc* desc);
-ALIMER_GPU_API uint32_t agpuDeviceAddRef(GPUDevice device);
-ALIMER_GPU_API uint32_t agpuDeviceRelease(GPUDevice device);
-ALIMER_GPU_API void agpuDeviceSetLabel(GPUDevice device, const char* label);
-ALIMER_GPU_API void agpuDeviceGetLimits(GPUDevice device, GPUDeviceLimits* limits);
-ALIMER_GPU_API GPUBool agpuDeviceHasFeature(GPUDevice device, GPUFeature feature);
-ALIMER_GPU_API GPUCommandQueue* agpuDeviceGetCommandQueue(GPUDevice device, GPUCommandQueueType type);
-ALIMER_GPU_API void agpuDeviceWaitIdle(GPUDevice device);
-ALIMER_GPU_API uint64_t agpuDeviceGetTimestampFrequency(GPUDevice device);
+AGPU_API GPUDevice agpuDeviceCreate(GPUAdapter* adapter, const GPUDeviceDesc* desc);
+AGPU_API uint32_t agpuDeviceAddRef(GPUDevice device);
+AGPU_API uint32_t agpuDeviceRelease(GPUDevice device);
+AGPU_API void agpuDeviceSetLabel(GPUDevice device, const char* label);
+AGPU_API void agpuDeviceGetLimits(GPUDevice device, GPUDeviceLimits* limits);
+AGPU_API GPUBool agpuDeviceHasFeature(GPUDevice device, GPUFeature feature);
+AGPU_API GPUQueue agpuDeviceGetQueue(GPUDevice device, GPUQueueType type);
+AGPU_API void agpuDeviceWaitIdle(GPUDevice device);
+AGPU_API uint64_t agpuDeviceGetTimestampFrequency(GPUDevice device);
 
 /// Commit the current frame and advance to next frame
-ALIMER_GPU_API uint64_t agpuDeviceCommitFrame(GPUDevice device);
+AGPU_API uint64_t agpuDeviceCommitFrame(GPUDevice device);
 
-/* CommandQueue */
-ALIMER_GPU_API GPUCommandQueueType agpuCommandQueueGetType(GPUCommandQueue* queue);
-ALIMER_GPU_API void agpuCommandQueueWaitIdle(GPUCommandQueue* queue);
-ALIMER_GPU_API GPUCommandBuffer agpuCommandQueueAcquireCommandBuffer(GPUCommandQueue* queue, const GPUCommandBufferDesc* desc);
-ALIMER_GPU_API void agpuCommandQueueSubmit(GPUCommandQueue* queue, uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers);
+/* Queue */
+AGPU_API GPUQueueType agpuQueueGetType(GPUQueue queue);
+AGPU_API void agpuQueueWaitIdle(GPUQueue queue);
+AGPU_API GPUCommandBuffer agpuQueueAcquireCommandBuffer(GPUQueue queue, const GPUCommandBufferDesc* desc);
+AGPU_API void agpuQueueSubmit(GPUQueue queue, uint32_t numCommandBuffers, GPUCommandBuffer* commandBuffers);
 
 /* CommandBuffer */
-ALIMER_GPU_API void agpuCommandBufferPushDebugGroup(GPUCommandBuffer commandBuffer, const char* groupLabel);
-ALIMER_GPU_API void agpuCommandBufferPopDebugGroup(GPUCommandBuffer commandBuffer);
-ALIMER_GPU_API void agpuCommandBufferInsertDebugMarker(GPUCommandBuffer commandBuffer, const char* markerLabel);
-ALIMER_GPU_API GPUComputePassEncoder agpuCommandBufferBeginComputePass(GPUCommandBuffer commandBuffer, const GPUComputePassDesc* desc);
-ALIMER_GPU_API GPURenderPassEncoder agpuCommandBufferBeginRenderPass(GPUCommandBuffer commandBuffer, const GPURenderPassDesc* desc);
+AGPU_API void agpuCommandBufferPushDebugGroup(GPUCommandBuffer commandBuffer, const char* groupLabel);
+AGPU_API void agpuCommandBufferPopDebugGroup(GPUCommandBuffer commandBuffer);
+AGPU_API void agpuCommandBufferInsertDebugMarker(GPUCommandBuffer commandBuffer, const char* markerLabel);
+AGPU_API GPUComputePassEncoder agpuCommandBufferBeginComputePass(GPUCommandBuffer commandBuffer, const GPUComputePassDesc* desc);
+AGPU_API GPURenderPassEncoder agpuCommandBufferBeginRenderPass(GPUCommandBuffer commandBuffer, const GPURenderPassDesc* desc);
 
 /* ComputePassEncoder */
-ALIMER_GPU_API void agpuComputePassEncoderSetPipeline(GPUComputePassEncoder computePassEncoder, GPUComputePipeline pipeline);
-ALIMER_GPU_API void agpuComputePassEncoderPushConstants(GPUComputePassEncoder computePassEncoder, const void* data, uint32_t size);
-ALIMER_GPU_API void agpuComputePassEncoderDispatch(GPUComputePassEncoder computePassEncoder, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
-ALIMER_GPU_API void agpuComputePassEncoderDispatchIndirect(GPUComputePassEncoder computePassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset);
-ALIMER_GPU_API void agpuComputePassEncoderEnd(GPUComputePassEncoder computePassEncoder);
-ALIMER_GPU_API void agpuComputePassEncoderPushDebugGroup(GPUComputePassEncoder computePassEncoder, const char* groupLabel);
-ALIMER_GPU_API void agpuComputePassEncoderPopDebugGroup(GPUComputePassEncoder computePassEncoder);
-ALIMER_GPU_API void agpuComputePassEncoderInsertDebugMarker(GPUComputePassEncoder computePassEncoder, const char* markerLabel);
+AGPU_API void agpuComputePassEncoderSetPipeline(GPUComputePassEncoder computePassEncoder, GPUComputePipeline pipeline);
+AGPU_API void agpuComputePassEncoderPushConstants(GPUComputePassEncoder computePassEncoder, const void* data, uint32_t size);
+AGPU_API void agpuComputePassEncoderDispatch(GPUComputePassEncoder computePassEncoder, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+AGPU_API void agpuComputePassEncoderDispatchIndirect(GPUComputePassEncoder computePassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset);
+AGPU_API void agpuComputePassEncoderEnd(GPUComputePassEncoder computePassEncoder);
+AGPU_API void agpuComputePassEncoderPushDebugGroup(GPUComputePassEncoder computePassEncoder, const char* groupLabel);
+AGPU_API void agpuComputePassEncoderPopDebugGroup(GPUComputePassEncoder computePassEncoder);
+AGPU_API void agpuComputePassEncoderInsertDebugMarker(GPUComputePassEncoder computePassEncoder, const char* markerLabel);
 
 /* RenderCommandEncoder */
-ALIMER_GPU_API void agpuRenderPassEncoderSetViewport(GPURenderPassEncoder renderPassEncoder, const GPUViewport* viewport);
-ALIMER_GPU_API void agpuRenderPassEncoderSetViewports(GPURenderPassEncoder renderPassEncoder, uint32_t viewportCount, const GPUViewport* viewports);
-ALIMER_GPU_API void agpuRenderPassEncoderSetScissorRect(GPURenderPassEncoder renderPassEncoder, const GPUScissorRect* scissorRect);
-ALIMER_GPU_API void agpuRenderPassEncoderSetScissorRects(GPURenderPassEncoder renderPassEncoder, uint32_t scissorCount, const GPUScissorRect* scissorRects);
-ALIMER_GPU_API void agpuRenderPassEncoderSetBlendColor(GPURenderPassEncoder renderPassEncoder, const GPUColor* color);
-ALIMER_GPU_API void agpuRenderPassEncoderSetStencilReference(GPURenderPassEncoder renderPassEncoder, uint32_t reference);
-ALIMER_GPU_API void agpuRenderPassEncoderSetVertexBuffer(GPURenderPassEncoder renderPassEncoder, uint32_t slot, GPUBuffer* buffer, uint64_t offset);
-ALIMER_GPU_API void agpuRenderPassEncoderSetIndexBuffer(GPURenderPassEncoder renderPassEncoder, GPUBuffer* buffer, GPUIndexType type, uint64_t offset);
-ALIMER_GPU_API void agpuRenderPassEncoderSetPipeline(GPURenderPassEncoder renderPassEncoder, GPURenderPipeline pipeline);
-ALIMER_GPU_API void agpuRenderPassEncoderPushConstants(GPURenderPassEncoder renderPassEncoder, const void* data, uint32_t size);
-ALIMER_GPU_API void agpuRenderPassEncoderDraw(GPURenderPassEncoder renderPassEncoder, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
-ALIMER_GPU_API void agpuRenderPassEncoderDrawIndexed(GPURenderPassEncoder renderPassEncoder, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance);
-ALIMER_GPU_API void agpuRenderPassEncoderDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset);
-ALIMER_GPU_API void agpuRenderPassEncoderDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset);
-ALIMER_GPU_API void agpuRenderPassEncoderMultiDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset);
-ALIMER_GPU_API void agpuRenderPassEncoderMultiDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset);
-ALIMER_GPU_API void agpuRenderPassEncoderSetShadingRate(GPURenderPassEncoder renderPassEncoder, GPUShadingRate rate);
-ALIMER_GPU_API void agpuRenderPassEncoderEnd(GPURenderPassEncoder renderPassEncoder);
-ALIMER_GPU_API void agpuRenderPassEncoderPushDebugGroup(GPURenderPassEncoder renderPassEncoder, const char* groupLabel);
-ALIMER_GPU_API void agpuRenderPassEncoderPopDebugGroup(GPURenderPassEncoder renderPassEncoder);
-ALIMER_GPU_API void agpuRenderPassEncoderInsertDebugMarker(GPURenderPassEncoder renderPassEncoder, const char* markerLabel);
+AGPU_API void agpuRenderPassEncoderSetViewport(GPURenderPassEncoder renderPassEncoder, const GPUViewport* viewport);
+AGPU_API void agpuRenderPassEncoderSetViewports(GPURenderPassEncoder renderPassEncoder, uint32_t viewportCount, const GPUViewport* viewports);
+AGPU_API void agpuRenderPassEncoderSetScissorRect(GPURenderPassEncoder renderPassEncoder, const GPUScissorRect* scissorRect);
+AGPU_API void agpuRenderPassEncoderSetScissorRects(GPURenderPassEncoder renderPassEncoder, uint32_t scissorCount, const GPUScissorRect* scissorRects);
+AGPU_API void agpuRenderPassEncoderSetBlendColor(GPURenderPassEncoder renderPassEncoder, const GPUColor* color);
+AGPU_API void agpuRenderPassEncoderSetStencilReference(GPURenderPassEncoder renderPassEncoder, uint32_t reference);
+AGPU_API void agpuRenderPassEncoderSetVertexBuffer(GPURenderPassEncoder renderPassEncoder, uint32_t slot, GPUBuffer* buffer, uint64_t offset);
+AGPU_API void agpuRenderPassEncoderSetIndexBuffer(GPURenderPassEncoder renderPassEncoder, GPUBuffer* buffer, GPUIndexType type, uint64_t offset);
+AGPU_API void agpuRenderPassEncoderSetPipeline(GPURenderPassEncoder renderPassEncoder, GPURenderPipeline pipeline);
+AGPU_API void agpuRenderPassEncoderPushConstants(GPURenderPassEncoder renderPassEncoder, const void* data, uint32_t size);
+AGPU_API void agpuRenderPassEncoderDraw(GPURenderPassEncoder renderPassEncoder, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance);
+AGPU_API void agpuRenderPassEncoderDrawIndexed(GPURenderPassEncoder renderPassEncoder, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t baseVertex, uint32_t firstInstance);
+AGPU_API void agpuRenderPassEncoderDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset);
+AGPU_API void agpuRenderPassEncoderDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset);
+AGPU_API void agpuRenderPassEncoderMultiDrawIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset);
+AGPU_API void agpuRenderPassEncoderMultiDrawIndexedIndirect(GPURenderPassEncoder renderPassEncoder, GPUBuffer* indirectBuffer, uint64_t indirectBufferOffset, uint32_t maxDrawCount, GPUBuffer* drawCountBuffer, uint64_t drawCountBufferOffset);
+AGPU_API void agpuRenderPassEncoderSetShadingRate(GPURenderPassEncoder renderPassEncoder, GPUShadingRate rate);
+AGPU_API void agpuRenderPassEncoderEnd(GPURenderPassEncoder renderPassEncoder);
+AGPU_API void agpuRenderPassEncoderPushDebugGroup(GPURenderPassEncoder renderPassEncoder, const char* groupLabel);
+AGPU_API void agpuRenderPassEncoderPopDebugGroup(GPURenderPassEncoder renderPassEncoder);
+AGPU_API void agpuRenderPassEncoderInsertDebugMarker(GPURenderPassEncoder renderPassEncoder, const char* markerLabel);
 
 /* Buffer */
-ALIMER_GPU_API GPUBuffer* agpuBufferCreate(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData);
-ALIMER_GPU_API uint32_t agpuBufferAddRef(GPUBuffer* buffer);
-ALIMER_GPU_API uint32_t agpuBufferRelease(GPUBuffer* buffer);
-ALIMER_GPU_API void agpuBufferGetDesc(GPUBuffer* buffer, GPUBufferDesc* desc);
-ALIMER_GPU_API void agpuBufferSetLabel(GPUBuffer* buffer, const char* label);
-ALIMER_GPU_API GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer* buffer);
+AGPU_API GPUBuffer* agpuBufferCreate(GPUDevice device, const GPUBufferDesc* desc, const void* pInitialData);
+AGPU_API uint32_t agpuBufferAddRef(GPUBuffer* buffer);
+AGPU_API uint32_t agpuBufferRelease(GPUBuffer* buffer);
+AGPU_API void agpuBufferGetDesc(GPUBuffer* buffer, GPUBufferDesc* desc);
+AGPU_API void agpuBufferSetLabel(GPUBuffer* buffer, const char* label);
+AGPU_API GPUDeviceAddress agpuBufferGetDeviceAddress(GPUBuffer* buffer);
 
 /* Texture */
-ALIMER_GPU_API GPUTexture* agpuTextureCreate(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData);
-ALIMER_GPU_API uint32_t agpuTextureAddRef(GPUTexture* texture);
-ALIMER_GPU_API uint32_t agpuTextureRelease(GPUTexture* texture);
-ALIMER_GPU_API void agpuTextureGetDesc(GPUTexture* texture, GPUTextureDesc* desc);
-ALIMER_GPU_API void agpuTextureSetLabel(GPUTexture* texture, const char* label);
+AGPU_API GPUTexture* agpuTextureCreate(GPUDevice device, const GPUTextureDesc* desc, const GPUTextureData* pInitialData);
+AGPU_API uint32_t agpuTextureAddRef(GPUTexture* texture);
+AGPU_API uint32_t agpuTextureRelease(GPUTexture* texture);
+AGPU_API void agpuTextureGetDesc(GPUTexture* texture, GPUTextureDesc* desc);
+AGPU_API void agpuTextureSetLabel(GPUTexture* texture, const char* label);
 
 /* Sampler */
-ALIMER_GPU_API GPUSampler* agpuSamplerCreate(GPUDevice device, const GPUSamplerDesc* desc);
-ALIMER_GPU_API uint32_t agpuSamplerAddRef(GPUSampler* sampler);
-ALIMER_GPU_API uint32_t agpuSamplerRelease(GPUSampler* sampler);
-ALIMER_GPU_API void agpuSamplerGetDesc(GPUSampler* sampler, GPUSamplerDesc* desc);
-ALIMER_GPU_API void agpuSamplerSetLabel(GPUSampler* sampler, const char* label);
+AGPU_API GPUSampler* agpuSamplerCreate(GPUDevice device, const GPUSamplerDesc* desc);
+AGPU_API uint32_t agpuSamplerAddRef(GPUSampler* sampler);
+AGPU_API uint32_t agpuSamplerRelease(GPUSampler* sampler);
+AGPU_API void agpuSamplerGetDesc(GPUSampler* sampler, GPUSamplerDesc* desc);
+AGPU_API void agpuSamplerSetLabel(GPUSampler* sampler, const char* label);
 
 /* ShaderModule */
-ALIMER_GPU_API GPUShaderModule* agpuCreateShaderModule(GPUDevice device, const GPUShaderModuleDesc* desc);
-ALIMER_GPU_API uint32_t agpuShaderModuleAddRef(GPUShaderModule* shaderModule);
-ALIMER_GPU_API uint32_t agpuShaderModuleRelease(GPUShaderModule* shaderModule);
-ALIMER_GPU_API void agpuShaderModuleSetLabel(GPUShaderModule* shaderModule, const char* label);
+AGPU_API GPUShaderModule* agpuCreateShaderModule(GPUDevice device, const GPUShaderModuleDesc* desc);
+AGPU_API uint32_t agpuShaderModuleAddRef(GPUShaderModule* shaderModule);
+AGPU_API uint32_t agpuShaderModuleRelease(GPUShaderModule* shaderModule);
+AGPU_API void agpuShaderModuleSetLabel(GPUShaderModule* shaderModule, const char* label);
 
 /* ComputePipeline */
-ALIMER_GPU_API GPUComputePipeline agpuCreateComputePipeline(GPUDevice device, const GPUComputePipelineDesc* desc);
-ALIMER_GPU_API void agpuComputePipelineSetLabel(GPUComputePipeline computePipeline, const char* label);
-ALIMER_GPU_API uint32_t agpuComputePipelineAddRef(GPUComputePipeline computePipeline);
-ALIMER_GPU_API uint32_t agpuComputePipelineRelease(GPUComputePipeline computePipeline);
+AGPU_API GPUComputePipeline agpuCreateComputePipeline(GPUDevice device, const GPUComputePipelineDesc* desc);
+AGPU_API void agpuComputePipelineSetLabel(GPUComputePipeline computePipeline, const char* label);
+AGPU_API uint32_t agpuComputePipelineAddRef(GPUComputePipeline computePipeline);
+AGPU_API uint32_t agpuComputePipelineRelease(GPUComputePipeline computePipeline);
 
 /* RenderPipeline */
-ALIMER_GPU_API GPURenderPipeline agpuCreateRenderPipeline(GPUDevice device, const GPURenderPipelineDesc* desc);
-ALIMER_GPU_API void agpuRenderPipelineSetLabel(GPURenderPipeline renderPipeline, const char* label);
-ALIMER_GPU_API uint32_t agpuRenderPipelineAddRef(GPURenderPipeline renderPipeline);
-ALIMER_GPU_API uint32_t agpuRenderPipelineRelease(GPURenderPipeline renderPipeline);
+AGPU_API GPURenderPipeline agpuCreateRenderPipeline(GPUDevice device, const GPURenderPipelineDesc* desc);
+AGPU_API void agpuRenderPipelineSetLabel(GPURenderPipeline renderPipeline, const char* label);
+AGPU_API uint32_t agpuRenderPipelineAddRef(GPURenderPipeline renderPipeline);
+AGPU_API uint32_t agpuRenderPipelineRelease(GPURenderPipeline renderPipeline);
 
 /* QueryHeap */
-ALIMER_GPU_API GPUQueryHeap* agpuQueryHeapCreate(GPUDevice device, const GPUQueryHeapDesc* desc);
-ALIMER_GPU_API uint32_t agpuQueryHeapAddRef(GPUQueryHeap* queryHeap);
-ALIMER_GPU_API uint32_t agpuQueryHeapRelease(GPUQueryHeap* queryHeap);
-ALIMER_GPU_API void agpuQueryHeapGetDesc(GPUQueryHeap* queryHeap, GPUQueryHeapDesc* desc);
-ALIMER_GPU_API void agpuQueryHeapSetLabel(GPUQueryHeap* queryHeap, const char* label);
+AGPU_API GPUQueryHeap* agpuQueryHeapCreate(GPUDevice device, const GPUQueryHeapDesc* desc);
+AGPU_API uint32_t agpuQueryHeapAddRef(GPUQueryHeap* queryHeap);
+AGPU_API uint32_t agpuQueryHeapRelease(GPUQueryHeap* queryHeap);
+AGPU_API void agpuQueryHeapGetDesc(GPUQueryHeap* queryHeap, GPUQueryHeapDesc* desc);
+AGPU_API void agpuQueryHeapSetLabel(GPUQueryHeap* queryHeap, const char* label);
 
 /* SwapChain */
-ALIMER_GPU_API GPUSwapChain* agpuSwapChainCreate(GPUDevice device, GPUSurface* surface, const GPUSwapChainDesc* desc);
-ALIMER_GPU_API uint32_t agpuSwapChainAddRef(GPUSwapChain* swapChain);
-ALIMER_GPU_API uint32_t agpuSwapChainRelease(GPUSwapChain* swapChain);
-ALIMER_GPU_API void agpuSwapChainSetLabel(GPUSwapChain* swapChain, const char* label);
-ALIMER_GPU_API GPUTexture* agpuSwapChainAcquireNextTexture(GPUSwapChain* swapChain);
+AGPU_API GPUSwapChain* agpuSwapChainCreate(GPUDevice device, GPUSurface* surface, const GPUSwapChainDesc* desc);
+AGPU_API uint32_t agpuSwapChainAddRef(GPUSwapChain* swapChain);
+AGPU_API uint32_t agpuSwapChainRelease(GPUSwapChain* swapChain);
+AGPU_API void agpuSwapChainSetLabel(GPUSwapChain* swapChain, const char* label);
+AGPU_API GPUTexture* agpuSwapChainAcquireNextTexture(GPUSwapChain* swapChain);
 
 /* Other */
-ALIMER_GPU_API uint32_t agpuGetVertexFormatByteSize(GPUVertexFormat format);
-ALIMER_GPU_API uint32_t agpuGetVertexFormatComponentCount(GPUVertexFormat format);
-ALIMER_GPU_API GPUAdapterVendor agpuGPUAdapterVendorFromID(uint32_t vendorId);
-ALIMER_GPU_API uint32_t agpuGPUAdapterVendorToID(GPUAdapterVendor vendor);
+AGPU_API uint32_t agpuGetVertexFormatByteSize(GPUVertexFormat format);
+AGPU_API uint32_t agpuGetVertexFormatComponentCount(GPUVertexFormat format);
+AGPU_API GPUAdapterVendor agpuGPUAdapterVendorFromID(uint32_t vendorId);
+AGPU_API uint32_t agpuGPUAdapterVendorToID(GPUAdapterVendor vendor);
 
 #endif /* ALIMER_GPU_H_ */
