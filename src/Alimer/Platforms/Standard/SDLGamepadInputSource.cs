@@ -1,7 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using static Alimer.SDL3;
+using static SDL3;
 
 namespace Alimer.Input;
 
@@ -11,7 +11,6 @@ internal class SDLGamepadInputSource : GamepadInputSource
     
     public unsafe SDLGamepadInputSource()
     {
-#if TODO
         int count = 0;
         SDL_JoystickID* gamepads = SDL_GetGamepads(&count);
         if (gamepads != null && count > 0)
@@ -22,7 +21,6 @@ internal class SDLGamepadInputSource : GamepadInputSource
             }
         }
         SDL_free(gamepads); 
-#endif
     }
 
     /// <inheritdoc />

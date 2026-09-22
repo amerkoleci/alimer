@@ -12,13 +12,14 @@ using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
 using static TerraFX.Interop.Windows.Windows;
 using static Alimer.Graphics.Constants;
+using static Alimer.Graphics.D3D12.D3D12MA;
 
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12Buffer : GraphicsBuffer
 {
     private readonly ComPtr<ID3D12Resource> _handle;
-    private readonly ComPtr<D3D12MA_Allocation> _allocation;
+    private readonly D3D12MA_Allocation _allocation;
     private readonly void* _pMappedData;
 
     public D3D12Buffer(D3D12GraphicsDevice device, in GraphicsBufferDescriptor descriptor, void* initialData)
@@ -73,24 +74,25 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
         HRESULT hr;
         if (device.EnhancedBarriersSupported)
         {
-            hr = device.MemoryAllocator->CreateResource3(
+            hr = D3D12MA_Allocator_CreateResource3(device.MemoryAllocator,
                 &allocationDesc,
                 &resourceDesc,
                 initialLayout,
                 null,
                 0, null,
-                _allocation.GetAddressOf(),
+                out _allocation,
                 __uuidof<ID3D12Resource>(), (void**)_handle.GetAddressOf()
             );
         }
         else
         {
-            hr = device.MemoryAllocator->CreateResource2(
+            hr = D3D12MA_Allocator_CreateResource2(
+                device.MemoryAllocator,
                 &allocationDesc,
                 &resourceDesc,
                 initialStateLegacy,
                 null,
-                _allocation.GetAddressOf(),
+                out _allocation,
                 __uuidof<ID3D12Resource>(), (void**)_handle.GetAddressOf()
             );
         }
@@ -191,7 +193,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        _allocation.Dispose();
+        _ = D3D12MA_Allocation_Release(_allocation);
         _handle.Dispose();
     }
 

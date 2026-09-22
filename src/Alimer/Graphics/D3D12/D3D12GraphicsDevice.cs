@@ -22,11 +22,11 @@ using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
 using static TerraFX.Interop.DirectX.D3D12_RLDO_FLAGS;
 using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
 using static TerraFX.Interop.DirectX.D3D12_TILED_RESOURCES_TIER;
-using static TerraFX.Interop.DirectX.D3D12MA_ALLOCATOR_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12MemAlloc;
+using static Alimer.Graphics.D3D12.D3D12MA.D3D12MA_ALLOCATOR_FLAGS;
 using static TerraFX.Interop.DirectX.DirectX;
 using static TerraFX.Interop.DirectX.DXGI_FORMAT;
 using static TerraFX.Interop.Windows.Windows;
+using static Alimer.Graphics.D3D12.D3D12MA;
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12GraphicsDevice : GraphicsDevice
@@ -35,7 +35,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     private readonly ComPtr<ID3D12Device5> _device = default;
     private readonly ComPtr<ID3D12Device8> _device8 = default;
     private readonly ComPtr<ID3D12VideoDevice> _videoDevice;
-    private readonly ComPtr<D3D12MA_Allocator> _memoryAllocator;
+    private readonly D3D12MA_Allocator _memoryAllocator;
     private readonly GraphicsDeviceLimits _limits;
 
     private readonly ComPtr<ID3D12Fence> _deviceRemovedFence = default;
@@ -174,7 +174,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             allocatorDesc.Flags |= D3D12MA_ALLOCATOR_FLAG_DEFAULT_POOLS_NOT_ZEROED;
             allocatorDesc.Flags |= D3D12MA_ALLOCATOR_FLAG_MSAA_TEXTURES_ALWAYS_COMMITTED;
 
-            if (FAILED(D3D12MA_CreateAllocator(&allocatorDesc, _memoryAllocator.GetAddressOf())))
+            if (FAILED(D3D12MA_CreateAllocator(&allocatorDesc, out _memoryAllocator)))
             {
                 throw new GraphicsException("D3D12: Failed to create memory allocator");
             }
@@ -372,7 +372,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
     public ID3D12Device5* Device => _device;
     public ID3D12Device8* Device8 => _device8;
-    public D3D12MA_Allocator* MemoryAllocator => _memoryAllocator;
+    public D3D12MA_Allocator MemoryAllocator => _memoryAllocator;
     public D3D12GraphicsAdapter DxAdapter => _adapter;
     public bool EnhancedBarriersSupported => _adapter.Features.EnhancedBarriersSupported;
 
@@ -432,17 +432,22 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         BindlessManager.Dispose();
 
         // Allocator.
-        if (_memoryAllocator.Get() is not null)
+        if (!_memoryAllocator.IsNull)
         {
             D3D12MA_TotalStatistics stats;
-            _memoryAllocator.Get()->CalculateStatistics(&stats);
+            D3D12MA_Allocator_CalculateStatistics(_memoryAllocator, &stats);
 
             if (stats.Total.Stats.AllocationBytes > 0)
             {
                 Log.Info($"Total device memory leaked: {stats.Total.Stats.AllocationBytes} bytes.");
             }
 
-            _memoryAllocator.Dispose();
+#if DEBUG
+            uint allocatorRefCount = D3D12MA_Allocator_Release(_memoryAllocator);
+            Debug.Assert(allocatorRefCount == 0, $"Direct3D12: There are {allocatorRefCount} unreleased references left on the memory allocator");
+#else
+            _ = D3D12MA_Allocator_Release(_memoryAllocator);
+#endif
         }
 
         // Device removed event
@@ -479,7 +484,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             }
         }
 #else
-            _device.Dispose();
+        _device.Dispose();
 #endif
     }
 

@@ -1,9 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using static Alimer.AlimerApi;
-using static Alimer.SDL3;
-using static Alimer.SDL3.SDL_EventType;
+using static SDL3;
+using static SDL3.SDL_EventType;
 
 namespace Alimer.Input;
 
@@ -21,11 +20,10 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
 
     public SDLPointerInputSource()
     {
-        // TODO
-        //_defaultCursor = new(SDL_GetDefaultCursor());
-        //_currentCursor = new(SDL_GetCursor());
+        _defaultCursor = new(SDL_GetDefaultCursor());
+        _currentCursor = new(SDL_GetCursor());
 
-        alimerMouseGetGlobalPosition(out float x, out float y);
+        SDL_GetGlobalMouseState(out float x, out float y);
         _position = new(x, y);
     }
 
@@ -108,11 +106,10 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         _ = SDL_CaptureMouse(false);
     }
 
-    public void HandleWindowMouseEnterOrLeaveEvent(in PlatformEvent evt, bool enter)
+    public void HandleWindowMouseEnterOrLeaveEvent(in SDL_Event evt)
     {
-#if TODO
         SDL_Keymod mod = SDL_GetModState();
-        SDL_Window* window = SDL_GetWindowFromID(evt.window.windowID);
+        SDL_Window window = SDL_GetWindowFromID(evt.window.windowID);
         bool isInContact = GetMousePosition(window, out Vector2 mousePosition);
         PointerPoint pointerPoint = new()
         {
@@ -124,9 +121,10 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         PointerEventArgs args = new()
         {
             CurrentPoint = pointerPoint,
-            //KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
+            KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
         };
 
+        bool enter = evt.type == SDL_EVENT_WINDOW_MOUSE_ENTER;
         if (enter)
         {
             OnPointerEntered(in args);
@@ -135,19 +133,18 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         {
             OnPointerExited(in args);
         } 
-#endif
     }
 
-    public void HandleMotionEvent(in MouseMotionEvent evt)
+    public void HandleMotionEvent(in SDL_MouseMotionEvent evt)
     {
         _position = new(evt.x, evt.y);
-        _delta.X += evt.xRelative;
-        _delta.Y += evt.yRelative;
+        _delta.X += evt.xrel;
+        _delta.Y += evt.yrel;
 
-        //SDL_Keymod mod = SDL_GetModState();
+        SDL_Keymod mod = SDL_GetModState();
         PointerPoint pointerPoint = new()
         {
-            IsInContact = true, //evt.state != 0,
+            IsInContact = evt.state != 0,
             PointerId = uint.MaxValue,
             Position = _position
         };
@@ -155,44 +152,44 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         PointerEventArgs args = new()
         {
             CurrentPoint = pointerPoint,
-            //KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
+            KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
         };
 
         OnPointerMoved(in args); 
     }
 
-    public void HandleWheelEvent(in MouseWheelEvent evt)
+    public void HandleWheelEvent(in SDL_MouseWheelEvent evt)
     {
-        //_position = new(evt.mouse_x, evt.mouse_y);
+        _position = new(evt.mouse_x, evt.mouse_y);
         _scroll.X += evt.x;
         _scroll.Y += evt.y;
 
-        //SDL_Keymod mod = SDL_GetModState();
+        SDL_Keymod mod = SDL_GetModState();
 
         PointerPoint pointerPoint = new()
         {
             IsInContact = false,
             Button = MouseButton.Left,
-            PointerId = 0, // (uint)evt.which, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
+            PointerId =  (uint)evt.which, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
             Position = _position
         };
 
         PointerEventArgs args = new()
         {
             CurrentPoint = pointerPoint,
-            //KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
+            KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
         };
 
         OnPointerWheelChanged(in args);
     }
 
-    public void HandleButtonEvent(in MouseButtonEvent evt, bool down)
+    public void HandleButtonEvent(in SDL_MouseButtonEvent evt)
     {
         _position = new(evt.x, evt.y);
-        MouseButton button = evt.button;
-        _currentButtons[(int)button] = down;
+        MouseButton button = FromSDLMouseButton(evt.button);
+        _currentButtons[(int)button] = evt.down;
 
-        //SDL_Keymod mod = SDL_GetModState();
+        SDL_Keymod mod = SDL_GetModState();
 
         PointerPoint pointerPoint = new()
         {
@@ -205,10 +202,10 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         PointerEventArgs args = new()
         {
             CurrentPoint = pointerPoint,
-            //KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
+            KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
         };
 
-        if (down)
+        if (evt.down)
         {
             OnPointerPressed(in args);
         }
@@ -271,13 +268,25 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
 
         OnPointerMoved(in args);
     }
-
-    private static bool GetMousePosition(SDL_Window* window, out Vector2 position)
+    private static MouseButton FromSDLMouseButton(byte sdlButton)
     {
-        Bool8 anyPressed = alimerMouseGetGlobalPosition(out float globalX, out float globalY);
+        return sdlButton switch
+        {
+            1 => MouseButton.Left,
+            2 => MouseButton.Middle,
+            3 => MouseButton.Right,
+            4 => MouseButton.X1,
+            5 => MouseButton.X2,
+            _ => MouseButton.Left,
+        };
+    }
+
+    private static bool GetMousePosition(SDL_Window window, out Vector2 position)
+    {
+        SDL_MouseButtonFlags flags = SDL_GetGlobalMouseState(out float globalX, out float globalY);
 
         SDL_GetWindowPosition(window, out int windowX, out int windowY);
         position = new(globalX - windowX, globalY - windowY);
-        return anyPressed;
+        return flags != 0;
     }
 }

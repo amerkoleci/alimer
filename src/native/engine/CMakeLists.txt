@@ -13,7 +13,6 @@ endmacro()
 # Setup library
 set(TARGET_NAME alimer_native)
 add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
-	include/alimer_platform.h
     include/alimer.h
     include/alimer_types.h
     include/alimer_image.h
@@ -77,19 +76,6 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     stb
 )
 
-if(EMSCRIPTEN)
-    target_sources(${TARGET_NAME} PRIVATE
-        src/platforms/alimer_platform_web.cpp
-    )
-elseif(ANDROID)
-elseif (ALIMER_USE_SDL)
-    target_sources(${TARGET_NAME} PRIVATE
-        src/platforms/alimer_platform_sdl.cpp
-    )
-
-    target_link_libraries(${TARGET_NAME} PRIVATE SDL3-static)
-endif()
-
 if (ALIMER_IMAGE_KTX)
     target_link_libraries(${TARGET_NAME} PRIVATE
         ktx
@@ -97,15 +83,6 @@ if (ALIMER_IMAGE_KTX)
 
     target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_IMAGE_KTX)
 endif ()
-
-if (NOT EMSCRIPTEN)
-    # Do we support Vulkan on Apple?
-    target_sources(${TARGET_NAME} PRIVATE
-        src/alimer_vma_exports.cpp
-    )
-
-    target_link_libraries(${TARGET_NAME} PRIVATE vulkan)
-endif()
 
 if (ALIMER_AUDIO)
     target_sources(${TARGET_NAME} PRIVATE

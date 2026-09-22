@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using Vortice.Vulkan;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
 using static Vortice.Vulkan.Vulkan;
-using static Alimer.Graphics.Vulkan.VmaMemoryUsage;
+using static Alimer.Graphics.Vulkan.Vma.VmaMemoryUsage;
 using static Alimer.Graphics.Vulkan.Vma;
 using System.Runtime.InteropServices;
 
@@ -413,10 +413,10 @@ internal unsafe class VulkanTexture : Texture
     {
         DestroyViews();
 
-        if (_allocation.IsNotNull)
+        if (!_allocation.IsNull)
         {
             vmaDestroyImage(VkDevice.Allocator, _handle, _allocation);
-            _allocation = VmaAllocation.Null;
+            _allocation = default;
         }
 
         _handle = VkImage.Null;

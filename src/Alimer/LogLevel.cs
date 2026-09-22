@@ -11,5 +11,5 @@ public enum LogLevel
     Info,
     Warn,
     Error,
-    Fatal,
+    Critical,
 }

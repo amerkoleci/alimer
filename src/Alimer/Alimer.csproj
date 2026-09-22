@@ -62,7 +62,6 @@
   <ItemGroup>
     <!-- Graphics -->
     <PackageReference Include="TerraFX.Interop.Windows" Condition="'$(ExcludeD3D12)' != 'true'" PrivateAssets="compile" />
-    <PackageReference Include="TerraFX.Interop.D3D12MemoryAllocator" Condition="'$(ExcludeD3D12)' != 'true'" PrivateAssets="compile" />
     <PackageReference Include="Vortice.Vulkan" Condition="'$(ExcludeVulkan)' != 'true'" PrivateAssets="compile" />
   </ItemGroup>
 
@@ -70,5 +69,38 @@
     <ProjectReference Include="..\Alimer.Native\Alimer.Native.csproj" />
   </ItemGroup>
 
+  <!-- Native Libraries-->
+  <ItemGroup Condition="'$(_AlimerNoTargetPlatform)' == 'True' AND '$(RuntimeIdentifier)' != 'browser-wasm'">
+    <None Include="$(AlimerNativeDirectory)win-x64\SDL3.dll">
+      <CopyToOutputDirectory Condition="('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))) == 'true' or '$(RuntimeIdentifier)' == 'win-x64'">PreserveNewest</CopyToOutputDirectory>
+      <PackagePath>runtimes\win-x64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+    <None Include="$(AlimerNativeDirectory)win-arm64\SDL3.dll">
+      <CopyToOutputDirectory Condition="('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))) == 'true' or '$(RuntimeIdentifier)' == 'win-arm64'">PreserveNewest</CopyToOutputDirectory>
+      <PackagePath>runtimes\win-arm64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(ExcludeD3D12)' != 'true'">
+    <None Include="$(AlimerNativeDirectory)win-x64\d3d12ma.dll">
+      <CopyToOutputDirectory Condition="('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))) == 'true' or '$(RuntimeIdentifier)' == 'win-x64'">PreserveNewest</CopyToOutputDirectory>
+      <PackagePath>runtimes\win-x64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(ExcludeVulkan)' != 'true'">
+    <None Include="$(AlimerNativeDirectory)win-x64\vma.dll">
+      <CopyToOutputDirectory Condition="('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))) == 'true' or '$(RuntimeIdentifier)' == 'win-x64'">PreserveNewest</CopyToOutputDirectory>
+      <PackagePath>runtimes\win-x64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+  </ItemGroup>
 
 </Project>

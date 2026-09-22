@@ -1,10 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using static Alimer.SDL3;
-using static Alimer.SDL3.SDL_GamepadButton;
-using static Alimer.SDL3.SDL_GamepadAxis;
-using static Alimer.SDL3.SDL_JoystickConnectionState;
+using static SDL3;
+using static SDL3.SDL_JoystickConnectionState;
 
 namespace Alimer.Input;
 
@@ -148,7 +146,7 @@ internal unsafe class SDLGamepadDevice : GamepadDevice
 
     public void HandleButtonEvent(SDL_GamepadButtonEvent evt)
     {
-        GamepadButton button = ConvertButton((SDL_GamepadButton)evt.button);
+        GamepadButton button = ((SDL_GamepadButton)evt.button).FromSDL();
         int index = (int)button;
         if (index >= 0 && index < (int)GamepadButton.Count)
         {
@@ -158,55 +156,12 @@ internal unsafe class SDLGamepadDevice : GamepadDevice
 
     public void HandleAxisEvent(SDL_GamepadAxisEvent evt)
     {
-        GamepadAxis axis = ConvertAxis((SDL_GamepadAxis)evt.axis);
+        GamepadAxis axis = ((SDL_GamepadAxis)evt.axis).FromSDL();
         int index = (int)axis;
         if (index >= 0 && index < (int)GamepadAxis.Count)
         {
             float value = evt.value >= 0 ? evt.value / 32767.0f : evt.value / 32768.0f;
             _axes[index] = value;
         }
-    }
-
-    private static GamepadButton ConvertButton(SDL_GamepadButton sdlButton)
-    {
-        return sdlButton switch
-        {
-            SDL_GAMEPAD_BUTTON_SOUTH => GamepadButton.South,
-            SDL_GAMEPAD_BUTTON_EAST => GamepadButton.East,
-            SDL_GAMEPAD_BUTTON_WEST => GamepadButton.West,
-            SDL_GAMEPAD_BUTTON_NORTH => GamepadButton.North,
-            SDL_GAMEPAD_BUTTON_BACK => GamepadButton.Back,
-            SDL_GAMEPAD_BUTTON_GUIDE => GamepadButton.Guide,
-            SDL_GAMEPAD_BUTTON_START => GamepadButton.Start,
-            SDL_GAMEPAD_BUTTON_LEFT_STICK => GamepadButton.LeftStick,
-            SDL_GAMEPAD_BUTTON_RIGHT_STICK => GamepadButton.RightStick,
-            SDL_GAMEPAD_BUTTON_LEFT_SHOULDER => GamepadButton.LeftShoulder,
-            SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER => GamepadButton.RightShoulder,
-            SDL_GAMEPAD_BUTTON_DPAD_UP => GamepadButton.DPadUp,
-            SDL_GAMEPAD_BUTTON_DPAD_DOWN => GamepadButton.DPadDown,
-            SDL_GAMEPAD_BUTTON_DPAD_LEFT => GamepadButton.DPadLeft,
-            SDL_GAMEPAD_BUTTON_DPAD_RIGHT => GamepadButton.DPadRight,
-            SDL_GAMEPAD_BUTTON_MISC1 => GamepadButton.Misc1,
-            SDL_GAMEPAD_BUTTON_RIGHT_PADDLE1 => GamepadButton.RightPaddle1,
-            SDL_GAMEPAD_BUTTON_LEFT_PADDLE1 => GamepadButton.LeftPaddle1,
-            SDL_GAMEPAD_BUTTON_RIGHT_PADDLE2 => GamepadButton.RightPaddle2,
-            SDL_GAMEPAD_BUTTON_LEFT_PADDLE2 => GamepadButton.LeftPaddle2,
-            SDL_GAMEPAD_BUTTON_TOUCHPAD => GamepadButton.Touchpad,
-            _ => GamepadButton.Count,
-        };
-    }
-
-    private static GamepadAxis ConvertAxis(SDL_GamepadAxis axis)
-    {
-        return axis switch
-        {
-            SDL_GAMEPAD_AXIS_LEFTX => GamepadAxis.LeftX,
-            SDL_GAMEPAD_AXIS_LEFTY => GamepadAxis.LeftY,
-            SDL_GAMEPAD_AXIS_RIGHTX => GamepadAxis.RightX,
-            SDL_GAMEPAD_AXIS_RIGHTY => GamepadAxis.RightY,
-            SDL_GAMEPAD_AXIS_LEFT_TRIGGER => GamepadAxis.LeftTrigger,
-            SDL_GAMEPAD_AXIS_RIGHT_TRIGGER => GamepadAxis.RightTrigger,
-            _ => GamepadAxis.Count,
-        };
     }
 }

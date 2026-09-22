@@ -1,8 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using static Alimer.SDL3;
-using static Alimer.SDL3.SDL_SystemCursor;
+using static SDL3;
+using static SDL3.SDL_SystemCursor;
 
 namespace Alimer.Input;
 

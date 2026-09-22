@@ -153,7 +153,6 @@ else()
     option(ALIMER_SAMPLES "Build samples" ${ALIMER_MASTER_PROJECT})
 endif()
 
-option(ALIMER_USE_SDL "Use SDL for desktop windows" ON)
 option(ALIMER_AUDIO "Enable Audio support" ON)
 option(ALIMER_GPU "Enable GPU support" ON)
 option(ALIMER_PHYSICS "Enable Physics support (using Box3D or experimental Jolt)" "Box3D")

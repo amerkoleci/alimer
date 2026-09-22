@@ -82,7 +82,7 @@ public static class Log
 
         s_log.Append($"{DateTime.Now.ToString("HH:mm:ss")} [{logAttribute.Name}] {message}");
 
-        if ((logLevel == LogLevel.Error) || (logLevel == LogLevel.Fatal))
+        if ((logLevel == LogLevel.Error) || (logLevel == LogLevel.Critical))
         {
             Debugger.Break();
         }
@@ -106,7 +106,7 @@ public static class Log
 
         s_log.Append($"{DateTime.Now.ToString("HH:mm:ss")} [{logAttribute.Name}] {callSite,-32} {message}");
 
-        if ((logLevel == LogLevel.Error) || (logLevel == LogLevel.Fatal))
+        if ((logLevel == LogLevel.Error) || (logLevel == LogLevel.Critical))
         {
             Debugger.Break();
         }
@@ -232,22 +232,22 @@ public static class Log
         LogInternal(LogLevel.Error, message, callerFilePath, callerLineNumber);
     }
 
-    public static bool FatalIf(
+    public static bool CriticalIf(
         [DoesNotReturnIf(true)] bool condition,
         string message,
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        LogInternalIf(condition, LogLevel.Fatal, message, callerFilePath, callerLineNumber);
+        LogInternalIf(condition, LogLevel.Critical, message, callerFilePath, callerLineNumber);
         return condition;
     }
 
-    public static void Fatal(
+    public static void Critical(
         string message,
         [CallerFilePath] string callerFilePath = "",
         [CallerLineNumber] int callerLineNumber = 0)
     {
-        LogInternal(LogLevel.Fatal, message, callerFilePath, callerLineNumber);
+        LogInternal(LogLevel.Critical, message, callerFilePath, callerLineNumber);
     }
 
     public static void WriteToFile(string file)

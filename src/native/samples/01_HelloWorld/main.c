@@ -3,7 +3,6 @@
 
 //#define TEST_PHYSICS
 
-#include "alimer_platform.h"
 #include "alimer_image.h"
 #if defined(ALIMER_AUDIO)
 #include "alimer_audio.h"
@@ -113,21 +112,6 @@ static void TestPhysics(void)
 
 int main(void)
 {
-    if (!alimerPlatformInit())
-    {
-        return EXIT_FAILURE;
-    }
-
-    Window* window = alimerWindowCreate(&(WindowDesc) {
-        .title = "Alimer Test",
-        .width = 800,
-        .height = 600,
-        .flags = WindowFlags_Resizable | WindowFlags_Hidden
-    });
-
-    // Create SwapChain
-    alimerWindowShow(window);
-
 #if defined(ALIMER_PHYSICS)
     TestPhysics();
 #endif
@@ -171,23 +155,6 @@ int main(void)
     GPUSampler* sampler = agpuSamplerCreate(device, NULL);
 #endif
 
-    // Main message loop
-    bool quit = false;
-    while (!quit)
-    {
-        PlatformEvent evt;
-        while (alimerPlatformPollEvent(&evt))
-        {
-            if (evt.type == EventType_Quit)
-            {
-                quit = true;
-                break;
-            }
-        }
-
-        // Tick
-    }
-
 #if defined(ALIMER_AUDIO) && defined(TEST_AUDIO)
     while (alimerAudioSourceIsPlaying(source2))
     {
@@ -205,9 +172,6 @@ int main(void)
     agpuDeviceRelease(device);
     agpuFactoryDestroy(gpuFactory);
 #endif
-
-    alimerWindowDestroy(window);
-    alimerPlatformShutdown();
 
     return EXIT_SUCCESS;
 }

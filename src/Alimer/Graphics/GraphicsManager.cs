@@ -2,13 +2,10 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-using Alimer.Graphics.Native;
-using static Alimer.AlimerApi;
 
 namespace Alimer.Graphics;
 
-public abstract unsafe class GraphicsManager : GraphicsBaseObject
+public abstract class GraphicsManager : GraphicsBaseObject
 {
     protected GraphicsManager(in GraphicsManagerOptions options)
         : base(options.Label)

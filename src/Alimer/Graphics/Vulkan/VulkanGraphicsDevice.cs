@@ -4,8 +4,8 @@
 using Alimer.Utilities;
 using Vortice.Vulkan;
 using static Alimer.Graphics.Vulkan.Vma;
-using static Alimer.Graphics.Vulkan.VmaMemoryUsage;
-using static Alimer.Graphics.Vulkan.VmaAllocatorCreateFlags;
+using static Alimer.Graphics.Vulkan.Vma.VmaMemoryUsage;
+using static Alimer.Graphics.Vulkan.Vma.VmaAllocatorCreateFlags;
 using static Vortice.Vulkan.Vulkan;
 using static Alimer.Graphics.Vulkan.VulkanUtils;
 using System.Collections.Concurrent;
@@ -31,10 +31,10 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     private readonly uint _dynamicStateCount;
     private readonly VkDynamicState* _pDynamicStates;
     private readonly VkPipelineDynamicStateCreateInfo _dynamicStateInfo;
-    private readonly VmaAllocation _nullBufferAllocation = VmaAllocation.Null;
-    private readonly VmaAllocation _nullImageAllocation1D = VmaAllocation.Null;
-    private readonly VmaAllocation _nullImageAllocation2D = VmaAllocation.Null;
-    private readonly VmaAllocation _nullImageAllocation3D = VmaAllocation.Null;
+    private readonly VmaAllocation _nullBufferAllocation;
+    private readonly VmaAllocation _nullImageAllocation1D;
+    private readonly VmaAllocation _nullImageAllocation2D;
+    private readonly VmaAllocation _nullImageAllocation3D;
 
     private readonly Dictionary<SamplerDescriptor, VkSampler> _samplerCache = [];
     private readonly List<VkDescriptorPool> _descriptorSetPools = [];
@@ -592,7 +592,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             allocatorFlags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT;
         }
 
-        if (_adapter.Maintenance4)
+        if (_adapter.Properties2.properties.apiVersion >= VK_API_VERSION_1_3 || _adapter.Extensions.Maintenance4)
         {
             allocatorFlags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT;
         }
@@ -602,10 +602,16 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             allocatorFlags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE5_BIT;
         }
 
+
+        VmaVulkanFunctions functions = default;
+        functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr_ptr;
+        functions.vkGetDeviceProcAddr = ((delegate* unmanaged<VkDevice, byte*, PFN_vkVoidFunction>)_adapter.VkGraphicsManager.InstanceApi.vkGetDeviceProcAddr_ptr.Value);
+
         VmaAllocatorCreateInfo allocatorCreateInfo = new()
         {
             physicalDevice = PhysicalDevice,
             device = _handle,
+           // pVulkanFunctions = &functions,
             instance = _adapter.VkGraphicsManager.Instance,
             vulkanApiVersion = new VkVersion(0, 1, _adapter.ApiVersion.Minor, 0),
             flags = allocatorFlags,

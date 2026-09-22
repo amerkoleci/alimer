@@ -1,9 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using static Alimer.AlimerApi;
-using static Alimer.SDL3;
-using static Alimer.SDL3.SDL_EventType;
+using static SDL3;
+using static SDL3.SDL_EventType;
 
 namespace Alimer.Input;
 
@@ -32,41 +31,37 @@ internal class SDLInputManager : InputManager
         _gamepad.BeginFrame();
     }
 
-    public void HandleWindowMouseEnterOrLeaveEvent(in PlatformEvent evt, bool enter)
-    {
-        _pointer.HandleWindowMouseEnterOrLeaveEvent(in evt, enter);
-    }
-
-    public void HandleEvent(in PlatformEvent evt)
+    public void HandleEvent(in SDL_Event evt)
     {
         switch (evt.type)
         {
-            case EventType.KeyDown:
-            case EventType.KeyUp:
-                _keyboard.HandleKeyEvent(in evt.key, evt.type == EventType.KeyDown);
+            case SDL_EVENT_KEY_DOWN:
+            case SDL_EVENT_KEY_UP:
+                _keyboard.HandleKeyEvent(in evt.key, evt.type == SDL_EVENT_KEY_DOWN);
                 break;
 
-            case EventType.TextInput:
+            case SDL_EVENT_TEXT_INPUT:
                 _keyboard.HandleTextInput(in evt.text);
                 break;
 
-            case EventType.MouseMotion:
+            case SDL_EVENT_MOUSE_MOTION:
                 _pointer.HandleMotionEvent(in evt.motion);
                 break;
 
-            case EventType.MouseButtonDown:
-                _pointer.HandleButtonEvent(in evt.button, true);
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            case SDL_EVENT_MOUSE_BUTTON_UP:
+                _pointer.HandleButtonEvent(in evt.button);
                 break;
 
-            case EventType.MouseButtonUp:
-                _pointer.HandleButtonEvent(in evt.button, false);
+            case SDL_EVENT_WINDOW_MOUSE_ENTER:
+            case SDL_EVENT_WINDOW_MOUSE_LEAVE:
+                _pointer.HandleWindowMouseEnterOrLeaveEvent(in evt);
                 break;
 
-            case EventType.MouseWheel:
+            case SDL_EVENT_MOUSE_WHEEL:
                 _pointer.HandleWheelEvent(in evt.wheel);
                 break;
 
-#if TODO
             case SDL_EVENT_FINGER_DOWN:
                 _pointer.HandleFingerDown(in evt.tfinger);
                 break;
@@ -94,8 +89,7 @@ internal class SDLInputManager : InputManager
 
             case SDL_EVENT_GAMEPAD_AXIS_MOTION:
                 _gamepad.HandleGamepadAxis(in evt.gaxis);
-                break; 
-#endif
+                break;
 
             default:
                 break;

@@ -3,6 +3,7 @@
 
 using TerraFX.Interop.DirectX;
 using TerraFX.Interop.Windows;
+using static Alimer.Graphics.D3D12.D3D12MA;
 using static Alimer.Graphics.D3D12.D3D12Utils;
 using static Alimer.Utilities.MemoryUtilities;
 using static TerraFX.Interop.DirectX.D3D12_HEAP_FLAGS;
@@ -18,7 +19,7 @@ namespace Alimer.Graphics.D3D12;
 internal unsafe class D3D12Texture : Texture
 {
     private readonly ComPtr<ID3D12Resource> _handle;
-    private readonly ComPtr<D3D12MA_Allocation> _allocation;
+    private readonly D3D12MA_Allocation _allocation;
     private readonly HANDLE _sharedHandle = HANDLE.NULL;
     private readonly D3D12_PLACED_SUBRESOURCE_FOOTPRINT* _footprints;
     private readonly ulong* _rowSizesInBytes;
@@ -181,13 +182,14 @@ internal unsafe class D3D12Texture : Texture
         {
             D3D12TextureLayoutMapping textureLayout = ConvertTextureLayout(initialLayout);
 
-            hr = device.MemoryAllocator->CreateResource3(
+            hr = D3D12MA_Allocator_CreateResource3(
+                device.MemoryAllocator,
                 &allocationDesc,
                 &resourceDesc,
                 textureLayout.Layout,
                 null,
                 0, null,
-                _allocation.GetAddressOf(),
+                out _allocation,
                 __uuidof<ID3D12Resource>(), (void**)_handle.GetAddressOf()
             );
         }
@@ -195,12 +197,13 @@ internal unsafe class D3D12Texture : Texture
         {
             D3D12_RESOURCE_STATES initialStateLegacy = ConvertTextureLayoutLegacy(initialLayout);
 
-            hr = device.MemoryAllocator->CreateResource2(
+            hr = D3D12MA_Allocator_CreateResource2(
+                device.MemoryAllocator,
                 &allocationDesc,
                 &resourceDesc,
                 initialStateLegacy,
                 pClearValue,
-                _allocation.GetAddressOf(),
+                out _allocation,
                 __uuidof<ID3D12Resource>(), (void**)_handle.GetAddressOf()
                 );
         }
@@ -342,7 +345,11 @@ internal unsafe class D3D12Texture : Texture
             _ = CloseHandle(_sharedHandle);
         }
 
-        _allocation.Dispose();
+        if (!_allocation.IsNull)
+        {
+            _ = D3D12MA_Allocation_Release(_allocation);
+        }
+
         _handle.Dispose();
         Free(_footprints);
         Free(_rowSizesInBytes);

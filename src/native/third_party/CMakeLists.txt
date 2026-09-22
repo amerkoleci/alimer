@@ -98,39 +98,6 @@ if (ALIMER_IMAGE_KTX)
     set_target_properties(ktx PROPERTIES FOLDER "ThirdParty" POSITION_INDEPENDENT_CODE ON)
 endif()
 
-if (ALIMER_USE_SDL AND NOT (EMSCRIPTEN OR ANDROID))
-    CPMAddPackage(
-        NAME SDL
-        GITHUB_REPOSITORY libsdl-org/SDL
-        GIT_TAG release-3.4.16
-        OPTIONS
-            "SDL_SHARED OFF"
-            "SDL_STATIC ON"
-            "SDL_TEST_LIBRARY OFF"
-            "SDL_DISABLE_INSTALL ON"
-            "SDL_DISABLE_INSTALL_DOCS ON"
-            # Enable the subsystems we care about.
-            "SDL_TIMERS ON"
-            "SDL_AUDIO ON"
-            # Disable everything we don't care about.
-            "SDL_ATOMIC OFF"
-            "SDL_RENDER OFF"
-            "SDL_HAPTIC OFF"
-            "SDL_POWER OFF"
-            "SDL_FILE OFF"
-            "SDL_CPUINFO OFF"
-            "SDL_FILESYSTEM OFF"
-            "SDL_SENSOR OFF"
-            "SDL_LOCALE OFF"
-            "SDL_MISC OFF"
-            "SDL_CAMERA OFF"
-            "SDL_DIALOG OFF"
-            "SDL_GPU OFF"
-    )
-    
-    set_property(TARGET "SDL3-static" PROPERTY FOLDER "ThirdParty")
-endif ()
-
 # vulkan
 add_library(vulkan INTERFACE)
 set(VULKAN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/include)

@@ -5,8 +5,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Vortice.Vulkan;
 using static Alimer.Graphics.Vulkan.Vma;
-using static Alimer.Graphics.Vulkan.VmaAllocationCreateFlags;
-using static Alimer.Graphics.Vulkan.VmaMemoryUsage;
+using static Alimer.Graphics.Vulkan.Vma.VmaAllocationCreateFlags;
+using static Alimer.Graphics.Vulkan.Vma.VmaMemoryUsage;
 using static Vortice.Vulkan.Vulkan;
 
 namespace Alimer.Graphics.Vulkan;
@@ -266,10 +266,10 @@ internal unsafe class VulkanBuffer : GraphicsBuffer
     /// <inheitdoc />
     protected internal override void Destroy()
     {
-        if (_allocation.IsNotNull)
+        if (!_allocation.IsNull)
         {
             vmaDestroyBuffer(VkDevice.Allocator, _handle, _allocation);
-            _allocation = VmaAllocation.Null;
+            _allocation = default;
         }
         else
         {

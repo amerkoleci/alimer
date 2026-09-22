@@ -1,14 +1,11 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using static Alimer.Platforms.Apple.ObjectiveC;
 
 namespace Alimer.Platforms.Apple;
 
-internal readonly partial struct NSWindow
+internal readonly partial struct NSWindow(nint handle)
 {
     #region Selectors
     private static ObjectiveCClass s_class => new("NSWindow"u8);
@@ -19,9 +16,7 @@ internal readonly partial struct NSWindow
     private static readonly Selector s_sel_setContentView = "setContentView:"u8;
     #endregion 
 
-    public nint Handle { get; }
-
-    public NSWindow(nint handle) => Handle = handle;
+    public nint Handle { get; } = handle;
 
     public static implicit operator NSWindow(nint handle) => new(handle);
     public static implicit operator nint(NSWindow value) => value.Handle;
