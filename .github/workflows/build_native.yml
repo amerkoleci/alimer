@@ -26,14 +26,14 @@ jobs:
       uses: lukka/get-cmake@latest
 
     - name: Configure win-x64
-      run: cmake -S "src/native" -B "build_win-x64" -G "Visual Studio 18 2026" -A x64 -DCMAKE_BUILD_TYPE=Distribution -DCMAKE_INSTALL_PREFIX="win-x64-sdk"
+      run: cmake -S "src/native" -B "build_win-x64" -G "Visual Studio 18 2026" -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="win-x64-sdk"
     - name: Build win-x64
-      run: cmake --build build_win-x64 --target install --config Distribution --verbose --parallel
+      run: cmake --build build_win-x64 --target install --config Release --verbose --parallel
 
     - name: Configure win-arm64
-      run: cmake -S "src/native" -B "build_win-arm64" -G "Visual Studio 18 2026" -A ARM64 -DCMAKE_BUILD_TYPE:String=Distribution -DCMAKE_INSTALL_PREFIX="win-arm64-sdk"
+      run: cmake -S "src/native" -B "build_win-arm64" -G "Visual Studio 18 2026" -A ARM64 -DCMAKE_BUILD_TYPE:String=Release -DCMAKE_INSTALL_PREFIX="win-arm64-sdk"
     - name: Build win-arm64
-      run: cmake --build build_win-arm64 --target install --config Distribution
+      run: cmake --build build_win-arm64 --target install --config Release
 
     - name: Package Windows
       run: |
@@ -49,7 +49,7 @@ jobs:
 
   linux:
     name: Linux and Android
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
     - name: Checkout
       uses: actions/checkout@v7
@@ -153,9 +153,9 @@ jobs:
       uses: lukka/get-cmake@latest
 
     - name: CMake Configure osx-universal
-      run: cmake -S "src/native" -B "build_osx" -G Ninja -DCMAKE_BUILD_TYPE:String=Distribution -DCMAKE_INSTALL_PREFIX="osx-universal-sdk" -D"CMAKE_OSX_ARCHITECTURES=x86_64;arm64"
+      run: cmake -S "src/native" -B "build_osx" -G Ninja -DCMAKE_BUILD_TYPE:String=Release -DCMAKE_INSTALL_PREFIX="osx-universal-sdk" -D"CMAKE_OSX_ARCHITECTURES=x86_64;arm64"
     - name: CMake Build osx-universal
-      run: cmake --build build_osx --config Distribution --target install
+      run: cmake --build build_osx --config Release --target install
 
     - name: Package macos
       run: |
@@ -169,7 +169,7 @@ jobs:
 
   combine:
     name: Combine artifacts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:  [windows, linux, macos]
     steps:
       - name: Download artifacts
