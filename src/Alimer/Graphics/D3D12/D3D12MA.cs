@@ -12,7 +12,7 @@ namespace Alimer.Graphics.D3D12;
 
 internal unsafe partial class D3D12MA
 {
-    public const string LibraryName = "d3d12ma";
+    public const string LibraryName = AlimerApi.LibraryName;
 
     #region Handles
     public readonly record struct D3D12MA_Allocator(nint Handle)

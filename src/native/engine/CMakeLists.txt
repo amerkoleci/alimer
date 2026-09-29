@@ -17,18 +17,14 @@ add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
     include/alimer_types.h
     include/alimer_image.h
     include/alimer_font.h
-    include/alimer_scene.h
 	src/alimer_internal.h
     src/alimer.cpp
     src/alimer_log.cpp
     src/alimer_image.cpp
     src/alimer_font.cpp
-    src/alimer_scene.cpp
     src/third_party/miniaudio.h
     src/third_party/tinyexr.h
     src/third_party/vk_mem_alloc.h
-    src/third_party/cgltf.h
-    src/third_party/cgltf_write.h
 )
 
 group_sources()
@@ -91,6 +87,27 @@ if (ALIMER_AUDIO)
     )
 
     target_compile_definitions (${TARGET_NAME} PUBLIC ALIMER_AUDIO)
+endif()
+
+if(WIN32)
+    target_sources(${TARGET_NAME} PRIVATE
+        include/D3D12MemAlloc.h
+        include/D3D12MemAlloc_Exports.h
+        src/D3D12MemAlloc.cpp
+        src/D3D12MemAlloc_Exports.cpp
+    )
+
+    target_compile_definitions(${TARGET_NAME} PRIVATE D3D12MA_USING_DIRECTX_HEADERS)
+    target_link_libraries(${TARGET_NAME} PRIVATE DirectX-Headers)
+endif()
+
+if (NOT EMSCRIPTEN)
+    # Do we support Vulkan on Apple?
+    target_sources(${TARGET_NAME} PRIVATE
+        src/alimer_vma_exports.cpp
+    )
+
+    target_link_libraries(${TARGET_NAME} PRIVATE vulkan)
 endif()
 
 # Install

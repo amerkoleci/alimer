@@ -20,4 +20,21 @@
     <ProjectReference Include="..\Alimer\Alimer.csproj" />
   </ItemGroup>
 
+  <!-- Native Libraries-->
+  <ItemGroup>
+    <None Include="$(AlimerNativeDirectory)win-x64\SDL3.dll">
+      <CopyToOutputDirectory Condition="('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))) == 'true' or '$(RuntimeIdentifier)' == 'win-x64'">PreserveNewest</CopyToOutputDirectory>
+      <PackagePath>runtimes\win-x64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+    <None Include="$(AlimerNativeDirectory)win-arm64\SDL3.dll">
+      <CopyToOutputDirectory Condition="('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))) == 'true' or '$(RuntimeIdentifier)' == 'win-arm64'">PreserveNewest</CopyToOutputDirectory>
+      <PackagePath>runtimes\win-arm64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
+  </ItemGroup>
+
+
 </Project>

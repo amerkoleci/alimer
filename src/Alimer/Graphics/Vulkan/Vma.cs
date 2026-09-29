@@ -14,7 +14,7 @@ namespace Alimer.Graphics.Vulkan;
 
 internal unsafe partial class Vma
 {
-    private const string LibraryName = "vma";
+    private const string LibraryName = AlimerApi.LibraryName;
 
     #region Handles
     public readonly record struct VmaAllocator(nint Handle)
