@@ -96,20 +96,15 @@ internal unsafe partial class VulkanSurface : Surface
     }
 
     /// <inheritdoc/>
-    protected override void Dispose(bool disposing)
+    protected override void DisposeManagedResources()
     {
         //DestroySwapchain(true);
         _configured = false;
 
-        if (disposing)
+        for (int i = 0; i < _backbufferTextures!.Length; ++i)
         {
-            for (int i = 0; i < _backbufferTextures!.Length; ++i)
-            {
-                _backbufferTextures[i].Dispose();
-            }
+            _backbufferTextures[i].Dispose();
         }
-
-        base.Dispose(disposing);
     }
 
     protected override void ConfigureCore()

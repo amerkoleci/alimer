@@ -38,6 +38,7 @@ public sealed class SceneCubeSample : SampleBase
 
         //var test = _cameraEntity.Serialize();
 
+#if TODO_PHYSICS
         // Floor
         RigidBodyComponent floorRigidBody = new()
         {
@@ -47,7 +48,8 @@ public sealed class SceneCubeSample : SampleBase
 
         var floorEntity = new Entity("Floor", new Vector3(0.0f, -1.0f, 0.0f));
         floorEntity.AddComponent(floorRigidBody);
-        root.Children.Add(floorEntity);
+        root.Children.Add(floorEntity); 
+#endif
 
         // Cube mesh
         Mesh cubeMesh = ToDispose(Mesh.CreateCube(GraphicsDevice, 5.0f));
@@ -60,11 +62,13 @@ public sealed class SceneCubeSample : SampleBase
         {
             _cubeEntity = new("Cube", new Vector3(0.0f, 2.0f, 0.0f));
 
+#if TODO_PHYSICS
             RigidBodyComponent cubeRigidBody = new()
             {
                 ColliderShape = new SphereColliderShape(5.0f),
                 //Mass = 100.0f
             };
+#endif
 
             MeshComponent meshComponent = new(cubeMesh);
             meshComponent.Materials.Add(sharedMaterial);
@@ -98,11 +102,13 @@ public sealed class SceneCubeSample : SampleBase
         bool sphere = false;
         if (sphere == true)
         {
+#if TODO_PHYSICS
             RigidBodyComponent sphereRigidBody = new()
             {
                 ColliderShape = new SphereColliderShape(0.5f),
                 LinearVelocity = new(0.0f, -5.0f, 0.0f)
             };
+#endif
 
             Entity sphereEntity = new("Sphere", new Vector3(0.0f, 5.0f, 0.0f));
 
@@ -110,7 +116,7 @@ public sealed class SceneCubeSample : SampleBase
 
             MeshComponent meshComponent = new(sphereMesh);
             sphereEntity.AddComponent(meshComponent);
-            sphereEntity.AddComponent(sphereRigidBody);
+            //sphereEntity.AddComponent(sphereRigidBody);
 
             root.Children.Add(sphereEntity);
         }

@@ -12,7 +12,7 @@ public sealed class AudioEngine : DisposableObject
     public unsafe AudioEngine(in AudioDeviceOptions options)
     {
         // Create audio engine
-        Handle = alimerAudioEngineCreate(AudioSystem.Context, null);
+        //Handle = alimerAudioEngineCreate(AudioSystem.Context, null);
         _masterVolume = alimerAudioEngineGetMasterVolume(Handle, VolumeUnit.Linear);
         OutputChannels = alimerAudioEngineGetChannelCount(Handle);
         OutputSampleRate = alimerAudioEngineGetSampleRate(Handle);
@@ -21,7 +21,7 @@ public sealed class AudioEngine : DisposableObject
     internal AlimerApi.AudioEngine Handle { get; }
 
     /// <inheritdoc/>
-    protected override void Dispose(bool disposing)
+    protected override void DisposeUnmanagedResources()
     {
         alimerAudioEngineDestroy(Handle);
     }

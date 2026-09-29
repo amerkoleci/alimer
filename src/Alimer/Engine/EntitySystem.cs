@@ -5,7 +5,7 @@ using Alimer.Graphics;
 
 namespace Alimer.Engine;
 
-public abstract class EntitySystem : DisposableObject, IGameSystem
+public abstract class EntitySystem : DisposableObjectWithCollector, IGameSystem
 {
     protected EntitySystem()
     {

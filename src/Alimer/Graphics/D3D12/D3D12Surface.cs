@@ -44,23 +44,15 @@ internal unsafe class D3D12Surface : Surface
     {
     }
 
-    /// <summary>
-    /// Finalizes an instance of the <see cref="D3D12Surface" /> class.
-    /// </summary>
-    ~D3D12Surface() => Dispose(disposing: false);
-
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void DisposeManagedResources()
     {
         _configured = false;
-        if (disposing)
-        {
-            for (int i = 0; i < _backbufferTextures!.Length; ++i)
-            {
-                _backbufferTextures[i].Dispose();
-            }
-        }
 
-        base.Dispose(disposing);
+        for (int i = 0; i < _backbufferTextures!.Length; ++i)
+        {
+            _backbufferTextures[i].Dispose();
+        }
     }
 
     /// <inheitdoc />

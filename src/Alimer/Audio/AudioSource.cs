@@ -19,17 +19,11 @@ public class AudioSource : DisposableObject
     public nint Handle { get; }
     public bool IsPlaying => alimerAudioSourceIsPlaying(Handle);
 
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void DisposeUnmanagedResources()
     {
-        if (disposing)
-        {
-            // Dispose managed resources if any
-        }
-
         // Dispose unmanaged resources
         _ = alimerAudioSourceRelease(Handle);
-
-        base.Dispose(disposing);
     }
 
     public void Play()

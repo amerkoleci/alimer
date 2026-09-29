@@ -13,18 +13,17 @@ using static SDL3.SDL_LogPriority;
 
 namespace Alimer;
 
-internal unsafe class SDLPlatform : GamePlatform
+internal unsafe class RuntimePlatformSDL : RuntimePlatform
 {
     private const int EventsPerPeep = 64;
     private readonly SDL_Event[] _events = new SDL_Event[EventsPerPeep];
     private readonly SDLInputManager _input;
 
-    private readonly Window _window;
-    private readonly Dictionary<SDL_WindowID, Window> _idLookup = [];
+    private readonly WindowSDL _window;
+    private readonly Dictionary<SDL_WindowID, WindowSDL> _idLookup = [];
     private bool _exitRequested;
 
-    public SDLPlatform(Game game, string appName = "Alimer")
-        : base(game)
+    public RuntimePlatformSDL(string appName = "Alimer")
     {
 #if DEBUG
         SDL_SetLogPriority((int)SDL_LOG_CATEGORY_ERROR, SDL_LOG_PRIORITY_DEBUG);
@@ -59,7 +58,7 @@ internal unsafe class SDLPlatform : GamePlatform
 
 
         _input = new SDLInputManager();
-        MainWindow = (_window = new Window(this, WindowFlags.Resizable));
+        MainWindow = (_window = new WindowSDL(this, WindowFlags.Resizable));
         _idLookup.Add(_window.Id, _window);
     }
 
@@ -67,12 +66,12 @@ internal unsafe class SDLPlatform : GamePlatform
     public override InputManager Input => _input;
 
     // <inheritdoc />
-    public override Window MainWindow { get; }
+    public override WindowSDL MainWindow { get; }
 
     /// <inheritdoc />
-    public override void RunMainLoop()
+    public override void RunMainLoop( Action ready, Action tick)
     {
-        OnReady();
+        ready();
 
         _window.Show();
 
@@ -85,7 +84,7 @@ internal unsafe class SDLPlatform : GamePlatform
             if (_exitRequested)
                 break;
 
-            OnTick();
+            tick();
         }
 
         //alimerPlatformShutdown();
@@ -170,7 +169,7 @@ internal unsafe class SDLPlatform : GamePlatform
 
     private void HandleWindowEvent(in SDL_WindowEvent evt)
     {
-        if (_idLookup.TryGetValue(evt.windowID, out Window? window))
+        if (_idLookup.TryGetValue(evt.windowID, out WindowSDL? window))
         {
             window.HandleEvent(evt);
         }
@@ -211,7 +210,7 @@ internal unsafe class SDLPlatform : GamePlatform
     }
 }
 
-partial class GamePlatform
+partial class RuntimePlatform
 {
-    public static GamePlatform CreateDefault(Game game) => new SDLPlatform(game);
+    public static partial RuntimePlatform CreateDefault() => new RuntimePlatformSDL();
 }

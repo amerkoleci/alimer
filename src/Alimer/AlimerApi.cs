@@ -158,7 +158,7 @@ internal unsafe static partial class AlimerApi
         public IntPtr GetLevelSize;
         public IntPtr IterateLevels;
         public IntPtr IterateLoadLevelFaces;
-        public delegate* unmanaged<ktxTexture*, Bool8> NeedsTranscoding;
+        public delegate* unmanaged<ktxTexture*, NativeBool> NeedsTranscoding;
         public IntPtr LoadImageData;
         public IntPtr SetImageFromMemory;
         public IntPtr SetImageFromStdioStream;
@@ -430,10 +430,10 @@ internal unsafe static partial class AlimerApi
         public ktxTexture_vtbl* vtbl;
         public IntPtr vvtbl;
         public IntPtr _protected;
-        public Bool8 isArray;
-        public Bool8 isCubemap;
-        public Bool8 isCompressed;
-        public Bool8 generateMipmaps;
+        public NativeBool isArray;
+        public NativeBool isCubemap;
+        public NativeBool isCompressed;
+        public NativeBool generateMipmaps;
         public UInt32 baseWidth;
         public UInt32 baseHeight;
         public UInt32 baseDepth;
@@ -539,9 +539,6 @@ internal unsafe static partial class AlimerApi
         /// </summary>
         public IntPtr _private;
     }
-
-    [LibraryImport(LibraryName)]
-    public static partial ImageFileType alimerImageDetectFileType(void* data, nuint size);
 
     [LibraryImport(LibraryName)]
     public static partial nint alimerImageCreate2D(PixelFormat format, uint width, uint height, uint arrayLayers, uint mipLevelCount);

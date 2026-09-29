@@ -22,7 +22,6 @@ add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
     src/alimer_log.cpp
     src/alimer_image.cpp
     src/alimer_font.cpp
-    src/third_party/miniaudio.h
     src/third_party/tinyexr.h
     src/third_party/vk_mem_alloc.h
 )
@@ -82,6 +81,9 @@ endif ()
 
 if (ALIMER_AUDIO)
     target_sources(${TARGET_NAME} PRIVATE
+        include/miniaudio.h
+        include/miniaudio_ex.h
+        src/miniaudio_ex.c
         include/alimer_audio.h
         src/alimer_audio.cpp
     )

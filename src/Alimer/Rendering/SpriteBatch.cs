@@ -83,18 +83,12 @@ public class SpriteBatch : DisposableObject
     public GraphicsDevice GraphicsDevice { get; }
     public ShaderSystem ShaderSystem { get; }
 
-    /// <summary>Finalizes an instance of the <see cref="SpriteBatch" /> class.</summary>
-    ~SpriteBatch() => Dispose(disposing: false);
-
     /// <inheritdoc/>
-    protected override void Dispose(bool disposing)
+    protected override void DisposeManagedResources()
     {
-        if (disposing)
-        {
-            _spriteBuffer.Dispose();
-            _spriteIndexBuffer.Dispose();
-            _renderPipeline.Dispose();
-        }
+        _spriteBuffer.Dispose();
+        _spriteIndexBuffer.Dispose();
+        _renderPipeline.Dispose();
     }
 
     public void Begin(RenderPassEncoder encoder, in Vector2 viewportSize)

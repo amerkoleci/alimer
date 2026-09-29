@@ -435,23 +435,6 @@ namespace
         static const uint8_t ktx_ident_ref[12] = KTX2_IDENTIFIER_REF;
         return memcmp(ktx_ident_ref, data, 12) == 0;
     }
-
-    static Image* DDS_LoadFromMemory(const uint8_t* pData, size_t dataSize)
-    {
-        ALIMER_UNUSED(pData);
-        ALIMER_UNUSED(dataSize);
-
-        return nullptr;
-    }
-}
-
-
-static Image* ASTC_LoadFromMemory(const uint8_t* pData, size_t dataSize)
-{
-    ALIMER_UNUSED(pData);
-    ALIMER_UNUSED(dataSize);
-
-    return nullptr;
 }
 
 #if defined(ALIMER_IMAGE_KTX)
@@ -790,12 +773,6 @@ ImageFileType alimerImageDetectFileType(const void* pData, size_t dataSize)
 Image* alimerImageCreateFromMemory(const uint8_t* pData, size_t dataSize)
 {
     Image* image = nullptr;
-
-    if ((image = DDS_LoadFromMemory(pData, dataSize)) != nullptr)
-        return image;
-
-    if ((image = ASTC_LoadFromMemory(pData, dataSize)) != nullptr)
-        return image;
 
 #if defined(ALIMER_IMAGE_KTX)
     if ((image = KTX_LoadFromMemory(pData, dataSize)) != nullptr)

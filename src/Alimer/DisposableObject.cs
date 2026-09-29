@@ -11,14 +11,12 @@ namespace Alimer;
 public abstract class DisposableObject : IDisposableObject
 {
     private volatile uint _isDisposed;
-    private DisposeCollector _collector;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DisposableObject" /> class.
     /// </summary>
     protected DisposableObject()
     {
-        _collector = new DisposeCollector();
     }
 
     ~DisposableObject()
@@ -26,9 +24,62 @@ public abstract class DisposableObject : IDisposableObject
         Dispose(disposing: false);
     }
 
-    #region IDisposable Members + DisposeCollector
     /// <inheritdoc />
     public bool IsDisposed => _isDisposed is not 0;
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Throws an ObjectDisposedException if this object has been disposed
+    /// </summary>
+    protected void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (Interlocked.CompareExchange(ref _isDisposed, 1, 0) is not 0)
+            return;
+
+        if (disposing)
+        {
+            DisposeManagedResources();
+        }
+
+        DisposeUnmanagedResources();
+    }
+
+    /// <summary>
+    /// Releases the unmanaged resources used by the <see cref="DisposableObject"/> class.
+    /// </summary>
+    protected virtual void DisposeUnmanagedResources()
+    {
+    }
+
+    /// <summary>
+    /// Releases the managed resources used by the <see cref="DisposableObject"/> class.
+    /// </summary>
+    protected virtual void DisposeManagedResources()
+    {
+    }
+}
+
+public abstract class DisposableObjectWithCollector : DisposableObject
+{
+    private readonly DisposeCollector _collector = new();
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DisposableObjectWithCollector" /> class.
+    /// </summary>
+    protected DisposableObjectWithCollector()
+    {
+    }
 
     /// <summary>
     /// Gets the <see cref="DisposeCollector"/>
@@ -42,32 +93,19 @@ public abstract class DisposableObject : IDisposableObject
         }
     }
 
-    /// <inheritdoc />
-    public void Dispose()
+    /// <inheritdoc/>
+    protected override void DisposeManagedResources()
     {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
+        base.DisposeManagedResources();
 
-    /// <inheritdoc cref="Dispose()" />
-    /// <param name="disposing"><c>true</c> if the method was called from <see cref="Dispose()" />; otherwise, <c>false</c>.</param>
-    protected virtual void Dispose(bool disposing)
-    {
-        if (Interlocked.Exchange(ref _isDisposed, 1) is not 0)
-        {
-            return;
-        }
-
-        if (disposing)
-        {
-            _collector.Dispose();
-        }
+        _collector.Dispose();
     }
 
     /// <inheritdoc cref="DisposeCollector.Add{T}(T)" />
     protected internal T ToDispose<T>(T objectToDispose)
         where T : notnull
     {
+        ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(objectToDispose, nameof(objectToDispose));
 
         return _collector.Add(objectToDispose);
@@ -77,7 +115,7 @@ public abstract class DisposableObject : IDisposableObject
     protected internal void RemoveAndDispose<T>([MaybeNull] ref T objectToDispose)
         where T : notnull
     {
+        ThrowIfDisposed();
         _collector.RemoveAndDispose(ref objectToDispose);
     }
-    #endregion
 }

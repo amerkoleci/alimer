@@ -8,50 +8,36 @@ namespace Alimer;
 /// <summary>
 /// Defines an application window.
 /// </summary>
-public sealed partial class Window
+public abstract class Window
 {
-    private string _title;
     public event EventHandler? SizeChanged;
 
     /// <summary>
     /// Gets the swap chain surface associated with this instance.
     /// </summary>
-    public partial SurfaceSource SurfaceSource { get; }
+    public abstract SurfaceSource SurfaceSource { get; }
 
     /// <summary>
     /// Gets a value indicating whether the window is currently minimized.
     /// </summary>
-    public partial bool IsMinimized { get; }
+    public abstract bool IsMinimized { get; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the application is displayed in fullscreen mode.
     /// </summary>
-    public partial bool IsFullscreen { get; set; }
+    public abstract bool IsFullscreen { get; set; }
 
     /// <summary>
     /// Gets and sets the title of the window.
     /// </summary>
-    public string Title
-    {
-        get => _title;
-        set
-        {
-            ArgumentException.ThrowIfNullOrEmpty(value, nameof(value));
-
-            if (_title != value)
-            {
-                _title = value;
-                SetTitle(value);
-            }
-        }
-    }
+    public abstract string Title { get; set; }
 
     /// <summary>
     /// Gets or sets the position of the window on the screen, in pixels.
     /// </summary>
-    public partial PointI Position { get; set; }
-    public partial SizeI Size { get; set; }
-    public partial SizeI SizeInPixels { get; }
+    public abstract PointI Position { get; set; }
+    public abstract SizeI Size { get; set; }
+    public abstract SizeI SizeInPixels { get; }
 
     public Surface? Surface { get; private set; }
     public PixelFormat ColorFormat { get; set; } = PixelFormat.BGRA8UnormSrgb;
@@ -103,13 +89,11 @@ public sealed partial class Window
         ColorFormat = Surface.Format;
     }
 
-    private void OnSizeChanged()
+    protected virtual void OnSizeChanged()
     {
         SizeI swapChainSize = SizeInPixels;
         Surface?.Resize(swapChainSize.Width, swapChainSize.Height);
 
         SizeChanged?.Invoke(this, EventArgs.Empty);
     }
-
-    private partial void SetTitle(string title);
 }

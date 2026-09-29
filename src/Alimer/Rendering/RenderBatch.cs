@@ -48,14 +48,27 @@ public sealed unsafe class RenderBatch : DisposableObject
         {
             _instanceBuffer[i]?.Dispose();
 
-            _instanceBuffer[i] = ToDispose(Device.CreateBuffer(
+            _instanceBuffer[i] = Device.CreateBuffer(
                 InstanceSizeInBytes * capacity,
                 GraphicsBufferUsage.ShaderRead,
                 MemoryType.Upload,
                 label: $"Upload Instance Buffer Frame {i}"
-                ));
+                );
 
-            _instanceBufferView[i] = ToDispose(_instanceBuffer[i].CreateView(viewDescriptor));
+            _instanceBufferView[i] = _instanceBuffer[i].CreateView(viewDescriptor);
+        }
+    }
+
+
+    /// <inheritdoc/>
+    protected override void DisposeManagedResources()
+    {
+        base.DisposeManagedResources();
+
+        for (int i = 0; i < _instanceBuffer.Length; i++)
+        {
+            _instanceBufferView[i]?.Dispose();
+            _instanceBuffer[i]?.Dispose();
         }
     }
 

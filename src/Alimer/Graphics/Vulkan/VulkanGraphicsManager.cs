@@ -280,7 +280,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
     public bool HasWaylandSurface { get; }
 
     /// <inheritdoc/>
-    protected override void Dispose(bool disposing)
+    protected override void DisposeManagedResources()
     {
         if (_debugMessenger.IsNotNull)
         {

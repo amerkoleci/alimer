@@ -6,8 +6,23 @@ using Alimer.Input;
 
 namespace Alimer;
 
-internal abstract partial class GamePlatform
+internal abstract partial class RuntimePlatform
 {
+    public static RuntimePlatform Current
+    {
+        get
+        {
+            field ??= CreateDefault();
+
+            return field;
+        }
+        set;
+    }
+
+    protected RuntimePlatform()
+    {
+    }
+
     /// <summary>
     /// Gets the main window.
     /// </summary>
@@ -18,26 +33,11 @@ internal abstract partial class GamePlatform
     /// </summary>
     public abstract InputManager Input { get; }
 
-    protected GamePlatform(Game game)
-    {
-        Game = game;
-    }
+    public static partial RuntimePlatform CreateDefault();
 
-    public Game Game { get; }
-
-    public abstract void RunMainLoop();
+    public abstract void RunMainLoop(Action ready, Action tick);
     public abstract void RequestExit();
     public abstract void Destroy();
-
-    protected void OnReady()
-    {
-        Game.OnPlatformReady();
-    }
-
-    protected void OnTick()
-    {
-        Game.Tick();
-    }
 
     /// <summary>
     /// The User Directory safe location to store save data or preferences

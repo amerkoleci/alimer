@@ -304,7 +304,7 @@ internal unsafe partial class Vma
     [LibraryImport(LibraryName, EntryPoint = "vmaCreateBuffer")]
     public static partial VkResult vmaCreateBuffer(VmaAllocator allocator, VkBufferCreateInfo* bufferCreateInfo, VmaAllocationCreateInfo* allocationCreateInfo, out VkBuffer buffer, out VmaAllocation allocation, VmaAllocationInfo* allocationInfo = default);
 
-    [LibraryImport(LibraryName, EntryPoint = "vmaDestroyBuffer")]
+    [LibraryImport(LibraryName)]
     public static partial void vmaDestroyBuffer(VmaAllocator allocator, VkBuffer buffer, VmaAllocation allocation);
 
     [LibraryImport(LibraryName, EntryPoint = "vmaCreateImage")]

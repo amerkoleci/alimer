@@ -29,7 +29,7 @@ unsafe partial class AlimerApi
 
     public struct AudioContextConfig
     {
-        public Bool8 noAudio;
+        public NativeBool noAudio;
     }
     #endregion
 
@@ -89,7 +89,7 @@ unsafe partial class AlimerApi
     public static partial void alimerAudioContextEnumerateDevices(AudioContext context, delegate* unmanaged<AudioDevice, nint, void> callback, nint userdata);
 
     [LibraryImport(LibraryName)]
-    public static partial AudioDeviceType alimerAudioDeviceGetType(AudioDevice device);
+    public static partial AudioAdapterType alimerAudioDeviceGetType(AudioDevice device);
 
     [LibraryImport(LibraryName)]
     public static partial byte* alimerAudioDeviceGetName(AudioDevice device);

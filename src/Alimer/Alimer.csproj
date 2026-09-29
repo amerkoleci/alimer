@@ -65,10 +65,6 @@
     <PackageReference Include="Vortice.Vulkan" Condition="'$(ExcludeVulkan)' != 'true'" PrivateAssets="compile" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Alimer.Native\Alimer.Native.csproj" />
-  </ItemGroup>
-
   <!-- Native Libraries-->
   <ItemGroup>
     <None Include="$(AlimerNativeDirectory)win-x64\alimer_native.dll">

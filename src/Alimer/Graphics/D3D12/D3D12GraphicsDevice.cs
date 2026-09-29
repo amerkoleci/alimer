@@ -395,7 +395,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     public D3D12BindlessManager BindlessManager { get; }
 
     /// <inheritdoc/>
-    protected override void Dispose(bool disposing)
+    protected override void DisposeManagedResources()
     {
         WaitIdle();
         _shuttingDown = true;

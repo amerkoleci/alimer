@@ -45,7 +45,6 @@
     <Project Path="tests/Alimer.UnitTests/Alimer.UnitTests.csproj" />
   </Folder>
   <Project Path="src/Alimer.ImGui/Alimer.ImGui.csproj" />
-  <Project Path="src/Alimer.Native/Alimer.Native.csproj" />
   <Project Path="src/Alimer.Navigation/Alimer.Navigation.csproj" />
   <Project Path="src/Alimer.Physics/Alimer.Physics.csproj" />
   <Project Path="src/Alimer.SourceGenerator/Alimer.SourceGenerator.csproj" />

@@ -45,7 +45,7 @@ public interface IGPUMaterialFactory : IDisposable
     GPURenderPipeline GetPipeline(Span<VertexBufferLayout> geometryLayout, Material material, bool skinned);
 }
 
-public abstract class GPUMaterialFactory<TMaterial> : DisposableObject, IGPUMaterialFactory
+public abstract class GPUMaterialFactory<TMaterial> : DisposableObjectWithCollector, IGPUMaterialFactory
     where TMaterial : Material
 {
     protected readonly List<TMaterial> _materials = [];

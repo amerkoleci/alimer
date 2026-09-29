@@ -35,7 +35,7 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
     }
 
     /// <inheritdoc/>
-    protected override void Dispose(bool disposing)
+    protected override void DisposeManagedResources()
     {
         foreach (EntitySystem system in Systems)
         {

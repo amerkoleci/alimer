@@ -5,7 +5,7 @@ using Alimer.Graphics;
 
 namespace Alimer.Samples;
 
-public abstract class SampleBase : DisposableObject
+public abstract class SampleBase : DisposableObjectWithCollector
 {
     protected SampleBase(string name)
     {

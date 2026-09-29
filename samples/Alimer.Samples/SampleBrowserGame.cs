@@ -87,14 +87,12 @@ public sealed class SampleBrowserGame : Game
         MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }
 
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc />
+    protected override void DisposeManagedResources() 
     {
-        if (disposing)
-        {
-            _runningSample.Dispose();
-        }
+        _runningSample.Dispose();
 
-        base.Dispose(disposing);
+        base.DisposeManagedResources();
     }
 
     protected override void Update(GameTime time)

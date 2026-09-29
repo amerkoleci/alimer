@@ -18,7 +18,7 @@ namespace Alimer;
 /// </summary>
 public abstract class Game : DisposableObject, IGame
 {
-    private readonly GamePlatform _platform;
+    private readonly RuntimePlatform _platform;
     private readonly ServiceRegistry _services;
     private readonly AssetManager _assets;
     private readonly Lock _tickLock = new();
@@ -31,7 +31,7 @@ public abstract class Game : DisposableObject, IGame
     /// <param name="name">The optional name of the application.</param>
     protected Game(GraphicsBackend preferredGraphicsBackend = GraphicsBackend.Default)
     {
-        _platform = GamePlatform.CreateDefault(this);
+        _platform = RuntimePlatform.Current;
         PrintSystemInformation();
 
         _services = new();
@@ -94,7 +94,7 @@ public abstract class Game : DisposableObject, IGame
     public IAssetManager Assets => _assets;
 
     /// <summary>
-    /// Gets the main window, automatically created or managed by the <see cref="GamePlatform"/> module.
+    /// Gets the main window, automatically created or managed by the <see cref="RuntimePlatform"/> module.
     /// </summary>
     public Window MainWindow => _platform.MainWindow;
 
@@ -139,7 +139,7 @@ public abstract class Game : DisposableObject, IGame
     public ShaderSystem ShaderSystem { get; }
 
     /// <inheritdoc/>
-    protected override void Dispose(bool disposing)
+    protected override void DisposeManagedResources()
     {
         // Dispose game systems first.
         foreach (IGameSystem system in GameSystems)
@@ -196,7 +196,7 @@ public abstract class Game : DisposableObject, IGame
         void Launch()
         {
             // Startup application
-            _platform.RunMainLoop();
+            _platform.RunMainLoop(OnPlatformReady, OnPlatformTick);
         }
 
         IsRunning = true;
@@ -338,9 +338,14 @@ public abstract class Game : DisposableObject, IGame
         }
     }
 
-    internal void OnPlatformReady()
+    private void OnPlatformReady()
     {
         InitializeBeforeRun();
+    }
+
+    private void OnPlatformTick()
+    {
+        Tick();
     }
 
     private static void PrintSystemInformation()

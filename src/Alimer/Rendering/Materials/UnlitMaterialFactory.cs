@@ -12,10 +12,6 @@ public sealed class UnlitMaterialFactory : GPUMaterialFactory<UnlitMaterial>
     {
     }
 
-    /// <summary>Finalizes an instance of the <see cref="UnlitMaterialFactory" /> class.</summary>
-    ~UnlitMaterialFactory() => Dispose(disposing: false);
-
-
     protected override int Write(UnlitMaterial material, out int materialIndex) => throw new NotImplementedException();
 
     public override ShaderModule CreateFragmentShaderModule(Span<VertexBufferLayout> geometryLayout, Material material) => throw new NotImplementedException();

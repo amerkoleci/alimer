@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+#if TODO
 using System.Runtime.CompilerServices;
 using Alimer.Engine;
 using static Alimer.AlimerApi;
@@ -59,16 +60,7 @@ public class PhysicsSystem : EntitySystem<PhysicsComponent>
             }
         }
     }
-
-#pragma warning disable CA2255
-    [ModuleInitializer]
-    public static void Register()
-    {
-        if (alimerPhysicsInit() == false)
-        {
-            throw new InvalidOperationException("[JoltPhysics] Failed to initialize Foundation");
-        }
-    }
-#pragma warning restore CA2255
 }
 
+
+#endif

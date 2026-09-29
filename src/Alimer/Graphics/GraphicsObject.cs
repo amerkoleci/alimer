@@ -24,13 +24,10 @@ public abstract class GraphicsObject : GraphicsBaseObject
     /// </summary>
     public abstract GraphicsDevice Device { get; }
 
-    /// <inheritdoc />
-    protected override void Dispose(bool disposing)
+    /// <inheritdoc/>
+    protected override void DisposeManagedResources()
     {
-        if (disposing)
-        {
-            Device.QueueDestroy(this);
-        }
+        Device.QueueDestroy(this);
     }
 
     /// <summary>

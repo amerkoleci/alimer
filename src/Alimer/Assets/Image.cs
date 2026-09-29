@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Alimer.Graphics;
@@ -279,6 +280,57 @@ public sealed unsafe class Image : Asset, IBinarySerializable<Image>
         return _levels[(int)index];
     }
 
+    public static ImageFileType DetectFileType(ReadOnlySpan<byte> data)
+    {
+        if (data.Length < 2)
+            return ImageFileType.Unknown;
+
+
+        if (data.Length >= 8 && data[..8].SequenceEqual(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }))
+            return ImageFileType.Png;
+
+        if (data.Length >= 3 && data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF)
+            return ImageFileType.Jpeg;
+
+        if (data.Length >= 6 && (data[..6].SequenceEqual("GIF87a"u8) || data[..6].SequenceEqual("GIF89a"u8)))
+            return ImageFileType.Gif;
+
+        if (data.Length >= 12 && data[..4].SequenceEqual("RIFF"u8) && data[8..12].SequenceEqual("WEBP"u8))
+            return ImageFileType.Webp;
+
+        if (data.Length >= 4 && data[..4].SequenceEqual("8BPS"u8))
+            return ImageFileType.Psd;
+
+        if (data.Length >= 4 && data[..4].SequenceEqual("DDS "u8))
+            return ImageFileType.Dds;
+
+        if (data.Length >= 4 && data[0] == 0x76 && data[1] == 0x2F && data[2] == 0x31 && data[3] == 0x01)
+            return ImageFileType.Exr;
+
+        if (IsRadianceHdr(data))
+            return ImageFileType.Hdr;
+
+        if (IsTga(data))
+            return ImageFileType.Tga;
+
+        if (IsIco(data))
+            return ImageFileType.Ico;
+
+        if (IsPnm(data))
+            return ImageFileType.Pnm;
+
+        if (IsBmp(data))
+            return ImageFileType.Bmp;
+
+        if (IsKTX1(data))
+            return ImageFileType.Ktx1;
+
+        if (IsKTX2(data))
+            return ImageFileType.Ktx2;
+
+        return ImageFileType.Unknown;
+    }
+
     public static Image FromFile(string filePath, int channels = 4, bool srgb = true)
     {
         using FileStream stream = new(filePath, FileMode.Open);
@@ -295,9 +347,10 @@ public sealed unsafe class Image : Asset, IBinarySerializable<Image>
     public static Image FromMemory(ReadOnlySpan<byte> data, int channels = 4, bool srgb = true)
     {
         // TODO: Add DDS, ASTC, KTX1 and KTX2 loading
+        ImageFileType fileType = DetectFileType(data);
+
         fixed (byte* dataPtr = data)
         {
-            ImageFileType fileType = alimerImageDetectFileType(dataPtr, (uint)data.Length);
             Image result;
 
             if (IsKTX1(data) || IsKTX2(data))
@@ -590,6 +643,37 @@ public sealed unsafe class Image : Asset, IBinarySerializable<Image>
     } 
 #endif
 
+    private static bool IsIco(ReadOnlySpan<byte> data)
+    {
+        // Reserved zero, type 1 for an icon and 2 for a cursor, and a non-zero entry count,
+        // without which this matches far too much.
+        if (data.Length < 6 || data[0] != 0 || data[1] != 0 || data[3] != 0)
+            return false;
+        if (data[2] is not (1 or 2))
+            return false;
+        return BinaryPrimitives.ReadUInt16LittleEndian(data[4..]) != 0;
+    }
+
+    private static bool IsPnm(ReadOnlySpan<byte> data)
+    {
+        // "P1".."P7" and whitespace, which keeps text files starting with a P out.
+        if (data.Length < 3 || data[0] != (byte)'P')
+            return false;
+        if (data[1] is < (byte)'1' or > (byte)'7')
+            return false;
+        return data[2] is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n' or (byte)'#';
+    }
+
+    private static bool IsBmp(ReadOnlySpan<byte> data)
+    {
+        // A two byte signature is weak, so the declared file size is checked too.
+        if (data.Length < 14 || data[0] != (byte)'B' || data[1] != (byte)'M')
+            return false;
+        uint declared = BinaryPrimitives.ReadUInt32LittleEndian(data[2..]);
+        uint offset = BinaryPrimitives.ReadUInt32LittleEndian(data[10..]);
+        return declared >= 14 && offset >= 14;
+    }
+
     private static bool IsKTX1(ReadOnlySpan<byte> data)
     {
         if (data.Length <= 12)
@@ -597,17 +681,20 @@ public sealed unsafe class Image : Asset, IBinarySerializable<Image>
             return false;
         }
 
-        Span<byte> id = [0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A];
-        for (int i = 0; i < 12; i++)
-        {
-            if (data[i] != id[i])
-                return false;
-        }
-
-        return true;
+        return data[..12].SequenceEqual(new byte[] { 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A });
     }
 
-    private static bool IsHDR(ReadOnlySpan<byte> data)
+    private static bool IsKTX2(ReadOnlySpan<byte> data)
+    {
+        if (data.Length <= 12)
+        {
+            return false;
+        }
+
+        return data[..12].SequenceEqual(new byte[] { 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A });
+    }
+
+    private static bool IsRadianceHdr(ReadOnlySpan<byte> data)
     {
         if (data.Length <= 6)
         {
@@ -636,21 +723,24 @@ public sealed unsafe class Image : Asset, IBinarySerializable<Image>
         return true;
     }
 
-    private static bool IsKTX2(ReadOnlySpan<byte> data)
+    private static bool IsRaw(ReadOnlySpan<byte> data)
     {
-        if (data.Length <= 12)
+        if (data.Length <= 15)
         {
             return false;
         }
 
-        Span<byte> id = [0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A];
-        for (int i = 0; i < 12; i++)
+        return data[..15].SequenceEqual("FUJIFILMCCD-RAW"u8);
+    }
+
+    private static bool IsTga(ReadOnlySpan<byte> data)
+    {
+        if (data.Length <= 18)
         {
-            if (data[i] != id[i])
-                return false;
+            return false;
         }
 
-        return true;
+        return data[2] == 0 && data[3] == 0 && data[4] == 2;
     }
 
     public static Image Read(ref ReadByteStream stream, Image? existingInstance)

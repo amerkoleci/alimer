@@ -11,15 +11,15 @@ using System.Diagnostics;
 
 namespace Alimer;
 
-unsafe partial class Window
+internal sealed class WindowSDL : Window
 {
-    private readonly SDLPlatform _platform;
+    private string _title;
     private readonly SurfaceSource _surfaceSource;
     private bool _isFullscreen;
 
-    internal Window(SDLPlatform platform, WindowFlags flags)
+    internal WindowSDL(RuntimePlatformSDL platform, WindowFlags flags)
     {
-        _platform = platform;
+        Platform = platform;
         _title = "Alimer";
 
         bool fullscreen = flags.HasFlag(WindowFlags.Fullscreen);
@@ -157,14 +157,31 @@ unsafe partial class Window
         }
     }
 
-    internal SDL_Window Handle { get; private set; }
-    internal SDL_WindowID Id { get; }
+    public RuntimePlatformSDL Platform { get; }
+    public SDL_Window Handle { get; private set; }
+    public SDL_WindowID Id { get; }
 
     /// <inheritdoc />
-    public partial SurfaceSource SurfaceSource => _surfaceSource;
+    public override SurfaceSource SurfaceSource => _surfaceSource;
 
     /// <inheritdoc />
-    public partial bool IsMinimized
+    public override string Title
+    {
+        get => _title;
+        set
+        {
+            ArgumentException.ThrowIfNullOrEmpty(value, nameof(value));
+
+            if (_title != value)
+            {
+                _title = value;
+                SDL_SetWindowTitle(Handle, value);
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public override bool IsMinimized
     {
         get
         {
@@ -174,7 +191,7 @@ unsafe partial class Window
     }
 
     /// <inheritdoc />
-    public partial bool IsFullscreen
+    public override bool IsFullscreen
     {
         get => _isFullscreen;
         set
@@ -188,7 +205,7 @@ unsafe partial class Window
     }
 
     /// <inheritdoc />
-    public partial PointI Position
+    public override PointI Position
     {
         get
         {
@@ -202,7 +219,7 @@ unsafe partial class Window
     }
 
     /// <inheritdoc />
-    public partial SizeI Size
+    public override SizeI Size
     {
         get
         {
@@ -216,7 +233,7 @@ unsafe partial class Window
     }
 
     /// <inheritdoc />
-    public partial SizeI SizeInPixels
+    public override SizeI SizeInPixels
     {
         get
         {
@@ -261,11 +278,6 @@ unsafe partial class Window
         SDL_RestoreWindow(Handle);
     }
 
-    private partial void SetTitle(string title)
-    {
-        SDL_SetWindowTitle(Handle, title);
-    }
-
     internal void HandleEvent(in SDL_WindowEvent evt)
     {
         switch (evt.type)
@@ -287,7 +299,7 @@ unsafe partial class Window
 
             case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
                 Destroy();
-                _platform.WindowClosed(evt.windowID);
+                Platform.WindowClosed(evt.windowID);
                 break;
         }
     }
