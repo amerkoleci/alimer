@@ -41,12 +41,6 @@ function(add_sample SAMPLE_NAME)
         target_link_libraries(${SAMPLE_NAME} PRIVATE alimer_gpu)
     endif ()
 
-    if (ALIMER_PHYSICS)
-        target_compile_definitions(${SAMPLE_NAME} PRIVATE ALIMER_PHYSICS)
-
-        target_link_libraries(${SAMPLE_NAME} PRIVATE alimer_physics)
-    endif ()
-
     set_target_properties(${SAMPLE_NAME} PROPERTIES
         VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         FOLDER "Samples"

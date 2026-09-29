@@ -1,8 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-//#define TEST_PHYSICS
-
 #include "alimer_image.h"
 #if defined(ALIMER_AUDIO)
 #include "alimer_audio.h"
@@ -10,10 +8,6 @@
 
 #if defined(ALIMER_GPU)
 #include "alimer_gpu.h"
-#endif
-
-#if defined(ALIMER_PHYSICS)
-#include "alimer_physics.h"
 #endif
 
 #include <stdbool.h>
@@ -40,82 +34,8 @@ static void OnAudioDeviceCallback(AudioDevice* device, void* userdata)
 }
 #endif
 
-#if defined(ALIMER_PHYSICS)
-static void TestPhysics(void)
-{
-    // Physics
-    if (!alimerPhysicsInit())
-    {
-        return;
-    }
-
-    PhysicsWorldConfig physicsWorldConfig = alimerPhysicsWorldConfigDefault();
-    PhysicsWorld* physicsWorld = alimerPhysicsWorldCreate(&physicsWorldConfig);
-
-    // Create floor
-    PhysicsShape* floorShape = alimerPhysicsShapeCreateBox(&(Vector3) { 100.0f, 1.0f, 100.0f }, NULL);
-    PhysicsBodyDesc floorBodyDesc = alimerPhysicsBodyDescDefault();
-    floorBodyDesc.position = (Vector3){ 0.0f, -1.0f, 0.0f };
-    floorBodyDesc.type = PhysicsBodyType_Static;
-    floorBodyDesc.shapeCount = 1;
-    floorBodyDesc.shapes = &floorShape;
-    PhysicsBody* floorBody = alimerPhysicsBodyCreate(physicsWorld, &floorBodyDesc);
-
-    // Create sphere
-    PhysicsShape* sphereShape = alimerPhysicsShapeCreateSphere(0.5f, NULL);
-    PhysicsBodyDesc sphereBodyDesc = alimerPhysicsBodyDescDefault();
-    sphereBodyDesc.position = (Vector3){ 0.0f, 2.0f, 0.0f };
-    sphereBodyDesc.type = PhysicsBodyType_Dynamic;
-    sphereBodyDesc.shapeCount = 1;
-    sphereBodyDesc.shapes = &sphereShape;
-    PhysicsBody* sphereBody = alimerPhysicsBodyCreate(physicsWorld, &sphereBodyDesc);
-    alimerPhysicsBodySetLinearVelocity(sphereBody, &(Vector3){ 0.0f, -5.0f, 0.0f });
-
-    float density = alimerPhysicsShapeGetDensity(sphereShape);
-    float volume = alimerPhysicsShapeGetVolume(sphereShape);
-    float bodyMass = alimerPhysicsBodyGetMass(sphereBody);
-    float bodyInverseMass = alimerPhysicsBodyGetInverseMass(sphereBody);
-    (void)density;
-    (void)volume;
-    (void)bodyMass;
-    (void)bodyInverseMass;
-
-    const float cDeltaTime = 1.0f / 60.0f;
-    //alimerPhysicsWorldOptimizeBroadPhase(physicsWorld);
-
-    uint32_t step = 0;
-    while (alimerPhysicsBodyIsActive(sphereBody))
-    {
-        // Next step
-        ++step;
-
-
-        // Output current position and velocity of the sphere
-        Vector3 position, velocity;
-        alimerPhysicsBodyGetCenterOfMassPosition(sphereBody, &position);
-        alimerPhysicsBodyGetLinearVelocity(sphereBody, &velocity);
-        printf("Step %u: Position = (%f, %f, %f), Velocity = (%f, %f, %f)\n", step, position.x, position.y, position.z, velocity.x, velocity.y, velocity.z);
-
-        // If you take larger steps than 1 / 60th of a second you need to do multiple collision steps in order to keep the simulation stable. Do 1 collision step per 1 / 60th of a second (round up).
-        const int cCollisionSteps = 1;
-
-        // Step the world
-        alimerPhysicsWorldUpdate(physicsWorld, cDeltaTime, cCollisionSteps);
-    }
-
-    alimerPhysicsBodyRelease(sphereBody);
-    alimerPhysicsBodyRelease(floorBody);
-    alimerPhysicsWorldDestroy(physicsWorld);
-    alimerPhysicsShutdown();
-}
-#endif
-
 int main(void)
 {
-#if defined(ALIMER_PHYSICS)
-    TestPhysics();
-#endif
-
 #if defined(ALIMER_AUDIO) && defined(TEST_AUDIO)
     if (!alimerAudioInit())
     {

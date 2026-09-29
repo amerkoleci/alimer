@@ -115,3 +115,60 @@ target_sources(DirectX-Headers INTERFACE
     ${DIRECTX_HEADERS_INCLUDE_DIR}/directx/d3d12shader.h
 )
 target_include_directories(DirectX-Headers INTERFACE ${DIRECTX_HEADERS_INCLUDE_DIR})
+
+# SDL3 -> with features we use from C# side
+if (NOT (EMSCRIPTEN OR ANDROID))
+    CPMAddPackage(
+        NAME SDL
+        GITHUB_REPOSITORY libsdl-org/SDL
+        GIT_TAG release-3.4.16
+        OPTIONS
+            "SDL_SHARED ON"
+            "SDL_STATIC OFF"
+            "SDL_TEST_LIBRARY OFF"
+            "SDL_DISABLE_INSTALL ON"
+            "SDL_DISABLE_INSTALL_DOCS ON"
+            # Enable the subsystems we care about.
+            "SDL_TIMERS ON"
+            "SDL_AUDIO ON"
+            "SDL_POWER ON"
+            # Disable everything we don't care about.
+            "SDL_ATOMIC OFF"
+            "SDL_RENDER OFF"
+            "SDL_HAPTIC OFF"
+            "SDL_FILE OFF"
+            "SDL_CPUINFO OFF"
+            "SDL_FILESYSTEM OFF"
+            "SDL_SENSOR OFF"
+            "SDL_LOCALE OFF"
+            "SDL_MISC OFF"
+            "SDL_CAMERA OFF"
+            "SDL_DIALOG OFF"
+            "SDL_GPU OFF"
+            "SDL_TRAY OFF"
+    )
+
+    # Install
+    if (ALIMER_INSTALL)
+        install(TARGETS "SDL3-shared"
+            ARCHIVE DESTINATION  ${CMAKE_INSTALL_LIBDIR}
+            LIBRARY DESTINATION  ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION  ${CMAKE_INSTALL_BINDIR}
+        )
+    endif()
+    
+    set_property(TARGET "SDL_uclibc" PROPERTY FOLDER "ThirdParty")
+    set_property(TARGET "SDL3-shared" PROPERTY FOLDER "ThirdParty")
+endif ()
+
+# Add Box3D dependency
+CPMAddPackage(
+    NAME box3d
+    GITHUB_REPOSITORY erincatto/box3d
+    GIT_TAG main
+    OPTIONS
+        "BUILD_SHARED_LIBS ON"
+        "BOX3D_DOUBLE_PRECISION OFF"
+)
+
+set_property(TARGET box3d PROPERTY FOLDER "ThirdParty")

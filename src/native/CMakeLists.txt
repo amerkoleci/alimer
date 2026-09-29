@@ -27,9 +27,6 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 set(CMAKE_DEBUG_POSTFIX "_d")
 
-# Set default symbol visibility to hidden. This prevents all Jolt's symbols to be exported on macOS. This can cause crashes if a program loads multiple shared libraries with different versions of Jolt.
-set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-
 set(CMAKE_OSX_DEPLOYMENT_TARGET "11" CACHE STRING "Minimum macOS deployment version")
 set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Build architectures for OS X")
 
@@ -65,9 +62,6 @@ include(GNUInstallDirs)
 include(CMakeDependentOption)
 include(FetchPackage)
 include(CPM)
-
-# Define standard configurations (Debug, Release, Distribution)
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Distribution")
 
 # Set the default CMAKE_BUILD_TYPE to Release.
 # This should be done before the project command since the latter can set
@@ -155,7 +149,6 @@ endif()
 
 option(ALIMER_AUDIO "Enable Audio support" ON)
 option(ALIMER_GPU "Enable GPU support" ON)
-option(ALIMER_PHYSICS "Enable Physics support (using Box3D or experimental Jolt)" "Box3D")
 option(ALIMER_IMAGE_KTX "Enable ktx support in image module" ON)
 
 # Determine available GPU backends
@@ -180,10 +173,6 @@ endif()
 cmake_dependent_option(ALIMER_GPU_VULKAN "Enable Vulkan GPU backend" ON "ALIMER_GPU_HAS_VULKAN" OFF)
 cmake_dependent_option(ALIMER_GPU_D3D12 "Enable D3D12 GPU backend" ON "ALIMER_GPU_HAS_D3D12" OFF)
 cmake_dependent_option(ALIMER_GPU_WEBGPU "Enable WebGPU GPU backend" ON "ALIMER_GPU_HAS_WEBGPU" OFF)
-
-if (NOT ALIMER_PHYSICS)
-    set(ALIMER_PHYSICS "Box3D" CACHE BOOL "Enable Physics support (using Box3D)" FORCE)
-endif()
 
 # Set general compiler flags
 if (MSVC)
@@ -259,10 +248,6 @@ else()
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} ${EXTRA_SANITIZE_OPTIONS}")
 endif ()
 
-set(CMAKE_CXX_FLAGS_DISTRIBUTION "${CMAKE_CXX_FLAGS_RELEASE}")
-set(CMAKE_SHARED_LINKER_FLAGS_DISTRIBUTION "${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
-set(CMAKE_EXE_LINKER_FLAGS_DISTRIBUTION "${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
-
 # Print current build configuration
 message(STATUS "Engine version: ${ALIMER_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
@@ -293,16 +278,11 @@ if (ALIMER_GPU_WEBGPU)
     message(STATUS "      - WebGPU:      ALIMER_GPU_WEBGPU")
 endif()
 
-message(STATUS "  Physics         ${ALIMER_PHYSICS}")
 message(STATUS "  Install         ${ALIMER_INSTALL}")
 message(STATUS "  Samples         ${ALIMER_SAMPLES}")
 
 add_subdirectory(third_party)
 add_subdirectory(engine)
-
-if (ALIMER_PHYSICS)
-    add_subdirectory(physics)
-endif ()
 
 if (ALIMER_GPU)
     add_subdirectory(gpu)
