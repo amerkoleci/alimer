@@ -89,7 +89,7 @@ unsafe partial class AlimerApi
     public static partial void alimerAudioContextEnumerateDevices(AudioContext context, delegate* unmanaged<AudioDevice, nint, void> callback, nint userdata);
 
     [LibraryImport(LibraryName)]
-    public static partial AudioAdapterType alimerAudioDeviceGetType(AudioDevice device);
+    public static partial AudioDeviceType alimerAudioDeviceGetType(AudioDevice device);
 
     [LibraryImport(LibraryName)]
     public static partial byte* alimerAudioDeviceGetName(AudioDevice device);
@@ -108,7 +108,7 @@ unsafe partial class AlimerApi
     public static partial void alimerAudioEngineStop(AudioEngine engine);
 
     [LibraryImport(LibraryName)]
-    public static partial AudioEngineState alimerAudioEngineGetState(AudioEngine engine);
+    public static partial AudioDeviceState alimerAudioEngineGetState(AudioEngine engine);
     [LibraryImport(LibraryName)]
     public static partial float alimerAudioEngineGetMasterVolume(AudioEngine engine, VolumeUnit unit);
     [LibraryImport(LibraryName)]

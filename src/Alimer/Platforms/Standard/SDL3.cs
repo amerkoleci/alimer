@@ -1247,7 +1247,7 @@ internal static unsafe partial class SDL3
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void SDL_PumpEvents();
 
-    public static unsafe int SDL_PeepEvents(SDL_Event[] events, SDL_EventAction action, SDL_EventType minType, SDL_EventType maxType)
+    public static int SDL_PeepEvents(SDL_Event[] events, SDL_EventAction action, SDL_EventType minType, SDL_EventType maxType)
     {
         fixed (SDL_Event* eventsPtr = events)
             return SDL_PeepEvents(eventsPtr, events.Length, action, (uint)minType, (uint)maxType);

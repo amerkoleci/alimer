@@ -1,21 +1,42 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Text;
 using Alimer;
-
+using ma_uint8 = System.Byte;
+using ma_uint32 = System.UInt32;
+using ma_uint64 = System.UInt64;
+using ma_vec3f = System.Numerics.Vector3;
+using static MiniAudioNative.ma_result;
+using Alimer.Audio;
 #pragma warning disable CS0649
 
 internal unsafe static partial class MiniAudioNative
 {
     private const string LibraryName = AlimerApi.LibraryName;
 
-    #region Enums
-
     public const int MA_MAX_DEVICE_NAME_LENGTH = 255;
+
+
+    [DebuggerHidden]
+    [DebuggerStepThrough]
+    public static void CheckResult(this ma_result result, string api)
+    {
+        if (result == MA_SUCCESS)
+        {
+            return;
+        }
+
+        string description = ma_result_description(result);
+        throw new AudioException($"miniaudio API '{api}' failed with code {result}: {description}.");
+    }
+
+    #region Enums
+    public enum ma_channel : ma_uint8;
 
     public enum ma_result
     {
@@ -106,6 +127,15 @@ internal unsafe static partial class MiniAudioNative
         ma_device_type_capture = 2,
         ma_device_type_duplex = ma_device_type_playback | ma_device_type_capture, /* 3 */
         ma_device_type_loopback = 4
+    }
+
+    public enum ma_device_state
+    {
+        ma_device_state_uninitialized = 0,
+        ma_device_state_stopped = 1,  /* The device's default state after initialization. */
+        ma_device_state_started = 2,  /* The device is started and is requesting and/or delivering audio data. */
+        ma_device_state_starting = 3,  /* Transitioning from a stopped state to started. */
+        ma_device_state_stopping = 4   /* Transitioning from a started state to stopped. */
     }
 
     public enum ma_format
@@ -227,28 +257,78 @@ internal unsafe static partial class MiniAudioNative
         }
     }
 
-    public readonly struct ma_context
+    public readonly record struct ma_log(nint Handle)
     {
+        public bool IsNull => Handle == 0;
+        public static ma_log Null => default;
+        public static implicit operator ma_log(nint handle) => new(handle);
+        public static implicit operator nint(ma_log handle) => handle.Handle;
     }
 
-    public readonly struct ma_device
+    public readonly record struct ma_context(nint Handle)
     {
-    }
-    public readonly struct ma_engine
-    {
+        public bool IsNull => Handle == 0;
+        public static ma_context Null => default;
+        public static implicit operator ma_context(nint handle) => new(handle);
+        public static implicit operator nint(ma_context handle) => handle.Handle;
     }
 
-    public readonly struct ma_sound
+    public readonly record struct ma_device(nint Handle)
     {
-
+        public bool IsNull => Handle == 0;
+        public static ma_device Null => default;
+        public static implicit operator ma_device(nint handle) => new(handle);
+        public static implicit operator nint(ma_device handle) => handle.Handle;
     }
+
+    public readonly record struct ma_engine(nint Handle)
+    {
+        public bool IsNull => Handle == 0;
+        public static ma_engine Null => default;
+        public static implicit operator ma_engine(nint handle) => new(handle);
+        public static implicit operator nint(ma_engine handle) => handle.Handle;
+    }
+
+    public readonly record struct ma_sound(nint Handle)
+    {
+        public bool IsNull => Handle == 0;
+        public static ma_sound Null => default;
+        public static implicit operator ma_sound(nint handle) => new(handle);
+        public static implicit operator nint(ma_sound handle) => handle.Handle;
+    }
+
+    public readonly record struct ma_node(nint Handle)
+    {
+        public bool IsNull => Handle == 0;
+        public static ma_node Null => default;
+        public static implicit operator ma_node(nint handle) => new(handle);
+        public static implicit operator nint(ma_node handle) => handle.Handle;
+    }
+
+    public readonly record struct ma_node_graph(nint Handle)
+    {
+        public bool IsNull => Handle == 0;
+        public static ma_node_graph Null => default;
+        public static implicit operator ma_node_graph(nint handle) => new(handle);
+        public static implicit operator nint(ma_node_graph handle) => handle.Handle;
+    }
+
+#if !MA_NO_RESOURCE_MANAGER
+    public readonly record struct ma_resource_manager(nint Handle)
+    {
+        public bool IsNull => Handle == 0;
+        public static ma_resource_manager Null => default;
+        public static implicit operator ma_resource_manager(nint handle) => new(handle);
+        public static implicit operator nint(ma_resource_manager handle) => handle.Handle;
+    }
+#endif
 
     [LibraryImport(LibraryName)]
     [return: MarshalUsing(typeof(UTF8OwnedMarshaler))]
     public static partial string ma_result_description(ma_result result);
 
     [LibraryImport(LibraryName)]
-    public static partial void* ma_malloc(nuint sz, /*const ma_allocation_callbacks**/nint pAllocationCallbacks = 0);
+    public static partial nint ma_malloc(nuint sz, /*const ma_allocation_callbacks**/nint pAllocationCallbacks = 0);
 
     [LibraryImport(LibraryName)]
     public static partial void* ma_calloc(nuint sz, /*const ma_allocation_callbacks**/nint pAllocationCallbacks = 0);
@@ -285,25 +365,235 @@ internal unsafe static partial class MiniAudioNative
     [LibraryImport(LibraryName)]
     public static partial nuint ma_sound_group_sizeof();
 
-    [LibraryImport(LibraryName)]
-    public static partial nuint ma_decoder_sizeof();
 
-    #region ma_context
-    public static ma_context* ma_ex_context_alloc()
+    public static float ma_volume_linear_to_db(float factor)
     {
-        return (ma_context*)ma_malloc(ma_context_sizeof());
+        return 20 * MathF.Log10(factor);
+    }
+
+    public static float ma_volume_db_to_linear(float gain)
+    {
+        return MathF.Pow(10, gain / 20.0f);
+    }
+
+    #region Context
+    public static ma_context ma_ex_context_alloc()
+    {
+        return ma_malloc(ma_context_sizeof());
     }
 
     [LibraryImport(LibraryName)]
-    public static partial ma_result ma_context_uninit(ma_context* pContext);
+    public static partial ma_result ma_context_uninit(ma_context pContext);
 
     [LibraryImport(LibraryName)]
-    public static partial ma_result ma_ex_context_init_default(ma_context* result);
+    public static partial ma_result ma_ex_context_init_default(ma_context result);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_context_get_devices(ma_context context, ma_device_info** ppPlaybackDeviceInfos, ma_uint32* pPlaybackDeviceCount, ma_device_info** ppCaptureDeviceInfos, ma_uint32* pCaptureDeviceCount);
 
     // typedef ma_bool32 (* ma_enum_devices_callback_proc)(ma_context* pContext, ma_device_type deviceType, const ma_device_info* pInfo, void* pUserData);
-    [LibraryImport(LibraryName)]
-    public static partial ma_result ma_context_enumerate_devices(ma_context* context, delegate* unmanaged<ma_context, ma_device_type, ma_device_info*, nint, ma_bool32> callback, nint userData);
+    //[LibraryImport(LibraryName)]
+    //public static partial ma_result ma_context_enumerate_devices(ma_context context, delegate* unmanaged<ma_context, ma_device_type, ma_device_info*, nint, ma_bool32> callback, nint userData);
     #endregion
+
+    #region Device
+    public static ma_device ma_ex_device_alloc()
+    {
+        return ma_malloc(ma_device_sizeof());
+    }
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_ex_device_init_default(ma_context* pContext, ma_device_type deviceType, ma_device pDevice);
+
+    [LibraryImport(LibraryName)]
+    public static partial void ma_device_uninit(ma_device pDevice);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_device_get_info(ma_device pDevice, ma_device_type type, ma_device_info* pDeviceInfo);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_device_get_name(ma_device pDevice, ma_device_type type, byte* pName, nuint nameCap, nuint* pLengthNotIncludingNullTerminator);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_device_start(ma_device pDevice);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_device_stop(ma_device pDevice);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_bool32 ma_device_is_started(ma_device pDevice);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_device_state ma_device_get_state(ma_device pDevice);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_device_set_master_volume(ma_device pDevice, float volume);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_device_get_master_volume(ma_device pDevice, float* pVolume);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_device_set_master_volume_db(ma_device pDevice, float gainDB);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_device_get_master_volume_db(ma_device pDevice, float* pGainDB);
+    #endregion
+
+    #region engine
+    public static ma_engine ma_ex_engine_alloc()
+    {
+        return ma_malloc(ma_engine_sizeof());
+    }
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_ex_engine_init_default(ma_engine pEngine);
+
+    [LibraryImport(LibraryName)]
+    public static partial void ma_engine_uninit(ma_engine pEngine);
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_engine_read_pcm_frames(ma_engine pEngine, void* pFramesOut, ma_uint64 frameCount, ma_uint64* pFramesRead);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_node_graph ma_engine_get_node_graph(ma_engine pEngine);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_device ma_engine_get_device(ma_engine pEngine);
+    [LibraryImport(LibraryName)]
+    public static partial ma_log ma_engine_get_log(ma_engine pEngine);
+    [LibraryImport(LibraryName)]
+    public static partial ma_node ma_engine_get_endpoint(ma_engine pEngine);
+    [LibraryImport(LibraryName)]
+    public static partial ma_uint64 ma_engine_get_time_in_pcm_frames(ma_engine pEngine);
+    [LibraryImport(LibraryName)]
+    public static partial ma_uint64 ma_engine_get_time_in_milliseconds(ma_engine pEngine);
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_engine_set_time_in_pcm_frames(ma_engine pEngine, ma_uint64 globalTime);
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_engine_set_time_in_milliseconds(ma_engine pEngine, ma_uint64 globalTime);
+    [LibraryImport(LibraryName)]
+    public static partial ma_uint64 ma_engine_get_time(ma_engine pEngine);                  /* Deprecated. Use ma_engine_get_time_in_pcm_frames(). Will be removed in version 0.12. */
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_engine_set_time(ma_engine pEngine, ma_uint64 globalTime);  /* Deprecated. Use ma_engine_set_time_in_pcm_frames(). Will be removed in version 0.12. */
+    [LibraryImport(LibraryName)]
+    public static partial ma_uint32 ma_engine_get_channels(ma_engine pEngine); // ma_node_graph_get_channels(&pEngine->nodeGraph);
+    [LibraryImport(LibraryName)]
+    public static partial ma_uint32 ma_engine_get_sample_rate(ma_engine pEngine);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_engine_start(ma_engine pEngine);
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_engine_stop(ma_engine pEngine);
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_engine_set_volume(ma_engine pEngine, float volume);
+    [LibraryImport(LibraryName)]
+    public static partial float ma_engine_get_volume(ma_engine pEngine);
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_engine_set_gain_db(ma_engine pEngine, float gainDB);
+    [LibraryImport(LibraryName)]
+    public static partial float ma_engine_get_gain_db(ma_engine pEngine);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_uint32 ma_engine_get_listener_count(ma_engine pEngine);
+    [LibraryImport(LibraryName)]
+    public static partial ma_uint32 ma_engine_find_closest_listener(ma_engine pEngine, float absolutePosX, float absolutePosY, float absolutePosZ);
+    [LibraryImport(LibraryName)]
+    public static partial void ma_engine_listener_set_position(ma_engine pEngine, ma_uint32 listenerIndex, float x, float y, float z);
+    [LibraryImport(LibraryName)]
+    public static partial ma_vec3f ma_engine_listener_get_position(ma_engine pEngine, ma_uint32 listenerIndex);
+    [LibraryImport(LibraryName)]
+    public static partial void ma_engine_listener_set_direction(ma_engine pEngine, ma_uint32 listenerIndex, float x, float y, float z);
+    [LibraryImport(LibraryName)]
+    public static partial ma_vec3f ma_engine_listener_get_direction(ma_engine pEngine, ma_uint32 listenerIndex);
+    [LibraryImport(LibraryName)]
+    public static partial void ma_engine_listener_set_velocity(ma_engine pEngine, ma_uint32 listenerIndex, float x, float y, float z);
+    [LibraryImport(LibraryName)]
+    public static partial ma_vec3f ma_engine_listener_get_velocity(ma_engine pEngine, ma_uint32 listenerIndex);
+    [LibraryImport(LibraryName)]
+    public static partial void ma_engine_listener_set_cone(ma_engine pEngine, ma_uint32 listenerIndex, float innerAngleInRadians, float outerAngleInRadians, float outerGain);
+    [LibraryImport(LibraryName)]
+    public static partial void ma_engine_listener_get_cone(ma_engine pEngine, ma_uint32 listenerIndex, float* pInnerAngleInRadians, float* pOuterAngleInRadians, float* pOuterGain);
+    [LibraryImport(LibraryName)]
+    public static partial void ma_engine_listener_set_world_up(ma_engine pEngine, ma_uint32 listenerIndex, float x, float y, float z);
+    [LibraryImport(LibraryName)]
+    public static partial ma_vec3f ma_engine_listener_get_world_up(ma_engine pEngine, ma_uint32 listenerIndex);
+    [LibraryImport(LibraryName)]
+    public static partial void ma_engine_listener_set_enabled(ma_engine pEngine, ma_uint32 listenerIndex, ma_bool32 isEnabled);
+    [LibraryImport(LibraryName)]
+    public static partial ma_bool32 ma_engine_listener_is_enabled(ma_engine pEngine, ma_uint32 listenerIndex);
+
+#if !MA_NO_RESOURCE_MANAGER
+    [LibraryImport(LibraryName)]
+    public static partial ma_resource_manager ma_engine_get_resource_manager(ma_engine pEngine);
+#endif
+    #endregion
+
+    #region NodeGraph
+    //[LibraryImport(LibraryName)]
+    //public static partial ma_result ma_node_graph_init(const ma_node_graph_config* pConfig, const ma_allocation_callbacks* pAllocationCallbacks, ma_node_graph*pNodeGraph);
+    //[LibraryImport(LibraryName)]
+    //public static partial void ma_node_graph_uninit(ma_node_graph* pNodeGraph, const ma_allocation_callbacks* pAllocationCallbacks);
+    [LibraryImport(LibraryName)]
+    public static partial ma_node ma_node_graph_get_endpoint(ma_node_graph pNodeGraph);
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_node_graph_read_pcm_frames(ma_node_graph pNodeGraph, void* pFramesOut, ma_uint64 frameCount, ma_uint64* pFramesRead);
+    [LibraryImport(LibraryName)]
+    public static partial ma_uint32 ma_node_graph_get_channels(ma_node_graph pNodeGraph);
+    [LibraryImport(LibraryName)]
+    public static partial ma_uint64 ma_node_graph_get_time(ma_node_graph pNodeGraph);
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_node_graph_set_time(ma_node_graph pNodeGraph, ma_uint64 globalTime);
+    [LibraryImport(LibraryName)]
+    public static partial ma_uint32 ma_node_graph_get_processing_size_in_frames(ma_node_graph pNodeGraph);
+    #endregion
+
+
+#if !MA_NO_DECODING
+    public readonly record struct ma_decoder(nint Handle)
+    {
+        public bool IsNull => Handle == 0;
+        public static ma_decoder Null => default;
+        public static implicit operator ma_decoder(nint handle) => new(handle);
+        public static implicit operator nint(ma_decoder handle) => handle.Handle;
+    }
+
+    [LibraryImport(LibraryName)]
+    private static partial nuint ma_decoder_sizeof();
+
+    public static ma_decoder ma_ex_decoder_alloc()
+    {
+        return ma_malloc(ma_decoder_sizeof());
+    }
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_decoder_uninit(ma_decoder pDecoder);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_decoder_read_pcm_frames(ma_decoder pDecoder, void* pFramesOut, ma_uint64 frameCount, ma_uint64* pFramesRead);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_decoder_seek_to_pcm_frame(ma_decoder pDecoder, ma_uint64 frameIndex);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_decoder_get_data_format(ma_decoder pDecoder, ma_format* pFormat, ma_uint32* pChannels, ma_uint32* pSampleRate, ma_channel* pChannelMap, nuint channelMapCap);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_decoder_get_cursor_in_pcm_frames(ma_decoder pDecoder, ma_uint64 pCursor);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_decoder_get_length_in_pcm_frames(ma_decoder* pDecoder, ma_uint64* pLength);
+
+    [LibraryImport(LibraryName)]
+    public static partial ma_result ma_decoder_get_available_frames(ma_decoder* pDecoder, ma_uint64* pAvailableFrames);
+
+    //[LibraryImport(LibraryName)]
+    //public static partial ma_result ma_decode_from_vfs(ma_vfs* pVFS, const char* pFilePath, ma_decoder_config*pConfig, ma_uint64*pFrameCountOut, void** ppPCMFramesOut);
+
+    //[LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    //public static partial ma_result ma_decode_file(string pFilePath, ma_decoder_config*pConfig, ma_uint64*pFrameCountOut, void** ppPCMFramesOut);
+
+    //[LibraryImport(LibraryName)]
+    //public static partial ma_result ma_decode_memory(void* pData, nuint dataSize, ma_decoder_config* pConfig, ma_uint64* pFrameCountOut, void** ppPCMFramesOut);
+#endif
 
     #region UTF8OwnedMarshaler
     [CustomMarshaller(typeof(string), MarshalMode.ManagedToUnmanagedOut, typeof(UTF8OwnedMarshaler))]

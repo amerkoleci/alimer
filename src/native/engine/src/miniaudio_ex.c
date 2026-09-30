@@ -67,3 +67,15 @@ ma_result ma_ex_context_init_default(ma_context* pContext)
     ma_context_config config = ma_context_config_init();
     return ma_context_init(NULL, 0, &config, pContext);
 }
+
+ma_result ma_ex_device_init_default(ma_context* pContext, ma_device_type deviceType, ma_device* pDevice)
+{
+    ma_device_config config = ma_device_config_init(deviceType);
+    return ma_device_init(pContext, &config, pDevice);
+}
+
+ma_result ma_ex_engine_init_default(ma_engine* pEngine)
+{
+    ma_engine_config config = ma_engine_config_init();
+    return ma_engine_init(&config, pEngine);
+}

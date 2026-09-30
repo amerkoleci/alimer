@@ -61,7 +61,12 @@ public abstract class GraphicsSampleBase : SampleBase
 
     protected ShaderModule LoadShader(string name, ShaderStages stage, string entryPoint)
     {
-        string shaderFormat = GraphicsDevice.Backend == GraphicsBackend.Vulkan ? "spirv" : "dxil";
+        string shaderFormat = GraphicsDevice.Backend switch
+        {
+            GraphicsBackend.Vulkan => "spirv",
+            GraphicsBackend.Metal => "metal",
+            _ => "dxil",
+        };
 
         string entryName = $"{name}_{entryPoint}_{shaderFormat}.bin";
         byte[] bytecode = ReadEmbeddedAssetBytes(entryName);

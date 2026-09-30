@@ -60,8 +60,8 @@ public abstract class Game : DisposableObject, IGame
         ShaderSystem = new(GraphicsDevice);
         _services.AddService(ShaderSystem);
 
-        AudioDeviceOptions audioOptions = new();
-        AudioEngine = AudioEngine.Create(in audioOptions);
+        AudioEngineOptions audioOptions = new();
+        AudioEngine = AudioContext.Current.CreateEngine(in audioOptions);
 
         _services.AddService(Input);
         _services.AddService(GraphicsManager);
@@ -155,7 +155,7 @@ public abstract class Game : DisposableObject, IGame
         GraphicsDevice.Dispose();
         AudioEngine.Dispose();
         GraphicsManager.Dispose();
-        AudioSystem.Shutdown();
+        AudioContext.Current.Dispose();
         _platform.Destroy();
     }
 

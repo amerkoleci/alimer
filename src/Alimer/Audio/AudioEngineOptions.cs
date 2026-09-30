@@ -6,9 +6,9 @@ namespace Alimer.Audio;
 /// <summary>
 /// Structure that describes options the <see cref="AudioEngine"/>.
 /// </summary>
-public record struct AudioDeviceOptions
+public record struct AudioEngineOptions
 {
-    public AudioDeviceOptions()
+    public AudioEngineOptions()
     {
     }
 

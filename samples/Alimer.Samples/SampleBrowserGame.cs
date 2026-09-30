@@ -68,8 +68,8 @@ public sealed class SampleBrowserGame : Game
         {
             string soundsPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Sounds");
             using AudioClip audioClip = AudioClip.FromFile(Path.Combine(soundsPath, "BGM.mp3"));
-            _audioSource = AudioEngine.CreateAudioSource(audioClip);
-            _audioSource.Play();
+            //_audioSource = AudioEngine.CreateAudioSource(audioClip);
+            //_audioSource.Play();
         }
 
         //_runningSample = new HelloWindowSample(Services, MainWindow);

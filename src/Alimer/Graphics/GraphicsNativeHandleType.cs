@@ -25,4 +25,7 @@ public enum GraphicsNativeHandleType : uint
     VkBuffer = 0x00030006,
     VkImage = 0x00030007,
     VkImageView = 0x00030008,
+
+    /* Metal */
+    MTLDevice = 0x00040001,
 }

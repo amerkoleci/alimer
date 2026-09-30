@@ -1194,6 +1194,9 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 // VK_KHR_shader_float16_int8 core in 1.2
                 return true;
 
+            case Feature.TextureComponentSwizzle:
+                return true;
+
             //case Feature.BGRA8UnormStorage:
             //    VkFormatProperties bgra8unormProperties;
             //    InstanceApi.vkGetPhysicalDeviceFormatProperties(_adapter.Handle, VkFormat.B8G8R8A8Unorm, &bgra8unormProperties);

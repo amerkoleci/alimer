@@ -18,8 +18,14 @@ extern "C" {
     MA_API size_t ma_sound_group_sizeof(void);
     MA_API size_t ma_decoder_sizeof(void);
 
-    /* Context */
+    /* context */
     MA_API ma_result ma_ex_context_init_default(ma_context* pContext);
+
+    /* device */
+    MA_API ma_result ma_ex_device_init_default(ma_context* pContext, ma_device_type deviceType, ma_device* pDevice);
+
+    /* engine */
+    MA_API ma_result ma_ex_engine_init_default(ma_engine* pEngine);
 
 #if defined(__cplusplus)
 }

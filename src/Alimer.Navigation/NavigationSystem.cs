@@ -13,13 +13,6 @@ public class NavigationSystem : EntitySystem<NavigationMeshComponent>
         ArgumentNullException.ThrowIfNull(services, nameof(services));
     }
 
-    /// <summary>Finalizes an instance of the <see cref="NavigationSystem" /> class.</summary>
-    ~NavigationSystem() => Dispose(disposing: false);
-
-    protected override void Dispose(bool disposing)
-    {
-    }
-
     public override void Update(GameTime time)
     {
         base.Update(time);

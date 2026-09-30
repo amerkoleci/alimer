@@ -43,3 +43,15 @@ public class VulkanComputeTests : ComputeTests
 
     }
 }
+
+#if !EXCLUDE_METAL_BACKEND
+[TestFixture(TestOf = typeof(GraphicsDevice))]
+public class MetalComputeTests : ComputeTests
+{
+    public MetalComputeTests()
+        : base(GraphicsBackend.Metal)
+    {
+
+    }
+}
+#endif

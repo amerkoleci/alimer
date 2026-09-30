@@ -10,6 +10,7 @@ public enum Feature
     TextureCompressionETC2,
     TextureCompressionASTC,
     TextureCompressionASTC_HDR,
+    TextureComponentSwizzle,
     IndirectFirstInstance,
     ShaderFloat16,
 

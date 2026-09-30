@@ -1,101 +1,43 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using static Alimer.AlimerApi;
-
 namespace Alimer.Audio;
 
-public sealed class AudioEngine : DisposableObject
+public abstract class AudioEngine : DisposableObject
 {
-    private float _masterVolume = 1.0f;
+    /// <summary>
+    /// Gets the sample rate of the audio engine in Hertz (Hz).
+    /// </summary>
+    public abstract uint SampleRate { get; }
 
-    public unsafe AudioEngine(in AudioDeviceOptions options)
-    {
-        // Create audio engine
-        //Handle = alimerAudioEngineCreate(AudioSystem.Context, null);
-        _masterVolume = alimerAudioEngineGetMasterVolume(Handle, VolumeUnit.Linear);
-        OutputChannels = alimerAudioEngineGetChannelCount(Handle);
-        OutputSampleRate = alimerAudioEngineGetSampleRate(Handle);
-    }
+    /// <summary>
+    /// Gets the number of channels of the audio engine.
+    /// </summary>
+    public abstract uint Channels { get; }
 
-    internal AlimerApi.AudioEngine Handle { get; }
+    /// <summary>
+    /// Gets or sets the master volume of the audio engine.
+    /// </summary>
+    public abstract float MasterVolume { get; set; }
 
-    /// <inheritdoc/>
-    protected override void DisposeUnmanagedResources()
-    {
-        alimerAudioEngineDestroy(Handle);
-    }
+    /// <summary>
+    /// Gets or sets the volume of the audio engine.
+    /// </summary>
+    public abstract float Volume { get; set; }
 
-    public static AudioEngine Create(in AudioDeviceOptions options)
-    {
-        return new AudioEngine(options);
-    }
+    /// <summary>
+    /// Get or sets the gain of the audio engine in decibels (dB).
+    /// </summary>
+    public abstract float GainDb { get; set; }
+    
+    /// <summary>
+    /// Gets the state of the audio device.
+    /// </summary>
+    public abstract AudioDeviceState State { get; }
 
-    public float MasterVolume
-    {
-        get => _masterVolume;
-        set
-        {
-            //Guard.IsInRange(value, 0.0f, 1.0f, nameof(value));
+    public abstract ulong TimeInPcmFrames { get; }
+    public abstract TimeSpan Time { get; }
 
-            _masterVolume = value;
-            alimerAudioEngineSetMasterVolume(Handle, value, VolumeUnit.Linear);
-        }
-    }
-
-    public float Volume
-    {
-        get => alimerAudioEngineGetVolume(Handle, VolumeUnit.Linear);
-        set
-        {
-            alimerAudioEngineSetVolume(Handle, value, VolumeUnit.Linear);
-        }
-    }
-
-    public int OutputSampleRate { get; }
-    public int OutputChannels { get; }
-    public AudioEngineState State => alimerAudioEngineGetState(Handle);
-
-
-    public void Start()
-    {
-        alimerAudioEngineStart(Handle);
-    }
-
-    public void Stop()
-    {
-        alimerAudioEngineStop(Handle);
-    }
-
-    public float GetMasterVolume(VolumeUnit unit = VolumeUnit.Linear)
-    {
-        return alimerAudioEngineGetMasterVolume(Handle, unit);
-    }
-
-    public void SetMasterVolume(float value, VolumeUnit unit = VolumeUnit.Linear)
-    {
-        MasterVolume = value;
-        alimerAudioEngineSetMasterVolume(Handle, value, unit);
-    }
-
-    public float GetVolume(VolumeUnit unit = VolumeUnit.Linear)
-    {
-        return alimerAudioEngineGetVolume(Handle, unit);
-    }
-
-    public void SetVolume(float value, VolumeUnit unit = VolumeUnit.Linear)
-    {
-        alimerAudioEngineSetVolume(Handle, value, unit);
-    }
-
-    public AudioSource CreateAudioSource(AudioClip clip)
-    {
-        nint handle = alimerAudioSourceCreate(Handle, clip.Handle);
-        if (handle == 0)
-        {
-            throw new InvalidOperationException("Failed to create audio source.");
-        }
-
-        return new AudioSource(this, clip, handle);
-    }
+    public abstract void Start();
+    public abstract void Stop();
 }

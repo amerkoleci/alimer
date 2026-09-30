@@ -4,9 +4,9 @@
 namespace Alimer.Audio;
 
 /// <summary>
-/// Specifies the type of an <see cref="AudioAdapter"/>.
+/// Specifies the type of an <see cref="AudioDevice"/>.
 /// </summary>
-public enum AudioAdapterType
+public enum AudioDeviceType
 {
     /// <summary>
     /// Specifies a playback audio adapter.
