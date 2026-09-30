@@ -6,10 +6,6 @@
 #include "alimer_audio.h"
 #endif
 
-#if defined(ALIMER_GPU)
-#include "alimer_gpu.h"
-#endif
-
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,17 +60,6 @@ int main(void)
     assert(alimerImageGetMipLevelCount(image) == 10);
     alimerImageDestroy(image);
 
-#if defined(ALIMER_GPU)
-    const GPUFactoryDesc factoryDesc = {
-        .preferredBackend = GPUBackendType_D3D12,
-        .validationMode = GPUValidationMode_Enabled
-    };
-    GPUFactory* gpuFactory = agpuFactoryCreate(&factoryDesc);
-    GPUAdapter* adapter = agpuFactoryGetBestAdapter(gpuFactory);
-    GPUDevice device = agpuDeviceCreate(adapter, NULL);
-    GPUSampler* sampler = agpuSamplerCreate(device, NULL);
-#endif
-
 #if defined(ALIMER_AUDIO) && defined(TEST_AUDIO)
     while (alimerAudioSourceIsPlaying(source2))
     {
@@ -85,12 +70,6 @@ int main(void)
     alimerAudioSourceRelease(source2);
     alimerAudioEngineDestroy(engine);
     alimerAudioShutdown();
-#endif
-
-#if defined(ALIMER_GPU)
-    agpuSamplerRelease(sampler);
-    agpuDeviceRelease(device);
-    agpuFactoryDestroy(gpuFactory);
 #endif
 
     return EXIT_SUCCESS;
