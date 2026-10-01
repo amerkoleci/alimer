@@ -196,7 +196,7 @@ internal unsafe class VulkanTexture : Texture
         };
         VmaAllocationInfo allocationInfo;
         VkResult result = vmaCreateImage(VkDevice.Allocator, &imageInfo, &memoryInfo, out _handle, out _allocation, &allocationInfo);
-        if (result != VkResult.Success)
+        if (result != VK_SUCCESS)
         {
             Log.Error("Vulkan: Failed to create image.");
             return;

@@ -8,11 +8,7 @@ using static Alimer.Platforms.Apple.ObjectiveC;
 
 namespace Alimer.Platforms.Apple;
 
-public interface INativeObject
-{
-}
-
-internal readonly partial struct NSString : NSString.Interface, INativeObject, IDisposable
+internal readonly unsafe partial struct NSString : IDisposable
 {
     #region Selectors
     private static readonly ObjectiveCClass s_class = new("NSString"u8);
@@ -34,7 +30,7 @@ internal readonly partial struct NSString : NSString.Interface, INativeObject, I
         objc_msgSend(Handle, Selectors.Release);
     }
 
-    public static unsafe implicit operator NSString(string? value)
+    public static implicit operator NSString(string? value)
     {
         if (string.IsNullOrEmpty(value))
         {
@@ -52,17 +48,12 @@ internal readonly partial struct NSString : NSString.Interface, INativeObject, I
     }
 
 
-    public static implicit operator string(NSString @string)
-    {
-        unsafe
-        {
-            byte* utf8Ptr = bytePtr_objc_msgSend(@string.Handle, sel_utf8String);
-            return GetUtf8String(utf8Ptr);
-        }
-    }
+    public static implicit operator string(NSString @string) => @string.ToString();
 
-    public interface Interface : INativeObject
+    public override string ToString()
     {
+        byte* utf8Ptr = bytePtr_objc_msgSend(Handle, sel_utf8String);
+        return GetUtf8String(utf8Ptr);
     }
 }
 
@@ -114,7 +105,7 @@ internal readonly partial struct NSArray : IDisposable, IEquatable<NSArray>
 
 
 [DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal readonly partial struct NSObject : NSObject.Interface, INativeObject, IDisposable
+internal readonly partial struct NSObject : IDisposable
 {
     #region Selectors
     private static Selector s_sel_isKindOfClass => "isKindOfClass:"u8;
@@ -133,8 +124,4 @@ internal readonly partial struct NSObject : NSObject.Interface, INativeObject, I
     public static implicit operator nint(NSObject value) => value.Handle;
 
     public bool IsKindOfClass(nint @class) => bool_objc_msgSend(Handle, s_sel_isKindOfClass, @class);
-
-    public interface Interface : INativeObject
-    {
-    }
 }

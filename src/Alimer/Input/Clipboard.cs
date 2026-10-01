@@ -6,18 +6,18 @@ namespace Alimer.Input;
 /// <summary>
 /// Main clipboard class to interact with the clipboard.
 /// </summary>
-public static partial class Clipboard
+public static class Clipboard
 {
     /// <summary>
     /// Gets a value indicating whether there is any text on the clipboard.
     /// </summary>
-    public static partial bool HasText { get; }
+    public static bool HasText => RuntimePlatform.Current.HasClipboardText();
 
     /// <summary>
     /// Returns any text that is on the clipboard.
     /// </summary>
     /// <returns>Text content that is on the clipboard, or <see langword="null"/> if there is none.</returns>
-    public static partial string? GetText();
+    public static string? GetText() => RuntimePlatform.Current.GetClipboardText();
 
     /// <summary>
     /// Sets the contents of the clipboard to be the specified text.
@@ -25,5 +25,5 @@ public static partial class Clipboard
     /// <param name="text">The text to put on the clipboard.</param>
     /// <returns>A <see cref="Task"/> object with the current status of the asynchronous operation.</returns>
     /// <remarks>This method returns immediately and does not guarentee that the text is on the clipboard by the time this method returns.</remarks>
-    public static partial void SetText(string? text);
+    public static void SetText(string? text) => RuntimePlatform.Current.SetClipboardText(text);
 }

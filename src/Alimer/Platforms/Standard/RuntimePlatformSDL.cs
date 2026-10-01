@@ -13,7 +13,7 @@ using static SDL3.SDL_LogPriority;
 
 namespace Alimer;
 
-internal unsafe class RuntimePlatformSDL : RuntimePlatform
+internal unsafe partial class RuntimePlatformSDL : RuntimePlatform
 {
     private const int EventsPerPeep = 64;
     private readonly SDL_Event[] _events = new SDL_Event[EventsPerPeep];
@@ -179,6 +179,12 @@ internal unsafe class RuntimePlatformSDL : RuntimePlatform
     {
         _idLookup.Remove(windowID);
     }
+
+    #region Clipboard
+    protected internal override bool HasClipboardText() => SDL_HasClipboardText();
+    protected internal override string? GetClipboardText() => SDL_GetClipboardText();
+    protected internal override void SetClipboardText(string? text) => SDL_SetClipboardText(text ?? string.Empty);
+    #endregion
 
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static void AlimerLog_SDL(nint userData, int category, SDL_LogPriority priority, byte* messagePtr)

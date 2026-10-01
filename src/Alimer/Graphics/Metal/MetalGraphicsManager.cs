@@ -1,7 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Runtime.Versioning;
 using Alimer.Platforms.Apple;
 using static Alimer.Graphics.Metal.MetalApi;
 
@@ -11,7 +10,7 @@ namespace Alimer.Graphics.Metal;
 internal class MetalGraphicsManager : GraphicsManager
 {
     private static readonly Lazy<bool> s_isSupported = new(CheckIsSupported);
-    private readonly MetalGraphicsAdapter[] _adapters;
+    private readonly MetalGraphicsAdapter[] _adapters = [];
 
     /// <summary>
     /// Gets value indicating whether Metal is supported on this platform.
@@ -27,11 +26,14 @@ internal class MetalGraphicsManager : GraphicsManager
         if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
         {
             List<MetalGraphicsAdapter> adapters = [];
-            NSArray allDevices = MTLCopyAllDevices();
+            using NSArray allDevices = MTLCopyAllDevices();
             for (ulong i = 0; i < allDevices.Count; i++)
             {
                 MTLDevice device = allDevices.Object<MTLDevice>(i);
-                adapters.Add(new MetalGraphicsAdapter(this, device));
+                if (device.IsNotNull)
+                {
+                    adapters.Add(new MetalGraphicsAdapter(this, device));
+                }
             }
 
             _adapters = [.. adapters];
@@ -39,9 +41,20 @@ internal class MetalGraphicsManager : GraphicsManager
         else
         {
             MTLDevice defaultDevice = MTLCreateSystemDefaultDevice();
+            if (defaultDevice.IsNull)
+            {
+                throw new GraphicsException("No Metal device found.");
+            }
+
             _adapters = [new MetalGraphicsAdapter(this, defaultDevice)];
         }
     }
+
+    protected override void DisposeManagedResources()
+    {
+    }
+
+    protected override Surface CreateSurfaceCore(in SurfaceDescriptor descriptor) => new MetalSurface(descriptor);
 
     private static bool CheckIsSupported()
     {

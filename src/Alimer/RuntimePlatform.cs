@@ -39,6 +39,12 @@ internal abstract partial class RuntimePlatform
     public abstract void RequestExit();
     public abstract void Destroy();
 
+    #region Clipboard
+    protected internal abstract bool HasClipboardText();
+    protected internal abstract string? GetClipboardText();
+    protected internal abstract void SetClipboardText(string? text);
+    #endregion
+
     /// <summary>
     /// The User Directory safe location to store save data or preferences
     /// </summary>

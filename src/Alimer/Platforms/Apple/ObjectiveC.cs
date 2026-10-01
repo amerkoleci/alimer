@@ -31,7 +31,7 @@ internal static unsafe partial class ObjectiveC
     [LibraryImport(ObjCRuntime, StringMarshalling = StringMarshalling.Utf8)]
     public static partial nint objc_getClass(string name);
 
-    [LibraryImport(ObjCRuntime, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(ObjCRuntime)]
     public static partial nint objc_getClass(ReadOnlySpan<byte> name);
 
     [LibraryImport(ObjCRuntime, StringMarshalling = StringMarshalling.Utf8)]
@@ -105,7 +105,8 @@ internal static unsafe partial class ObjectiveC
     [LibraryImport(ObjCRuntime, EntryPoint = "objc_msgSend")]
     public static partial nint IntPtr_objc_msgSend(nint receiver, Selector selector, nint a, nuint b);
 
-    public static T objc_msgSend<T>(nint receiver, Selector selector) where T : struct
+    public static T objc_msgSend<T>(nint receiver, Selector selector)
+        where T : unmanaged
     {
         nint value = IntPtr_objc_msgSend(receiver, selector);
         return Unsafe.AsRef<T>(&value);

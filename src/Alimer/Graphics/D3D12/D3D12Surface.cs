@@ -53,6 +53,8 @@ internal unsafe class D3D12Surface : Surface
         {
             _backbufferTextures[i].Dispose();
         }
+
+        base.DisposeManagedResources();
     }
 
     /// <inheitdoc />

@@ -164,6 +164,8 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
             _adapters[i].Dispose();
         }
 
+        _handle.Dispose();
+
 #if DEBUG
         using ComPtr<IDXGIDebug1> dxgiDebug = default;
         if (DXGIGetDebugInterface1(0u, __uuidof<IDXGIDebug1>(), (void**)dxgiDebug.GetAddressOf()).SUCCEEDED)

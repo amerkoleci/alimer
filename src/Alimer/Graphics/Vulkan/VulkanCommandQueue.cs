@@ -12,7 +12,7 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
 {
     public readonly VkQueue Handle;
     public readonly Lock LockObject = new();
-    private readonly VkSemaphore _semaphore = VkSemaphore.Null;
+    //private readonly VkSemaphore _semaphore = VkSemaphore.Null;
     private readonly VkFence[] _frameFences;
 
     private uint _commandBufferCount = 0;
@@ -44,7 +44,7 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
             flags = 0
         };
 
-        device.DeviceApi.vkCreateSemaphore(&createInfo, null, out _semaphore).CheckResult();
+        //device.DeviceApi.vkCreateSemaphore(&createInfo, null, out _semaphore).CheckResult();
 
         _frameFences = new VkFence[device.MaxFramesInFlight];
         for (int i = 0; i < device.MaxFramesInFlight; ++i)
@@ -68,7 +68,7 @@ internal unsafe class VulkanCommandQueue : CommandQueue, IDisposable
     public void Dispose()
     {
         WaitIdle();
-        VkDevice.DeviceApi.vkDestroySemaphore(_semaphore);
+        //VkDevice.DeviceApi.vkDestroySemaphore(_semaphore);
 
         for (int i = 0; i < _frameFences.Length; ++i)
         {

@@ -141,7 +141,7 @@ internal static partial class MetalApi
     }
     #endregion
 
-    #region Handles
+    #region MTLDevice
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     public readonly partial struct MTLDevice(nint handle) : IDisposable, IEquatable<MTLDevice>
     {
@@ -152,7 +152,14 @@ internal static partial class MetalApi
         private static Selector sel_isLowPower => "isLowPower";
         private static Selector sel_isRemovable => "isRemovable";
         private static Selector sel_hasUnifiedMemory => "hasUnifiedMemory";
+        private static Selector sel_registryID => "registryID";
         private static Selector sel_name => "name";
+        private static Selector sel_supportsRaytracing => "supportsRaytracing";
+        private static Selector sel_supportsRaytracingFromRender => "supportsRaytracingFromRender";
+        private static Selector sel_maxBufferLength => "maxBufferLength";
+        private static Selector sel_queryTimestampFrequency => "queryTimestampFrequency";
+        private static Selector s_sel_newMTL4CommandQueue => "newMTL4CommandQueue";
+        private static Selector s_sel_newMTL4CommandQueueWithDescriptor => "newMTL4CommandQueueWithDescriptor:error:";
         #endregion
 
         public nint Handle { get; } = handle;
@@ -163,7 +170,7 @@ internal static partial class MetalApi
         public static implicit operator MTLDevice(nint handle) => new(handle);
         public static implicit operator nint(MTLDevice handle) => handle.Handle;
 
-        public void Dispose() => ObjectiveC.objc_msgSend(Handle, Selectors.Release);
+        public void Dispose() => objc_msgSend(Handle, Selectors.Release);
 
         public static bool operator ==(MTLDevice left, MTLDevice right) => left.Handle == right.Handle;
         public static bool operator !=(MTLDevice left, MTLDevice right) => left.Handle != right.Handle;
@@ -181,13 +188,53 @@ internal static partial class MetalApi
             return bool_objc_msgSend(Handle, sel_supportsFamily, (NSUInteger)gpuFamily);
         }
 
-        public bool isDepth24Stencil8PixelFormatSupported => bool_objc_msgSend(Handle, sel_isDepth24Stencil8PixelFormatSupported);
+        public bool IsDepth24Stencil8PixelFormatSupported => bool_objc_msgSend(Handle, sel_isDepth24Stencil8PixelFormatSupported);
         public bool IsHeadless => bool_objc_msgSend(Handle, sel_isHeadless);
         public bool IsLowPower => bool_objc_msgSend(Handle, sel_isLowPower);
         public bool IsRemovable => bool_objc_msgSend(Handle, sel_isRemovable);
         public bool HasUnifiedMemory => bool_objc_msgSend(Handle, sel_hasUnifiedMemory);
+        public bool SupportsRaytracing => bool_objc_msgSend(Handle, sel_supportsRaytracing);
+        public bool SupportsRaytracingFromRender => bool_objc_msgSend(Handle, sel_supportsRaytracingFromRender);
+
+        public ulong RegistryId => ulong_objc_msgSend(Handle, sel_registryID);
 
         public NSString Name => new(IntPtr_objc_msgSend(Handle, sel_name));
+
+        public ulong MaxBufferLength => ulong_objc_msgSend(Handle, sel_maxBufferLength);
+
+        public ulong QueryTimestampFrequency() => ulong_objc_msgSend(Handle, sel_queryTimestampFrequency);
+
+        public MTL4CommandQueue newMTL4CommandQueue() => objc_msgSend<MTL4CommandQueue>(Handle, s_sel_newMTL4CommandQueue);
+    }
+    #endregion
+
+    #region MTL4CommandQueue
+    [DebuggerDisplay("{DebuggerDisplay,nq}")]
+    public readonly partial struct MTL4CommandQueue(nint handle) : IDisposable, IEquatable<MTL4CommandQueue>
+    {
+        #region Selectors
+        #endregion
+
+        public nint Handle { get; } = handle;
+        public readonly bool IsNull => Handle == 0;
+        public readonly bool IsNotNull => Handle != 0;
+
+        public static MTL4CommandQueue Null => new(0);
+        public static implicit operator MTL4CommandQueue(nint handle) => new(handle);
+        public static implicit operator nint(MTL4CommandQueue handle) => handle.Handle;
+
+        public void Dispose() => objc_msgSend(Handle, Selectors.Release);
+
+        public static bool operator ==(MTL4CommandQueue left, MTL4CommandQueue right) => left.Handle == right.Handle;
+        public static bool operator !=(MTL4CommandQueue left, MTL4CommandQueue right) => left.Handle != right.Handle;
+        public static bool operator ==(MTL4CommandQueue left, nint right) => left.Handle == right;
+        public static bool operator !=(MTL4CommandQueue left, nint right) => left.Handle != right;
+        public bool Equals(MTL4CommandQueue other) => Handle == other.Handle;
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is MTL4CommandQueue handle && Equals(handle);
+        /// <inheritdoc/>
+        public override readonly int GetHashCode() => Handle.GetHashCode();
+        private readonly string DebuggerDisplay => $"{nameof(MTL4CommandQueue)} [0x{Handle:X}]";
     }
     #endregion
 

@@ -9,7 +9,7 @@ namespace Alimer;
 /// <summary>
 /// A struct to collect objects implementing the <see cref="IDisposable"/> or <see cref="IReferencable"/> interfaces.
 /// </summary>
-public struct DisposeCollector : IDisposable
+public sealed class DisposeCollector : IDisposable
 {
     private List<object>? _disposables;
 
@@ -17,12 +17,12 @@ public struct DisposeCollector : IDisposable
     /// Gets the number of elements to dispose.
     /// </summary>
     /// <value>The number of elements to dispose.</value>
-    public readonly int Count => _disposables?.Count ?? 0;
+    public int Count => _disposables?.Count ?? 0;
 
     /// <summary>
     ///   Disposes all the objects collected by this collector and clears the list. The collector can still be used for collecting.
     /// </summary>
-    public readonly void Dispose()
+    public void Dispose()
     {
         if (_disposables is null)
             return;
@@ -78,7 +78,7 @@ public struct DisposeCollector : IDisposable
     /// </summary>
     /// <typeparam name="T">The type of the object to remove.</typeparam>
     /// <param name="objectToDispose">The object to be removed from the list of objects to dispose.</param>
-    public readonly void Remove<T>(T objectToDispose)
+    public void Remove<T>(T objectToDispose)
         where T : notnull
     {
         _disposables?.Remove(objectToDispose);
@@ -88,7 +88,7 @@ public struct DisposeCollector : IDisposable
     /// Removes an object from this collector and disposes it immediately, setting the reference to <see langword="null"/>.
     /// </summary>
     /// <param name="objectToDispose">The object to remove and dispose.</param>
-    public readonly void RemoveAndDispose<T>([MaybeNull] ref T objectToDispose)
+    public void RemoveAndDispose<T>([MaybeNull] ref T objectToDispose)
         where T : notnull
     {
         if (_disposables is not null)

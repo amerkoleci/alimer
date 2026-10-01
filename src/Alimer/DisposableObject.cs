@@ -72,13 +72,14 @@ public abstract class DisposableObject : IDisposableObject
 
 public abstract class DisposableObjectWithCollector : DisposableObject
 {
-    private readonly DisposeCollector _collector = new();
+    private readonly DisposeCollector _collector;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DisposableObjectWithCollector" /> class.
     /// </summary>
     protected DisposableObjectWithCollector()
     {
+        _collector = new();
     }
 
     /// <summary>
@@ -105,9 +106,9 @@ public abstract class DisposableObjectWithCollector : DisposableObject
     protected internal T ToDispose<T>(T objectToDispose)
         where T : notnull
     {
-        ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(objectToDispose, nameof(objectToDispose));
 
+        ThrowIfDisposed();
         return _collector.Add(objectToDispose);
     }
 
