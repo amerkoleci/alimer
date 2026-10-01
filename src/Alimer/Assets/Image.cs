@@ -750,7 +750,7 @@ public sealed unsafe class Image : Asset, IBinarySerializable<Image>
 
         ImageDescription description = stream.ReadSerializable<ImageDescription>();
         //ImageDescription description = stream.ReadByteSerializable<ImageDescription>();
-        Image result = new Image(in description);
+        Image result = new(in description);
         return result;
     }
 

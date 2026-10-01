@@ -79,7 +79,7 @@ internal sealed class WindowSDL : Window
         _isFullscreen = flags.HasFlag(WindowFlags.Fullscreen);
         Id = SDL_GetWindowID(Handle);
         SDL_SetWindowPosition(Handle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-        _ = SDL_GetWindowSizeInPixels(Handle, out int width, out int height);
+        SDL_GetWindowSizeInPixels(Handle, out int width, out int height).LogErrorIfFailed();
 
         // https://github.com/eliemichel/sdl3webgpu/blob/main/sdl3webgpu.c
         // https://github.com/eliemichel/glfw3webgpu/blob/main/glfw3webgpu.c
@@ -112,7 +112,7 @@ internal sealed class WindowSDL : Window
             }
 
             _surfaceSource = SurfaceSource.CreateMetalLayer(metalLayer.Handle);
-        } 
+        }
         else if (OperatingSystem.IsMacOS() || OperatingSystem.IsMacCatalyst())
         {
             NSWindow nsWindow = SDL_GetPointerProperty(props, SDL_PROP_WINDOW_COCOA_WINDOW_POINTER);
@@ -199,7 +199,7 @@ internal sealed class WindowSDL : Window
             if (_isFullscreen != value)
             {
                 _isFullscreen = value;
-                _ = SDL_SetWindowFullscreen(Handle, value);
+                SDL_SetWindowFullscreen(Handle, value).LogErrorIfFailed();
             }
         }
     }
@@ -239,6 +239,16 @@ internal sealed class WindowSDL : Window
         {
             SDL_GetWindowSizeInPixels(Handle, out int width, out int height);
             return new(width, height);
+        }
+    }
+
+    public override float ContentScale
+    {
+        get
+        {
+            // emscripten_get_device_pixel_ratio
+            float scale = SDL_GetWindowDisplayScale(Handle);
+            return scale > 0.0f ? scale : 1.0f; // SDL returns 0 before the window is shown
         }
     }
 

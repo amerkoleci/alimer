@@ -63,13 +63,13 @@ public sealed class SampleBrowserGame : Game
         //string texturesPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Textures");
         //Image image = Image.FromFile(Path.Combine(texturesPath, "10points.png"));
 
-        bool testAudio = false;
+        bool testAudio = true;
         if (testAudio)
         {
             string soundsPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Sounds");
             using AudioClip audioClip = AudioClip.FromFile(Path.Combine(soundsPath, "BGM.mp3"));
-            //_audioSource = AudioEngine.CreateAudioSource(audioClip);
-            //_audioSource.Play();
+            _audioSource = AudioEngine.CreateAudioSource(audioClip);
+            _audioSource.Play();
         }
 
         //_runningSample = new HelloWindowSample(Services, MainWindow);
@@ -90,6 +90,7 @@ public sealed class SampleBrowserGame : Game
     /// <inheritdoc />
     protected override void DisposeManagedResources() 
     {
+        _audioSource?.Dispose();
         _runningSample.Dispose();
 
         base.DisposeManagedResources();
@@ -114,7 +115,7 @@ public sealed class SampleBrowserGame : Game
         GraphicsBackend preferredGraphicsBackend = GraphicsBackend.Default;
 
 #if !WINDOWS
-        //preferredGraphicsBackend = GraphicsBackend.Vulkan;
+        preferredGraphicsBackend = GraphicsBackend.Vulkan;
         //preferredGraphicsBackend = GraphicsBackend.Metal;
         //preferredGraphicsBackend = GraphicsBackend.Null;
 #endif

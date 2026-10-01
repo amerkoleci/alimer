@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Vortice.SPIRV.Reflect" PrivateAssets="compile" />
+    <PackageReference Include="Slangc.NET" />
     <PackageReference Include="Vortice.Dxc.Native" />
   </ItemGroup>
 

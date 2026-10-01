@@ -21,6 +21,11 @@ public abstract class AudioEngine : DisposableObject
     public abstract float MasterVolume { get; set; }
 
     /// <summary>
+    /// Gets or sets the master gain of the audio engine in decibels (dB).
+    /// </summary>
+    public abstract float MasterGainDb { get; set; }
+
+    /// <summary>
     /// Gets or sets the volume of the audio engine.
     /// </summary>
     public abstract float Volume { get; set; }
@@ -35,9 +40,17 @@ public abstract class AudioEngine : DisposableObject
     /// </summary>
     public abstract AudioDeviceState State { get; }
 
-    public abstract ulong TimeInPcmFrames { get; }
-    public abstract TimeSpan Time { get; }
+    public abstract ulong TimeInPcmFrames { get; set;  }
+    public abstract TimeSpan Time { get; set; }
 
     public abstract void Start();
     public abstract void Stop();
+
+    public abstract AudioSource CreateAudioSource();
+    public AudioSource CreateAudioSource(AudioClip clip)
+    {
+        AudioSource source = CreateAudioSource();
+        source.Clip = clip;
+        return source;
+    }
 }

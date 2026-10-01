@@ -13,7 +13,9 @@ internal unsafe class MiniAudioEngine : AudioEngine
 {
     internal MiniAudioEngine(MiniAudioContext context, in AudioEngineOptions options)
     {
-        Engine = ma_ex_engine_alloc();
+        Handle = ma_ex_engine_alloc();
+
+        var config = new ma_engine_ex_config();
 
 #if TODO
         ma_device_config deviceConfig = ma_device_config_init(ma_device_type_playback);
@@ -42,31 +44,31 @@ internal unsafe class MiniAudioEngine : AudioEngine
         result = ma_engine_init(&engineConfig, &engine->handle); 
 #endif
 
-        ma_result result = ma_ex_engine_init_default(Engine);
+        ma_result result = ma_ex_engine_init_default(Handle); // ma_ex_engine_init_with_config(context.Handle, &config, Handle);
         if (result != MA_SUCCESS)
         {
             string description = ma_result_description(result);
             throw new AudioException($"ma_engine_init failed: {description}");
         }
 
-        Device = ma_engine_get_device(Engine);
+        Device = ma_engine_get_device(Handle);
 
-        EndpointNode = ma_engine_get_endpoint(Engine);
-        NodeGraph = ma_engine_get_node_graph(Engine);
-        ListenerCount = ma_engine_get_listener_count(Engine);
+        EndpointNode = ma_engine_get_endpoint(Handle);
+        NodeGraph = ma_engine_get_node_graph(Handle);
+        ListenerCount = ma_engine_get_listener_count(Handle);
     }
 
-    public ma_engine Engine { get; private set; }
-    public ma_device Device { get; }
-    public ma_node EndpointNode { get; }
-    public ma_node_graph NodeGraph { get; }
+    public ma_engine* Handle { get; private set; }
+    public ma_device* Device { get; }
+    public ma_node* EndpointNode { get; }
+    public ma_node_graph* NodeGraph { get; }
     public uint ListenerCount { get; }
 
     /// <inheritdoc />
-    public override uint SampleRate => ma_engine_get_sample_rate(Engine);
+    public override uint SampleRate => ma_engine_get_sample_rate(Handle);
 
     /// <inheritdoc />
-    public override uint Channels => ma_engine_get_channels(Engine);
+    public override uint Channels => ma_engine_get_channels(Handle);
 
     /// <inheritdoc />
     public override float MasterVolume
@@ -84,17 +86,32 @@ internal unsafe class MiniAudioEngine : AudioEngine
     }
 
     /// <inheritdoc />
+    public override float MasterGainDb
+    {
+        get
+        {
+            float gainDB;
+            ma_device_get_master_volume_db(Device, &gainDB).CheckResult(nameof(ma_device_get_master_volume_db));
+            return gainDB;
+        }
+        set
+        {
+            ma_device_set_master_volume_db(Device, value).CheckResult(nameof(ma_device_set_master_volume_db));
+        }
+    }
+
+    /// <inheritdoc />
     public override float Volume
     {
-        get => ma_engine_get_volume(Engine);
-        set => ma_engine_set_volume(Engine, value);
+        get => ma_engine_get_volume(Handle);
+        set => ma_engine_set_volume(Handle, value);
     }
 
     /// <inheritdoc />
     public override float GainDb
     {
-        get => ma_engine_get_gain_db(Engine);
-        set => ma_engine_set_gain_db(Engine, value);
+        get => ma_engine_get_gain_db(Handle);
+        set => ma_engine_set_gain_db(Handle, value);
     }
 
     /// <inheritdoc />
@@ -116,36 +133,50 @@ internal unsafe class MiniAudioEngine : AudioEngine
     }
 
     /// <inheritdoc />
-    public override ulong TimeInPcmFrames => ma_engine_get_time_in_pcm_frames(Engine);
+    public override ulong TimeInPcmFrames
+    {
+        get => ma_engine_get_time_in_pcm_frames(Handle);
+        set => ma_engine_set_time_in_pcm_frames(Handle, value);
+    }
 
     public override TimeSpan Time
     {
         get
         {
             ThrowIfDisposed();
-            ulong milliseconds = ma_engine_get_time_in_milliseconds(Engine);
+            ulong milliseconds = ma_engine_get_time_in_milliseconds(Handle);
             return TimeSpan.FromMilliseconds(milliseconds);
+        }
+        set
+        {
+            ThrowIfDisposed();
+            double totalMilliseconds = Math.Round(value.TotalMilliseconds, MidpointRounding.AwayFromZero);
+            double clampedMilliseconds = Math.Clamp(totalMilliseconds, 0d, ulong.MaxValue);
+            ma_engine_set_time_in_milliseconds(Handle, (ulong)clampedMilliseconds).CheckResult(nameof(ma_engine_set_time_in_milliseconds));
         }
     }
 
     /// <inheritdoc />
     protected override void DisposeUnmanagedResources()
     {
-        ma_engine_uninit(Engine);
-        ma_free(Engine);
-        Engine = default;
+        ma_engine_uninit(Handle);
+        ma_free(Handle);
+        Handle = default;
     }
 
     /// <inheritdoc />
     public override void Start()
     {
         ThrowIfDisposed();
-        ma_engine_start(Engine).CheckResult(nameof(ma_engine_start));
+        ma_engine_start(Handle).CheckResult(nameof(ma_engine_start));
     }
 
     /// <inheritdoc />
     public override void Stop()
     {
-        ma_engine_stop(Engine).CheckResult(nameof(ma_engine_stop));
+        ma_engine_stop(Handle).CheckResult(nameof(ma_engine_stop));
     }
+
+    /// <inheritdoc />
+    public override AudioSource CreateAudioSource() => new MiniAudioSource(this);
 }

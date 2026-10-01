@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(_AlimerDotNetTfm);$(AlimerPlatforms)</TargetFrameworks>
@@ -8,8 +8,6 @@
     <!-- Catch compiler-mismatch issues -->
     <WarningsAsErrors>CS9057</WarningsAsErrors>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    <!-- Till we support them -->
-    <ExcludeMetal>true</ExcludeMetal>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
@@ -36,6 +34,10 @@
   <PropertyGroup Condition=" $(TargetFramework.Contains('-windows10')) ">
     <ExcludeVulkan>true</ExcludeVulkan>
     <ExcludeMetal>true</ExcludeMetal>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" $(TargetFramework.Contains('-macos')) Or $(TargetFramework.Contains('-maccatalyst')) Or $(TargetFramework.Contains('-ios')) ">
+    <ExcludeMetal>false</ExcludeMetal>
   </PropertyGroup>
 
   <PropertyGroup>

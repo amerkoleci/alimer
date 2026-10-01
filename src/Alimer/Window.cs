@@ -39,6 +39,11 @@ public abstract class Window
     public abstract SizeI Size { get; set; }
     public abstract SizeI SizeInPixels { get; }
 
+    /// <summary>
+    /// Get the content scale relative to a window's pixel size.
+    /// </summary>
+    public abstract float ContentScale { get; }
+
     public Surface? Surface { get; private set; }
     public PixelFormat ColorFormat { get; set; } = PixelFormat.BGRA8UnormSrgb;
 
@@ -75,6 +80,7 @@ public abstract class Window
             return 0.0f;
         }
     }
+
     public void CreateSurface(GraphicsManager manager)
     {
         SurfaceDescriptor descriptor = new(SurfaceSource);

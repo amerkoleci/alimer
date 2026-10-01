@@ -79,3 +79,46 @@ ma_result ma_ex_engine_init_default(ma_engine* pEngine)
     ma_engine_config config = ma_engine_config_init();
     return ma_engine_init(&config, pEngine);
 }
+
+static void DataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
+{
+    ma_engine* engine = (ma_engine*)pDevice->pUserData;
+
+    if (engine->pResourceManager)
+    {
+        if ((engine->pResourceManager->config.flags & MA_RESOURCE_MANAGER_FLAG_NO_THREADING) != 0)
+        {
+            ma_resource_manager_process_next_job(engine->pResourceManager);
+        }
+    }
+
+    ma_engine_read_pcm_frames(engine, pOutput, frameCount, NULL);
+}
+
+ma_result ma_ex_engine_init_with_config(ma_context* pContext, const ma_engine_ex_config* config, ma_engine* pEngine)
+{
+    ma_device_config deviceConfig = ma_device_config_init(ma_device_type_playback);
+    if (config && config->playbackDeviceID)
+    {
+        deviceConfig.playback.pDeviceID = config->playbackDeviceID;
+    }
+    deviceConfig.playback.format = ma_format_f32;
+    deviceConfig.playback.channels = (config != NULL && config->channelCount > 0) ? config->channelCount : 2;
+    deviceConfig.sampleRate = (config != NULL && config->sampleRate > 0) ? config->sampleRate : 48000;
+    deviceConfig.dataCallback = DataCallback;
+    deviceConfig.pUserData = pEngine;
+
+    ma_device* device = (ma_device*)ma_malloc(sizeof(ma_device), &pEngine->allocationCallbacks);
+    ma_result result = ma_device_init(pContext, &deviceConfig, device);
+    if (result != MA_SUCCESS)
+    {
+        ma_free(device, &pEngine->allocationCallbacks);
+        return result;
+    }
+
+    ma_engine_config engineConfig = ma_engine_config_init();
+    engineConfig.pDevice = device;
+    engineConfig.pProcessUserData = pEngine;
+    engineConfig.listenerCount = 1;
+    return ma_engine_init(&engineConfig, pEngine);
+}

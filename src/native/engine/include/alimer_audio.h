@@ -8,11 +8,9 @@
 #include <stdbool.h>
 
 /* Forward */
-typedef struct AudioContext AudioContext;
 typedef struct AudioDevice AudioDevice;
 typedef struct AudioEngine AudioEngine;
 typedef struct AudioClip AudioClip;
-typedef struct AudioSource AudioSource;
 
 /* Enums */
 typedef enum AudioDeviceType {
@@ -22,17 +20,6 @@ typedef enum AudioDeviceType {
     _AudioDeviceType_Count,
     _AudioDeviceType_Force32 = 0x7FFFFFFF
 } AudioDeviceType;
-
-typedef enum AudioEngineState {
-    AudioEngineState_Uninitialized,
-    AudioEngineState_Stopped,
-    AudioEngineState_Started,
-    AudioEngineState_Starting,
-    AudioEngineState_Stopping,
-
-    _AudioEngineState_Count,
-    _AudioEngineState_Force32 = 0x7FFFFFFF
-} AudioEngineState;
 
 typedef enum VolumeUnit {
     VolumeUnit_Linear,
@@ -94,41 +81,14 @@ typedef struct AudioContextConfig {
 /* Callbacks */
 typedef void AudioDeviceCallback(AudioDevice* device, void* userdata);
 
-/* AudioContext */
-ALIMER_API AudioContext* alimerContextCreate(const AudioContextConfig* config);
-ALIMER_API void alimerAudioContextAddRef(AudioContext* context);
-ALIMER_API void alimerAudioContextRelease(AudioContext* context);
-ALIMER_API void alimerAudioContextEnumerateDevices(AudioContext* context, AudioDeviceCallback* callback, void* userdata);
-
 /* AudioDevice */
 ALIMER_API AudioDeviceType alimerAudioDeviceGetType(AudioDevice* device);
 ALIMER_API const char* alimerAudioDeviceGetName(AudioDevice* device);
 ALIMER_API bool alimerAudioDeviceIsDefault(AudioDevice* device);
 
 /* AudioEngine */
-ALIMER_API AudioEngine* alimerAudioEngineCreate(AudioContext* context, const AudioEngineConfig* config);
+ALIMER_API AudioEngine* alimerAudioEngineCreate(const AudioEngineConfig* config);
 ALIMER_API void alimerAudioEngineDestroy(AudioEngine* engine);
-ALIMER_API void alimerAudioEngineStart(AudioEngine* engine);
-ALIMER_API void alimerAudioEngineStop(AudioEngine* engine);
-
-ALIMER_API AudioEngineState alimerAudioEngineGetState(AudioEngine* engine);
-ALIMER_API float alimerAudioEngineGetMasterVolume(AudioEngine* engine, VolumeUnit unit);
-ALIMER_API void alimerAudioEngineSetMasterVolume(AudioEngine* engine, float value, VolumeUnit unit);
-ALIMER_API float alimerAudioEngineGetVolume(AudioEngine* engine, VolumeUnit unit);
-ALIMER_API void alimerAudioEngineSetVolume(AudioEngine* engine, float value, VolumeUnit unit);
-ALIMER_API uint32_t alimerAudioEngineGetChannelCount(AudioEngine* engine);
-ALIMER_API uint32_t alimerAudioEngineGetSampleRate(AudioEngine* engine);
-ALIMER_API uint64_t alimerAudioEngineGetTimeInPCMFrames(AudioEngine* engine);
-ALIMER_API uint64_t alimerAudioEngineGetTimeInMilliseconds(AudioEngine* engine);
-ALIMER_API void alimerAudioEngineSetTimeInPCMFrames(AudioEngine* engine, uint64_t value);
-ALIMER_API void alimerAudioEngineSetTimeInMilliseconds(AudioEngine* engine, uint64_t value);
-
-/* AudioListener */
-ALIMER_API uint32_t alimerAudioEngineGetListenerCount(AudioEngine* engine);
-ALIMER_API void alimerAudioEngineListenerSetPosition(AudioEngine* engine, uint32_t listenerIndex, const float position[3]);
-ALIMER_API void alimerAudioEngineListenerGetPosition(const AudioEngine* engine, uint32_t listenerIndex, float position[3]);
-ALIMER_API bool alimerAudioEngineListenerIsEnabled(AudioEngine* engine, uint32_t listenerIndex);
-ALIMER_API void alimerAudioEngineListenerSetEnabled(AudioEngine* engine, uint32_t listenerIndex, bool enabled);
 
 /* AudioClip */
 ALIMER_API AudioClip* alimerAudioClipCreate(const char* filepath);
@@ -140,81 +100,5 @@ ALIMER_API uint32_t alimerAudioClipGetChannelCount(AudioClip* clip);
 ALIMER_API uint32_t alimerAudioClipGetSampleRate(AudioClip* clip);
 ALIMER_API uint64_t alimerAudioClipGetFrameCount(AudioClip* clip);
 ALIMER_API uint32_t alimerAudioClipGetStride(AudioClip* clip);
-
-/* AudioSource */
-ALIMER_API AudioSource* alimerAudioSourceCreate(AudioEngine* engine, AudioClip* clip);
-ALIMER_API void alimerAudioSourceAddRef(AudioSource* source);
-ALIMER_API void alimerAudioSourceRelease(AudioSource* source);
-
-ALIMER_API void alimerAudioSourcePlay(AudioSource* source);
-ALIMER_API void alimerAudioSourcePause(AudioSource* source);
-ALIMER_API void alimerAudioSourceStop(AudioSource* source);
-
-ALIMER_API float alimerAudioSourceGetVolume(AudioSource* source, VolumeUnit unit);
-ALIMER_API void alimerAudioSourceSetVolume(AudioSource* source, float value, VolumeUnit unit);
-
-ALIMER_API float alimerAudioSourceGetPan(const AudioSource* source);
-ALIMER_API void alimerAudioSourceSetPan(AudioSource* source, float value);
-
-ALIMER_API AudioPanMode alimerAudioSourceGetPanMode(const AudioSource* source);
-ALIMER_API void alimerAudioSourceSetPanMode(AudioSource* source, AudioPanMode value);
-
-ALIMER_API float alimerAudioSourceGetPitch(const AudioSource* source);
-ALIMER_API void alimerAudioSourceSetPitch(AudioSource* source, float value);
-
-ALIMER_API bool alimerAudioSourceIsSpatializationEnabled(const AudioSource* source);
-ALIMER_API void alimerAudioSourceSetSpatializationEnabled(AudioSource* source, bool enabled);
-
-ALIMER_API void alimerAudioSourceGetPosition(const AudioSource* source, float position[3]);
-ALIMER_API void alimerAudioSourceSetPosition(AudioSource* source, const float position[3]);
-
-ALIMER_API void alimerAudioSourceGetDirection(const AudioSource* source, float direction[3]);
-ALIMER_API void alimerAudioSourceSetDirection(AudioSource* source, const float direction[3]);
-
-ALIMER_API void alimerAudioSourceGetVelocity(const AudioSource* source, float velocity[3]);
-ALIMER_API void alimerAudioSourceSetVelocity(AudioSource* source, const float velocity[3]);
-
-ALIMER_API AudioAttenuationModel alimerAudioSourceGetAttenuationModel(const AudioSource* source);
-ALIMER_API void alimerAudioSourceSetAttenuationModel(AudioSource* source, AudioAttenuationModel value);
-
-ALIMER_API AudioPositioning alimerAudioSourceGetPositioning(const AudioSource* source);
-ALIMER_API void alimerAudioSourceSetPositioning(AudioSource* source, AudioPositioning value);
-
-ALIMER_API float alimerAudioSourceGetRolloff(AudioSource* source);
-ALIMER_API void alimerAudioSourceSetRolloff(AudioSource* source, float value);
-
-ALIMER_API float alimerAudioSourceGetMinGain(AudioSource* source);
-ALIMER_API void alimerAudioSourceSetMinGain(AudioSource* source, float value);
-
-ALIMER_API float alimerAudioSourceGetMaxGain(AudioSource* source);
-ALIMER_API void alimerAudioSourceSetMaxGain(AudioSource* source, float value);
-
-ALIMER_API float alimerAudioSourceGetMinDistance(AudioSource* source);
-ALIMER_API void alimerAudioSourceSetMinDistance(AudioSource* source, float value);
-
-ALIMER_API float alimerAudioSourceGetMaxDistance(AudioSource* source);
-ALIMER_API void alimerAudioSourceSetMaxDistance(AudioSource* source, float value);
-
-ALIMER_API void alimerAudioSourceGetCone(AudioSource* sound, float* pInnerAngleInRadians, float* pOuterAngleInRadians, float* pOuterGain);
-ALIMER_API void alimerAudioSourceSetCone(AudioSource* sound, float innerAngleInRadians, float outerAngleInRadians, float outerGain);
-
-ALIMER_API float alimerAudioSourceGetDirectionalAttenuationFactor(AudioSource* sound);
-ALIMER_API void alimerAudioSourceSetDirectionalAttenuationFactor(AudioSource* sound, float value);
-
-ALIMER_API float alimerAudioSourceGetDopplerFactor(AudioSource* sound);
-ALIMER_API void alimerAudioSourceSetDopplerFactor(AudioSource* sound, float value);
-
-ALIMER_API bool alimerAudioSourceIsPlaying(AudioSource* source);
-ALIMER_API uint64_t alimerAudioSourceGetTimeInPCMFrames(AudioSource* source);
-ALIMER_API uint64_t alimerAudioSourceGetTimeInMilliseconds(AudioSource* source);
-ALIMER_API void alimerAudioSourceSetLooping(AudioSource* source, bool looping);
-ALIMER_API bool alimerAudioSourceIsLooping(const AudioSource* source);
-ALIMER_API bool alimerAudioSourceIsAtEnd(const AudioSource* source);
-ALIMER_API void alimerAudioSourceSeekToPCMFrame(const AudioSource* source, uint64_t frameIndex);
-ALIMER_API void alimerAudioSourceSeekToSecond(const AudioSource* source, float seekPointInSeconds);
-ALIMER_API uint64_t alimerAudioSourceGetCursorInPCMFrames(const AudioSource* source);
-ALIMER_API uint64_t alimerAudioSourceGetLengthInPCMFrames(const AudioSource* source);
-ALIMER_API float alimerAudioSourceGetCursorInSeconds(const AudioSource* source);
-ALIMER_API float alimerAudioSourceGetLengthInSeconds(const AudioSource* source);
 
 #endif /* ALIMER_AUDIO_H_ */

@@ -1,38 +1,55 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Alimer.Rendering;
-using static Alimer.AlimerApi;
 namespace Alimer.Audio;
 
-public class AudioSource : DisposableObject
+public abstract class AudioSource : DisposableObject
 {
-    internal AudioSource(AudioEngine engine, AudioClip clip, nint handle)
-    {
-        Engine = engine;
-        Clip = clip;
-        Handle = handle;
-    }
+    public bool IsValid { get; protected set; }
+    public AudioSourceState State { get; protected set; } = AudioSourceState.Stopped;
+    public virtual bool IsLooping { get; set; } = false;
+    public virtual float Volume { get; set; } = 1.0f;
+    public virtual bool PitchingEnabled { get; set; } = false;
+    public virtual bool SpatializationEnabled { get; set; } = true;
+    public abstract bool IsAtEnd { get; }
 
-    public AudioEngine Engine { get; }
-    public AudioClip Clip { get; }
-    public nint Handle { get; }
-    public bool IsPlaying => alimerAudioSourceIsPlaying(Handle);
+    public AudioClip? Clip
+    {
+        get;
+        set
+        {
+            if (field != value)
+            {
+                field?.Release();
+                field = value;
+                OnClipChanged();
+                value?.AddReference();
+            }
+        }
+    }
 
     /// <inheritdoc/>
     protected override void DisposeUnmanagedResources()
     {
-        // Dispose unmanaged resources
-        _ = alimerAudioSourceRelease(Handle);
+        Clip?.Release();
     }
 
-    public void Play()
+    protected virtual void OnClipChanged()
     {
-        alimerAudioSourcePlay(Handle);
     }
 
-    public void Stop()
-    {
-        alimerAudioSourceStop(Handle);
-    }
+    /// <summary>
+    /// Plays the audio source.
+    /// </summary>
+    public abstract void Play();
+
+    /// <summary>
+    /// Pauses the audio source.
+    /// </summary>
+    public abstract void Pause();
+
+    /// <summary>
+    /// Stops the audio source.
+    /// </summary>
+    public abstract void Stop();
 }

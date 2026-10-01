@@ -12,14 +12,12 @@ public abstract class ReferencableObject : IDisposableObject, IReferencable
 {
     private uint _refCount = 1;
     private volatile uint _isDisposed;
-    private DisposeCollector _collector;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DisposableObject" /> class.
     /// </summary>
     protected ReferencableObject()
     {
-        _collector = new DisposeCollector();
     }
 
     ~ReferencableObject()
@@ -30,18 +28,6 @@ public abstract class ReferencableObject : IDisposableObject, IReferencable
     #region IDisposable Members + DisposeCollector
     /// <inheritdoc />
     public bool IsDisposed => _isDisposed is not 0;
-
-    /// <summary>
-    /// Gets the <see cref="DisposeCollector"/>
-    /// </summary>
-    public DisposeCollector Collector
-    {
-        get
-        {
-            _collector.EnsureValid();
-            return _collector;
-        }
-    }
 
     /// <summary>
     /// Decrements the reference count of this object, disposing, releasing, and freeing associated resources when the count reaches zero.
@@ -71,23 +57,6 @@ public abstract class ReferencableObject : IDisposableObject, IReferencable
     /// </remarks>
     protected virtual void Destroy()
     {
-        _collector.Dispose();
-    }
-
-    /// <inheritdoc cref="DisposeCollector.Add{T}(T)" />
-    protected internal T ToDispose<T>(T objectToDispose)
-        where T : notnull
-    {
-        ArgumentNullException.ThrowIfNull(objectToDispose, nameof(objectToDispose));
-
-        return _collector.Add(objectToDispose);
-    }
-
-    /// <inheritdoc cref="DisposeCollector.RemoveAndDispose{T}(ref T)" />
-    protected internal void RemoveAndDispose<T>([MaybeNull] ref T objectToDispose)
-        where T : notnull
-    {
-        _collector.RemoveAndDispose(ref objectToDispose);
     }
     #endregion
 

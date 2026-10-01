@@ -241,13 +241,11 @@ internal static unsafe partial class SDL3
     #region Clipboard
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool SDL_HasClipboardText();
+    public static partial SDLBool SDL_HasClipboardText();
 
     [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool SDL_SetClipboardText(string text);
+    public static partial SDLBool SDL_SetClipboardText(string text);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -1285,6 +1283,7 @@ internal static unsafe partial class SDL3
     public static ReadOnlySpan<byte> SDL_PROP_WINDOW_UIKIT_WINDOW_POINTER => "SDL.window.uikit.window"u8;
 
     public enum SDL_WindowID : uint;
+    public enum SDL_DisplayID : uint;
 
     public readonly struct SDL_Window(uint handle)
     {
@@ -1359,8 +1358,7 @@ internal static unsafe partial class SDL3
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool SDL_GetWindowSizeInPixels(SDL_Window window, out int w, out int h);
+    public static partial SDLBool SDL_GetWindowSizeInPixels(SDL_Window window, out int w, out int h);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -1396,8 +1394,7 @@ internal static unsafe partial class SDL3
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    [return: MarshalAs(UnmanagedType.U1)]
-    public static partial bool SDL_SetWindowFullscreen(SDL_Window window, [MarshalAs(UnmanagedType.U1)] bool fullscreen);
+    public static partial SDLBool SDL_SetWindowFullscreen(SDL_Window window, [MarshalAs(UnmanagedType.U1)] bool fullscreen);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -1410,6 +1407,136 @@ internal static unsafe partial class SDL3
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void SDL_DestroyWindow(SDL_Window window);
+
+    public enum SDL_SystemTheme
+    {
+        SDL_SYSTEM_THEME_UNKNOWN,
+        SDL_SYSTEM_THEME_LIGHT,
+        SDL_SYSTEM_THEME_DARK,
+    }
+
+    public enum SDL_PixelFormat : uint
+    {
+        SDL_PIXELFORMAT_UNKNOWN = 0,
+        SDL_PIXELFORMAT_INDEX1LSB = 0x11100100U,
+        SDL_PIXELFORMAT_INDEX1MSB = 0x11200100U,
+        SDL_PIXELFORMAT_INDEX2LSB = 0x1c100200U,
+        SDL_PIXELFORMAT_INDEX2MSB = 0x1c200200U,
+        SDL_PIXELFORMAT_INDEX4LSB = 0x12100400U,
+        SDL_PIXELFORMAT_INDEX4MSB = 0x12200400U,
+        SDL_PIXELFORMAT_INDEX8 = 0x13000801U,
+        SDL_PIXELFORMAT_RGB332 = 0x14110801U,
+        SDL_PIXELFORMAT_XRGB4444 = 0x15120c02U,
+        SDL_PIXELFORMAT_XBGR4444 = 0x15520c02U,
+        SDL_PIXELFORMAT_XRGB1555 = 0x15130f02U,
+        SDL_PIXELFORMAT_XBGR1555 = 0x15530f02U,
+        SDL_PIXELFORMAT_ARGB4444 = 0x15321002U,
+        SDL_PIXELFORMAT_RGBA4444 = 0x15421002U,
+        SDL_PIXELFORMAT_ABGR4444 = 0x15721002U,
+        SDL_PIXELFORMAT_BGRA4444 = 0x15821002U,
+        SDL_PIXELFORMAT_ARGB1555 = 0x15331002U,
+        SDL_PIXELFORMAT_RGBA5551 = 0x15441002U,
+        SDL_PIXELFORMAT_ABGR1555 = 0x15731002U,
+        SDL_PIXELFORMAT_BGRA5551 = 0x15841002U,
+        SDL_PIXELFORMAT_RGB565 = 0x15151002U,
+        SDL_PIXELFORMAT_BGR565 = 0x15551002U,
+        SDL_PIXELFORMAT_RGB24 = 0x17101803U,
+        SDL_PIXELFORMAT_BGR24 = 0x17401803U,
+        SDL_PIXELFORMAT_XRGB8888 = 0x16161804U,
+        SDL_PIXELFORMAT_RGBX8888 = 0x16261804U,
+        SDL_PIXELFORMAT_XBGR8888 = 0x16561804U,
+        SDL_PIXELFORMAT_BGRX8888 = 0x16661804U,
+        SDL_PIXELFORMAT_ARGB8888 = 0x16362004U,
+        SDL_PIXELFORMAT_RGBA8888 = 0x16462004U,
+        SDL_PIXELFORMAT_ABGR8888 = 0x16762004U,
+        SDL_PIXELFORMAT_BGRA8888 = 0x16862004U,
+        SDL_PIXELFORMAT_XRGB2101010 = 0x16172004U,
+        SDL_PIXELFORMAT_XBGR2101010 = 0x16572004U,
+        SDL_PIXELFORMAT_ARGB2101010 = 0x16372004U,
+        SDL_PIXELFORMAT_ABGR2101010 = 0x16772004U,
+        SDL_PIXELFORMAT_RGB48 = 0x18103006U,
+        SDL_PIXELFORMAT_BGR48 = 0x18403006U,
+        SDL_PIXELFORMAT_RGBA64 = 0x18204008U,
+        SDL_PIXELFORMAT_ARGB64 = 0x18304008U,
+        SDL_PIXELFORMAT_BGRA64 = 0x18504008U,
+        SDL_PIXELFORMAT_ABGR64 = 0x18604008U,
+        SDL_PIXELFORMAT_RGB48_FLOAT = 0x1a103006U,
+        SDL_PIXELFORMAT_BGR48_FLOAT = 0x1a403006U,
+        SDL_PIXELFORMAT_RGBA64_FLOAT = 0x1a204008U,
+        SDL_PIXELFORMAT_ARGB64_FLOAT = 0x1a304008U,
+        SDL_PIXELFORMAT_BGRA64_FLOAT = 0x1a504008U,
+        SDL_PIXELFORMAT_ABGR64_FLOAT = 0x1a604008U,
+        SDL_PIXELFORMAT_RGB96_FLOAT = 0x1b10600cU,
+        SDL_PIXELFORMAT_BGR96_FLOAT = 0x1b40600cU,
+        SDL_PIXELFORMAT_RGBA128_FLOAT = 0x1b208010U,
+        SDL_PIXELFORMAT_ARGB128_FLOAT = 0x1b308010U,
+        SDL_PIXELFORMAT_BGRA128_FLOAT = 0x1b508010U,
+        SDL_PIXELFORMAT_ABGR128_FLOAT = 0x1b608010U,
+        SDL_PIXELFORMAT_YV12 = 0x32315659U,
+        SDL_PIXELFORMAT_IYUV = 0x56555949U,
+        SDL_PIXELFORMAT_YUY2 = 0x32595559U,
+        SDL_PIXELFORMAT_UYVY = 0x59565955U,
+        SDL_PIXELFORMAT_YVYU = 0x55595659U,
+        SDL_PIXELFORMAT_NV12 = 0x3231564eU,
+        SDL_PIXELFORMAT_NV21 = 0x3132564eU,
+        SDL_PIXELFORMAT_P010 = 0x30313050U,
+        SDL_PIXELFORMAT_P408 = 0x38303450U,
+        SDL_PIXELFORMAT_P416 = 0x36313450U,
+        SDL_PIXELFORMAT_EXTERNAL_OES = 0x2053454fU,
+        SDL_PIXELFORMAT_MJPG = 0x47504a4dU,
+    }
+
+    public partial struct SDL_DisplayModeData
+    {
+    }
+
+    public unsafe partial struct SDL_DisplayMode
+    {
+        public SDL_DisplayID displayID;        /**< the display this mode is associated with */
+        public SDL_PixelFormat format;         /**< pixel format */
+        public int w;                          /**< width */
+        public int h;                          /**< height */
+        public float pixel_density;            /**< scale converting size to pixels (e.g. a 1920x1080 mode with 2.0 scale would have 3840x2160 pixels) */
+        public float refresh_rate;             /**< refresh rate (or 0.0f for unspecified) */
+        public int refresh_rate_numerator;     /**< precise refresh rate numerator (or 0 for unspecified) */
+        public int refresh_rate_denominator;   /**< precise refresh rate denominator */
+
+        public SDL_DisplayModeData* @internal;  /**< Private */
+    }
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_SystemTheme SDL_GetSystemTheme();
+
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_DisplayID* SDL_GetDisplays(int* count);
+
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_DisplayID SDL_GetPrimaryDisplay();
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_DisplayID SDL_GetDisplayForWindow(SDL_Window* window);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial float SDL_GetWindowPixelDensity(SDL_Window* window);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial float SDL_GetWindowDisplayScale(SDL_Window window);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_SetWindowFullscreenMode(SDL_Window* window, SDL_DisplayMode* mode);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_DisplayMode* SDL_GetWindowFullscreenMode(SDL_Window* window);
     #endregion
 
     #region Keyboard

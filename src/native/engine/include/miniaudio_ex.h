@@ -25,7 +25,16 @@ extern "C" {
     MA_API ma_result ma_ex_device_init_default(ma_context* pContext, ma_device_type deviceType, ma_device* pDevice);
 
     /* engine */
+    typedef struct ma_engine_ex_config {
+        const ma_device_id* playbackDeviceID;
+        /// Audio output channel count.
+        ma_uint32 channelCount;
+        /// Audio output sample rate.
+        ma_uint32 sampleRate;
+    } ma_engine_ex_config;
+
     MA_API ma_result ma_ex_engine_init_default(ma_engine* pEngine);
+    MA_API ma_result ma_ex_engine_init_with_config(ma_context* pContext, const ma_engine_ex_config* config, ma_engine* pEngine);
 
 #if defined(__cplusplus)
 }

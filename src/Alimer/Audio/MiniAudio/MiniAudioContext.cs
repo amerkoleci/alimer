@@ -31,13 +31,13 @@ internal unsafe class MiniAudioContext : AudioContext
 
     public MiniAudioContext()
     {
-        Context = ma_ex_context_alloc();
-        if (Context.IsNull)
+        Handle = ma_ex_context_alloc();
+        if (Handle is null)
         {
             throw new InvalidOperationException("Failed to initialize Alimer audio.");
         }
 
-        ma_result result = ma_ex_context_init_default(Context);
+        ma_result result = ma_ex_context_init_default(Handle);
         if (result != MA_SUCCESS)
         {
             string description = ma_result_description(result);
@@ -47,7 +47,7 @@ internal unsafe class MiniAudioContext : AudioContext
         ScanDevices();
     }
 
-    public ma_context Context { get; private set; }
+    public ma_context* Handle { get; private set; }
 
     /// <inheritdoc />
     protected internal override ReadOnlySpan<AudioDevice> PlaybackDevices => _playbackDevices;
@@ -58,14 +58,14 @@ internal unsafe class MiniAudioContext : AudioContext
     /// <inheritdoc />
     protected override void DisposeUnmanagedResources()
     {
-        ma_result result = ma_context_uninit(Context);
+        ma_result result = ma_context_uninit(Handle);
         if (result != MA_SUCCESS)
         {
             Log.Error($"ma_context_uninit failed: {ma_result_description(result)}");
         }
 
-        ma_free(Context);
-        Context = default;
+        ma_free(Handle);
+        Handle = default;
     }
 
     /// <inheritdoc />
@@ -75,7 +75,7 @@ internal unsafe class MiniAudioContext : AudioContext
         uint playbackCount;
         ma_device_info* pCaptureInfos;
         uint captureCount;
-        ma_result result = ma_context_get_devices(Context, &pPlaybackInfos, &playbackCount, &pCaptureInfos, &captureCount);
+        ma_result result = ma_context_get_devices(Handle, &pPlaybackInfos, &playbackCount, &pCaptureInfos, &captureCount);
         if (result != MA_SUCCESS)
         {
             string description = ma_result_description(result);
