@@ -11,18 +11,17 @@ using System.Diagnostics;
 
 namespace Alimer;
 
-internal sealed class WindowSDL : Window
+internal unsafe sealed class WindowSDL : Window
 {
     private string _title;
     private readonly SurfaceSource _surfaceSource;
-    private bool _isFullscreen;
 
-    internal WindowSDL(RuntimePlatformSDL platform, WindowFlags flags)
+    internal WindowSDL(RuntimePlatformSDL platform, int width, int height, WindowFlags flags)
     {
         Platform = platform;
         _title = "Alimer";
 
-        bool fullscreen = flags.HasFlag(WindowFlags.Fullscreen);
+        bool fullscreen = flags.HasFlag(WindowFlags.Fullscreen) || flags.HasFlag(WindowFlags.ExclusiveFullscreen);
 
         SDL_WindowFlags windowFlags = SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN;
 
@@ -48,8 +47,8 @@ internal sealed class WindowSDL : Window
                 windowFlags |= SDL_WINDOW_ALWAYS_ON_TOP;
         }
 
-        Handle = SDL_CreateWindow(_title, 1280, 720, windowFlags);
-        if (Handle.IsNull)
+        Handle = SDL_CreateWindow(_title, width, height, windowFlags);
+        if (Handle is null)
         {
             throw new InvalidOperationException($"Alimer: SDL_CreateWindow Failed: {SDL_GetError()}");
         }
@@ -75,11 +74,25 @@ internal sealed class WindowSDL : Window
         } 
 #endif
 
-
-        _isFullscreen = flags.HasFlag(WindowFlags.Fullscreen);
         Id = SDL_GetWindowID(Handle);
-        SDL_SetWindowPosition(Handle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-        SDL_GetWindowSizeInPixels(Handle, out int width, out int height).LogErrorIfFailed();
+        if (!fullscreen)
+        {
+            SDL_SetWindowPosition(Handle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        }
+        else if ((flags & WindowFlags.ExclusiveFullscreen) != 0)
+        {
+            SDL_DisplayMode mode = default;
+            if (SDL_GetClosestFullscreenDisplayMode(SDL_GetPrimaryDisplay(), width, height, 0.0f, true, &mode))
+            {
+                SDL_SetWindowFullscreenMode(Handle, &mode).LogErrorIfFailed();
+            }
+            else
+            {
+                Log.Warn($"SDL: no fullscreen mode near {width}x{height}; the desktop's is used");
+            }
+        }
+
+        //SDL_GetWindowSizeInPixels(Handle, out width, out height).LogErrorIfFailed();
 
         // https://github.com/eliemichel/sdl3webgpu/blob/main/sdl3webgpu.c
         // https://github.com/eliemichel/glfw3webgpu/blob/main/glfw3webgpu.c
@@ -158,7 +171,7 @@ internal sealed class WindowSDL : Window
     }
 
     public RuntimePlatformSDL Platform { get; }
-    public SDL_Window Handle { get; private set; }
+    public SDL_Window* Handle { get; private set; }
     public SDL_WindowID Id { get; }
 
     /// <inheritdoc />
@@ -181,25 +194,79 @@ internal sealed class WindowSDL : Window
     }
 
     /// <inheritdoc />
-    public override bool IsMinimized
+    public override WindowState State
     {
         get
         {
             SDL_WindowFlags flags = SDL_GetWindowFlags(Handle);
-            return (flags & SDL_WINDOW_MINIMIZED) != 0;
-        }
-    }
+            if ((flags & SDL_WINDOW_FULLSCREEN) != 0)
+            {
+                if (SDL_GetWindowFullscreenMode(Handle) is not null)
+                {
+                    return WindowState.ExclusiveFullScreen;
+                }
+                else
+                {
+                    return WindowState.FullScreen;
+                }
+            }
 
-    /// <inheritdoc />
-    public override bool IsFullscreen
-    {
-        get => _isFullscreen;
+            if ((flags & SDL_WINDOW_MINIMIZED) != 0)
+            {
+                return WindowState.Minimized;
+            }
+            if ((flags & SDL_WINDOW_MAXIMIZED) != 0)
+            {
+                return WindowState.Maximized;
+            }
+
+            return WindowState.Normal;
+        }
         set
         {
-            if (_isFullscreen != value)
+            SDL_WindowFlags flags = SDL_GetWindowFlags(Handle);
+            bool isFullscreen = (flags & SDL_WINDOW_FULLSCREEN) != 0;
+
+            // If the window is currently in fullscreen mode and the new state is not fullscreen, we need to exit fullscreen mode first.
+            if (isFullscreen && value != WindowState.FullScreen && value != WindowState.ExclusiveFullScreen)
             {
-                _isFullscreen = value;
-                SDL_SetWindowFullscreen(Handle, value).LogErrorIfFailed();
+                SDL_SetWindowFullscreenMode(Handle, null).LogErrorIfFailed();
+                SDL_SetWindowFullscreen(Handle, false).LogErrorIfFailed();
+            }
+
+            switch (value)
+            {
+                case WindowState.Normal:
+                    SDL_RestoreWindow(Handle).LogErrorIfFailed();
+                    break;
+                case WindowState.Minimized:
+                    SDL_MinimizeWindow(Handle).LogErrorIfFailed();
+                    break;
+                case WindowState.Maximized:
+                    SDL_MaximizeWindow(Handle).LogErrorIfFailed();
+                    break;
+                case WindowState.FullScreen:
+                    SDL_SetWindowFullscreenMode(Handle, null).LogErrorIfFailed();
+                    SDL_SetWindowFullscreen(Handle, true).LogErrorIfFailed();
+                    break;
+                case WindowState.ExclusiveFullScreen:
+                    SDL_DisplayMode mode = default;
+                    if (SDL_GetClosestFullscreenDisplayMode(SDL_GetPrimaryDisplay(), Size.Width, Size.Height, 0.0f, true, &mode))
+                    {
+                        SDL_SetWindowFullscreenMode(Handle, &mode);
+                    }
+                    else
+                    {
+                        SDL_DisplayID displayID = SDL_GetDisplayForWindow(Handle);
+                        if (displayID > 0)
+                        {
+                            SDL_SetWindowFullscreenMode(Handle, SDL_GetCurrentDisplayMode(displayID)).LogErrorIfFailed();
+                        }
+
+                        SDL_SetWindowFullscreen(Handle, true).LogErrorIfFailed();
+                        break;
+                    }
+                    break;
             }
         }
     }
@@ -256,7 +323,7 @@ internal sealed class WindowSDL : Window
     {
         Surface?.Dispose();
 
-        if (Handle.IsNotNull)
+        if (Handle is not null)
         {
             SDL_DestroyWindow(Handle);
             Handle = default;
@@ -271,21 +338,6 @@ internal sealed class WindowSDL : Window
     public void Hide()
     {
         SDL_HideWindow(Handle);
-    }
-
-    public void Minimize()
-    {
-        SDL_MinimizeWindow(Handle);
-    }
-
-    public void Maximize()
-    {
-        SDL_MaximizeWindow(Handle);
-    }
-
-    public void Restore()
-    {
-        SDL_RestoreWindow(Handle);
     }
 
     internal void HandleEvent(in SDL_WindowEvent evt)

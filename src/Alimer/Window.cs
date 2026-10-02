@@ -18,14 +18,9 @@ public abstract class Window
     public abstract SurfaceSource SurfaceSource { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the window is currently minimized.
+    /// Gets or sets the current state of the window.
     /// </summary>
-    public abstract bool IsMinimized { get; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the application is displayed in fullscreen mode.
-    /// </summary>
-    public abstract bool IsFullscreen { get; set; }
+    public abstract WindowState State { get; set; }
 
     /// <summary>
     /// Gets and sets the title of the window.

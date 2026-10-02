@@ -108,6 +108,24 @@ internal static unsafe partial class SDL3
 
         public override string ToString() => _value != 0 ? "True" : "False";
     }
+
+    public partial struct SDL_Point
+    {
+        public int x;
+
+        public int y;
+    }
+
+    public partial struct SDL_Rect
+    {
+        public int x;
+
+        public int y;
+
+        public int w;
+
+        public int h;
+    }
     #endregion
 
     #region Marshallers
@@ -1285,13 +1303,7 @@ internal static unsafe partial class SDL3
     public enum SDL_WindowID : uint;
     public enum SDL_DisplayID : uint;
 
-    public readonly struct SDL_Window(uint handle)
-    {
-        public readonly nuint Handle = handle;
-        public readonly bool IsNull => Handle == 0;
-        public readonly bool IsNotNull => Handle != 0;
-    }
-
+    public readonly struct SDL_Window;
 
     [Flags]
     public enum SDL_WindowFlags : ulong
@@ -1325,88 +1337,88 @@ internal static unsafe partial class SDL3
 
     [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDL_Window SDL_CreateWindow(string title, int w, int h, SDL_WindowFlags flags);
+    public static partial SDL_Window* SDL_CreateWindow(string title, int w, int h, SDL_WindowFlags flags);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDL_WindowID SDL_GetWindowID(SDL_Window window);
+    public static partial SDL_WindowID SDL_GetWindowID(SDL_Window* window);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDL_Window SDL_GetWindowFromID(SDL_WindowID id);
+    public static partial SDL_Window* SDL_GetWindowFromID(SDL_WindowID id);
 
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_SetWindowIcon(SDL_Window window, nint icon);
+    public static partial SDLBool SDL_SetWindowIcon(SDL_Window* window, nint icon);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_SetWindowPosition(SDL_Window window, int x, int y);
+    public static partial SDLBool SDL_SetWindowPosition(SDL_Window* window, int x, int y);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_GetWindowPosition(SDL_Window window, out int x, out int y);
+    public static partial SDLBool SDL_GetWindowPosition(SDL_Window* window, out int x, out int y);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_SetWindowSize(SDL_Window window, int w, int h);
+    public static partial SDLBool SDL_SetWindowSize(SDL_Window* window, int w, int h);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_GetWindowSize(SDL_Window window, out int w, out int h);
+    public static partial SDLBool SDL_GetWindowSize(SDL_Window* window, out int w, out int h);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_GetWindowSizeInPixels(SDL_Window window, out int w, out int h);
+    public static partial SDLBool SDL_GetWindowSizeInPixels(SDL_Window* window, out int w, out int h);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDL_WindowFlags SDL_GetWindowFlags(SDL_Window window);
+    public static partial SDL_WindowFlags SDL_GetWindowFlags(SDL_Window* window);
 
     [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_SetWindowTitle(SDL_Window window, string title);
+    public static partial SDLBool SDL_SetWindowTitle(SDL_Window* window, string title);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_ShowWindow(SDL_Window window);
+    public static partial SDLBool SDL_ShowWindow(SDL_Window* window);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_HideWindow(SDL_Window window);
+    public static partial SDLBool SDL_HideWindow(SDL_Window* window);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_RaiseWindow(SDL_Window window);
+    public static partial SDLBool SDL_RaiseWindow(SDL_Window* window);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_MaximizeWindow(SDL_Window window);
+    public static partial SDLBool SDL_MaximizeWindow(SDL_Window* window);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_MinimizeWindow(SDL_Window window);
+    public static partial SDLBool SDL_MinimizeWindow(SDL_Window* window);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_RestoreWindow(SDL_Window window);
+    public static partial SDLBool SDL_RestoreWindow(SDL_Window* window);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_SetWindowFullscreen(SDL_Window window, [MarshalAs(UnmanagedType.U1)] bool fullscreen);
+    public static partial SDLBool SDL_SetWindowFullscreen(SDL_Window* window, SDLBool fullscreen);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_SyncWindow(SDL_Window window);
+    public static partial SDLBool SDL_SyncWindow(SDL_Window* window);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDL_PropertiesID SDL_GetWindowProperties(SDL_Window window);
+    public static partial SDL_PropertiesID SDL_GetWindowProperties(SDL_Window* window);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void SDL_DestroyWindow(SDL_Window window);
+    public static partial void SDL_DestroyWindow(SDL_Window* window);
 
     public enum SDL_SystemTheme
     {
@@ -1485,12 +1497,20 @@ internal static unsafe partial class SDL3
         SDL_PIXELFORMAT_EXTERNAL_OES = 0x2053454fU,
         SDL_PIXELFORMAT_MJPG = 0x47504a4dU,
     }
+    public enum SDL_DisplayOrientation
+    {
+        SDL_ORIENTATION_UNKNOWN,
+        SDL_ORIENTATION_LANDSCAPE,
+        SDL_ORIENTATION_LANDSCAPE_FLIPPED,
+        SDL_ORIENTATION_PORTRAIT,
+        SDL_ORIENTATION_PORTRAIT_FLIPPED,
+    }
 
     public partial struct SDL_DisplayModeData
     {
     }
 
-    public unsafe partial struct SDL_DisplayMode
+    public partial struct SDL_DisplayMode
     {
         public SDL_DisplayID displayID;        /**< the display this mode is associated with */
         public SDL_PixelFormat format;         /**< pixel format */
@@ -1520,6 +1540,62 @@ internal static unsafe partial class SDL3
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_PropertiesID SDL_GetDisplayProperties(SDL_DisplayID displayID);
+
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalUsing(typeof(SDLOwnedStringMarshaller))]
+    public static partial string SDL_GetDisplayName(SDL_DisplayID displayID);
+
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_GetDisplayBounds(SDL_DisplayID displayID, SDL_Rect* rect);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_GetDisplayUsableBounds(SDL_DisplayID displayID, SDL_Rect* rect);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_DisplayOrientation SDL_GetNaturalDisplayOrientation(SDL_DisplayID displayID);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_DisplayOrientation SDL_GetCurrentDisplayOrientation(SDL_DisplayID displayID);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial float SDL_GetDisplayContentScale(SDL_DisplayID displayID);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_DisplayMode** SDL_GetFullscreenDisplayModes(SDL_DisplayID displayID, int* count);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDLBool SDL_GetClosestFullscreenDisplayMode(SDL_DisplayID displayID, int w, int h, float refresh_rate, SDLBool include_high_density_modes, SDL_DisplayMode* closest);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_DisplayMode* SDL_GetDesktopDisplayMode(SDL_DisplayID displayID);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_DisplayMode* SDL_GetCurrentDisplayMode(SDL_DisplayID displayID);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_DisplayID SDL_GetDisplayForPoint(SDL_Point* point);
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_DisplayID SDL_GetDisplayForRect(SDL_Rect* rect);
+
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDL_DisplayID SDL_GetDisplayForWindow(SDL_Window* window);
 
     [LibraryImport(LibraryName)]
@@ -1528,7 +1604,7 @@ internal static unsafe partial class SDL3
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial float SDL_GetWindowDisplayScale(SDL_Window window);
+    public static partial float SDL_GetWindowDisplayScale(SDL_Window* window);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -1548,8 +1624,9 @@ internal static unsafe partial class SDL3
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDL_KeyboardID* SDL_GetKeyboards(int* count);
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalUsing(typeof(SDLOwnedStringMarshaller))]
     public static partial string SDL_GetKeyboardNameForID(SDL_KeyboardID instance_id);
 
     [LibraryImport(LibraryName)]
@@ -1565,8 +1642,9 @@ internal static unsafe partial class SDL3
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDL_MouseID* SDL_GetMice(int* count);
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalUsing(typeof(SDLOwnedStringMarshaller))]
     public static partial string SDL_GetMouseNameForID(SDL_MouseID instance_id);
 
     [LibraryImport(LibraryName)]
@@ -1671,8 +1749,9 @@ internal static unsafe partial class SDL3
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDL_TouchID* SDL_GetTouchDevices(out int count);
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalUsing(typeof(SDLOwnedStringMarshaller))]
     public static partial string SDL_GetTouchDeviceName(SDL_TouchID touchID);
 
     [LibraryImport(LibraryName)]
@@ -1708,7 +1787,8 @@ internal static unsafe partial class SDL3
 
     [LibraryImport(LibraryName, EntryPoint = "SDL_GetSensorNameForID")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial byte* Unsafe_SDL_GetSensorNameForID(SDL_SensorID instance_id);
+    [return: MarshalUsing(typeof(SDLOwnedStringMarshaller))]
+    public static partial string SDL_GetSensorNameForID(SDL_SensorID instance_id);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -1732,7 +1812,8 @@ internal static unsafe partial class SDL3
 
     [LibraryImport(LibraryName, EntryPoint = "SDL_GetSensorName")]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial byte* Unsafe_SDL_GetSensorName(SDL_Sensor* sensor);
+    [return: MarshalUsing(typeof(SDLOwnedStringMarshaller))]
+    public static partial string SDL_GetSensorName(SDL_Sensor* sensor);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -1900,11 +1981,12 @@ internal static unsafe partial class SDL3
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void SDL_CloseGamepad(SDL_Gamepad* gamepad);
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    [return: MarshalUsing(typeof(SDLOwnedStringMarshaller))]
     public static partial string SDL_GetGamepadName(SDL_Gamepad* gamepad);
 
-    [LibraryImport(LibraryName, StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDL_GamepadType SDL_GetGamepadType(SDL_Gamepad* gamepad);
 

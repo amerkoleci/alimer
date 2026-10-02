@@ -8,6 +8,7 @@ using Alimer.Assets;
 using Alimer.Audio;
 using Alimer.Engine;
 using Alimer.Graphics;
+using Alimer.Input;
 using Alimer.Physics;
 using Alimer.Rendering;
 using Alimer.Serialization;
@@ -72,7 +73,7 @@ public sealed class SampleBrowserGame : Game
             _audioSource.Play();
         }
 
-        _runningSample = new HelloWindowSample(Services, MainWindow);
+        //_runningSample = new HelloWindowSample(Services, MainWindow);
         //_runningSample = new DrawTriangleSample(Services, MainWindow);
         //_runningSample = new DrawIndexedQuadSample(Services, MainWindow);
         //_runningSample = new DrawCubeSample(Services, MainWindow);
@@ -82,13 +83,13 @@ public sealed class SampleBrowserGame : Game
 
         // Engine samples (scene)
         //_runningSample = new SceneCubeSample(Services);
-        //_runningSample = new ScenePBRRendererSample(Services);
+        _runningSample = new ScenePBRRendererSample(Services);
 
         MainWindow.Title = $"{_runningSample.Name} - {GraphicsDevice.Backend}";
     }
 
     /// <inheritdoc />
-    protected override void DisposeManagedResources() 
+    protected override void DisposeManagedResources()
     {
         _audioSource?.Dispose();
         _runningSample.Dispose();
@@ -99,6 +100,16 @@ public sealed class SampleBrowserGame : Game
     protected override void Update(GameTime time)
     {
         base.Update(time);
+
+        if (Input.IsKeyDown(Keys.Escape))
+        {
+            //if (MainWindow.State == WindowState.FullScreen || MainWindow.State == WindowState.ExclusiveFullScreen)
+            //{
+            //    MainWindow.State = WindowState.Normal;
+            //}
+
+            RequestExit();
+        }
 
         _runningSample.Update(time);
     }

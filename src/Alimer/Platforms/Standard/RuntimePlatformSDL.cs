@@ -58,7 +58,7 @@ internal unsafe partial class RuntimePlatformSDL : RuntimePlatform
 
 
         _input = new SDLInputManager();
-        MainWindow = (_window = new WindowSDL(this, WindowFlags.Resizable));
+        MainWindow = (_window = new WindowSDL(this, 1280, 720, WindowFlags.Resizable));
         _idLookup.Add(_window.Id, _window);
     }
 

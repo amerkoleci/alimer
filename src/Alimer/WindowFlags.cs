@@ -4,7 +4,7 @@
 namespace Alimer;
 
 /// <summary>
-/// <see cref="Window"/> Creation Flags
+/// Creation flags for a window.
 /// </summary>
 [Flags]
 public enum WindowFlags
@@ -12,11 +12,12 @@ public enum WindowFlags
     /// <summary>
     /// None,
     /// </summary>
-    None = 0x0000,
-    Fullscreen = 0x0001,
-    Hidden = 0x0002,
-    Borderless = 0x0004,
-    Resizable = 0x0008,
-    Maximized = 0x0010,
-    AlwaysOnTop = 0x0020,
+    None = 0,
+    Fullscreen = 1 << 0,
+    ExclusiveFullscreen = 1 << 1,
+    Hidden = 1 << 2,
+    Borderless = 1 << 3,
+    Resizable = 1 << 4,
+    Maximized = 1 << 5,
+    AlwaysOnTop = 1 << 6,
 }

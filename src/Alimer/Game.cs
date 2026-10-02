@@ -3,13 +3,12 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Alimer.Audio;
 using Alimer.Assets;
+using Alimer.Audio;
 using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Input;
 using Alimer.Rendering;
-using System.Runtime.CompilerServices;
 
 namespace Alimer;
 
@@ -286,7 +285,7 @@ public abstract class Game : DisposableObject, IGame
                 BeginDraw();
 
                 // Begin rendering commands if the window is not minimized. We can skip rendering when the window is minimized to save resources.
-                if (!MainWindow.IsMinimized)
+                if (MainWindow.State != WindowState.Minimized)
                 {
                     CommandBuffer commandBuffer = GraphicsDevice.AcquireCommandBuffer(CommandQueueType.Graphics, "Frame"u8);
                     Texture? swapChainTexture = MainWindow.Surface!.AcquireNextTexture();

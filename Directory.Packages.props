@@ -6,7 +6,8 @@
   <!-- Package versions for package references across all projects -->
   <PropertyGroup>
     <ImGuiVersion>3.1.0-experimental</ImGuiVersion>
-    <SkiaSharpVersion>4.151.2</SkiaSharpVersion>
+    <SkiaSharpVersion>4.153.1</SkiaSharpVersion>
+    <VorticeWin32Version>2.6.0</VorticeWin32Version>
   </PropertyGroup>
   
   <ItemGroup>
@@ -23,7 +24,9 @@
     
     <!-- Graphics -->
     <PackageVersion Include="TerraFX.Interop.Windows" Version="10.0.26100.6" />
-    <PackageVersion Include="Vortice.Vulkan" Version="3.2.3" />
+    <PackageVersion Include="Vortice.Vulkan" Version="3.3.0" />
+    <PackageVersion Include="Vortice.Win32.Graphics.Dxgi" Version="$(VorticeWin32Version)" />
+    <PackageVersion Include="Vortice.Win32.Graphics.Direct3D12" Version="$(VorticeWin32Version)" />
     
     <!-- Others -->
     <PackageVersion Include="DotRecast.Recast" Version="2026.3.1" />
@@ -33,7 +36,8 @@
     <PackageVersion Include="XenoAtom.CommandLine" Version="2.0.3" />
     
     <!-- Asset Pipeline -->
-    <PackageVersion Include="Vortice.Dxc.Native" Version="1.0.5" />
+    <PackageVersion Include="Vortice.Win32.Graphics.Direct3D.Dxc" Version="$(VorticeWin32Version)" />
+    <PackageVersion Include="Vortice.Dxc.Native" Version="1.0.6" />
     <PackageVersion Include="Silk.NET.Assimp" Version="2.23.0" />
     <PackageVersion Include="Vortice.SPIRV.Reflect" Version="1.0.6" />
     <PackageVersion Include="Alimer.Bindings.MeshOptimizer" Version="1.2.1" />

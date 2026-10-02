@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Vortice.Win32.Graphics.Direct3D.Dxc" PrivateAssets="compile" />
     <PackageReference Include="Vortice.SPIRV.Reflect" PrivateAssets="compile" />
     <PackageReference Include="Slangc.NET" />
     <PackageReference Include="Vortice.Dxc.Native" />
@@ -14,8 +15,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Alimer\Alimer.csproj" />
-    
-    <PackageReference Include="TerraFX.Interop.Windows" PrivateAssets="compile" />
   </ItemGroup>
 
 </Project>

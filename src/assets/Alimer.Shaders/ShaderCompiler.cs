@@ -4,14 +4,11 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Alimer.Graphics;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
 using Vortice.SPIRV.Reflect;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.DirectX.DXC;
-using static TerraFX.Interop.DirectX.DXC_OUT_KIND;
-using static TerraFX.Interop.Windows.CLSID;
-using static TerraFX.Interop.Windows.Windows;
+using Vortice.Win32;
+using Vortice.Win32.Graphics.Direct3D.Dxc;
+using static Vortice.Win32.Apis;
+using static Vortice.Win32.Graphics.Direct3D.Dxc.Apis;
 using static Vortice.SPIRV.Reflect.SPIRVReflectApi;
 
 namespace Alimer.Shaders;
@@ -240,13 +237,13 @@ public sealed unsafe partial class ShaderCompiler
                 arguments.Add("-Qstrip_debug");
         }
 
-        HRESULT hr = Compile(source,
+        HResult hr = Compile(source,
             [.. arguments],
             __uuidof<IDxcResult>(),
             (void**)results.GetAddressOf()
             );
 
-        if (hr.FAILED)
+        if (hr.Failure)
         {
             return new DxcShaderCompilationResult($"Compile failed with HRESULT {hr}");
         }
@@ -271,9 +268,9 @@ public sealed unsafe partial class ShaderCompiler
         }
 
         // Quit if the compilation failed.
-        HRESULT hrStatus;
+        HResult hrStatus;
         results.Get()->GetStatus(&hrStatus);
-        if (hrStatus.FAILED)
+        if (hrStatus.Failure)
         {
             return new DxcShaderCompilationResult($"Compile failed with HRESULT {hrStatus} -> {warningAndErrors}");
         }
@@ -410,7 +407,7 @@ public sealed unsafe partial class ShaderCompiler
         return new DxcShaderCompilationResult(byteCode);
     }
 
-    private HRESULT Compile(ReadOnlySpan<char> source, string[] arguments, Guid* riid, void** ppResult)
+    private HResult Compile(ReadOnlySpan<char> source, string[] arguments, Guid* riid, void** ppResult)
     {
         using ComPtr<IDxcBlobEncoding> dxcBlobEncoding = default;
 
@@ -435,7 +432,7 @@ public sealed unsafe partial class ShaderCompiler
 
         try
         {
-            HRESULT hr = _dxcCompiler.Get()->Compile(
+            HResult hr = _dxcCompiler.Get()->Compile(
                 &buffer,
                 (char**)pArguments,
                 (uint)arguments.Length,

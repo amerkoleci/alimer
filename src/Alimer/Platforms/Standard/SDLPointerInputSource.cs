@@ -109,7 +109,7 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
     public void HandleWindowMouseEnterOrLeaveEvent(in SDL_Event evt)
     {
         SDL_Keymod mod = SDL_GetModState();
-        SDL_Window window = SDL_GetWindowFromID(evt.window.windowID);
+        SDL_Window* window = SDL_GetWindowFromID(evt.window.windowID);
         bool isInContact = GetMousePosition(window, out Vector2 mousePosition);
         PointerPoint pointerPoint = new()
         {
@@ -281,7 +281,7 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         };
     }
 
-    private static bool GetMousePosition(SDL_Window window, out Vector2 position)
+    private static bool GetMousePosition(SDL_Window* window, out Vector2 position)
     {
         SDL_MouseButtonFlags flags = SDL_GetGlobalMouseState(out float globalX, out float globalY);
 
