@@ -2,12 +2,10 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static TerraFX.Interop.DirectX.D3D12_COMMAND_LIST_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_PRIORITY;
-using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_FLAGS;
-using static TerraFX.Interop.Windows.Windows;
+using static Vortice.Win32.Apis;
+using static Vortice.Win32.Graphics.D3D12;
+using Vortice.Win32;
+using Vortice.Win32.Graphics;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -34,7 +32,7 @@ internal unsafe class D3D12CopyAllocator : IDisposable
             __uuidof<ID3D12CommandQueue>(),
             (void**)_queue.GetAddressOf()
             );
-        if (hr.FAILED)
+        if (hr.Failure)
         {
             throw new GraphicsException("D3D12: CopyAllocator failed to create CommandQueue");
         }
@@ -84,7 +82,7 @@ internal unsafe class D3D12CopyAllocator : IDisposable
                 __uuidof<ID3D12CommandAllocator>(),
                 (void**)context.CommandAllocator.GetAddressOf()
                 );
-            ThrowIfFailed(hr);
+            hr.ThrowIfFailed();
 
             hr = _device.Device->CreateCommandList(0,
                 D3D12_COMMAND_LIST_TYPE_COPY,
@@ -93,8 +91,8 @@ internal unsafe class D3D12CopyAllocator : IDisposable
                 __uuidof<ID3D12CommandList>(),
                 (void**)context.CommandList.GetAddressOf()
                 );
-            ThrowIfFailed(hr);
-            ThrowIfFailed(context.CommandList.Get()->Close());
+            hr.ThrowIfFailed();
+            context.CommandList.Get()->Close().ThrowIfFailed();
 
             context.Fence = _device.Device->CreateFence();
             context.Fence.Get()->SetName("CopyAllocator::Fence");
@@ -106,8 +104,8 @@ internal unsafe class D3D12CopyAllocator : IDisposable
         }
 
         // Begin command list in valid state
-        ThrowIfFailed(context.CommandAllocator.Get()->Reset());
-        ThrowIfFailed(context.CommandList.Get()->Reset(context.CommandAllocator.Get(), null));
+        context.CommandAllocator.Get()->Reset().ThrowIfFailed();
+        context.CommandList.Get()->Reset(context.CommandAllocator.Get(), null).ThrowIfFailed();
 
         return context;
     }
@@ -116,7 +114,7 @@ internal unsafe class D3D12CopyAllocator : IDisposable
     {
         context.FenceValue++;
 
-        ThrowIfFailed(context.CommandList.Get()->Close());
+        context.CommandList.Get()->Close().ThrowIfFailed();
 
         ID3D12CommandList** commandLists = stackalloc ID3D12CommandList*[1]
         {
@@ -125,8 +123,8 @@ internal unsafe class D3D12CopyAllocator : IDisposable
 
         _queue.Get()->ExecuteCommandLists(1, commandLists);
 
-        ThrowIfFailed(_queue.Get()->Signal(context.Fence.Get(), context.FenceValue));
-        ThrowIfFailed(context.Fence.Get()->SetEventOnCompletion(context.FenceValue, HANDLE.NULL));
+        _queue.Get()->Signal(context.Fence.Get(), context.FenceValue).ThrowIfFailed();
+        context.Fence.Get()->SetEventOnCompletion(context.FenceValue, HANDLE.Null).ThrowIfFailed();
 
         lock (_lock)
         {

@@ -5,28 +5,16 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Alimer.Utilities;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
-using static TerraFX.Interop.DirectX.D3D12;
-using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_FEATURE;
-using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT1;
-using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT2;
-using static TerraFX.Interop.DirectX.D3D12_INDIRECT_ARGUMENT_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_MESH_SHADER_TIER;
-using static TerraFX.Interop.DirectX.D3D12_MESSAGE_CALLBACK_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_MESSAGE_ID;
-using static TerraFX.Interop.DirectX.D3D12_MESSAGE_SEVERITY;
-using static TerraFX.Interop.DirectX.D3D12_RAYTRACING_TIER;
-using static TerraFX.Interop.DirectX.D3D12_RLDO_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
-using static TerraFX.Interop.DirectX.D3D12_TILED_RESOURCES_TIER;
-using static Alimer.Graphics.D3D12.D3D12MA.D3D12MA_ALLOCATOR_FLAGS;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.DirectX.DXGI_FORMAT;
-using static TerraFX.Interop.Windows.Windows;
+using Vortice.Win32;
+using Vortice.Win32.Graphics;
 using static Alimer.Graphics.D3D12.D3D12MA;
+using static Alimer.Graphics.D3D12.D3D12MA.D3D12MA_ALLOCATOR_FLAGS;
+using static Vortice.Win32.Apis;
+using static Vortice.Win32.Graphics.D3D;
+using static Vortice.Win32.Graphics.D3D12;
+using static Vortice.Win32.Graphics.DXGICommon;
+using static Alimer.Graphics.D3D12.Win32Native;
+
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12GraphicsDevice : GraphicsDevice
@@ -40,8 +28,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
     private readonly ComPtr<ID3D12Fence> _deviceRemovedFence = default;
     private readonly GCHandle _deviceHandle;
-    private readonly HANDLE _deviceRemovedEvent = HANDLE.NULL;
-    private readonly HANDLE _deviceRemovedWaitHandle = HANDLE.NULL;
+    private readonly HANDLE _deviceRemovedEvent = HANDLE.Null;
+    private readonly HANDLE _deviceRemovedWaitHandle = HANDLE.Null;
     private uint _callbackCookie;
 
     private readonly D3D12CommandQueue[] _queues = new D3D12CommandQueue[(int)CommandQueueType.Count];
@@ -65,7 +53,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             (void**)_device.GetAddressOf()
             );
 
-        if (hr.FAILED)
+        if (hr.Failure)
         {
             throw new GraphicsException("D3D12: Failed to create device");
         }
@@ -76,7 +64,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         {
             // Configure debug device (if active).
             using ComPtr<ID3D12InfoQueue> infoQueue = default;
-            if (_device.CopyTo(infoQueue.GetAddressOf()).SUCCEEDED)
+            if (_device.CopyTo(infoQueue.GetAddressOf()).Success)
             {
                 infoQueue.Get()->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
                 infoQueue.Get()->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
@@ -118,25 +106,25 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
                 // Clear out the existing filters since we're taking full control of them
                 infoQueue.Get()->PushEmptyStorageFilter();
 
-                ThrowIfFailed(infoQueue.Get()->AddStorageFilterEntries(&filter));
+                infoQueue.Get()->AddStorageFilterEntries(&filter).ThrowIfFailed();
             }
 
             using ComPtr<ID3D12InfoQueue1> infoQueue1 = default;
-            if (_device.CopyTo(infoQueue1.GetAddressOf()).SUCCEEDED)
+            if (_device.CopyTo(infoQueue1.GetAddressOf()).Success)
             {
                 uint callbackCookie = default;
-                ThrowIfFailed(infoQueue1.Get()->RegisterMessageCallback(
+                infoQueue1.Get()->RegisterMessageCallback(
                     &DebugMessageCallback,
                     D3D12_MESSAGE_CALLBACK_FLAG_NONE,
                     null,
                     &callbackCookie
-                    ));
+                    ).ThrowIfFailed();
                 _callbackCookie = callbackCookie;
             }
         }
 
         bool supportVideoDevice = false;
-        if (_device.CopyTo(_videoDevice.GetAddressOf()).SUCCEEDED)
+        if (_device.CopyTo(_videoDevice.GetAddressOf()).Success)
         {
             supportVideoDevice = true;
         }
@@ -145,8 +133,8 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         {
             _deviceRemovedFence = _device.Get()->CreateFence();
 
-            _deviceRemovedEvent = CreateEventW(null, FALSE, FALSE, null);
-            ThrowIfFailed(_deviceRemovedFence.Get()->SetEventOnCompletion(UINT64_MAX, _deviceRemovedEvent));
+            _deviceRemovedEvent = CreateEventW(null, false, false, null);
+            _deviceRemovedFence.Get()->SetEventOnCompletion(ulong.MaxValue, _deviceRemovedEvent).ThrowIfFailed();
 
             _deviceHandle = GCHandle.Alloc(this, GCHandleType.Weak);
 
@@ -285,7 +273,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             MinConstantBufferOffsetAlignment = D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT,
             MaxConstantBufferBindingSize = D3D12_REQ_IMMEDIATE_CONSTANT_BUFFER_ELEMENT_COUNT * 16,
             MinStorageBufferOffsetAlignment = D3D12_RAW_UAV_SRV_BYTE_ALIGNMENT,
-            MaxStorageBufferBindingSize = (1 << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
+            MaxStorageBufferBindingSize = (1 << (int)D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP) - 1,
 
             TextureRowPitchAlignment = _adapter.Features.UnrestrictedBufferTextureCopyPitchSupported ? 1u : D3D12_TEXTURE_DATA_PITCH_ALIGNMENT,
             TextureDepthPitchAlignment = _adapter.Features.UnrestrictedBufferTextureCopyPitchSupported ? 1u : D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
@@ -357,7 +345,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         BindlessManager = new D3D12BindlessManager(this);
 
         ulong timestampFrequency;
-        ThrowIfFailed(D3D12GraphicsQueue.Handle->GetTimestampFrequency(&timestampFrequency));
+        D3D12GraphicsQueue.Handle->GetTimestampFrequency(&timestampFrequency).ThrowIfFailed();
         TimestampFrequency = timestampFrequency;
     }
 
@@ -451,7 +439,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         }
 
         // Device removed event
-        if (UnregisterWait(_deviceRemovedWaitHandle) == S.S_OK &&
+        if (UnregisterWait(_deviceRemovedWaitHandle) == S_OK &&
             _deviceHandle.IsAllocated)
         {
             _deviceHandle.Free();
@@ -463,7 +451,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
         if (_callbackCookie != 0)
         {
             using ComPtr<ID3D12InfoQueue1> infoQueue1 = default;
-            ThrowIfFailed(_device.CopyTo(infoQueue1.GetAddressOf()));
+            _device.CopyTo(infoQueue1.GetAddressOf()).ThrowIfFailed();
             infoQueue1.Get()->UnregisterMessageCallback(_callbackCookie);
             _callbackCookie = 0;
         }
@@ -478,7 +466,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
             using ComPtr<ID3D12DebugDevice> debugDevice = default;
 
-            if (_device.CopyTo(debugDevice.GetAddressOf()).SUCCEEDED)
+            if (_device.CopyTo(debugDevice.GetAddressOf()).Success)
             {
                 debugDevice.Get()->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
             }
@@ -629,7 +617,7 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
             Format = dxgiFormat
         };
         HRESULT hr = _device.Get()->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, ref featureData);
-        if (FAILED(hr))
+        if (hr.Failure)
             return false;
 
         if ((featureData.Support1 & D3D12_FORMAT_SUPPORT1_IA_VERTEX_BUFFER) != 0)
@@ -768,19 +756,19 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
 
     [UnmanagedCallersOnly]
     static void DebugMessageCallback(
-        D3D12_MESSAGE_CATEGORY Category,
+        D3D12_MESSAGE_CATEGORY MessageCategory,
         D3D12_MESSAGE_SEVERITY Severity,
         D3D12_MESSAGE_ID ID,
-        sbyte* pDescription,
+        byte* pDescription,
         void* pContext)
     {
-        string message = MarshalUtilities.GetUtf8Span(pDescription).GetString()!;
-        if (Severity == D3D12_MESSAGE_SEVERITY_CORRUPTION
-            || Severity == D3D12_MESSAGE_SEVERITY_ERROR)
+        string message = MarshalUtilities.GetString(MarshalUtilities.GetUtf8Span(pDescription))!;
+        if (Severity == D3D12_MESSAGE_SEVERITY.D3D12_MESSAGE_SEVERITY_CORRUPTION
+            || Severity == D3D12_MESSAGE_SEVERITY.D3D12_MESSAGE_SEVERITY_ERROR)
         {
             Log.Error($"[D3D12]: {message}");
         }
-        else if (Severity == D3D12_MESSAGE_SEVERITY_WARNING)
+        else if (Severity == D3D12_MESSAGE_SEVERITY.D3D12_MESSAGE_SEVERITY_WARNING)
         {
             Log.Warn($"[D3D12]: {message}");
         }

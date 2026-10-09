@@ -3,8 +3,8 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
+using Vortice.Win32;
+using Vortice.Win32.Graphics;
 
 #pragma warning disable CS0649
 

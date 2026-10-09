@@ -6,10 +6,10 @@ using System.Runtime.InteropServices;
 using Alimer.Graphics;
 using Vortice.SPIRV.Reflect;
 using Vortice.Win32;
-using Vortice.Win32.Graphics.Direct3D.Dxc;
 using static Vortice.Win32.Apis;
-using static Vortice.Win32.Graphics.Direct3D.Dxc.Apis;
+using static Vortice.Win32.Graphics.DXC;
 using static Vortice.SPIRV.Reflect.SPIRVReflectApi;
+using Vortice.Win32.Graphics;
 
 namespace Alimer.Shaders;
 
@@ -47,20 +47,19 @@ public sealed unsafe partial class ShaderCompiler
         using ComPtr<IDxcCompiler3> dxcCompiler = default;
         using ComPtr<IDxcIncludeHandler> dxcIncludeHandler = default;
 
-        ThrowIfFailed(DxcCreateInstance(
-           (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in CLSID_DxcLibrary)),
+        DxcCreateInstance(
+           (Guid*)Unsafe.AsPointer(in CLSID_DxcLibrary),
             __uuidof<IDxcUtils>(),
-            (void**)dxcUtils.GetAddressOf())
-            );
-        ThrowIfFailed(DxcCreateInstance(
-            (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in CLSID_DxcCompiler)),
-            __uuidof<IDxcCompiler3>(),
-            (void**)dxcCompiler.GetAddressOf())
-            );
+            (void**)dxcUtils.GetAddressOf()
+            ).ThrowIfFailed();
 
-        ThrowIfFailed(
-            dxcUtils.Get()->CreateDefaultIncludeHandler(dxcIncludeHandler.GetAddressOf())
-            );
+        DxcCreateInstance(
+            (Guid*)Unsafe.AsPointer(in CLSID_DxcCompiler),
+            __uuidof<IDxcCompiler3>(),
+            (void**)dxcCompiler.GetAddressOf()
+            ).ThrowIfFailed();
+
+        dxcUtils.Get()->CreateDefaultIncludeHandler(dxcIncludeHandler.GetAddressOf()).ThrowIfFailed();
 
         _dxcCompiler = dxcCompiler.Move();
         _dxcUtils = dxcUtils.Move();
@@ -237,7 +236,7 @@ public sealed unsafe partial class ShaderCompiler
                 arguments.Add("-Qstrip_debug");
         }
 
-        HResult hr = Compile(source,
+        HRESULT hr = Compile(source,
             [.. arguments],
             __uuidof<IDxcResult>(),
             (void**)results.GetAddressOf()
@@ -268,7 +267,7 @@ public sealed unsafe partial class ShaderCompiler
         }
 
         // Quit if the compilation failed.
-        HResult hrStatus;
+        HRESULT hrStatus;
         results.Get()->GetStatus(&hrStatus);
         if (hrStatus.Failure)
         {
@@ -407,18 +406,18 @@ public sealed unsafe partial class ShaderCompiler
         return new DxcShaderCompilationResult(byteCode);
     }
 
-    private HResult Compile(ReadOnlySpan<char> source, string[] arguments, Guid* riid, void** ppResult)
+    private HRESULT Compile(ReadOnlySpan<char> source, string[] arguments, Guid* riid, void** ppResult)
     {
         using ComPtr<IDxcBlobEncoding> dxcBlobEncoding = default;
 
         fixed (char* pSource = source)
         {
-            ThrowIfFailed(_dxcUtils.Get()->CreateBlobFromPinned(
+            _dxcUtils.Get()->CreateBlobFromPinned(
                 pSource,
                 (uint)source.Length * 2,
                 DXC_CP_UTF16,
-                dxcBlobEncoding.GetAddressOf())
-                );
+                dxcBlobEncoding.GetAddressOf()
+                ).ThrowIfFailed();
         }
 
         DxcBuffer buffer = new()
@@ -432,7 +431,7 @@ public sealed unsafe partial class ShaderCompiler
 
         try
         {
-            HResult hr = _dxcCompiler.Get()->Compile(
+            HRESULT hr = _dxcCompiler.Get()->Compile(
                 &buffer,
                 (char**)pArguments,
                 (uint)arguments.Length,

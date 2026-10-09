@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>$(_AlimerDotNetTfm);$(AlimerPlatforms)</TargetFrameworks>
@@ -16,7 +16,6 @@
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <CompilerGeneratedFilesOutputPath>.generated</CompilerGeneratedFilesOutputPath>
   </PropertyGroup>
-
   <ItemGroup>
     <None Include="$(AlimerRootDirectory)/README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
@@ -65,7 +64,8 @@
 
   <ItemGroup>
     <!-- Graphics -->
-    <PackageReference Include="TerraFX.Interop.Windows" Condition="'$(ExcludeD3D12)' != 'true'" PrivateAssets="compile" />
+    <PackageReference Include="Vortice.Win32.Graphics.Dxgi" Condition="'$(ExcludeD3D12)' != 'true'" PrivateAssets="compile" />
+    <PackageReference Include="Vortice.Win32.Graphics.Direct3D12" Condition="'$(ExcludeD3D12)' != 'true'" PrivateAssets="compile" />
     <PackageReference Include="Vortice.Vulkan" Condition="'$(ExcludeVulkan)' != 'true'" PrivateAssets="compile" />
   </ItemGroup>
 

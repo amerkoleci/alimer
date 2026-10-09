@@ -1,12 +1,12 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
+using Alimer.Utilities;
+using Vortice.Win32;
+using Vortice.Win32.Graphics;
 using static Alimer.Utilities.MarshalUtilities;
-using static TerraFX.Interop.DirectX.DXGI;
-using static TerraFX.Interop.DirectX.DXGI_ADAPTER_FLAG;
-using static TerraFX.Interop.Windows.Windows;
+using static Vortice.Win32.Apis;
+using static Vortice.Win32.Graphics.DXGI;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -23,7 +23,7 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
         _handle = handle.Move();
 
         DXGI_ADAPTER_DESC1 adapterDesc;
-        ThrowIfFailed(_handle.Get()->GetDesc1(&adapterDesc));
+        _handle.Get()->GetDesc1(&adapterDesc).ThrowIfFailed();
 
         // Init features
         Features = new D3D12Features(device);
@@ -43,13 +43,13 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
             }
         }
 
-        DeviceName = GetUtf16Span(in adapterDesc.Description[0], 128).GetString() ?? string.Empty;
+        DeviceName = MarshalUtilities.GetString(GetUtf16Span(in adapterDesc.Description[0], 128)) ?? string.Empty;
         VendorId = adapterDesc.VendorId;
         DeviceId = adapterDesc.DeviceId;
 
         // Detect adapter type.
         Type = GraphicsAdapterType.Other;
-        if ((adapterDesc.Flags & (uint)DXGI_ADAPTER_FLAG_SOFTWARE) != 0u)
+        if ((adapterDesc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0u)
         {
             Type = GraphicsAdapterType.Cpu;
         }

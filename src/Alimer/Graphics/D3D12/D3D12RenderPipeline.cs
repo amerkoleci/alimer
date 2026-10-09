@@ -1,21 +1,11 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using Alimer.Graphics.D3D;
-using Alimer.Utilities;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
+using Vortice.Win32;
+using Vortice.Win32.Graphics;
 using static Alimer.Graphics.Constants;
-using static TerraFX.Interop.DirectX.D3D12_DEPTH_WRITE_MASK;
-using static TerraFX.Interop.DirectX.D3D12_LOGIC_OP;
-using static TerraFX.Interop.DirectX.D3D12_INDEX_BUFFER_STRIP_CUT_VALUE;
-using static TerraFX.Interop.DirectX.D3D12_INPUT_CLASSIFICATION;
-using static TerraFX.Interop.DirectX.D3D12_PRIMITIVE_TOPOLOGY_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_MODE;
-using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_TIER;
-using static TerraFX.Interop.Windows.Windows;
+using static Vortice.Win32.Apis;
+using static Vortice.Win32.Graphics.D3D12;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -76,7 +66,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
                 ref readonly VertexAttribute attribute = ref layout.Attributes[i];
 
                 ref D3D12_INPUT_ELEMENT_DESC element = ref inputElements[inputLayoutDesc.NumElements++];
-                element.SemanticName = (sbyte*)UnsafeUtilities.GetPointerUnsafe(attribute.Semantic.GetSemanticName());
+                element.SemanticName = Alimer.Utilities.UnsafeUtilities.GetPointerUnsafe(attribute.Semantic.GetSemanticName());
                 element.SemanticIndex = (uint)attribute.SemanticIndex;
                 element.Format = attribute.Format.ToDxgiFormat();
                 element.InputSlot = binding;
@@ -109,9 +99,9 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
             rasterizerState.DepthBias = descriptor.RasterizerState.DepthBias;
             rasterizerState.DepthBiasClamp = descriptor.RasterizerState.DepthBiasClamp;
             rasterizerState.SlopeScaledDepthBias = descriptor.RasterizerState.DepthBiasSlopeScale;
-            rasterizerState.DepthClipEnable = (descriptor.RasterizerState.DepthClipMode == DepthClipMode.Clip) ? TRUE : FALSE;
-            rasterizerState.MultisampleEnable = descriptor.SampleCount > TextureSampleCount.Count1 ? TRUE : FALSE;
-            rasterizerState.AntialiasedLineEnable = FALSE;
+            rasterizerState.DepthClipEnable = (descriptor.RasterizerState.DepthClipMode == DepthClipMode.Clip) ? true : false;
+            rasterizerState.MultisampleEnable = descriptor.SampleCount > TextureSampleCount.Count1 ? true : false;
+            rasterizerState.AntialiasedLineEnable = false;
             rasterizerState.ForcedSampleCount = 0;
             rasterizerState.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
             if (descriptor.RasterizerState.ConservativeRasterEnable
@@ -171,8 +161,8 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
 
         D3D12_BLEND_DESC blendState = new()
         {
-            AlphaToCoverageEnable = descriptor.BlendState.AlphaToCoverageEnabled ? TRUE : FALSE,
-            IndependentBlendEnable = descriptor.BlendState.IndependentBlendEnable ? TRUE : FALSE
+            AlphaToCoverageEnable = descriptor.BlendState.AlphaToCoverageEnabled,
+            IndependentBlendEnable = descriptor.BlendState.IndependentBlendEnable
         };
         for (int i = 0; i < descriptor.ColorFormats.Length; i++)
         {
@@ -181,8 +171,8 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
 
             ref readonly RenderTargetBlendState attachment = ref descriptor.BlendState.RenderTargets[i];
 
-            blendState.RenderTarget[i].BlendEnable = GraphicsUtilities.BlendEnabled(in attachment) ? TRUE : FALSE;
-            blendState.RenderTarget[i].LogicOpEnable = FALSE;
+            blendState.RenderTarget[i].BlendEnable = GraphicsUtilities.BlendEnabled(in attachment);
+            blendState.RenderTarget[i].LogicOpEnable = false;
             blendState.RenderTarget[i].SrcBlend = attachment.SourceColorBlendFactor.ToD3D12(false);
             blendState.RenderTarget[i].DestBlend = attachment.DestinationColorBlendFactor.ToD3D12(false);
             blendState.RenderTarget[i].BlendOp = attachment.ColorBlendOperation.ToD3D12();
@@ -190,7 +180,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
             blendState.RenderTarget[i].DestBlendAlpha = attachment.DestinationColorBlendFactor.ToD3D12(true);
             blendState.RenderTarget[i].BlendOpAlpha = attachment.AlphaBlendOperation.ToD3D12();
             blendState.RenderTarget[i].LogicOp = D3D12_LOGIC_OP_NOOP;
-            blendState.RenderTarget[i].RenderTargetWriteMask = (byte)attachment.ColorWriteMask.ToD3D12();
+            blendState.RenderTarget[i].RenderTargetWriteMask = attachment.ColorWriteMask.ToD3D12();
 
             // RTV
             RTVFormats.RTFormats[(int)RTVFormats.NumRenderTargets] = (DXGI_FORMAT)descriptor.ColorFormats[i].ToDxgiFormat();
@@ -205,11 +195,11 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
         {
             // Depth
             DepthStencilState depthStencilState = descriptor.DepthStencilState;
-            d3dDepthStencilState.DepthEnable = (depthStencilState.DepthCompare != CompareFunction.Always || depthStencilState.DepthWriteEnabled) ? TRUE : FALSE;
+            d3dDepthStencilState.DepthEnable = (depthStencilState.DepthCompare != CompareFunction.Always || depthStencilState.DepthWriteEnabled) ? true : false;
             d3dDepthStencilState.DepthWriteMask = depthStencilState.DepthWriteEnabled ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
             d3dDepthStencilState.DepthFunc = depthStencilState.DepthCompare.ToD3D12();
 
-            d3dDepthStencilState.StencilEnable = GraphicsUtilities.StencilTestEnabled(in depthStencilState) ? TRUE : FALSE;
+            d3dDepthStencilState.StencilEnable = GraphicsUtilities.StencilTestEnabled(in depthStencilState);
             d3dDepthStencilState.StencilReadMask = (byte)depthStencilState.StencilReadMask;
             d3dDepthStencilState.StencilWriteMask = (byte)depthStencilState.StencilWriteMask;
 
@@ -218,11 +208,11 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
 
             if (device.DxAdapter.Features.DepthBoundsTestSupported)
             {
-                d3dDepthStencilState.DepthBoundsTestEnable = descriptor.DepthStencilState.DepthBoundsTestEnable ? TRUE : FALSE;
+                d3dDepthStencilState.DepthBoundsTestEnable = descriptor.DepthStencilState.DepthBoundsTestEnable;
             }
             else
             {
-                d3dDepthStencilState.DepthBoundsTestEnable = FALSE;
+                d3dDepthStencilState.DepthBoundsTestEnable = false;
             }
         }
         else
@@ -249,7 +239,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
         }
 
         HRESULT hr = device.Device->CreatePipelineState(&streamDesc, __uuidof<ID3D12PipelineState>(), (void**)_handle.GetAddressOf());
-        if (hr.FAILED)
+        if (hr.Failure)
         {
             Log.Error("D3D12: Failed to create Render Pipeline.");
             return;
@@ -264,7 +254,7 @@ internal unsafe class D3D12RenderPipeline : RenderPipeline
     public ID3D12PipelineState* Handle => _handle;
 
     public D3D_PRIMITIVE_TOPOLOGY D3DPrimitiveTopology { get; }
-    public uint NumVertexBindings { get; } 
+    public uint NumVertexBindings { get; }
     public uint GetStride(uint slot) => _strides[slot];
 
     /// <inheitdoc />

@@ -1,12 +1,11 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_PRIORITY;
-using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_FLAGS;
+using static Vortice.Win32.Apis;
+using static Vortice.Win32.Graphics.D3D12;
 using Alimer.Utilities;
+using Vortice.Win32.Graphics;
+using Vortice.Win32;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -44,7 +43,7 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
             __uuidof<ID3D12CommandQueue>(),
             (void**)_handle.GetAddressOf()
             );
-        if (hr.FAILED)
+        if (hr.Failure)
         {
             throw new GraphicsException("D3D12: Failed to create CommandQueue");
         }
@@ -184,7 +183,7 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
         // 100 before it knows 99 is ready.  Maybe insert sequential events?
         lock (_eventMutex)
         {
-            _fence.Get()->SetEventOnCompletion(fenceValue, HANDLE.NULL);
+            _fence.Get()->SetEventOnCompletion(fenceValue, HANDLE.Null);
             _lastCompletedFenceValue = fenceValue;
         }
     }

@@ -15,6 +15,7 @@ public enum ShaderModel
     Model_6_7,
     Model_6_8,
     Model_6_9,
+    Model_6_10,
 
-    Highest = Model_6_9,
+    Highest = Model_6_10,
 }

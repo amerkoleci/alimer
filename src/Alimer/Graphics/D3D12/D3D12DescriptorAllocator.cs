@@ -2,10 +2,10 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Numerics;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static TerraFX.Interop.DirectX.D3D12_DESCRIPTOR_HEAP_FLAGS;
-using static TerraFX.Interop.Windows.Windows;
+using Vortice.Win32;
+using Vortice.Win32.Graphics;
+using static Vortice.Win32.Apis;
+using static Vortice.Win32.Graphics.D3D12;
 using DescriptorIndex = System.UInt32;
 
 namespace Alimer.Graphics.D3D12;
@@ -19,7 +19,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
     private D3D12_CPU_DESCRIPTOR_HANDLE _startCpuHandleShaderVisible = default;
     private D3D12_GPU_DESCRIPTOR_HANDLE _startGpuHandleShaderVisible = default;
     private readonly Lock _lock = new();
-    private bool[] _allocatedDescriptors = [];
+    private bool[] _allocatedDescriptors = new bool[0];
     private DescriptorIndex _searchStart;
     private DescriptorIndex _searchBindlessStart;
 
@@ -210,7 +210,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
             __uuidof<ID3D12DescriptorHeap>(),
             (void**)_heap.GetAddressOf()
             );
-        if (hr.FAILED)
+        if (hr.Failure)
             return false;
 
         _startCpuHandle = _heap.Get()->GetCPUDescriptorHandleForHeapStart();
@@ -225,7 +225,7 @@ internal unsafe class D3D12DescriptorAllocator : IDisposable
                 (void**)_shaderVisibleHeap.GetAddressOf()
                 );
 
-            if (FAILED(hr))
+            if (hr.Failure)
                 return false;
 
             _startCpuHandleShaderVisible = _shaderVisibleHeap.Get()->GetCPUDescriptorHandleForHeapStart();

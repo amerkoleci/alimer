@@ -1,14 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_PRIORITY;
-using static TerraFX.Interop.DirectX.D3D12_COMMAND_QUEUE_FLAGS;
-using Alimer.Utilities;
-using System.Diagnostics;
-
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12ComputePassEncoder : ComputePassEncoder

@@ -1,20 +1,13 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
 using static Alimer.Graphics.Constants;
-using static TerraFX.Interop.DirectX.DXGI_FORMAT;
-using static TerraFX.Interop.DirectX.D3D12;
-using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE;
-using static TerraFX.Interop.DirectX.D3D12_SHADING_RATE_COMBINER;
-using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_RENDER_PASS_ENDING_ACCESS_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_RESOLVE_MODE;
+using static Vortice.Win32.Graphics.DXGICommon;
+using static Vortice.Win32.Graphics.D3D12;
 using System.Diagnostics;
 using Alimer.Utilities;
 using System.Runtime.CompilerServices;
+using Vortice.Win32.Graphics;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -56,7 +49,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
 
         SizeI renderArea = new(int.MaxValue, int.MaxValue);
         uint numRTVS = 0;
-        D3D12_RENDER_PASS_RENDER_TARGET_DESC* RTVs = stackalloc D3D12_RENDER_PASS_RENDER_TARGET_DESC[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
+        D3D12_RENDER_PASS_RENDER_TARGET_DESC* RTVs = stackalloc D3D12_RENDER_PASS_RENDER_TARGET_DESC[(int)D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
         D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DSV = default;
         D3D12_RENDER_PASS_FLAGS renderPassFlags = D3D12_RENDER_PASS_FLAG_NONE;
 
@@ -238,7 +231,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
 
         // The viewport and scissor default to cover all of the attachments
         D3D12_VIEWPORT viewport = new(0.0f, 0.0f, (float)renderArea.Width, (float)renderArea.Height);
-        RECT scissorRect = new(0, 0, renderArea.Width, renderArea.Height);
+        Vortice.Win32.Numerics.Rect scissorRect = new(0, 0, renderArea.Width, renderArea.Height);
         _commandBuffer.CommandList->RSSetViewports(1, &viewport);
         _commandBuffer.CommandList->RSSetScissorRects(1, &scissorRect);
     }
@@ -318,7 +311,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
 
     public override void SetScissorRect(in RectI scissorRect)
     {
-        RECT d3dScissorRect = new(scissorRect.Left, scissorRect.Top, scissorRect.Right, scissorRect.Bottom);
+        Vortice.Win32.Numerics.Rect d3dScissorRect = new(scissorRect.Left, scissorRect.Top, scissorRect.Right, scissorRect.Bottom);
         _commandBuffer.CommandList->RSSetScissorRects(1, &d3dScissorRect);
     }
 
@@ -328,10 +321,10 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
             count = scissorRects.Length;
 
 #if VALIDATE_USAGE
-        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(count, D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE, nameof(count));
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(count, (int)D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE, nameof(count));
 #endif
 
-        RECT* d3dScissorRects = stackalloc RECT[count];
+        Vortice.Win32.Numerics.Rect* d3dScissorRects = stackalloc Vortice.Win32.Numerics.Rect[count];
 
         for (int i = 0; i < count; i++)
         {
@@ -510,12 +503,12 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
             DstSubresource = resolveDestinationTexture.GetSubresourceIndex(resolveDestination.BaseMipLevel, resolveDestination.BaseArrayLayer/*, TextureAspect.Color*/),
             DstX = 0,
             DstY = 0,
-            SrcRect = new RECT()
+            SrcRect = new Vortice.Win32.Numerics.Rect()
             {
-                left = 0,
-                top = 0,
-                right = (int)resolveDestinationTexture.Width,
-                bottom = (int)resolveDestinationTexture.Height
+                Left = 0,
+                Top = 0,
+                Right = (int)resolveDestinationTexture.Width,
+                Bottom = (int)resolveDestinationTexture.Height
             }
         };
 

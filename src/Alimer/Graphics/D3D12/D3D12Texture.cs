@@ -1,18 +1,14 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
+using Vortice.Win32;
+using Vortice.Win32.Graphics;
 using static Alimer.Graphics.D3D12.D3D12MA;
 using static Alimer.Graphics.D3D12.D3D12Utils;
 using static Alimer.Utilities.MemoryUtilities;
-using static TerraFX.Interop.DirectX.D3D12_HEAP_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_TEXTURE_LAYOUT;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.Windows.E;
-using static TerraFX.Interop.Windows.Windows;
+using static Vortice.Win32.Apis;
+using static Vortice.Win32.Graphics.D3D12;
+using static Alimer.Graphics.D3D12.Win32Native;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -20,7 +16,7 @@ internal unsafe class D3D12Texture : Texture
 {
     private readonly ComPtr<ID3D12Resource> _handle;
     private readonly D3D12MA_Allocation _allocation;
-    private readonly HANDLE _sharedHandle = HANDLE.NULL;
+    private readonly HANDLE _sharedHandle = HANDLE.Null;
     private readonly D3D12_PLACED_SUBRESOURCE_FOOTPRINT* _footprints;
     private readonly ulong* _rowSizesInBytes;
     private readonly uint* _numRows;
@@ -208,7 +204,7 @@ internal unsafe class D3D12Texture : Texture
                 );
         }
 
-        if (hr.FAILED)
+        if (hr.Failure)
         {
             Log.Error("D3D12: Failed to create Texture.");
             return;
@@ -217,7 +213,7 @@ internal unsafe class D3D12Texture : Texture
         if (isShared)
         {
             HANDLE sharedHandle = default;
-            if (device.Device->CreateSharedHandle((ID3D12DeviceChild*)_handle.Get(), null, GENERIC_ALL, null, &sharedHandle).FAILED)
+            if (device.Device->CreateSharedHandle((ID3D12DeviceChild*)_handle.Get(), null, GENERIC_ALL, null, &sharedHandle).Failure)
             {
                 return;
             }

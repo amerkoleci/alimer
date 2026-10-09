@@ -2,20 +2,13 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.CompilerServices;
-using Alimer.Graphics.D3D;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.DXGI;
-using static TerraFX.Interop.DirectX.DXGI_FORMAT;
-using static TerraFX.Interop.DirectX.DXGI_SCALING;
-using static TerraFX.Interop.DirectX.DXGI_SWAP_EFFECT;
-using static TerraFX.Interop.DirectX.DXGI_ALPHA_MODE;
-using static TerraFX.Interop.DirectX.DXGI_SWAP_CHAIN_FLAG;
-using static TerraFX.Interop.DirectX.DXGI_COLOR_SPACE_TYPE;
-using static TerraFX.Interop.DirectX.DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG;
-using static TerraFX.Interop.DirectX.D3D12_FEATURE;
-using static TerraFX.Interop.DirectX.D3D12_FORMAT_SUPPORT1;
+using Vortice.Win32;
+using static Vortice.Win32.Apis;
+using static Vortice.Win32.Graphics.DXGICommon;
+using static Vortice.Win32.Graphics.DXGI;
+using static Vortice.Win32.Graphics.D3D12;
+using Vortice.Win32.Graphics;
+using static Alimer.Graphics.D3D12.Win32Native;
 
 #if WINDOWS
 using WinRT;
@@ -30,7 +23,7 @@ internal unsafe class D3D12Surface : Surface
     private ComPtr<ISwapChainPanelNative> _swapChainPanelNative;
     private D3D12Texture[]? _backbufferTextures;
     private readonly uint _syncInterval = 1;
-    private readonly uint _presentFlags = 0;
+    private readonly DXGI_PRESENT _presentFlags = 0;
     private bool _configured;
 
     public DXGI_FORMAT BackBufferFormat { get; private set; }
@@ -95,7 +88,7 @@ internal unsafe class D3D12Surface : Surface
             Scaling = DXGI_SCALING_STRETCH,
             SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD,
             AlphaMode = DXGI_ALPHA_MODE_IGNORE,
-            Flags = backendDevice.DxAdapter.DxManager.TearingSupported ? (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
+            Flags = backendDevice.DxAdapter.DxManager.TearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
         };
 
         using ComPtr<IDXGISwapChain1> tempSwapChain = default;
@@ -107,28 +100,27 @@ internal unsafe class D3D12Surface : Surface
                     Windowed = true
                 };
 
-                ThrowIfFailed(backendDevice.DxAdapter.DxManager.Handle->CreateSwapChainForHwnd(
+                backendDevice.DxAdapter.DxManager.Handle->CreateSwapChainForHwnd(
                     (IUnknown*)backendDevice.D3D12GraphicsQueue.Handle,
-                    (HWND)win32Surface.Hwnd,
+                    win32Surface.Hwnd,
                     &swapChainDesc,
                     &fsSwapChainDesc,
                     null,
-                    tempSwapChain.GetAddressOf())
-                    );
+                    tempSwapChain.GetAddressOf()).ThrowIfFailed();
 
                 // This class does not support exclusive full-screen mode and prevents DXGI from responding to the ALT+ENTER shortcut
-                ThrowIfFailed(backendDevice.DxAdapter.DxManager.Handle->MakeWindowAssociation((HWND)win32Surface.Hwnd, DXGI_MWA_NO_ALT_ENTER));
-                ThrowIfFailed(tempSwapChain.CopyTo(_handle.GetAddressOf()));
+                backendDevice.DxAdapter.DxManager.Handle->MakeWindowAssociation(win32Surface.Hwnd, DXGI_MWA_NO_ALT_ENTER).ThrowIfFailed();
+                tempSwapChain.CopyTo(_handle.GetAddressOf()).ThrowIfFailed();
                 break;
 
             case SwapChainPanelChainSurface swapChainPanelSurface:
             {
-                ThrowIfFailed(backendDevice.DxAdapter.DxManager.Handle->CreateSwapChainForComposition(
+                backendDevice.DxAdapter.DxManager.Handle->CreateSwapChainForComposition(
                     (IUnknown*)backendDevice.D3D12GraphicsQueue.Handle,
                     &swapChainDesc,
                     null,
                     tempSwapChain.GetAddressOf()
-                    ));
+                    ).ThrowIfFailed();
 
                 fixed (ISwapChainPanelNative** swapChainPanelNative = _swapChainPanelNative)
                 {
@@ -137,14 +129,13 @@ internal unsafe class D3D12Surface : Surface
                     swapChainPanel.Attach((IUnknown*)swapChainPanelSurface.SwapChainPanel);
 
 
-                    ThrowIfFailed(swapChainPanel.CopyTo(
+                    swapChainPanel.CopyTo(
                         (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_ISwapChainPanelNativeWinUI)),
-                        (void**)swapChainPanelNative)
-                        );
+                        (void**)swapChainPanelNative).ThrowIfFailed();
                 }
 
-                ThrowIfFailed(tempSwapChain.CopyTo(_handle.GetAddressOf()));
-                ThrowIfFailed(_swapChainPanelNative.Get()->SetSwapChain((IDXGISwapChain*)tempSwapChain.Get()));
+                tempSwapChain.CopyTo(_handle.GetAddressOf()).ThrowIfFailed();
+                _swapChainPanelNative.Get()->SetSwapChain((IDXGISwapChain*)tempSwapChain.Get()).ThrowIfFailed();
                 //DXGI_MATRIX_3X2_F transformMatrix = new()
                 //{
                 //    _11 = 1.0f / swapChainPanelSurface.Panel.CompositionScaleX,
@@ -202,7 +193,7 @@ internal unsafe class D3D12Surface : Surface
             backBufferWidth,
             backBufferHeight,
             BackBufferFormat,
-            backendDevice.DxAdapter.DxManager.TearingSupported ? (uint)DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
+            backendDevice.DxAdapter.DxManager.TearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u
             );
 
         if (hr == DXGI_ERROR_DEVICE_REMOVED
@@ -221,7 +212,7 @@ internal unsafe class D3D12Surface : Surface
         }
         else
         {
-            ThrowIfFailed(hr);
+            hr.ThrowIfFailed();
         }
 
         UpdateColorSpace();
@@ -239,7 +230,7 @@ internal unsafe class D3D12Surface : Surface
         D3D12GraphicsDevice backendDevice = (D3D12GraphicsDevice)Device;
 
         DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
-        ThrowIfFailed(_handle.Get()->GetDesc1(&swapChainDesc));
+        _handle.Get()->GetDesc1(&swapChainDesc).ThrowIfFailed();
 
         _backbufferTextures = new D3D12Texture[swapChainDesc.BufferCount];
         for (uint i = 0; i < swapChainDesc.BufferCount; ++i)
@@ -253,7 +244,7 @@ internal unsafe class D3D12Surface : Surface
             );
 
             using ComPtr<ID3D12Resource> backbufferTexture = default;
-            ThrowIfFailed(_handle.Get()->GetBuffer(i, __uuidof<ID3D12Resource>(), (void**)backbufferTexture.GetAddressOf()));
+            _handle.Get()->GetBuffer(i, __uuidof<ID3D12Resource>(), (void**)backbufferTexture.GetAddressOf()).ThrowIfFailed();
             _backbufferTextures[i] = new D3D12Texture(backendDevice, backbufferTexture.Get(), description, TextureLayout.Present);
         }
 
@@ -281,8 +272,8 @@ internal unsafe class D3D12Surface : Surface
 
         D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport = default;
         formatSupport.Format = BackBufferFormat;
-        HRESULT hr = backendDevice.Device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, (uint)sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT));
-        if (hr.SUCCEEDED &&
+        HRESULT hr = backendDevice.Device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT));
+        if (hr.Success &&
             (formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_DISPLAY) == 0)
         {
             return;
@@ -293,13 +284,13 @@ internal unsafe class D3D12Surface : Surface
         // Detect output
         // HDR display query: https://docs.microsoft.com/en-us/windows/win32/direct3darticles/high-dynamic-range
         using ComPtr<IDXGIOutput> dxgiOutput = default;
-        if (SUCCEEDED(_handle.Get()->GetContainingOutput(dxgiOutput.GetAddressOf())))
+        if (_handle.Get()->GetContainingOutput(dxgiOutput.GetAddressOf()).Success)
         {
             ComPtr<IDXGIOutput6> output6;
-            if (SUCCEEDED(dxgiOutput.As(&output6)))
+            if (dxgiOutput.As(&output6).Success)
             {
                 DXGI_OUTPUT_DESC1 desc1;
-                if (SUCCEEDED(output6.Get()->GetDesc1(&desc1)))
+                if (output6.Get()->GetDesc1(&desc1).Success)
                 {
                     if (desc1.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020)
                     {
@@ -311,10 +302,10 @@ internal unsafe class D3D12Surface : Surface
         else
         {
             // Get the retangle bounds of the app window.
-            RECT windowBounds;
+            Vortice.Win32.Numerics.Rect windowBounds;
             if (Source is Win32SwapChainSurface win32Surface)
             {
-                if (!GetWindowRect((HWND)win32Surface.Hwnd, &windowBounds))
+                if (!GetWindowRect(win32Surface.Hwnd, &windowBounds))
                     throw new InvalidOperationException($"GetWindowRect failed with {GetLastError()}");
             }
             else
@@ -323,10 +314,10 @@ internal unsafe class D3D12Surface : Surface
                 windowBounds = default;
             }
 
-            int ax1 = windowBounds.left;
-            int ay1 = windowBounds.top;
-            int ax2 = windowBounds.right;
-            int ay2 = windowBounds.bottom;
+            int ax1 = windowBounds.Left;
+            int ay1 = windowBounds.Top;
+            int ax2 = windowBounds.Right;
+            int ay2 = windowBounds.Bottom;
 
             using ComPtr<IDXGIOutput> bestOutput = default;
             long bestIntersectArea = -1;
@@ -334,18 +325,18 @@ internal unsafe class D3D12Surface : Surface
             // Search for an HDR display among the outputs (e.g. in case of a virtual output from a remote desktop session).
             using ComPtr<IDXGIAdapter> adapter = default;
             for (uint adapterIndex = 0;
-                SUCCEEDED(backendDevice.DxAdapter.DxManager.Handle->EnumAdapters(adapterIndex, adapter.ReleaseAndGetAddressOf()));
+                backendDevice.DxAdapter.DxManager.Handle->EnumAdapters(adapterIndex, adapter.ReleaseAndGetAddressOf()).Success;
                 ++adapterIndex)
             {
                 ComPtr<IDXGIOutput> output = default;
                 for (uint outputIndex = 0;
-                    SUCCEEDED(adapter.Get()->EnumOutputs(outputIndex, output.ReleaseAndGetAddressOf()));
+                    adapter.Get()->EnumOutputs(outputIndex, output.ReleaseAndGetAddressOf()).Success;
                     ++outputIndex)
                 {
                     // Get the rectangle bounds of current output.
                     DXGI_OUTPUT_DESC desc;
-                    ThrowIfFailed(output.Get()->GetDesc(&desc));
-                    RECT desktopCoordinates = desc.DesktopCoordinates;
+                    output.Get()->GetDesc(&desc).ThrowIfFailed();
+                    Vortice.Win32.Numerics.Rect desktopCoordinates = desc.DesktopCoordinates;
 
                     // Compute the intersection
                     int intersectArea = ComputeIntersectionArea(ax1, ay1, ax2, ay2, desc.DesktopCoordinates);
@@ -360,10 +351,10 @@ internal unsafe class D3D12Surface : Surface
             if (bestOutput.Get() is not null)
             {
                 using ComPtr<IDXGIOutput6> output6 = default;
-                if (SUCCEEDED(bestOutput.CopyTo(output6.GetAddressOf())))
+                if (bestOutput.CopyTo(output6.GetAddressOf()).Success)
                 {
                     DXGI_OUTPUT_DESC1 desc;
-                    ThrowIfFailed(output6.Get()->GetDesc1(&desc));
+                    output6.Get()->GetDesc1(&desc).ThrowIfFailed();
 
                     if (desc.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020)
                     {
@@ -397,17 +388,17 @@ internal unsafe class D3D12Surface : Surface
         }
 
         uint colorSpaceSupport = 0;
-        if (_handle.Get()->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport).SUCCEEDED
+        if (_handle.Get()->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport).Success
             && (colorSpaceSupport & (uint)DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT) != 0)
         {
-            ThrowIfFailed(_handle.Get()->SetColorSpace1(colorSpace));
+            _handle.Get()->SetColorSpace1(colorSpace).ThrowIfFailed();
         }
     }
 
     private static int ComputeIntersectionArea(
         int ax1, int ay1, int ax2, int ay2,
-        in RECT b)
+        in Vortice.Win32.Numerics.Rect b)
     {
-        return Math.Max(0, Math.Min(ax2, b.right) - Math.Max(ax1, b.left)) * Math.Max(0, Math.Min(ay2, b.bottom) - Math.Max(ay1, b.top));
+        return Math.Max(0, Math.Min(ax2, b.Right) - Math.Max(ax1, b.Left)) * Math.Max(0, Math.Min(ay2, b.Bottom) - Math.Max(ay1, b.Top));
     }
 }

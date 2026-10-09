@@ -4,20 +4,18 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using TerraFX.Interop;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static Alimer.Graphics.D3D.IID;
+using Vortice.Win32;
+using Vortice.Win32.Graphics;
+using static Vortice.Win32.Graphics.IID;
 
 #pragma warning disable CS0649
 
-namespace Alimer.Graphics.D3D;
+namespace Vortice.Win32.Graphics;
 
 [Guid("F92F19D2-3ADE-45A6-A20C-F6F1EA90554B")]
-[SupportedOSPlatform("windows6.3")]
 internal unsafe partial struct ISwapChainPanelNative : ISwapChainPanelNative.Interface, INativeGuid
 {
-    static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_ISwapChainPanelNative));
+    static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(in IID_ISwapChainPanelNative);
 
     public void** lpVtbl;
 

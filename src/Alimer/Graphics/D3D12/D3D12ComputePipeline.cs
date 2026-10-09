@@ -1,19 +1,10 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Alimer.Graphics.D3D;
-using Alimer.Utilities;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static Alimer.Graphics.Constants;
-using static TerraFX.Interop.DirectX.D3D12_INDEX_BUFFER_STRIP_CUT_VALUE;
-using static TerraFX.Interop.DirectX.D3D12_INPUT_CLASSIFICATION;
-using static TerraFX.Interop.DirectX.D3D12_PRIMITIVE_TOPOLOGY_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_MODE;
-using static TerraFX.Interop.DirectX.D3D12_CONSERVATIVE_RASTERIZATION_TIER;
-using static TerraFX.Interop.Windows.Windows;
+using Vortice.Win32;
+using Vortice.Win32.Graphics;
+using static Vortice.Win32.Apis;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -42,7 +33,7 @@ internal unsafe class D3D12ComputePipeline : ComputePipeline
         };
 
         HRESULT hr = device.Device->CreatePipelineState(&streamDesc, __uuidof<ID3D12PipelineState>(), (void**)_handle.GetAddressOf());
-        if (hr.FAILED)
+        if (hr.Failure)
         {
             Log.Error("D3D12: Failed to create Compute Pipeline.");
             return;

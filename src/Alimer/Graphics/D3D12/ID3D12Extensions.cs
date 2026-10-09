@@ -1,34 +1,17 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Runtime.CompilerServices;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static TerraFX.Interop.DirectX.DirectX;
-using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.D3D12_FENCE_FLAGS;
+using Vortice.Win32;
+using Vortice.Win32.Graphics;
 using static Alimer.Utilities.UnsafeUtilities;
+using static Vortice.Win32.Apis;
+using static Vortice.Win32.Graphics.D3D;
+using static Vortice.Win32.Graphics.D3D12;
 
 namespace Alimer.Graphics.D3D12;
 
 internal static unsafe partial class ID3D12Extensions
 {
-    public static void SetName<TD3D12Object>(ref this TD3D12Object self, ReadOnlySpan<char> name)
-        where TD3D12Object : unmanaged, ID3D12Object.Interface
-    {
-        if (name.IsEmpty)
-        {
-            _ = self.SetName(null);
-        }
-        else
-        {
-            fixed (char* pName = name)
-            {
-                _ = self.SetName(pName);
-            }
-        }
-    }
-
     public static void SetDxgiName<TDXGIObject>(ref this TDXGIObject self, ReadOnlySpan<char> name)
         where TDXGIObject : unmanaged, IDXGIObject.Interface
     {
@@ -45,17 +28,6 @@ internal static unsafe partial class ID3D12Extensions
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static HRESULT CheckFeatureSupport<TD3D12Device, TFeature>(ref this TD3D12Device self, D3D12_FEATURE feature, ref TFeature featureData)
-       where TD3D12Device : unmanaged, ID3D12Device.Interface
-       where TFeature : unmanaged
-    {
-        fixed (TFeature* featureDataPtr = &featureData)
-        {
-            return self.CheckFeatureSupport(feature, featureDataPtr, (uint)sizeof(TFeature));
-        }
-    }
-
     /// <summary>
     /// Creates a new <see cref="ID3D12Fence"/> for a given device.
     /// </summary>
@@ -67,12 +39,12 @@ internal static unsafe partial class ID3D12Extensions
     {
         using ComPtr<ID3D12Fence> d3D12Fence = default;
 
-        ThrowIfFailed(d3D12Device.CreateFence(
+        d3D12Device.CreateFence(
             0,
             D3D12_FENCE_FLAG_NONE,
             __uuidof<ID3D12Fence>(),
-            (void**)d3D12Fence.GetAddressOf())
-            );
+            (void**)d3D12Fence.GetAddressOf()
+            ).ThrowIfFailed();
 
         return d3D12Fence.Move();
     }
@@ -82,7 +54,7 @@ internal static unsafe partial class ID3D12Extensions
     {
         using ComPtr<ID3D12CommandSignature> result = default;
 
-        ThrowIfFailed(d3D12Device.CreateCommandSignature(desc, null, __uuidof<ID3D12CommandSignature>(), (void**)result.GetAddressOf()));
+        d3D12Device.CreateCommandSignature(desc, null, __uuidof<ID3D12CommandSignature>(), (void**)result.GetAddressOf()).ThrowIfFailed();
 
         return result.Move();
     }

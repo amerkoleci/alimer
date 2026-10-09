@@ -1,22 +1,10 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static TerraFX.Interop.DirectX.D3D12_SRV_DIMENSION;
-using static TerraFX.Interop.DirectX.D3D12_UAV_DIMENSION;
-using static TerraFX.Interop.DirectX.DXGI_FORMAT;
-using static TerraFX.Interop.DirectX.D3D12_BUFFER_SRV_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_BUFFER_UAV_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12;
-using static TerraFX.Interop.DirectX.D3D12_BARRIER_LAYOUT;
-using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
-using static TerraFX.Interop.Windows.Windows;
+using static Vortice.Win32.Graphics.DXGICommon;
+using static Vortice.Win32.Graphics.D3D12;
 using static Alimer.Graphics.Constants;
+using Vortice.Win32.Graphics;
 
 namespace Alimer.Graphics.D3D12;
 

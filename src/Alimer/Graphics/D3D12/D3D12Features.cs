@@ -1,21 +1,18 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop.DirectX;
-using static TerraFX.Interop.DirectX.D3D12_FEATURE;
-using static TerraFX.Interop.DirectX.D3D_FEATURE_LEVEL;
-using static TerraFX.Interop.DirectX.D3D_SHADER_MODEL;
-using static TerraFX.Interop.DirectX.D3D_ROOT_SIGNATURE_VERSION;
-using static TerraFX.Interop.DirectX.D3D12;
-using static TerraFX.Interop.Windows.E;
-using TerraFX.Interop.Windows;
+using Vortice.Win32.Graphics;
+using static Vortice.Win32.Apis;
+using static Vortice.Win32.Graphics.D3D;
+using static Vortice.Win32.Graphics.D3D12;
+using Vortice.Win32;
 
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe readonly struct D3D12Features
 {
     // Feature support data structs
-    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS _options;
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS  _options;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS1 _options1;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS2 _options2;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS3 _options3;
@@ -45,80 +42,80 @@ internal unsafe readonly struct D3D12Features
     public D3D12Features(ID3D12Device* device)
     {
         // Initialize static feature support data structures
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, ref _options).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, ref _options).Failure)
         {
             _options = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS1, ref _options1).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS1, ref _options1).Failure)
         {
             _options1 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS2, ref _options2).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS2, ref _options2).Failure)
         {
             _options2 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS3, ref _options3).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS3, ref _options3).Failure)
         {
             _options3 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS4, ref _options4).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS4, ref _options4).Failure)
         {
             _options4 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, ref _options5).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, ref _options5).Failure)
         {
             _options5 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, ref _options6).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, ref _options6).Failure)
         {
             _options6 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, ref _options7).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, ref _options7).Failure)
         {
             _options7 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS8, ref _options8).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS8, ref _options8).Failure)
         {
             _options8 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS9, ref _options9).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS9, ref _options9).Failure)
         {
             _options9 = default;
         }
 
 #if TODO
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS10, ref _options10).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS10, ref _options10).Failure)
         {
             _options10 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS11, ref _options11).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS11, ref _options11).Failure)
         {
             _options11 = default;
         }
 #endif
 
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS12, ref _options12).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS12, ref _options12).Failure)
         {
             _options12 = default;
-            _options12.MSPrimitivesPipelineStatisticIncludesCulledPrimitives = D3D12_TRI_STATE.D3D12_TRI_STATE_UNKNOWN;
+            _options12.MSPrimitivesPipelineStatisticIncludesCulledPrimitives = D3D12_TRI_STATE_UNKNOWN;
         }
 
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS13, ref _options13).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS13, ref _options13).Failure)
         {
             _options13 = default;
         }
 
-        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, ref _options19).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, ref _options19).Failure)
         {
             _options19 = new D3D12_FEATURE_DATA_D3D12_OPTIONS19
             {
@@ -129,7 +126,7 @@ internal unsafe readonly struct D3D12Features
             };
         }
 
-        if (device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, ref _gpuVASupport).FAILED)
+        if (device->CheckFeatureSupport(D3D12_FEATURE_GPU_VIRTUAL_ADDRESS_SUPPORT, ref _gpuVASupport).Failure)
         {
             _gpuVASupport = default;
         }
@@ -141,11 +138,11 @@ internal unsafe readonly struct D3D12Features
         for (uint nodeIndex = 0; nodeIndex < NodeCount; nodeIndex++)
         {
             _architecture1[nodeIndex].NodeIndex = nodeIndex;
-            if (device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE1, ref _architecture1[nodeIndex]).FAILED)
+            if (device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE1, ref _architecture1[nodeIndex]).Failure)
             {
                 D3D12_FEATURE_DATA_ARCHITECTURE dataArchLocal = default;
                 dataArchLocal.NodeIndex = nodeIndex;
-                if (device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &dataArchLocal, (uint)sizeof(D3D12_FEATURE_DATA_ARCHITECTURE)).FAILED)
+                if (device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &dataArchLocal, sizeof(D3D12_FEATURE_DATA_ARCHITECTURE)).Failure)
                 {
                     dataArchLocal.TileBasedRenderer = false;
                     dataArchLocal.UMA = false;
@@ -220,7 +217,8 @@ internal unsafe readonly struct D3D12Features
             D3D_FEATURE_LEVEL_9_3,
             D3D_FEATURE_LEVEL_9_2,
             D3D_FEATURE_LEVEL_9_1,
-            D3D_FEATURE_LEVEL_1_0_CORE
+            D3D_FEATURE_LEVEL_1_0_CORE,
+            D3D_FEATURE_LEVEL_1_0_GENERIC
         ];
 
         fixed (D3D_FEATURE_LEVEL* pFeatureLevels = featureLevels)
@@ -231,8 +229,8 @@ internal unsafe readonly struct D3D12Features
                 pFeatureLevelsRequested = pFeatureLevels
             };
 
-            HRESULT result = device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &dFeatureLevel, (uint)sizeof(D3D12_FEATURE_DATA_FEATURE_LEVELS));
-            if (result.SUCCEEDED)
+            HRESULT result = device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &dFeatureLevel, sizeof(D3D12_FEATURE_DATA_FEATURE_LEVELS));
+            if (result.Success)
             {
                 return dFeatureLevel.MaxSupportedFeatureLevel;
             }
@@ -247,7 +245,7 @@ internal unsafe readonly struct D3D12Features
         // Needs to be updated for future feature levels
         ReadOnlySpan<D3D_ROOT_SIGNATURE_VERSION> allRootSignatureVersions =
         [
-            //(D3D_ROOT_SIGNATURE_VERSION)0x3, //D3D_ROOT_SIGNATURE_VERSION_1_2,
+            D3D_ROOT_SIGNATURE_VERSION_1_2,
             D3D_ROOT_SIGNATURE_VERSION_1_1,
             D3D_ROOT_SIGNATURE_VERSION_1_0,
         ];
@@ -259,10 +257,10 @@ internal unsafe readonly struct D3D12Features
                 HighestVersion = allRootSignatureVersions[i]
             };
 
-            HRESULT result = device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &rootSignatureData, (uint)sizeof(D3D12_FEATURE_DATA_ROOT_SIGNATURE));
+            HRESULT result = device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &rootSignatureData, sizeof(D3D12_FEATURE_DATA_ROOT_SIGNATURE));
             if (result != E_INVALIDARG)
             {
-                if (result.FAILED)
+                if (result.Failure)
                 {
                     rootSignatureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_0;
                 }
@@ -280,6 +278,8 @@ internal unsafe readonly struct D3D12Features
         // Check support in descending order
         Span<D3D_SHADER_MODEL> allModelVersions =
         [
+            D3D_SHADER_MODEL_6_10,
+            D3D_SHADER_MODEL_6_9,
             D3D_SHADER_MODEL_6_8,
             D3D_SHADER_MODEL_6_7,
             D3D_SHADER_MODEL_6_6,
@@ -299,12 +299,12 @@ internal unsafe readonly struct D3D12Features
             {
                 HighestShaderModel = allModelVersions[i]
             };
-            HRESULT result = device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &shaderModel, (uint)sizeof(D3D12_FEATURE_DATA_SHADER_MODEL));
+            HRESULT result = device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &shaderModel, sizeof(D3D12_FEATURE_DATA_SHADER_MODEL));
             if (result != E_INVALIDARG)
             {
                 // Indicates that the version is recognizable by the runtime and stored in the struct
                 // Also terminate on unexpected error code
-                if (result.FAILED)
+                if (result.Failure)
                 {
                     shaderModel.HighestShaderModel = (D3D_SHADER_MODEL)0;
                 }
@@ -316,38 +316,4 @@ internal unsafe readonly struct D3D12Features
         // Shader model may not be supported. Continue the rest initializations
         return (D3D_SHADER_MODEL)0;
     }
-
-    // Until TerraFX supports those
-#if TODO
-    public partial struct D3D12_FEATURE_DATA_D3D12_OPTIONS16
-    {
-        public BOOL DynamicDepthBiasSupported;
-        public BOOL GPUUploadHeapSupported;
-    }
-
-    public partial struct D3D12_FEATURE_DATA_D3D12_OPTIONS17
-    {
-        public BOOL NonNormalizedCoordinateSamplersSupported;
-        public BOOL ManualWriteTrackingResourceSupported;
-    }
-
-    public partial struct D3D12_FEATURE_DATA_D3D12_OPTIONS18
-    {
-        public BOOL RenderPassesValid;
-    }
-
-    public partial struct D3D12_FEATURE_DATA_D3D12_OPTIONS19
-    {
-        public BOOL MismatchingOutputDimensionsSupported;
-        public uint SupportedSampleCountsWithNoOutputs;
-        public BOOL PointSamplingAddressesNeverRoundUp;
-        public BOOL RasterizerDesc2Supported;
-        public BOOL NarrowQuadrilateralLinesSupported;
-        public BOOL AnisoFilterWithPointMipSupported;
-        public uint MaxSamplerDescriptorHeapSize;
-        public uint MaxSamplerDescriptorHeapSizeWithStaticSamplers;
-        public uint MaxViewDescriptorHeapSize;
-        public BOOL ComputeOnlyCustomHeapSupported;
-    } 
-#endif
 }

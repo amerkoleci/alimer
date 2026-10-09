@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop.DirectX;
+using Vortice.Win32.Graphics;
 using static Alimer.Graphics.Constants;
 
 namespace Alimer.Graphics.D3D12;

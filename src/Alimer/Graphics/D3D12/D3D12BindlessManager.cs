@@ -1,20 +1,14 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using TerraFX.Interop.DirectX;
-using static TerraFX.Interop.DirectX.D3D12_FEATURE;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_BINDING_TIER;
-using static TerraFX.Interop.DirectX.D3D_SHADER_MODEL;
+using Vortice.Win32;
+using static Vortice.Win32.Apis;
+using static Vortice.Win32.Graphics.D3D;
+using static Vortice.Win32.Graphics.D3D12;
 using static Alimer.Graphics.Constants;
-using static TerraFX.Interop.Windows.Windows;
-using static TerraFX.Interop.DirectX.D3D12;
-using static TerraFX.Interop.DirectX.D3D12_ROOT_SIGNATURE_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_ROOT_DESCRIPTOR_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_SHADER_VISIBILITY;
-using static TerraFX.Interop.DirectX.DirectX;
-using System.Diagnostics;
-using TerraFX.Interop.Windows;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
+using Vortice.Win32.Graphics;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -34,7 +28,7 @@ internal unsafe class D3D12BindlessManager : IDisposable
         uint MaxNonSamplerDescriptors = 0;
         uint MaxSamplerDescriptors = 0;
         D3D12_FEATURE_DATA_D3D12_OPTIONS19 options19 = default;
-        if (FAILED(device.Device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, ref options19)))
+        if (device.Device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, ref options19).Failure)
         {
             if (device.DxAdapter.Features.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1)
             {
@@ -129,7 +123,7 @@ internal unsafe class D3D12BindlessManager : IDisposable
                 device.DxAdapter.Features.RootSignatureHighestVersion,
                 rootSignatureBlob.GetAddressOf(),
                 rootSignatureErrorBlob.GetAddressOf());
-            if (hr.FAILED)
+            if (hr.Failure)
             {
                 string errors = Marshal.PtrToStringAnsi((nint)rootSignatureErrorBlob.Get()->GetBufferPointer())!;
                 Log.Error($"D3D12SerializeVersionedRootSignature failed: {errors}");
@@ -141,7 +135,7 @@ internal unsafe class D3D12BindlessManager : IDisposable
                 rootSignatureBlob.Get()->GetBufferSize(),
                 __uuidof<ID3D12RootSignature>(),
                 (void**)_universalRootSignature.GetAddressOf());
-            ThrowIfFailed(hr);
+            hr.ThrowIfFailed();
         }
     }
 

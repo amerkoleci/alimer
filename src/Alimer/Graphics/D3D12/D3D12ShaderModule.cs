@@ -2,7 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Runtime.InteropServices;
-using TerraFX.Interop.DirectX;
+using Vortice.Win32.Graphics;
 
 namespace Alimer.Graphics.D3D12;
 

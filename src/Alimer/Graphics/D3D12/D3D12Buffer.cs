@@ -3,16 +3,12 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
-using static TerraFX.Interop.DirectX.D3D12;
-using static TerraFX.Interop.DirectX.D3D12_BARRIER_LAYOUT;
-using static TerraFX.Interop.DirectX.D3D12_HEAP_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
-using static TerraFX.Interop.Windows.Windows;
+using static Vortice.Win32.Graphics.D3D12;
+using static Vortice.Win32.Apis;
 using static Alimer.Graphics.Constants;
 using static Alimer.Graphics.D3D12.D3D12MA;
+using Vortice.Win32;
+using Vortice.Win32.Graphics;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -97,7 +93,7 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
             );
         }
 
-        if (hr.FAILED)
+        if (hr.Failure)
         {
             Log.Error("D3D12: Failed to create Buffer.");
             return;
@@ -126,14 +122,14 @@ internal unsafe class D3D12Buffer : GraphicsBuffer
         if (descriptor.MemoryType == MemoryType.Readback)
         {
             void* mappedData;
-            ThrowIfFailed(_handle.Get()->Map(0, null, &mappedData));
+            _handle.Get()->Map(0, null, &mappedData).ThrowIfFailed();
             _pMappedData = mappedData;
         }
         else if (descriptor.MemoryType == MemoryType.Upload)
         {
             D3D12_RANGE readRange = default;
             void* mappedData;
-            ThrowIfFailed(_handle.Get()->Map(0, &readRange, &mappedData));
+            _handle.Get()->Map(0, &readRange, &mappedData).ThrowIfFailed();
             _pMappedData = mappedData;
         }
 

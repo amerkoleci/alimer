@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using TerraFX.Interop.DirectX;
+using Vortice.Win32.Graphics;
 
 namespace Alimer.Graphics.D3D12;
 

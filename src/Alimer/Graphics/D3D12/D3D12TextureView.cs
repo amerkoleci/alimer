@@ -2,14 +2,10 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using TerraFX.Interop.DirectX;
-using static TerraFX.Interop.DirectX.D3D12_DSV_DIMENSION;
-using static TerraFX.Interop.DirectX.D3D12_DSV_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_RTV_DIMENSION;
-using static TerraFX.Interop.DirectX.D3D12_SRV_DIMENSION;
-using static TerraFX.Interop.DirectX.D3D12_UAV_DIMENSION;
-using static TerraFX.Interop.DirectX.DXGI_FORMAT;
+using Vortice.Win32.Graphics;
 using static Alimer.Graphics.Constants;
+using static Vortice.Win32.Graphics.DXGICommon;
+using static Vortice.Win32.Graphics.D3D12;
 using DescriptorIndex = System.UInt32;
 
 namespace Alimer.Graphics.D3D12;

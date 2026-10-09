@@ -1,11 +1,10 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using static TerraFX.Interop.DirectX.D3D12_QUERY_HEAP_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_QUERY_TYPE;
-using static TerraFX.Interop.Windows.Windows;
-using TerraFX.Interop.Windows;
-using TerraFX.Interop.DirectX;
+using Vortice.Win32;
+using Vortice.Win32.Graphics;
+using static Vortice.Win32.Apis;
+using static Vortice.Win32.Graphics.D3D12;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -24,7 +23,7 @@ internal unsafe class D3D12QueryHeap : QueryHeap
             NodeMask = 0u
         };
         HRESULT hr = device.Device->CreateQueryHeap(&heapDesc, __uuidof<ID3D12QueryHeap>(), (void**)_handle.GetAddressOf());
-        if (hr.FAILED)
+        if (hr.Failure)
         {
             Log.Error("D3D12: Failed to create QueryHeap.");
             return;

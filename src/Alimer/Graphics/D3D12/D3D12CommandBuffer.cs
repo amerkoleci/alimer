@@ -2,20 +2,14 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
-using TerraFX.Interop.DirectX;
-using TerraFX.Interop.Windows;
+using Vortice.Win32.Graphics;
 using static Alimer.Graphics.Constants;
 using static Alimer.Graphics.D3D12.D3D12Utils;
-using static TerraFX.Interop.DirectX.D3D12;
-using static TerraFX.Interop.DirectX.D3D12_COMMAND_LIST_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_BARRIER_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_BARRIER_FLAGS;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_BARRIER_TYPE;
-using static TerraFX.Interop.DirectX.D3D12_RESOURCE_STATES;
-using static TerraFX.Interop.DirectX.D3D12_TEXTURE_BARRIER_FLAGS;
-using static TerraFX.Interop.Windows.Windows;
+using static Vortice.Win32.Apis;
+using static Vortice.Win32.Graphics.D3D12;
 using Alimer.Utilities;
 using System.Runtime.CompilerServices;
+using Vortice.Win32;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -64,16 +58,12 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _commandAllocators = new ComPtr<ID3D12CommandAllocator>[queue.D3DDevice.MaxFramesInFlight];
         for (int i = 0; i < _commandAllocators.Length; ++i)
         {
-            ThrowIfFailed(
-                queue.D3DDevice.Device->CreateCommandAllocator(queue.CommandListType,
-                __uuidof<ID3D12CommandAllocator>(), (void**)_commandAllocators[i].GetAddressOf())
-            );
+            queue.D3DDevice.Device->CreateCommandAllocator(queue.CommandListType,
+                __uuidof<ID3D12CommandAllocator>(), (void**)_commandAllocators[i].GetAddressOf()).ThrowIfFailed();
         }
 
-        ThrowIfFailed(
-           queue.D3DDevice.Device->CreateCommandList1(0, queue.CommandListType, D3D12_COMMAND_LIST_FLAG_NONE,
-            __uuidof<ID3D12GraphicsCommandList6>(), (void**)_commandList6.GetAddressOf()
-        ));
+        queue.D3DDevice.Device->CreateCommandList1(0, queue.CommandListType, D3D12_COMMAND_LIST_FLAG_NONE,
+            __uuidof<ID3D12GraphicsCommandList6>(), (void**)_commandList6.GetAddressOf()).ThrowIfFailed();
         _commandList6.CopyTo(_commandList7.GetAddressOf());
 
         _renderPassEncoder = new D3D12RenderPassEncoder(this);
@@ -110,7 +100,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
             PopDebugGroup();
         }
 
-        ThrowIfFailed(_commandList6.Get()->Close());
+        _commandList6.Get()->Close().ThrowIfFailed();
 
         return (ID3D12CommandList*)_commandList6.Get();
     }
@@ -128,8 +118,8 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         _bindingTable.Reset();
 
         // Start the command list in a default state:
-        ThrowIfFailed(_commandAllocators[frameIndex].Get()->Reset());
-        ThrowIfFailed(_commandList6.Get()->Reset(_commandAllocators[frameIndex].Get(), null));
+        _commandAllocators[frameIndex].Get()->Reset().ThrowIfFailed();
+        _commandList6.Get()->Reset(_commandAllocators[frameIndex].Get(), null).ThrowIfFailed();
 
         if (!label.IsEmpty)
         {
@@ -154,13 +144,13 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
         if (_queue.QueueType == CommandQueueType.Graphics)
         {
 
-            RECT* scissorRects = stackalloc RECT[D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 1];
+            Vortice.Win32.Numerics.Rect* scissorRects = stackalloc Vortice.Win32.Numerics.Rect[(int)D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX + 1];
             for (int i = 0; i < D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX; ++i)
             {
-                scissorRects[i].bottom = D3D12_VIEWPORT_BOUNDS_MAX;
-                scissorRects[i].left = D3D12_VIEWPORT_BOUNDS_MIN;
-                scissorRects[i].right = D3D12_VIEWPORT_BOUNDS_MAX;
-                scissorRects[i].top = D3D12_VIEWPORT_BOUNDS_MIN;
+                scissorRects[i].Bottom = (int)D3D12_VIEWPORT_BOUNDS_MAX;
+                scissorRects[i].Left = (int)D3D12_VIEWPORT_BOUNDS_MIN;
+                scissorRects[i].Right = (int)D3D12_VIEWPORT_BOUNDS_MAX;
+                scissorRects[i].Top = (int)D3D12_VIEWPORT_BOUNDS_MIN;
             }
             _commandList6.Get()->RSSetScissorRects(D3D12_VIEWPORT_AND_SCISSORRECT_MAX_INDEX, scissorRects);
         }
@@ -190,7 +180,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
             barrier.AccessAfter = mappingAfter.Access;
             barrier.pResource = buffer.Handle;
             barrier.Offset = 0;
-            barrier.Size = UINT64_MAX;
+            barrier.Size = ulong.MaxValue;
 
             commit = _textureBarriersCount == MaxBarriers;
 
@@ -373,7 +363,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
             {
                 barrierGroups[numBarrierGroups].Type = D3D12_BARRIER_TYPE_GLOBAL;
                 barrierGroups[numBarrierGroups].NumBarriers = _globalBarriersCount;
-                barrierGroups[numBarrierGroups].pGlobalBarriers = (D3D12_GLOBAL_BARRIER*)Unsafe.AsPointer(ref UnsafeUtilities.GetReferenceUnsafe(_globalBarriers));
+                barrierGroups[numBarrierGroups].pGlobalBarriers = (D3D12_GLOBAL_BARRIER*)Unsafe.AsPointer(ref Utilities.UnsafeUtilities.GetReferenceUnsafe(_globalBarriers));
                 numBarrierGroups++;
             }
 
@@ -381,7 +371,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
             {
                 barrierGroups[numBarrierGroups].Type = D3D12_BARRIER_TYPE_TEXTURE;
                 barrierGroups[numBarrierGroups].NumBarriers = _textureBarriersCount;
-                barrierGroups[numBarrierGroups].pTextureBarriers = (D3D12_TEXTURE_BARRIER*)Unsafe.AsPointer(ref UnsafeUtilities.GetReferenceUnsafe(_textureBarriers));
+                barrierGroups[numBarrierGroups].pTextureBarriers = (D3D12_TEXTURE_BARRIER*)Unsafe.AsPointer(ref Utilities.UnsafeUtilities.GetReferenceUnsafe(_textureBarriers));
                 numBarrierGroups++;
             }
 
@@ -389,7 +379,7 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
             {
                 barrierGroups[numBarrierGroups].Type = D3D12_BARRIER_TYPE_BUFFER;
                 barrierGroups[numBarrierGroups].NumBarriers = _bufferBarriersCount;
-                barrierGroups[numBarrierGroups].pBufferBarriers = (D3D12_BUFFER_BARRIER*)Unsafe.AsPointer(ref UnsafeUtilities.GetReferenceUnsafe(_bufferBarriers));
+                barrierGroups[numBarrierGroups].pBufferBarriers = (D3D12_BUFFER_BARRIER*)Unsafe.AsPointer(ref Utilities.UnsafeUtilities.GetReferenceUnsafe(_bufferBarriers));
                 numBarrierGroups++;
             }
 
