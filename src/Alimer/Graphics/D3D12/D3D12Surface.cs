@@ -9,16 +9,13 @@ using static Vortice.Win32.Graphics.DXGI;
 using static Vortice.Win32.Graphics.D3D12;
 using Vortice.Win32.Graphics;
 using static Alimer.Graphics.D3D12.Win32Native;
-
-#if WINDOWS
-using WinRT;
-#endif
+using System.Runtime.InteropServices;
+using System.ComponentModel;
 
 namespace Alimer.Graphics.D3D12;
 
 internal unsafe class D3D12Surface : Surface
 {
-    private static readonly Guid IID_ISwapChainPanelNativeWinUI = new(0x63AAD0B8, 0x7C24, 0x40FF, 0x85, 0xA8, 0x64, 0x0D, 0x94, 0x4C, 0xC3, 0x25);
     private readonly ComPtr<IDXGISwapChain3> _handle;
     private ComPtr<ISwapChainPanelNative> _swapChainPanelNative;
     private D3D12Texture[]? _backbufferTextures;
@@ -113,6 +110,7 @@ internal unsafe class D3D12Surface : Surface
                 tempSwapChain.CopyTo(_handle.GetAddressOf()).ThrowIfFailed();
                 break;
 
+#if WINDOWS
             case SwapChainPanelChainSurface swapChainPanelSurface:
             {
                 backendDevice.DxAdapter.DxManager.Handle->CreateSwapChainForComposition(
@@ -124,14 +122,15 @@ internal unsafe class D3D12Surface : Surface
 
                 fixed (ISwapChainPanelNative** swapChainPanelNative = _swapChainPanelNative)
                 {
-                    using ComPtr<IUnknown> swapChainPanel = default;
-                    //swapChainPanel.Attach((IUnknown*)((IWinRTObject)swapChainPanelSurface.Panel).NativeObject.GetRef());
-                    swapChainPanel.Attach((IUnknown*)swapChainPanelSurface.SwapChainPanel);
+                    // Unwrap and get the 'ISwapChainPanelNative' interface with the right IID depending on the UI framework
+                    int result = ((WinRT.IWinRTObject)swapChainPanelSurface.SwapChainPanel).NativeObject.TryAs(
+                        iid: IID.IID_ISwapChainPanelNativeWinUI,
+                        ppv: out *(nint*)swapChainPanelNative);
 
-
-                    swapChainPanel.CopyTo(
-                        (Guid*)Unsafe.AsPointer(ref Unsafe.AsRef(in IID_ISwapChainPanelNativeWinUI)),
-                        (void**)swapChainPanelNative).ThrowIfFailed();
+                    if (result < 0)
+                    {
+                        throw new Win32Exception(result);
+                    }
                 }
 
                 tempSwapChain.CopyTo(_handle.GetAddressOf()).ThrowIfFailed();
@@ -144,6 +143,7 @@ internal unsafe class D3D12Surface : Surface
                 //ThrowIfFailed(_handle.Get()->SetMatrixTransform(&transformMatrix));
             }
             break;
+#endif
 
             default:
                 throw new GraphicsException("Surface not supported");

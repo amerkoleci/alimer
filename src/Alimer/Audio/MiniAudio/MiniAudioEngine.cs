@@ -5,7 +5,6 @@ using Alimer.Utilities;
 using static MiniAudioNative;
 using static MiniAudioNative.ma_result;
 using static MiniAudioNative.ma_device_state;
-using Vortice.Vulkan;
 
 namespace Alimer.Audio.MiniAudio;
 
@@ -15,7 +14,7 @@ internal unsafe class MiniAudioEngine : AudioEngine
     {
         Handle = ma_ex_engine_alloc();
 
-        var config = new ma_engine_ex_config();
+        ma_engine_ex_config config = new();
 
 #if TODO
         ma_device_config deviceConfig = ma_device_config_init(ma_device_type_playback);

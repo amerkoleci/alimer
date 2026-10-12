@@ -46,12 +46,25 @@ internal unsafe class D3D12GraphicsDevice : GraphicsDevice
     {
         _adapter = adapter;
 
-        HRESULT hr = D3D12CreateDevice(
-            (IUnknown*)adapter.Handle,
-            D3D_FEATURE_LEVEL_12_0,
-            __uuidof<ID3D12Device5>(),
-            (void**)_device.GetAddressOf()
-            );
+        HRESULT hr;
+        if(D3D12GraphicsManager.DeviceFactory != null)
+        {
+            hr = D3D12GraphicsManager.DeviceFactory->CreateDevice(
+                (IUnknown*)adapter.Handle,
+                D3D_FEATURE_LEVEL_12_0,
+                __uuidof<ID3D12Device5>(),
+                (void**)_device.GetAddressOf()
+                );
+        }
+        else
+        {
+            hr = D3D12CreateDevice(
+                (IUnknown*)adapter.Handle,
+                D3D_FEATURE_LEVEL_12_0,
+                __uuidof<ID3D12Device5>(),
+                (void**)_device.GetAddressOf()
+                );
+        }
 
         if (hr.Failure)
         {

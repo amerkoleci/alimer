@@ -12,10 +12,10 @@ using static Vortice.Win32.Graphics.IID;
 
 namespace Vortice.Win32.Graphics;
 
-[Guid("F92F19D2-3ADE-45A6-A20C-F6F1EA90554B")]
+[Guid("63aad0b8-7c24-40ff-85a8-640d944cc325")]
 internal unsafe partial struct ISwapChainPanelNative : ISwapChainPanelNative.Interface, INativeGuid
 {
-    static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(in IID_ISwapChainPanelNative);
+    static Guid* INativeGuid.NativeGuid => (Guid*)Unsafe.AsPointer(in IID_ISwapChainPanelNativeWinUI);
 
     public void** lpVtbl;
 

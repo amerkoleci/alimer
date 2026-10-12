@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <PackageReference Include="Vortice.Dxc.Native" />
+    <!--<PackageReference Include="Microsoft.Direct3D.D3D12" GeneratePathProperty="true" />-->
   </ItemGroup>
 
   <ItemGroup>
@@ -41,4 +42,41 @@
     <ProjectReference Include="..\..\src\assets\Alimer.Assets\Alimer.Assets.csproj" />
   </ItemGroup>
 
+  <Target Name="CopyAgilitySDKNativeFiles" BeforeTargets="PrepareForRun" DependsOnTargets="ResolvePackageAssets" Condition="'@(PackageReference-&gt;WithMetadataValue('Identity', 'Microsoft.Direct3D.D3D12'))' != ''">
+
+    <PropertyGroup>
+      <!-- Detect the correct native architecture based on the .NET build target -->
+      <NativeArch Condition="'$(Platform)' == 'ARM64' or '$(RuntimeIdentifier)' == 'win-arm64'">arm64</NativeArch>
+      <NativeArch Condition="'$(NativeArch)' == ''">x64</NativeArch>
+
+      <!-- Normalize the NuGet package path generated within nuget.g.props -->
+      <NormalizedPkgPath>$(PkgMicrosoft_Direct3D_D3D12)</NormalizedPkgPath>
+      <NormalizedPkgPath Condition="!HasTrailingSlash('$(NormalizedPkgPath)')">$(NormalizedPkgPath)\</NormalizedPkgPath>
+
+      <!-- Build the absolute path to the native binaries folder -->
+      <AgilityPackageFolder>$(NormalizedPkgPath)build\native\bin\$(NativeArch)\</AgilityPackageFolder>
+    </PropertyGroup>
+
+    <!-- Emit a warning if the package reference exists but the path cannot be resolved on disk -->
+    <Warning Text="[Agility SDK] Warning: The PkgMicrosoft_Direct3D_D3D12 variable is empty or the path does not exist!"
+             Condition="'$(PkgMicrosoft_Direct3D_D3D12)' == '' or !Exists('$(AgilityPackageFolder)')" />
+
+
+    <ItemGroup Condition="Exists('$(AgilityPackageFolder)')">
+      <!-- Seleziona D3D12Core.dll e d3d12sdklayers.dll dal pacchetto NuGet -->
+      <AgilitySDKFiles Include="$(AgilityPackageFolder)D3D12Core.dll;$(AgilityPackageFolder)D3D12Core.pdb;$(AgilityPackageFolder)D3D12SDKLayers.dll;$(AgilityPackageFolder)D3D12SDKLayers.pdb" />
+    </ItemGroup>
+
+    <!-- Execution log messages -->
+    <Message Text="[Agility SDK] Package reference detected. Path successfully resolved: $(PkgMicrosoft_Direct3D_D3D12)" Importance="high" Condition="Exists('$(AgilityPackageFolder)')" />
+    <Message Text="[Agility SDK] Copying native binaries ($(NativeArch)) to: $(OutDir)D3D12\" Importance="high" Condition="Exists('$(AgilityPackageFolder)')" />
+
+    <!-- Copy the native files into the output directory -->
+    <Copy SourceFiles="@(AgilitySDKFiles)"
+          DestinationFolder="$(OutDir)D3D12\"
+          SkipUnchangedFiles="true"
+          Condition="Exists('$(AgilityPackageFolder)')" />
+  </Target>
+
 </Project>
+

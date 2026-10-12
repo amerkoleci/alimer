@@ -5,9 +5,9 @@ using System.Diagnostics;
 using Vortice.Win32;
 using Vortice.Win32.Graphics;
 using static Vortice.Win32.Apis;
-using static Vortice.Win32.Graphics.DXGI;
 using static Vortice.Win32.Graphics.D3D;
 using static Vortice.Win32.Graphics.D3D12;
+using static Vortice.Win32.Graphics.DXGI;
 
 namespace Alimer.Graphics.D3D12;
 
@@ -15,6 +15,7 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
 {
     private static readonly Lazy<bool> s_isSupported = new(CheckIsSupported);
 
+    private static ComPtr<ID3D12DeviceFactory> s_deviceFactory = default;
     private readonly ComPtr<IDXGIFactory6> _handle = default;
     private readonly D3D12GraphicsAdapter[] _adapters;
 
@@ -26,6 +27,8 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
     /// <inheritdoc/>
     public override ReadOnlySpan<GraphicsAdapter> Adapters => _adapters;
 
+    public static bool EnableAgilitySDK { get; set; } = true;
+
     public D3D12GraphicsManager(in GraphicsManagerOptions options)
         : base(in options)
     {
@@ -36,7 +39,17 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
             dxgiFactoryFlags = true;
 
             using ComPtr<ID3D12Debug> d3d12Debug = default;
-            if (D3D12GetDebugInterface(__uuidof<ID3D12Debug>(), (void**)d3d12Debug.GetAddressOf()).Success)
+            HRESULT hr;
+            if (DeviceFactory is not null)
+            {
+                hr = DeviceFactory->GetConfigurationInterface(CLSID_D3D12Debug, d3d12Debug.GetAddressOf());
+            }
+            else
+            {
+                hr = D3D12GetDebugInterface(__uuidof<ID3D12Debug>(), (void**)d3d12Debug.GetAddressOf());
+            }
+
+            if (SUCCEEDED(hr))
             {
                 d3d12Debug.Get()->EnableDebugLayer();
 
@@ -65,7 +78,16 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
             // DRED
             {
                 using ComPtr<ID3D12DeviceRemovedExtendedDataSettings1> pDredSettings = default;
-                if (D3D12GetDebugInterface(__uuidof<ID3D12DeviceRemovedExtendedDataSettings1>(), (void**)pDredSettings.GetAddressOf()).Success)
+                if (DeviceFactory is not null)
+                {
+                    hr = DeviceFactory->GetConfigurationInterface(CLSID_D3D12DeviceRemovedExtendedData, pDredSettings.GetAddressOf());
+                }
+                else
+                {
+                    hr = D3D12GetDebugInterface(__uuidof<ID3D12DeviceRemovedExtendedDataSettings1>(), (void**)pDredSettings.GetAddressOf());
+                }
+
+                if (SUCCEEDED(hr))
                 {
                     // Turn on auto - breadcrumbs and page fault reporting.
                     pDredSettings.Get()->SetAutoBreadcrumbsEnablement(D3D12_DRED_ENABLEMENT_FORCED_ON);
@@ -122,12 +144,19 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
             }
 
             ID3D12Device* device = default;
-            if (D3D12CreateDevice((IUnknown*)dxgiAdapter1.Get(), 
-                D3D_FEATURE_LEVEL_12_0,
-                __uuidof<ID3D12Device>(),
-                (void**)&device).Failure)
+            if (s_deviceFactory.Get() is not null)
             {
-                continue;
+                if (s_deviceFactory.Get()->CreateDevice((IUnknown*)dxgiAdapter1.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof<ID3D12Device>(), (void**)&device).Failure)
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                if (D3D12CreateDevice((IUnknown*)dxgiAdapter1.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof<ID3D12Device>(), (void**)&device).Failure)
+                {
+                    continue;
+                }
             }
 
             D3D12GraphicsAdapter adapter = new(this, dxgiAdapter1.Move(), device);
@@ -138,6 +167,7 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
         _adapters = [.. adapters];
     }
 
+    public static ID3D12DeviceFactory* DeviceFactory => s_deviceFactory;
     public IDXGIFactory6* Handle => _handle;
     public bool TearingSupported { get; }
 
@@ -166,15 +196,35 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
     {
         try
         {
-            if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041))
+            if (!OperatingSystem.IsWindowsVersionAtLeast(10, 0, 20348))
             {
                 return false;
+            }
+
+
+            if (EnableAgilitySDK)
+            {
+                using ComPtr<ID3D12SDKConfiguration1> sdkConfig = default;
+                Guid guid = CLSID_D3D12SDKConfiguration;
+                HRESULT hr = D3D12GetInterface(&guid, __uuidof<ID3D12SDKConfiguration1>(), (void**)sdkConfig.GetAddressOf());
+                if (SUCCEEDED(hr))
+                {
+                    uint agilitySdkVersion = D3D12_SDK_VERSION;
+                    string agilitySdkPath = ".\\D3D12\\"; // D3D12SDKPath;
+
+                    hr = sdkConfig.Get()->CreateDeviceFactory(agilitySdkVersion, agilitySdkPath, __uuidof<ID3D12DeviceFactory>(), (void**)s_deviceFactory.GetAddressOf());
+                    if (FAILED(hr))
+                    {
+                        agilitySdkPath = ".\\";
+                        hr = sdkConfig.Get()->CreateDeviceFactory(agilitySdkVersion, agilitySdkPath, __uuidof<ID3D12DeviceFactory>(), (void**)s_deviceFactory.GetAddressOf());
+                    }
+                }
             }
 
             using ComPtr<IDXGIFactory4> dxgiFactory = default;
             using ComPtr<IDXGIAdapter1> dxgiAdapter = default;
 
-            CreateDXGIFactory1(__uuidof<IDXGIFactory4>(), (void**)dxgiFactory.GetAddressOf()).ThrowIfFailed();
+            CreateDXGIFactory2(0u, __uuidof<IDXGIFactory4>(), (void**)dxgiFactory.GetAddressOf()).ThrowIfFailed();
 
             bool foundCompatibleDevice = false;
             for (uint adapterIndex = 0;
@@ -191,10 +241,23 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
                 }
 
                 // Check to see if the adapter supports Direct3D 12, but don't create the actual device.
-                if (D3D12CreateDevice((IUnknown*)dxgiAdapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof<ID3D12Device>(), null).Success)
+                if (s_deviceFactory.Get() is not null)
                 {
-                    foundCompatibleDevice = true;
-                    break;
+                    using ComPtr<ID3D12Device> d3d12Device = default;
+                    if (s_deviceFactory.Get()->CreateDevice((IUnknown*)dxgiAdapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof<ID3D12Device>(), (void**)d3d12Device.GetAddressOf()).Success)
+                    {
+                        foundCompatibleDevice = true;
+                        break;
+                    }
+
+                }
+                else
+                {
+                    if (D3D12CreateDevice((IUnknown*)dxgiAdapter.Get(), D3D_FEATURE_LEVEL_12_0, __uuidof<ID3D12Device>(), null).Success)
+                    {
+                        foundCompatibleDevice = true;
+                        break;
+                    }
                 }
             }
 

@@ -61,6 +61,10 @@ public abstract class SurfaceSource
     /// <returns>A new instance of <see cref="SurfaceSource"/> which can be used to create a <see cref="Surface"/> for the given Win32 window.
     /// </returns>
     public static SurfaceSource CreateWin32(nint hwnd) => new Win32SwapChainSurface(hwnd);
+
+#if WINDOWS
+    public static SurfaceSource CreateSwapChainPanel(Microsoft.UI.Xaml.Controls.SwapChainPanel swapChainPanel) => new SwapChainPanelChainSurface(swapChainPanel);
+#endif
 }
 
 internal class AndroidSwapChainSurface(nint window) : SurfaceSource
@@ -108,10 +112,12 @@ internal class Win32SwapChainSurface(nint hwnd) : SurfaceSource
     public nint Hwnd { get; } = hwnd;
 }
 
-internal class SwapChainPanelChainSurface(nint swapChainPanel) : SurfaceSource
+#if WINDOWS
+internal class SwapChainPanelChainSurface(Microsoft.UI.Xaml.Controls.SwapChainPanel swapChainPanel) : SurfaceSource
 {
     /// <inheritdoc />
     public override SurfaceSourceType Kind => SurfaceSourceType.SwapChainPanel;
 
-    public nint SwapChainPanel { get; } = swapChainPanel;
+    public Microsoft.UI.Xaml.Controls.SwapChainPanel SwapChainPanel { get; } = swapChainPanel;
 }
+#endif

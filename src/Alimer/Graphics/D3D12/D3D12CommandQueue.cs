@@ -32,22 +32,7 @@ internal unsafe class D3D12CommandQueue : CommandQueue, IDisposable
         _nextFenceValue = (ulong)CommandListType << 56 | 1;
         _lastCompletedFenceValue = (ulong)CommandListType << 56;
 
-        D3D12_COMMAND_QUEUE_DESC queueDesc = new()
-        {
-            Type = CommandListType,
-            Priority = (int)D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
-            Flags = D3D12_COMMAND_QUEUE_FLAG_NONE,
-            NodeMask = 0
-        };
-        HRESULT hr = device.Device->CreateCommandQueue(&queueDesc,
-            __uuidof<ID3D12CommandQueue>(),
-            (void**)_handle.GetAddressOf()
-            );
-        if (hr.Failure)
-        {
-            throw new GraphicsException("D3D12: Failed to create CommandQueue");
-        }
-
+        _handle = device.Device->CreateCommandQueue(CommandListType);
         _fence = device.Device->CreateFence();
         _fence.Get()->Signal(_lastCompletedFenceValue);
 

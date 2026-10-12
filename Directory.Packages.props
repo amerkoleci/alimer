@@ -17,7 +17,8 @@
     <!-- Platform specific -->
     <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
     <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.4.0" />
-    
+    <PackageVersion Include="Microsoft.Direct3D.D3D12" Version="1.619.6" />
+
     <!-- Engine -->
     <PackageVersion Include="SkiaSharp" Version="$(SkiaSharpVersion)" />
     <PackageVersion Include="SkiaSharp.HarfBuzz" Version="$(SkiaSharpVersion)" />
