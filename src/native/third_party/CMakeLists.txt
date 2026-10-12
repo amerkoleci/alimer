@@ -121,7 +121,7 @@ if (NOT (EMSCRIPTEN OR ANDROID))
     CPMAddPackage(
         NAME SDL
         GITHUB_REPOSITORY libsdl-org/SDL
-        GIT_TAG release-3.4.16
+        GIT_TAG release-3.4.18
         OPTIONS
             "SDL_SHARED ON"
             "SDL_STATIC OFF"
@@ -161,7 +161,7 @@ if (NOT (EMSCRIPTEN OR ANDROID))
     set_property(TARGET "SDL3-shared" PROPERTY FOLDER "ThirdParty")
 endif ()
 
-# Add Box3D dependency
+# Add box3d dependency
 CPMAddPackage(
     NAME box3d
     GITHUB_REPOSITORY erincatto/box3d
@@ -170,5 +170,15 @@ CPMAddPackage(
         "BUILD_SHARED_LIBS ON"
         "BOX3D_DOUBLE_PRECISION OFF"
 )
-
 set_property(TARGET box3d PROPERTY FOLDER "ThirdParty")
+
+# Add box2d dependency
+CPMAddPackage(
+    NAME box2d
+    GITHUB_REPOSITORY erincatto/box2d
+    GIT_TAG main
+    OPTIONS
+        "BUILD_SHARED_LIBS ON"
+        "BOX2D_DOUBLE_PRECISION OFF"
+)
+set_property(TARGET box2d PROPERTY FOLDER "ThirdParty")
