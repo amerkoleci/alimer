@@ -10,8 +10,8 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
 {
     private const int MaxMouseButtons = (int)MouseButton.X2 + 1;
 
-    private readonly SDLCursor _defaultCursor;
-    private SDLCursor _currentCursor;
+    private readonly CursorSDL _defaultCursor;
+    private CursorSDL _currentCursor;
     private Vector2 _position;
     private Vector2 _delta;
     private Vector2 _scroll;
@@ -75,7 +75,7 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
             if (_currentCursor == value)
                 return;
 
-            _currentCursor = (SDLCursor)value;
+            _currentCursor = (CursorSDL)value;
             SDL_SetCursor(_currentCursor.Handle);
         }
     }

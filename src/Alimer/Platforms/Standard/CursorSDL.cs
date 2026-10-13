@@ -1,35 +1,54 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
+using Alimer.Numerics;
+using Alimer.Utilities;
 using static SDL3;
 using static SDL3.SDL_SystemCursor;
 
 namespace Alimer.Input;
 
-internal class SDLCursor : Cursor, IDisposable
+internal unsafe class CursorSDL : Cursor, IDisposable
 {
-    public nint Handle;
-
-    public SDLCursor(nint handle)
+    public CursorSDL(SDL_Cursor* handle)
     {
         Handle = handle;
     }
 
-    public SDLCursor(CursorType cursorType)
+    public CursorSDL(CursorType cursorType)
         : base(cursorType)
     {
         Handle = SDL_CreateSystemCursor(ToSDL(cursorType));
     }
 
-    ~SDLCursor() => Dispose();
+    public CursorSDL(ReadOnlySpan<ColorRgba> pixels, in SizeI size, in PointI hotspot)
+       : base(CursorType.Custom)
+    {
+        Debug.Assert(sizeof(ColorRgba) == 4);
+        int pitch = size.Width * 4;
+        SDL_Surface* surface = SDL_CreateSurfaceFrom(size.Width, size.Height, SDL_PixelFormat.SDL_PIXELFORMAT_RGBA8888, pixels.GetPointerUnsafe(), pitch);
+        if (surface is null)
+        {
+            throw new InvalidOperationException();
+        }
+
+        Handle = SDL_CreateColorCursor(surface, hotspot.X, hotspot.Y);
+        SDL_DestroySurface(surface);
+    }
+
+    public SDL_Cursor* Handle { get; private set; }
+
+    ~CursorSDL() => Dispose();
 
     public void Dispose()
     {
-        if (Handle != nint.Zero)
+        if (Handle is not null)
         {
             SDL_DestroyCursor(Handle);
-            Handle = nint.Zero;
+            Handle = default;
         }
+
         GC.SuppressFinalize(this);
     }
 
@@ -62,9 +81,4 @@ internal class SDLCursor : Cursor, IDisposable
             _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
         };
     }
-}
-
-partial class Cursors
-{
-    private static partial Cursor CreateCursor(CursorType cursorType) => new SDLCursor(cursorType);
 }

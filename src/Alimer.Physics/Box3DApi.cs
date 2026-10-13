@@ -10,7 +10,9 @@ using System.Runtime.InteropServices.Marshalling;
 using System.Text;
 using Alimer.Numerics;
 
-using Plane = Alimer.Numerics.Plane;
+using b3Vec3 = System.Numerics.Vector3;
+using b3Quat = System.Numerics.Quaternion;
+
 #if !BOX3D_DOUBLE_PRECISION
 using b3Pos = System.Numerics.Vector3;
 #endif
@@ -69,17 +71,6 @@ unsafe partial class Box3DApi
         public static implicit operator Vector2(in b3Vec2 vector) => Unsafe.BitCast<b3Vec2, Vector2>(vector);
     }
 
-    [StructLayout(LayoutKind.Sequential)]
-    public struct b3Vec3
-    {
-        public float x;
-        public float y;
-        public float z;
-
-        public static implicit operator b3Vec3(in Vector3 vector) => Unsafe.BitCast<Vector3, b3Vec3>(vector);
-        public static implicit operator Vector3(in b3Vec3 vector) => Unsafe.BitCast<b3Vec3, Vector3>(vector);
-    }
-
 #if BOX3D_DOUBLE_PRECISION
     [StructLayout(LayoutKind.Sequential)]
     public struct b3Pos
@@ -98,16 +89,6 @@ unsafe partial class Box3DApi
     {
         public float cosine;
         public float sine;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct b3Quat
-    {
-        public b3Vec3 v;
-        public float s;
-
-        public static implicit operator b3Quat(in Quaternion quaternion) => Unsafe.BitCast<Quaternion, b3Quat>(quaternion);
-        public static implicit operator Quaternion(in b3Quat quaternion) => Unsafe.BitCast<b3Quat, Quaternion>(quaternion);
     }
 
     [StructLayout(LayoutKind.Sequential)]

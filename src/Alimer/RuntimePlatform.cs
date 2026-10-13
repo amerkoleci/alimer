@@ -3,6 +3,7 @@
 
 using System.Runtime.InteropServices;
 using Alimer.Input;
+using Alimer.Numerics;
 
 namespace Alimer;
 
@@ -33,6 +34,10 @@ internal abstract partial class RuntimePlatform
     /// </summary>
     public abstract InputManager Input { get; }
 
+    /// <summary>
+    /// Create new instance of <see cref="RuntimePlatform"/> for the default implementation per platform.
+    /// </summary>
+    /// <returns></returns>
     public static partial RuntimePlatform CreateDefault();
 
     public abstract void RunMainLoop(Action ready, Action tick);
@@ -43,6 +48,9 @@ internal abstract partial class RuntimePlatform
     protected internal abstract bool HasClipboardText();
     protected internal abstract string? GetClipboardText();
     protected internal abstract void SetClipboardText(string? text);
+
+    protected internal abstract Cursor CreateSystemCursor(CursorType cursorType);
+    protected internal abstract Cursor CreateColorCursor(ReadOnlySpan<ColorRgba> pixels, in SizeI size, in PointI hotspot);
     #endregion
 
     /// <summary>

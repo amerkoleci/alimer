@@ -272,7 +272,7 @@ internal unsafe class D3D12Surface : Surface
 
         D3D12_FEATURE_DATA_FORMAT_SUPPORT formatSupport = default;
         formatSupport.Format = BackBufferFormat;
-        HRESULT hr = backendDevice.Device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &formatSupport, sizeof(D3D12_FEATURE_DATA_FORMAT_SUPPORT));
+        HRESULT hr = backendDevice.Device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, ref formatSupport);
         if (hr.Success &&
             (formatSupport.Support1 & D3D12_FORMAT_SUPPORT1_DISPLAY) == 0)
         {
@@ -314,11 +314,6 @@ internal unsafe class D3D12Surface : Surface
                 windowBounds = default;
             }
 
-            int ax1 = windowBounds.Left;
-            int ay1 = windowBounds.Top;
-            int ax2 = windowBounds.Right;
-            int ay2 = windowBounds.Bottom;
-
             using ComPtr<IDXGIOutput> bestOutput = default;
             long bestIntersectArea = -1;
 
@@ -339,7 +334,7 @@ internal unsafe class D3D12Surface : Surface
                     Vortice.Win32.Numerics.Rect desktopCoordinates = desc.DesktopCoordinates;
 
                     // Compute the intersection
-                    int intersectArea = ComputeIntersectionArea(ax1, ay1, ax2, ay2, desc.DesktopCoordinates);
+                    int intersectArea = ComputeIntersectionArea(windowBounds, desc.DesktopCoordinates);
                     if (intersectArea > bestIntersectArea)
                     {
                         bestOutput.Swap(ref output);
@@ -373,19 +368,12 @@ internal unsafe class D3D12Surface : Surface
             _ => DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709,// Anything else will be SDR (SRGB):
         };
 
-        switch (colorSpace)
+        ColorSpace = colorSpace switch
         {
-            default:
-            case DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709:
-                ColorSpace = ColorSpace.SRGB;
-                break;
-            case DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709:
-                ColorSpace = ColorSpace.HDR_LINEAR;
-                break;
-            case DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020:
-                ColorSpace = ColorSpace.HDR10_ST2084;
-                break;
-        }
+            DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709 => ColorSpace.HDR_LINEAR,
+            DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 => ColorSpace.HDR10_ST2084,
+            _ => ColorSpace.SRGB,
+        };
 
         uint colorSpaceSupport = 0;
         if (_handle.Get()->CheckColorSpaceSupport(colorSpace, &colorSpaceSupport).Success
@@ -395,10 +383,8 @@ internal unsafe class D3D12Surface : Surface
         }
     }
 
-    private static int ComputeIntersectionArea(
-        int ax1, int ay1, int ax2, int ay2,
-        in Vortice.Win32.Numerics.Rect b)
+    private static int ComputeIntersectionArea(in Vortice.Win32.Numerics.Rect a, in Vortice.Win32.Numerics.Rect b)
     {
-        return Math.Max(0, Math.Min(ax2, b.Right) - Math.Max(ax1, b.Left)) * Math.Max(0, Math.Min(ay2, b.Bottom) - Math.Max(ay1, b.Top));
+        return Math.Max(0, Math.Min(a.Right, b.Right) - Math.Max(a.Left, b.Left)) * Math.Max(0, Math.Min(a.Bottom, b.Bottom) - Math.Max(a.Top, b.Top));
     }
 }

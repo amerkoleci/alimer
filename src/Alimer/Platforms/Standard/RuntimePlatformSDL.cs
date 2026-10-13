@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Alimer.Input;
+using Alimer.Numerics;
 using static SDL3;
 using static SDL3.SDL_EventAction;
 using static SDL3.SDL_EventType;
@@ -141,13 +142,21 @@ internal unsafe partial class RuntimePlatformSDL : RuntimePlatform
                 _input.HandleEvent(in evt);
                 break;
 
+            case SDL_EVENT_CLIPBOARD_UPDATE:
+                break;
+
             //case SDL_EVENT_AUDIO_DEVICE_ADDED:
             //case SDL_EVENT_AUDIO_DEVICE_REMOVED:
             //    AudioSystem.ScanDevices();
             //    break;
 
             default:
-                if (evt.type >= SDL_EVENT_WINDOW_FIRST
+                if (evt.type >= SDL_EVENT_DISPLAY_FIRST
+                    && evt.type <= SDL_EVENT_DISPLAY_LAST)
+                {
+                    HandleDisplayEvent(in evt.display);
+                }
+                else if (evt.type >= SDL_EVENT_WINDOW_FIRST
                     && evt.type <= SDL_EVENT_WINDOW_LAST)
                 {
                     HandleWindowEvent(in evt.window);
@@ -161,11 +170,9 @@ internal unsafe partial class RuntimePlatformSDL : RuntimePlatform
         }
     }
 
-    private void FetchDisplays()
+    private void HandleDisplayEvent(in SDL_DisplayEvent evt)
     {
     }
-
-    //private void HandleDisplayEvent(SDL_DisplayEvent _) => FetchDisplays();
 
     private void HandleWindowEvent(in SDL_WindowEvent evt)
     {
@@ -185,6 +192,9 @@ internal unsafe partial class RuntimePlatformSDL : RuntimePlatform
     protected internal override string? GetClipboardText() => SDL_GetClipboardText();
     protected internal override void SetClipboardText(string? text) => SDL_SetClipboardText(text ?? string.Empty);
     #endregion
+
+    protected internal override Cursor CreateSystemCursor(CursorType cursorType) => new CursorSDL(cursorType);
+    protected internal override Cursor CreateColorCursor(ReadOnlySpan<ColorRgba> pixels, in SizeI size, in PointI hotspot) => new CursorSDL(pixels, size, hotspot);
 
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static void AlimerLog_SDL(nint userData, int category, SDL_LogPriority priority, byte* messagePtr)

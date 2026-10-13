@@ -1667,6 +1667,10 @@ internal static unsafe partial class SDL3
     public static partial SDLBool SDL_CaptureMouse(SDLBool enabled);
 
     #region Cursor
+    public partial struct SDL_Cursor
+    {
+    }
+
     public enum SDL_SystemCursor
     {
         SDL_SYSTEM_CURSOR_DEFAULT,
@@ -1694,23 +1698,28 @@ internal static unsafe partial class SDL3
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial nint SDL_CreateSystemCursor(SDL_SystemCursor id);
+    public static partial SDL_Cursor* SDL_CreateSystemCursor(SDL_SystemCursor id);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial SDLBool SDL_SetCursor(nint cursor);
+    public static partial SDL_Cursor* SDL_CreateColorCursor(SDL_Surface* surface, int hot_x, int hot_y);
+
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial nint SDL_GetCursor();
+    public static partial SDLBool SDL_SetCursor(SDL_Cursor* cursor);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial nint SDL_GetDefaultCursor();
+    public static partial SDL_Cursor* SDL_GetCursor();
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
-    public static partial void SDL_DestroyCursor(nint cursor);
+    public static partial SDL_Cursor* SDL_GetDefaultCursor();
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void SDL_DestroyCursor(SDL_Cursor* cursor);
 
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
@@ -2110,6 +2119,50 @@ internal static unsafe partial class SDL3
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDL_PowerState SDL_GetPowerInfo(out int seconds, out int percent);
+    #endregion
+
+    #region Surface
+    public const uint SDL_SURFACE_PREALLOCATED = 0x00000001U;
+    public const uint SDL_SURFACE_LOCK_NEEDED = 0x00000002U;
+    public const uint SDL_SURFACE_LOCKED = 0x00000004U;
+    public const uint SDL_SURFACE_SIMD_ALIGNED = 0x00000008U;
+
+    [Flags]
+    public enum SDL_SurfaceFlags : uint
+    {
+        SDL_SURFACE_PREALLOCATED = SDL3.SDL_SURFACE_PREALLOCATED,
+        SDL_SURFACE_LOCK_NEEDED = SDL3.SDL_SURFACE_LOCK_NEEDED,
+        SDL_SURFACE_LOCKED = SDL3.SDL_SURFACE_LOCKED,
+        SDL_SURFACE_SIMD_ALIGNED = SDL3.SDL_SURFACE_SIMD_ALIGNED
+    }
+
+    public partial struct SDL_Surface
+    {
+        public SDL_SurfaceFlags flags;
+
+        public SDL_PixelFormat format;
+
+        public int w;
+
+        public int h;
+
+        public int pitch;
+
+        public nint pixels;
+
+        public int refcount;
+
+        public nint reserved;
+    }
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial SDL_Surface* SDL_CreateSurfaceFrom(int width, int height, SDL_PixelFormat format, void* pixels, int pitch);
+
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void SDL_DestroySurface(SDL_Surface* surface);
     #endregion
 
     #region Extensions

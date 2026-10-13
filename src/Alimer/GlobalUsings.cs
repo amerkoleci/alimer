@@ -7,11 +7,11 @@ global using Vector4 = System.Numerics.Vector4;
 global using Quaternion = System.Numerics.Quaternion;
 global using Matrix3x2 = System.Numerics.Matrix3x2;
 global using Matrix4x4 = System.Numerics.Matrix4x4;
+global using Plane = System.Numerics.Plane;
 
 global using MathUtilities = Alimer.Numerics.MathUtilities;
 global using Color = Alimer.Numerics.Color;
 global using Colors = Alimer.Numerics.Colors;
-global using Plane = Alimer.Numerics.Plane;
 global using BoundingBox = Alimer.Numerics.BoundingBox;
 global using BoundingSphere = Alimer.Numerics.BoundingSphere;
 global using BoundingFrustum = Alimer.Numerics.BoundingFrustum;

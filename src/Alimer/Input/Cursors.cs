@@ -3,7 +3,7 @@
 
 namespace Alimer.Input;
 
-public static partial class Cursors
+public static class Cursors
 {
     private static readonly int s_cursorTypeCount = (int)CursorType.Custom + 1;
     private static readonly Cursor[] s_stockCursors = new Cursor[s_cursorTypeCount];
@@ -53,7 +53,7 @@ public static partial class Cursors
     {
         if (s_stockCursors[(int)cursorType] == null)
         {
-            s_stockCursors[(int)cursorType] = CreateCursor(cursorType);
+            s_stockCursors[(int)cursorType] = RuntimePlatform.Current.CreateSystemCursor(cursorType);
         }
 
         return s_stockCursors[(int)cursorType];
@@ -70,6 +70,4 @@ public static partial class Cursors
             }
         }
     }
-
-    private static partial Cursor CreateCursor(CursorType cursorType);
 }
