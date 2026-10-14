@@ -152,9 +152,11 @@ internal unsafe class VulkanCommandBuffer : CommandBuffer
             if (_queue.VkDevice.VkAdapter.FragmentShadingRateFeatures.pipelineFragmentShadingRate)
             {
                 VkExtent2D fragmentSize = new(1, 1);
-                VkFragmentShadingRateCombinerOpKHR* combiner = stackalloc VkFragmentShadingRateCombinerOpKHR[2];
-                combiner[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR;
-                combiner[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR;
+                VkFragmentShadingRateCombinerOpKHR* combiner = stackalloc VkFragmentShadingRateCombinerOpKHR[2]
+                {
+                    VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
+                    VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR
+                };
 
                 _deviceApi.vkCmdSetFragmentShadingRateKHR(_commandBuffer, &fragmentSize, combiner);
             }

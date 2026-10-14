@@ -20,19 +20,16 @@ internal unsafe partial class Vma
     public readonly record struct VmaAllocator(nint Handle)
     {
         public bool IsNull => Handle == 0;
-        public static VmaAllocator Null => default;
     }
 
     public readonly record struct VmaAllocation(nint Handle)
     {
         public bool IsNull => Handle == 0;
-        public static VmaAllocation Null => default;
     }
 
     public readonly record struct VmaPool(nint Handle)
     {
         public bool IsNull => Handle == 0;
-        public static VmaPool Null => default;
     }
     #endregion
 
@@ -278,19 +275,18 @@ internal unsafe partial class Vma
     }
 
     [SkipLocalsInit]
-    public static VkResult vmaCreateAllocator(in VmaAllocatorCreateInfo createInfo, out VmaAllocator allocator)
+    public static VkResult vmaCreateAllocator(VkInstanceApi api, VmaAllocatorCreateInfo* createInfo, out VmaAllocator allocator)
     {
         Unsafe.SkipInit(out allocator);
 
         VmaVulkanFunctions functions = default;
         functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr_ptr;
-        functions.vkGetDeviceProcAddr = ((delegate* unmanaged<VkDevice, byte*, PFN_vkVoidFunction>)GetApi(createInfo.instance).vkGetDeviceProcAddr_ptr.Value);
+        functions.vkGetDeviceProcAddr = ((delegate* unmanaged<VkDevice, byte*, PFN_vkVoidFunction>)api.vkGetDeviceProcAddr_ptr.Value);
+        createInfo->pVulkanFunctions = &functions;
 
         fixed (VmaAllocator* allocatorPtr = &allocator)
         {
-            VmaAllocatorCreateInfo createInfoIn = createInfo;
-            createInfoIn.pVulkanFunctions = &functions;
-            return vmaCreateAllocator(&createInfoIn, allocatorPtr);
+            return vmaCreateAllocator(createInfo, allocatorPtr);
         }
     }
     #endregion

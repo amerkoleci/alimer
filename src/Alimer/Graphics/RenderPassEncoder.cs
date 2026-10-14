@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Alimer.Graphics;
 
-public abstract unsafe class RenderPassEncoder : CommandEncoder
+public abstract class RenderPassEncoder : CommandEncoder
 {
     protected ShadingRate _currentShadingRate = ShadingRate.Invalid;
 #if VALIDATE_USAGE

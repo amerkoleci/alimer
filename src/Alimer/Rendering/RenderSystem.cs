@@ -220,7 +220,7 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
             ClearColor = new Color(0.3f, 0.3f, 0.3f)
         };
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
-        RenderPassDescriptor renderPassDescriptor = new(depthStencilAttachment, colorAttachment)
+        RenderPassDescriptor renderPassDescriptor = new([colorAttachment], depthStencilAttachment)
         {
             Label = "Forward pass"u8
         };

@@ -15,13 +15,14 @@ public ref struct ComputePipelineDescriptor
     /// <summary>
     /// Gets or sets the label of <see cref="ComputePipeline"/>.
     /// </summary>
-    public string? Label;
+    public Utf8ReadOnlyString Label;
 
     [SetsRequiredMembers]
-    public ComputePipelineDescriptor(ShaderModule computeShader)
+    public ComputePipelineDescriptor(ShaderModule computeShader, Utf8ReadOnlyString label = default)
     {
         ArgumentException.ThrowIfFalse(computeShader.Stage == ShaderStages.Compute, nameof(computeShader.Stage));
 
         ComputeShader = computeShader;
+        Label = label;
     }
 }

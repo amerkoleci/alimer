@@ -6,7 +6,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes vertex buffer layout <see cref="RenderPipelineDescriptor"/>.
 /// </summary>
-public record struct VertexBufferLayout
+public struct VertexBufferLayout
 {
     public int Stride;
     public VertexStepMode StepMode;

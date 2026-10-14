@@ -248,111 +248,34 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         VkBaseOutStructure* featureChainCurrent = (VkBaseOutStructure*)&features2;
         AddToFeatureChain(&features11);
         AddToFeatureChain(&features12);
-
-        if (_adapter.ApiVersion >= VK_API_VERSION_1_3)
-        {
-            AddToFeatureChain(&features13);
-        }
+        AddToFeatureChain(&features13);
 
         if (_adapter.ApiVersion >= VK_API_VERSION_1_4)
         {
             AddToFeatureChain(&features14);
         }
-
-        // Core in 1.3
-        if (_adapter.ApiVersion < VK_API_VERSION_1_3)
-        {
-            if (_adapter.Extensions.Maintenance4)
-            {
-                enabledDeviceExtensions.Add(VK_KHR_MAINTENANCE_4_EXTENSION_NAME);
-
-                VkPhysicalDeviceMaintenance4Features maintenance4Features = _adapter.Maintenance4Features;
-                AddToFeatureChain(&maintenance4Features);
-            }
-
-            if (_adapter.Extensions.DynamicRendering)
-            {
-                enabledDeviceExtensions.Add(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
-
-                var dynamicRenderingFeatures = _adapter.DynamicRenderingFeatures;
-                AddToFeatureChain(&dynamicRenderingFeatures);
-            }
-
-            if (_adapter.Extensions.Synchronization2)
-            {
-                enabledDeviceExtensions.Add(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
-
-                var synchronization2Features = _adapter.Synchronization2Features;
-                AddToFeatureChain(&synchronization2Features);
-            }
-
-            if (_adapter.Extensions.ExtendedDynamicState)
-            {
-                enabledDeviceExtensions.Add(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
-
-                var extendedDynamicStateFeatures = _adapter.ExtendedDynamicStateFeatures;
-                AddToFeatureChain(&extendedDynamicStateFeatures);
-            }
-
-            if (_adapter.Extensions.ExtendedDynamicState2)
-            {
-                enabledDeviceExtensions.Add(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
-
-                var extendedDynamicState2Features = _adapter.ExtendedDynamicState2Features;
-                AddToFeatureChain(&extendedDynamicState2Features);
-            }
-
-            if (_adapter.Extensions.PipelineCreationCacheControl)
-            {
-                enabledDeviceExtensions.Add(VK_EXT_PIPELINE_CREATION_CACHE_CONTROL_EXTENSION_NAME);
-
-                var pipelineCreationCacheControlFeatures = _adapter.PipelineCreationCacheControlFeatures;
-                AddToFeatureChain(&pipelineCreationCacheControlFeatures);
-            }
-
-            if (_adapter.Extensions.TextureCompressionASTC_HDR)
-            {
-                enabledDeviceExtensions.Add(VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME);
-
-                var astcHdrFeatures = _adapter.ASTC_HDRFeatures;
-                AddToFeatureChain(&astcHdrFeatures);
-            }
-
-            if (_adapter.Extensions.TextureCompressionASTC_3D)
-            {
-                enabledDeviceExtensions.Add(VK_EXT_TEXTURE_COMPRESSION_ASTC_3D_EXTENSION_NAME);
-
-                var astc3DFeatures = _adapter.ASTC_3DFeaturesEXT;
-                AddToFeatureChain(&astc3DFeatures);
-            }
-        }
         else
         {
-            // Core in 1.4
-            if (_adapter.ApiVersion < VK_API_VERSION_1_4)
+            if (_adapter.Extensions.Maintenance5)
             {
-                if (_adapter.Extensions.Maintenance5)
-                {
-                    enabledDeviceExtensions.Add(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
+                enabledDeviceExtensions.Add(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
 
-                    var maintenance5Features = _adapter.Maintenance5Features;
-                    AddToFeatureChain(&maintenance5Features);
-                }
-
-                if (_adapter.Extensions.Maintenance6)
-                {
-                    enabledDeviceExtensions.Add(VK_KHR_MAINTENANCE_6_EXTENSION_NAME);
-
-                    var maintenance6Features = _adapter.Maintenance6Features;
-                    AddToFeatureChain(&maintenance6Features);
-                }
-
-                if (_adapter.Extensions.PushDescriptor)
-                {
-                    enabledDeviceExtensions.Add(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
-                }
+                var maintenance5Features = _adapter.Maintenance5Features;
+                AddToFeatureChain(&maintenance5Features);
             }
 
+            if (_adapter.Extensions.Maintenance6)
+            {
+                enabledDeviceExtensions.Add(VK_KHR_MAINTENANCE_6_EXTENSION_NAME);
+
+                var maintenance6Features = _adapter.Maintenance6Features;
+                AddToFeatureChain(&maintenance6Features);
+            }
+
+            if (_adapter.Extensions.PushDescriptor)
+            {
+                enabledDeviceExtensions.Add(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+            }
         }
 
         if (_adapter.Extensions.MemoryBudget)
@@ -373,11 +296,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         if (_adapter.Extensions.DeferredHostOperations)
         {
             enabledDeviceExtensions.Add(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME);
-        }
-
-        if (_adapter.Extensions.PortabilitySubset)
-        {
-            enabledDeviceExtensions.Add(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
         }
 
         if (_adapter.Extensions.DepthClipEnable)
@@ -569,8 +487,8 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         }
 #endif
 
-        // Core in 1.1
-        VmaAllocatorCreateFlags allocatorFlags = 0;
+        // Core in 1.3
+        VmaAllocatorCreateFlags allocatorFlags = VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT;
 
         if (_adapter.Extensions.MemoryBudget)
         {
@@ -592,11 +510,6 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
             allocatorFlags |= VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT;
         }
 
-        if (_adapter.Properties2.properties.apiVersion >= VK_API_VERSION_1_3 || _adapter.Extensions.Maintenance4)
-        {
-            allocatorFlags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT;
-        }
-
         if (_adapter.Maintenance5)
         {
             allocatorFlags |= VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE5_BIT;
@@ -611,12 +524,12 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
         {
             physicalDevice = PhysicalDevice,
             device = _handle,
-           // pVulkanFunctions = &functions,
+            // pVulkanFunctions = &functions,
             instance = _adapter.VkGraphicsManager.Instance,
             vulkanApiVersion = new VkVersion(0, 1, _adapter.ApiVersion.Minor, 0),
             flags = allocatorFlags,
         };
-        vmaCreateAllocator(in allocatorCreateInfo, out _allocator).CheckResult();
+        vmaCreateAllocator(_adapter.VkGraphicsManager.InstanceApi, &allocatorCreateInfo, out _allocator).CheckResult();
 
         // Queues
         for (int i = 0; i < (int)CommandQueueType.Count; i++)
@@ -1180,8 +1093,7 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
                 return _adapter.Features2.features.textureCompressionASTC_LDR == true;
 
             case Feature.TextureCompressionASTC_HDR:
-                return _adapter.Features13.textureCompressionASTC_HDR == true
-                    || _adapter.ASTC_HDRFeatures.textureCompressionASTC_HDR == true;
+                return _adapter.Features13.textureCompressionASTC_HDR == true;
 
             //case Feature.TextureCompressionASTC_3D:
             //    return _adapter.ASTC_3DFeaturesEXT.textureCompressionASTC_3D == true;
@@ -1746,6 +1658,23 @@ internal unsafe partial class VulkanGraphicsDevice : GraphicsDevice
     public override CommandBuffer AcquireCommandBuffer(CommandQueueType queue, Utf8ReadOnlyString label = default)
     {
         return _queues[(int)queue].AcquireCommandBuffer(label);
+    }
+
+    public void SetObjectName(VkObjectType objectType, ulong objectHandle, Utf8ReadOnlyString objectName = default)
+    {
+        if (!_adapter.VkGraphicsManager.DebugUtils)
+        {
+            return;
+        }
+
+        VkDebugUtilsObjectNameInfoEXT info = new()
+        {
+            objectType = objectType,
+            objectHandle = objectHandle,
+            pObjectName = objectName.IsEmpty ? default : (byte*)objectName
+        };
+
+        _adapter.VkGraphicsManager.InstanceApi.vkSetDebugUtilsObjectNameEXT(_handle, &info).CheckResult();
     }
 
     public void SetObjectName(VkObjectType objectType, ulong objectHandle, string? name = default)

@@ -21,6 +21,9 @@ public static class Constants
     public const uint ArrayLayerCountUndefined = uint.MaxValue;
     public const ulong WholeSize = ulong.MaxValue;
 
+    public const int UUIDSize = 16;
+    public const int LUIDSize = 8;
+
     // Must match the static sampler Alimer.hlsl
     public const int DynamicConstantBufferCount = 4; // b0, b1, b2, b3 in shader
     public const int StaticSamplerCount = 10; 

@@ -52,10 +52,9 @@ internal unsafe class VulkanComputePipeline : ComputePipeline
             _handle = pipeline;
         }
 
-
-        if (!string.IsNullOrEmpty(descriptor.Label))
+        if (!descriptor.Label.IsEmpty)
         {
-            OnLabelChanged(descriptor.Label!);
+            _device.SetObjectName(VK_OBJECT_TYPE_PIPELINE, _handle, descriptor.Label);
         }
     }
 
@@ -67,7 +66,7 @@ internal unsafe class VulkanComputePipeline : ComputePipeline
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)
     {
-        _device.SetObjectName(VkObjectType.Pipeline, _handle, newLabel);
+        _device.SetObjectName(VK_OBJECT_TYPE_PIPELINE, _handle, newLabel);
     }
 
     /// <inheitdoc />

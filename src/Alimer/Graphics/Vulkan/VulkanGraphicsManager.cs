@@ -251,7 +251,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
         {
             VkPhysicalDevice physicalDevice = physicalDevices[i];
 
-            // We require minimum 1.2
+            // We require minimum 1.3
             VkPhysicalDeviceProperties2 properties = new();
             _instanceApi.vkGetPhysicalDeviceProperties2(physicalDevice, &properties);
             if (properties.properties.apiVersion < VK_API_VERSION_1_3)
@@ -302,6 +302,7 @@ internal unsafe class VulkanGraphicsManager : GraphicsManager
                 return false;
             }
 
+            // We require vulkan 1.3
             VkVersion apiVersion = vkEnumerateInstanceVersion();
             if (apiVersion < VK_API_VERSION_1_3)
             {

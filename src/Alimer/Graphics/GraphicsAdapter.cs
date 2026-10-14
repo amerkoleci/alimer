@@ -33,6 +33,16 @@ public abstract class GraphicsAdapter(GraphicsManager manager)
     /// </summary>
     public abstract GraphicsAdapterType Type { get; }
 
+    /// <summary>
+    /// Gets the LUID of the device.
+    /// </summary>
+    public abstract ulong DeviceLUID { get; }
+
+    /// <summary>
+    /// Gets the list of memory heaps available on the adapter.
+    /// </summary>
+    public abstract ReadOnlySpan<GraphicsMemoryHeapInfo> MemoryHeaps { get; }
+
     public GraphicsAdapterVendor Vendor
     {
         get

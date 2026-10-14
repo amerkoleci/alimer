@@ -70,7 +70,7 @@ public class SpriteBatch : DisposableObject
         ShaderModule fragmentShader = ShaderSystem.GetShaderModule("Sprite", ShaderStages.Fragment);
         RenderPipelineDescriptor renderPipelineDesc = new([colorFormat], depthStencilFormat)
         {
-            Label = "SpriteBatch RenderPipeline",
+            Label = "SpriteBatch RenderPipeline"u8,
             VertexShader = vertexShader,
             FragmentShader = fragmentShader,
             RasterizerState = RasterizerState.CullNone,

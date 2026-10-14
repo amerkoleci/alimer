@@ -54,7 +54,7 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
 
         RenderPipelineDescriptor renderPipelineDesc = new(vertexBufferLayout, ColorFormats, DepthStencilFormat)
         {
-            Label = "RenderPipeline",
+            Label = "RenderPipeline"u8,
             VertexShader = vertexShader,
             FragmentShader = fragmentShader
         };
@@ -75,7 +75,7 @@ public unsafe sealed class DrawTexturedCubeSample : GraphicsSampleBase
 
         RenderPassColorAttachment colorAttachment = new(swapChainTexture.DefaultView!, new Color(0.3f, 0.3f, 0.3f));
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
-        RenderPassDescriptor backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
+        RenderPassDescriptor backBufferRenderPass = new([colorAttachment], depthStencilAttachment)
         {
             Label = "BackBuffer"u8
         };

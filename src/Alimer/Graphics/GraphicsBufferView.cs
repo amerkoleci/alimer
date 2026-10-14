@@ -8,6 +8,7 @@ namespace Alimer.Graphics;
 public abstract class GraphicsBufferView : GraphicsObject
 {
     protected GraphicsBufferView(GraphicsBuffer buffer, in GraphicsBufferViewDescriptor descriptor)
+        : base((Utf8ReadOnlyString)default)
     {
         ArgumentNullException.ThrowIfNull(buffer, nameof(buffer));
 

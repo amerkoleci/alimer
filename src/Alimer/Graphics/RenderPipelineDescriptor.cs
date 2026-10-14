@@ -1,8 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Diagnostics.CodeAnalysis;
-
 namespace Alimer.Graphics;
 
 /// <summary>
@@ -10,11 +8,6 @@ namespace Alimer.Graphics;
 /// </summary>
 public ref struct RenderPipelineDescriptor
 {
-    /// <summary>
-    /// Gets or sets the label of <see cref="RenderPipeline"/>.
-    /// </summary>
-    public string? Label;
-
     public ShaderModule? VertexShader;
     public ShaderModule? FragmentShader;
 
@@ -38,6 +31,10 @@ public ref struct RenderPipelineDescriptor
 
     public Span<PixelFormat> ColorFormats;
     public PixelFormat DepthStencilFormat = PixelFormat.Undefined;
+    /// <summary>
+    /// Gets or sets the label of <see cref="RenderPipeline"/>.
+    /// </summary>
+    public Utf8ReadOnlyString Label;
 
     public TextureSampleCount SampleCount = TextureSampleCount.Count1;
 

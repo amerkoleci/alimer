@@ -8,7 +8,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes the <see cref="QueryHeap"/>.
 /// </summary>
-public  record struct QueryHeapDescriptor
+public ref struct QueryHeapDescriptor
 {
     /// <summary>
     /// Kind of query that this query set should contain.
@@ -23,10 +23,10 @@ public  record struct QueryHeapDescriptor
     /// <summary>
     /// Gets or sets the debug label for the query set.
     /// </summary>
-    public string? Label;
+    public Utf8ReadOnlyString Label;
 
     [SetsRequiredMembers]
-    public QueryHeapDescriptor(QueryType type = QueryType.Timestamp, uint count = 1, string? label = default)
+    public QueryHeapDescriptor(QueryType type = QueryType.Timestamp, uint count = 1, Utf8ReadOnlyString label = default)
     {
         Type = type;
         Count = count;

@@ -54,8 +54,7 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
         VkRenderingAttachmentInfo depthAttachment = new();
         VkRenderingAttachmentInfo stencilAttachment = new();
 
-        PixelFormat depthStencilFormat = descriptor.DepthStencilAttachment.View != null ? descriptor.DepthStencilAttachment.View.Format : PixelFormat.Undefined;
-        bool hasDepthOrStencil = depthStencilFormat != PixelFormat.Undefined;
+        PixelFormat depthStencilFormat = descriptor.DepthStencilAttachment.HasValue ? descriptor.DepthStencilAttachment.Value.View.Format : PixelFormat.Undefined;
 
         for (int slot = 0; slot < descriptor.ColorAttachments.Length; slot++)
         {
@@ -90,9 +89,9 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
             _commandBuffer.TextureBarrier(view, TextureLayout.RenderTarget);
         }
 
-        if (hasDepthOrStencil)
+        if (descriptor.DepthStencilAttachment.HasValue)
         {
-            RenderPassDepthStencilAttachment attachment = descriptor.DepthStencilAttachment;
+            RenderPassDepthStencilAttachment attachment = descriptor.DepthStencilAttachment.Value;
 
             VulkanTextureView view = (VulkanTextureView)attachment.View!;
 
@@ -123,6 +122,26 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
                 (attachment.DepthReadOnly || attachment.StencilReadOnly) ? TextureLayout.DepthRead : TextureLayout.DepthWrite
                 );
         }
+
+        // Shading rate
+        VkRenderingFragmentShadingRateAttachmentInfoKHR shadingRateAttachmentInfo = default;
+        if (descriptor.ShadingRateTexture is not null)
+        {
+            VkExtent2D tileExtent = _commandBuffer.VkDevice.VkAdapter.FragmentShadingRateProperties.minFragmentShadingRateAttachmentTexelSize;
+            uint tileSize = Math.Max(tileExtent.width, tileExtent.height);
+
+            VulkanTexture backendTexture = (VulkanTexture)descriptor.ShadingRateTexture;
+
+            shadingRateAttachmentInfo = new()
+            {
+                imageView = ((VulkanTextureView)backendTexture.DefaultView!).Handle,
+                imageLayout = VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR,
+                shadingRateAttachmentTexelSize = new(tileSize, tileSize)
+            };
+
+            _commandBuffer.TextureBarrier(backendTexture, TextureLayout.ShadingRateSurface, 0, 1u, 0u, 1u);
+        }
+
         _commandBuffer.CommitBarriers();
 
         renderingInfo.layerCount = layerCount;
@@ -267,8 +286,10 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
 
     public override void SetShadingRate(ShadingRate rate)
     {
-#if TODO
-        if (_queue.Device.QueryFeatureSupport(Feature.VariableRateShading) && _currentShadingRate != rate)
+        VulkanGraphicsAdapter vkAdapter = _commandBuffer.VkDevice.VkAdapter;
+
+        if (vkAdapter.FragmentShadingRateFeatures.pipelineFragmentShadingRate
+            && _currentShadingRate != rate)
         {
             _currentShadingRate = rate;
 
@@ -307,38 +328,37 @@ internal unsafe class VulkanRenderPassEncoder : RenderPassEncoder
                     break;
             }
 
-            var combiner = stackalloc VkFragmentShadingRateCombinerOpKHR[2]
+            VkFragmentShadingRateCombinerOpKHR* combiner = stackalloc VkFragmentShadingRateCombinerOpKHR[2]
             {
-                VkFragmentShadingRateCombinerOpKHR.Keep,
-                VkFragmentShadingRateCombinerOpKHR.Keep
+                VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR,
+                VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR
             };
 
-            if (_queue.Device.FragmentShadingRateProperties.fragmentShadingRateNonTrivialCombinerOps)
+            if (vkAdapter.FragmentShadingRateProperties.fragmentShadingRateNonTrivialCombinerOps)
             {
-                if (_queue.Device.FragmentShadingRateFeatures.primitiveFragmentShadingRate)
+                if (vkAdapter.FragmentShadingRateFeatures.primitiveFragmentShadingRate)
                 {
-                    combiner[0] = VkFragmentShadingRateCombinerOpKHR.Max;
+                    combiner[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR;
                 }
-                if (_queue.Device.FragmentShadingRateFeatures.attachmentFragmentShadingRate)
+                if (vkAdapter.FragmentShadingRateFeatures.attachmentFragmentShadingRate)
                 {
-                    combiner[1] = VkFragmentShadingRateCombinerOpKHR.Max;
+                    combiner[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR;
                 }
             }
             else
             {
-                if (_queue.Device.FragmentShadingRateFeatures.primitiveFragmentShadingRate)
+                if (vkAdapter.FragmentShadingRateFeatures.primitiveFragmentShadingRate)
                 {
-                    combiner[0] = VkFragmentShadingRateCombinerOpKHR.Replace;
+                    combiner[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
                 }
-                if (_queue.Device.FragmentShadingRateFeatures.attachmentFragmentShadingRate)
+                if (vkAdapter.FragmentShadingRateFeatures.attachmentFragmentShadingRate)
                 {
-                    combiner[1] = VkFragmentShadingRateCombinerOpKHR.Replace;
+                    combiner[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
                 }
             }
 
-            _deviceApi.vkCmdSetFragmentShadingRateKHR(_commandBuffer, &fragmentSize, combiner);
+            _deviceApi.vkCmdSetFragmentShadingRateKHR(_commandBuffer.Handle, &fragmentSize, combiner);
         } 
-#endif
     }
 
     protected override void SetDepthBoundsCore(float minBounds, float maxBounds)

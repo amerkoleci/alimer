@@ -29,9 +29,9 @@ internal unsafe class VulkanShaderModule : ShaderModule
             _device.DeviceApi.vkCreateShaderModule(descriptor.ByteCode, null, out _handle).CheckResult();
         }
 
-        if (!string.IsNullOrEmpty(descriptor.Label))
+        if (!descriptor.Label.IsEmpty)
         {
-            OnLabelChanged(descriptor.Label!);
+            _device.SetObjectName(VK_OBJECT_TYPE_SHADER_MODULE, Handle, descriptor.Label);
         }
 
         ReadOnlySpan<byte> entryPointName = EntryPoint.GetUtf8Span();

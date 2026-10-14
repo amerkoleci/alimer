@@ -52,6 +52,54 @@ internal static unsafe partial class ID3D12Extensions
         }
     }
 
+    public static void SetName<TID3D12Object>(ref this TID3D12Object self, Utf8ReadOnlyString name)
+        where TID3D12Object : unmanaged, ID3D12Object.Interface
+    {
+        if (name.IsEmpty)
+        {
+            _ = self.SetName(null);
+        }
+        else
+        {
+            ReadOnlySpan<byte> label = (ReadOnlySpan<byte>)name;
+            SetName(ref self, label); 
+        }
+    }
+
+    public static void SetName<TID3D12Object>(ref this TID3D12Object self, ReadOnlySpan<byte> name)
+        where TID3D12Object : unmanaged, ID3D12Object.Interface
+    {
+        string? nameString = name.GetString();
+
+        if (string.IsNullOrEmpty(nameString))
+        {
+            _ = self.SetName(null);
+        }
+        else
+        {
+            fixed (char* namePtr = nameString)
+            {
+                _ = self.SetName(namePtr);
+            }
+        }
+    }
+
+    public static void SetName<TID3D12Object>(ref this TID3D12Object self, ReadOnlySpan<char> name)
+        where TID3D12Object : unmanaged, ID3D12Object.Interface
+    {
+        if (name.IsEmpty)
+        {
+            _ = self.SetName(null);
+        }
+        else
+        {
+            fixed (char* namePtr = name)
+            {
+                _ = self.SetName(namePtr);
+            }
+        }
+    }
+
     /// <summary>
     /// Creates a new <see cref="ID3D12Fence"/> for a given device.
     /// </summary>

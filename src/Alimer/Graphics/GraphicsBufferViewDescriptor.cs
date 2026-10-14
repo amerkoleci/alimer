@@ -6,7 +6,7 @@ namespace Alimer.Graphics;
 /// <summary>
 /// Structure that describes the <see cref="GraphicsBufferView"/>.
 /// </summary>
-public record struct GraphicsBufferViewDescriptor
+public ref struct GraphicsBufferViewDescriptor
 {
     /// <summary>
     /// Gets or sets the number of elements from the start of the buffer to offset.

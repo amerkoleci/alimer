@@ -5,11 +5,11 @@ namespace Alimer.Graphics;
 
 public abstract class ShaderModule : GraphicsObject
 {
-    protected ShaderModule(in ShaderModuleDescriptor description)
-        : base()
+    protected ShaderModule(in ShaderModuleDescriptor descriptor)
+       : base(descriptor.Label)
     {
-        Stage = description.Stage;
-        EntryPoint = description.EntryPoint;
+        Stage = descriptor.Stage;
+        EntryPoint = descriptor.EntryPoint;
         //ByteCode = description.ByteCode.ToArray();
     }
 

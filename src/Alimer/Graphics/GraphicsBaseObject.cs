@@ -20,6 +20,15 @@ public abstract class GraphicsBaseObject : DisposableObject
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="GraphicsBaseObject" /> class.
+    /// </summary>
+    /// <param name="label">The label of the object or <c>null</c>.</param>
+    protected GraphicsBaseObject(Utf8ReadOnlyString label = default)
+    {
+        _label = label.IsEmpty ? null : label.ToString();
+    }
+
+    /// <summary>
     /// Gets or sets the label that identifies this object.
     /// </summary>
     public string? Label

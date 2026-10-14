@@ -35,8 +35,8 @@ internal unsafe readonly struct D3D12Features
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS15 _options15;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS16 _options16;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS17 _options17;
-    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS18 _options18;
 #endif
+    private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS18 _options18;
     private readonly D3D12_FEATURE_DATA_D3D12_OPTIONS19 _options19;
 
     public D3D12Features(ID3D12Device* device)
@@ -113,6 +113,11 @@ internal unsafe readonly struct D3D12Features
         if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS13, ref _options13).Failure)
         {
             _options13 = default;
+        }
+
+        if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS18, ref _options18).Failure)
+        {
+            _options18.RenderPassesValid = false;
         }
 
         if (device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS19, ref _options19).Failure)
@@ -200,6 +205,7 @@ internal unsafe readonly struct D3D12Features
     public bool InvertedViewportDepthFlipsZSupported => _options13.InvertedViewportDepthFlipsZSupported;
     public bool TextureCopyBetweenDimensionsSupported => _options13.TextureCopyBetweenDimensionsSupported;
     public bool AlphaBlendFactorSupported => _options13.AlphaBlendFactorSupported;
+    public bool RenderPassesValid => _options18.RenderPassesValid;
 
     private static D3D_FEATURE_LEVEL QueryHighestFeatureLevel(ID3D12Device* device)
     {

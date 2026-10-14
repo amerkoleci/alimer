@@ -38,7 +38,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
         {
             VertexShader = vertexShader,
             FragmentShader = fragmentShader,
-            Label = "RenderPipeline"
+            Label = "RenderPipeline"u8
         };
         _renderPipeline = ToDispose(GraphicsDevice.CreateRenderPipeline(renderPipelineDesc));
 
@@ -60,7 +60,7 @@ public unsafe sealed class DrawCubeSample : GraphicsSampleBase
 
         RenderPassColorAttachment colorAttachment = new(swapChainTexture.DefaultView!, new Color(0.3f, 0.3f, 0.3f));
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!.DefaultView!);
-        RenderPassDescriptor backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
+        RenderPassDescriptor backBufferRenderPass = new([colorAttachment], depthStencilAttachment)
         {
             Label = "BackBuffer"u8
         };

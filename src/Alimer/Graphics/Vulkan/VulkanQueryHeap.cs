@@ -51,9 +51,9 @@ internal unsafe class VulkanQueryHeap : QueryHeap
             return;
         }
 
-        if (!string.IsNullOrEmpty(descriptor.Label))
+        if (!descriptor.Label.IsEmpty)
         {
-            OnLabelChanged(descriptor.Label!);
+            _device.SetObjectName(VK_OBJECT_TYPE_QUERY_POOL, _handle, descriptor.Label);
         }
 
         QueryResultSize = (uint)((descriptor.Type == QueryType.PipelineStatistics ? (_device.VkAdapter.Extensions.MeshShader ? 13 : 11) : 1) * sizeof(ulong));
@@ -76,6 +76,6 @@ internal unsafe class VulkanQueryHeap : QueryHeap
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)
     {
-        _device.SetObjectName(VkObjectType.QueryPool, _handle, newLabel);
+        _device.SetObjectName(VK_OBJECT_TYPE_QUERY_POOL, _handle, newLabel);
     }
 }

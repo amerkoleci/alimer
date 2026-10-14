@@ -5,7 +5,7 @@ namespace Alimer.Graphics;
 
 public abstract class RenderPipeline : GraphicsObject
 {
-    protected RenderPipeline(string? label)
+    protected RenderPipeline(Utf8ReadOnlyString label)
         : base(label)
     {
     }

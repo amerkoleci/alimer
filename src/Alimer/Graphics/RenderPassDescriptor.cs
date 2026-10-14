@@ -17,7 +17,8 @@ namespace Alimer.Graphics;
 public ref struct RenderPassDescriptor
 {
     public Span<RenderPassColorAttachment> ColorAttachments;
-    public RenderPassDepthStencilAttachment DepthStencilAttachment;
+    public RenderPassDepthStencilAttachment? DepthStencilAttachment;
+    public Texture? ShadingRateTexture;
 
     /// <summary>
     /// Gets or sets the label of the render pass.
@@ -30,15 +31,16 @@ public ref struct RenderPassDescriptor
         DepthStencilAttachment = default;
     }
 
-    public RenderPassDescriptor(params RenderPassColorAttachment[] colorAttachments)
+    public RenderPassDescriptor(Span<RenderPassColorAttachment> colorAttachments)
     {
         ColorAttachments = colorAttachments;
         DepthStencilAttachment = default;
     }
 
-    public RenderPassDescriptor(RenderPassDepthStencilAttachment depthStencilAttachment, params RenderPassColorAttachment[] colorAttachments)
+    public RenderPassDescriptor(Span<RenderPassColorAttachment> colorAttachments, RenderPassDepthStencilAttachment depthStencilAttachment, Texture? shadingRateTexture = default)
     {
         ColorAttachments = colorAttachments;
         DepthStencilAttachment = depthStencilAttachment;
+        ShadingRateTexture = shadingRateTexture;
     }
 }

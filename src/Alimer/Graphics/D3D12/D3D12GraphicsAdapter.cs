@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
 using Alimer.Utilities;
 using Vortice.Win32;
 using Vortice.Win32.Graphics;
@@ -13,6 +14,7 @@ namespace Alimer.Graphics.D3D12;
 internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
 {
     private readonly ComPtr<IDXGIAdapter1> _handle;
+    private readonly GraphicsMemoryHeapInfo[] _memoryHeaps = [];
 
     public D3D12GraphicsAdapter(
         D3D12GraphicsManager manager,
@@ -57,6 +59,32 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
         {
             Type = Features.UMA() ? GraphicsAdapterType.IntegratedGpu : GraphicsAdapterType.DiscreteGpu;
         }
+
+        Debug.Assert(Constants.LUIDSize == sizeof(LUID));
+        DeviceLUID = *(ulong*)&adapterDesc.AdapterLuid;
+
+        _memoryHeaps = [];
+        // https://microsoft.github.io/DirectX-Specs/d3d/D3D12GPUUploadHeaps.html describes the properties of D3D12 Default/Upload/Readback heaps.
+        if (Features.UMA())
+        {
+            _memoryHeaps = new GraphicsMemoryHeapInfo[1];
+
+            _memoryHeaps[0].Size = Math.Max(adapterDesc.DedicatedVideoMemory, adapterDesc.SharedSystemMemory);
+            _memoryHeaps[0].Properties =
+                GraphicsHeapProperty.DeviceLocal | GraphicsHeapProperty.HostVisible |
+                GraphicsHeapProperty.HostUncached | GraphicsHeapProperty.HostCached;
+        }
+        else
+        {
+            _memoryHeaps = new GraphicsMemoryHeapInfo[2];
+            _memoryHeaps[0].Size = adapterDesc.DedicatedVideoMemory;
+            _memoryHeaps[0].Properties = GraphicsHeapProperty.DeviceLocal;
+
+            _memoryHeaps[1].Size = adapterDesc.SharedSystemMemory;
+            _memoryHeaps[1].Properties =
+                GraphicsHeapProperty.HostVisible | GraphicsHeapProperty.HostCoherent |
+                GraphicsHeapProperty.HostUncached | GraphicsHeapProperty.HostCached;
+        }
     }
 
     public D3D12GraphicsManager DxManager => (D3D12GraphicsManager)base.Manager;
@@ -75,6 +103,10 @@ internal sealed unsafe class D3D12GraphicsAdapter : GraphicsAdapter, IDisposable
 
     /// <inheritdoc />
     public override GraphicsAdapterType Type { get; }
+    /// <inheritdoc />
+    public override ulong DeviceLUID { get; }
+    /// <inheritdoc />
+    public override ReadOnlySpan<GraphicsMemoryHeapInfo> MemoryHeaps => _memoryHeaps;
 
     protected override GraphicsDevice CreateDeviceCore(in GraphicsDeviceDescription description) => new D3D12GraphicsDevice(this, description);
 

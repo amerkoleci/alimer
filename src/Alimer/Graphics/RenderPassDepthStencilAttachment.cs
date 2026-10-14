@@ -1,6 +1,8 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Alimer.Graphics;
 
 public record struct RenderPassDepthStencilAttachment
@@ -8,7 +10,7 @@ public record struct RenderPassDepthStencilAttachment
     /// <summary>
     /// The <see cref="TextureView"/> associated with this attachment.
     /// </summary>
-    public TextureView? View;
+    public required TextureView View;
 
     /// <summary>
     /// The action performed by this attachment at the start of a rendering pass.
@@ -50,6 +52,7 @@ public record struct RenderPassDepthStencilAttachment
     /// </summary>
     public bool StencilReadOnly  = false;
 
+    [SetsRequiredMembers]
     public RenderPassDepthStencilAttachment(TextureView view)
     {
         ArgumentNullException.ThrowIfNull(view, nameof(view));
@@ -57,6 +60,7 @@ public record struct RenderPassDepthStencilAttachment
         View = view;
     }
 
+    [SetsRequiredMembers]
     public RenderPassDepthStencilAttachment(Texture texture)
     {
         ArgumentNullException.ThrowIfNull(texture, nameof(texture));

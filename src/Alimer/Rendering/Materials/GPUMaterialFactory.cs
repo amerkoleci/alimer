@@ -112,7 +112,7 @@ public abstract class GPUMaterialFactory<TMaterial> : DisposableObjectWithCollec
 
             RenderPipelineDescriptor renderPipelineDesc = new(geometryLayout, [System.ColorFormat], System.DepthStencilFormat)
             {
-                Label = "RenderPipeline",
+                Label = "RenderPipeline"u8,
                 VertexShader = vertexShader,
                 FragmentShader = fragmentShader
             };

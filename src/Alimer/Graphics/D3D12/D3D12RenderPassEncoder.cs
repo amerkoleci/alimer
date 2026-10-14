@@ -18,6 +18,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
     private readonly D3D12_VERTEX_BUFFER_VIEW[] _vboViews = new D3D12_VERTEX_BUFFER_VIEW[MaxVertexBufferBindings];
     private int _subresourceParamsCount = 0;
     private readonly D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS[] _subresourceParams = new D3D12_RENDER_PASS_ENDING_ACCESS_RESOLVE_SUBRESOURCE_PARAMETERS[D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
+    private bool _hasShadingRateAttachment;
 
     public D3D12RenderPassEncoder(D3D12CommandBuffer commandBuffer)
     {
@@ -35,6 +36,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
 
         _currentPipeline = default;
         _subresourceParamsCount = 0;
+        _hasShadingRateAttachment = false;
 
         if (!descriptor.Label.IsEmpty)
         {
@@ -46,15 +48,14 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
             _hasLabel = false;
         }
 
-
         SizeI renderArea = new(int.MaxValue, int.MaxValue);
         uint numRTVS = 0;
         D3D12_RENDER_PASS_RENDER_TARGET_DESC* RTVs = stackalloc D3D12_RENDER_PASS_RENDER_TARGET_DESC[(int)D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
+        D3D12_CPU_DESCRIPTOR_HANDLE* RTVDescriptors = stackalloc D3D12_CPU_DESCRIPTOR_HANDLE[(int)D3D12_SIMULTANEOUS_RENDER_TARGET_COUNT];
         D3D12_RENDER_PASS_DEPTH_STENCIL_DESC DSV = default;
         D3D12_RENDER_PASS_FLAGS renderPassFlags = D3D12_RENDER_PASS_FLAG_NONE;
 
-        bool hasDepthOrStencil = descriptor.DepthStencilAttachment.View != null;
-        PixelFormat depthStencilFormat = descriptor.DepthStencilAttachment.View != null ? descriptor.DepthStencilAttachment.View.Format : PixelFormat.Undefined;
+        PixelFormat depthStencilFormat = descriptor.DepthStencilAttachment.HasValue ? descriptor.DepthStencilAttachment.Value.View.Format : PixelFormat.Undefined;
 
         for (int slot = 0; slot < descriptor.ColorAttachments.Length; slot++)
         {
@@ -67,6 +68,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
             renderArea.Height = Math.Min(renderArea.Height, (int)view.Height);
 
             RTVs[slot].cpuDescriptor = view.RTV;
+            RTVDescriptors[slot] = view.RTV;
             RTVs[slot].BeginningAccess.Clear.ClearValue.Format = view.RTVFormat;
 
             switch (attachment.LoadAction)
@@ -132,12 +134,11 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
             ++numRTVS;
         }
 
-        if (hasDepthOrStencil)
+        if (descriptor.DepthStencilAttachment.HasValue)
         {
-            RenderPassDepthStencilAttachment attachment = descriptor.DepthStencilAttachment;
+            RenderPassDepthStencilAttachment attachment = descriptor.DepthStencilAttachment.Value;
 
             D3D12TextureView view = (D3D12TextureView)attachment.View!;
-
 
             renderArea.Width = Math.Min(renderArea.Width, (int)view.Width);
             renderArea.Height = Math.Min(renderArea.Height, (int)view.Height);
@@ -161,20 +162,17 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
                     break;
             }
 
-            switch (attachment.DepthStoreAction)
+
+            DSV.DepthEndingAccess.Type = attachment.DepthStoreAction switch
             {
-                default:
-                case StoreAction.Store:
-                    DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
-                    break;
-                case StoreAction.Discard:
-                    DSV.DepthEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
-                    break;
-            }
+                StoreAction.Discard => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,
+                _ => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,
+            };
 
             if (!view.Format.IsDepthOnlyFormat())
             {
                 DSV.StencilBeginningAccess.Clear.ClearValue.Format = view.DSVFormat;
+
 
                 switch (attachment.StencilLoadAction)
                 {
@@ -192,16 +190,11 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
                         break;
                 }
 
-                switch (attachment.StencilStoreAction)
+                DSV.StencilEndingAccess.Type = attachment.StencilStoreAction switch
                 {
-                    default:
-                    case StoreAction.Store:
-                        DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
-                        break;
-                    case StoreAction.Discard:
-                        DSV.StencilEndingAccess.Type = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
-                        break;
-                }
+                    StoreAction.Discard => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD,
+                    _ => D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE,
+                };
             }
             else
             {
@@ -222,12 +215,86 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
             // View barrier
             _commandBuffer.TextureBarrier(view, (attachment.DepthReadOnly || attachment.StencilReadOnly) ? TextureLayout.DepthRead : TextureLayout.DepthWrite);
         }
+
+        // ShadingRate
+        _hasShadingRateAttachment = descriptor.ShadingRateTexture is not null;
+        if (_hasShadingRateAttachment)
+        {
+            D3D12Texture backendTexture = (D3D12Texture)descriptor.ShadingRateTexture!;
+            _commandBuffer.TextureBarrier(backendTexture, TextureLayout.ShadingRateSurface);
+        }
+
         _commandBuffer.CommitBarriers();
 
-        _commandBuffer.CommandList->BeginRenderPass(numRTVS, RTVs,
-             hasDepthOrStencil ? &DSV : null,
-             renderPassFlags
-         );
+        // Shading rate attachment must be set before calling OMSetRenderTargets or BeginRenderPass
+        if (_hasShadingRateAttachment)
+        {
+            D3D12Texture backendTexture = (D3D12Texture)descriptor.ShadingRateTexture!;
+            _commandBuffer.CommandList->RSSetShadingRateImage(backendTexture.Handle);
+        }
+
+        // https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_render_pass_tier
+        if (_commandBuffer.D3DDevice.DxAdapter.Features.RenderPassesValid)
+        {
+            _commandBuffer.CommandList->BeginRenderPass(numRTVS, RTVs,
+                 descriptor.DepthStencilAttachment.HasValue ? &DSV : null,
+                 renderPassFlags
+             );
+        }
+        else
+        {
+            // Emulate render pass using OMSetRenderTargets and explicit clear calls
+            _commandBuffer.CommandList->OMSetRenderTargets(
+                numRTVS,
+                RTVDescriptors,
+                false,
+                DSV.cpuDescriptor.ptr == 0 ? null : &DSV.cpuDescriptor
+            );
+
+            for (uint i = 0; i < numRTVS; ++i)
+            {
+                if (RTVs[i].BeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+                {
+                    fixed(float* clearColorPtr = RTVs[i].BeginningAccess.Clear.ClearValue.Color)
+                    {
+                        _commandBuffer.CommandList->ClearRenderTargetView(
+                            RTVs[i].cpuDescriptor,
+                            clearColorPtr,
+                            0,
+                            null
+                        );
+                    }
+                }
+            }
+
+            if (DSV.DepthBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR
+                || DSV.StencilBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+            {
+                D3D12_CLEAR_FLAGS clearFlags = 0;
+                float depthClear = 0.0f;
+                byte stencilClear = 0;
+
+                if (DSV.DepthBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+                {
+                    clearFlags |= D3D12_CLEAR_FLAG_DEPTH;
+                    depthClear = DSV.DepthBeginningAccess.Clear.ClearValue.DepthStencil.Depth;
+                }
+                if (DSV.StencilBeginningAccess.Type == D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR)
+                {
+                    clearFlags |= D3D12_CLEAR_FLAG_STENCIL;
+                    stencilClear = DSV.StencilBeginningAccess.Clear.ClearValue.DepthStencil.Stencil;
+                }
+
+                _commandBuffer.CommandList->ClearDepthStencilView(
+                    DSV.cpuDescriptor,
+                    clearFlags,
+                    depthClear,
+                    stencilClear,
+                    0,
+                    null
+                );
+            }
+        }
 
         // The viewport and scissor default to cover all of the attachments
         D3D12_VIEWPORT viewport = new(0.0f, 0.0f, (float)renderArea.Width, (float)renderArea.Height);
@@ -238,7 +305,20 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
 
     public override void EndEncoding()
     {
-        _commandBuffer.CommandList->EndRenderPass();
+        // https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_render_pass_tier
+        if (_commandBuffer.D3DDevice.DxAdapter.Features.RenderPassesValid)
+        {
+            _commandBuffer.CommandList->EndRenderPass();
+        }
+        else
+        {
+            // TODO: Handle resolve here
+        }
+
+        if (_hasShadingRateAttachment)
+        {
+            _commandBuffer.CommandList->RSSetShadingRateImage(null);
+        }
 
         if (_hasLabel)
         {
@@ -248,6 +328,13 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
 
         _commandBuffer.EndEncoding();
         Reset();
+    }
+
+    /// <inheritdoc/>
+    protected override void Reset()
+    {
+        base.Reset();
+        _hasShadingRateAttachment = false;
     }
 
     /// <inheritdoc/>
@@ -358,7 +445,7 @@ internal unsafe class D3D12RenderPassEncoder : RenderPassEncoder
             D3D12_SHADING_RATE d3dRate = D3D12_SHADING_RATE_1X1;
             _commandBuffer.D3DDevice.WriteShadingRateValue(rate, &d3dRate);
 
-            var combiners = stackalloc D3D12_SHADING_RATE_COMBINER[2]
+            D3D12_SHADING_RATE_COMBINER* combiners = stackalloc D3D12_SHADING_RATE_COMBINER[2]
             {
                 D3D12_SHADING_RATE_COMBINER_MAX,
                 D3D12_SHADING_RATE_COMBINER_MAX,

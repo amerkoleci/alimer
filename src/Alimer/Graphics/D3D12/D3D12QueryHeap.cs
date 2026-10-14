@@ -29,9 +29,9 @@ internal unsafe class D3D12QueryHeap : QueryHeap
             return;
         }
 
-        if (string.IsNullOrEmpty(descriptor.Label))
+        if (!descriptor.Label.IsEmpty)
         {
-            OnLabelChanged(descriptor.Label!);
+            _handle.Get()->SetName(descriptor.Label);
         }
 
         switch (descriptor.Type)

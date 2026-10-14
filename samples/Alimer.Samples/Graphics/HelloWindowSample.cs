@@ -18,7 +18,7 @@ public sealed class HelloWindowSample : GraphicsSampleBase
     {
         RenderPassColorAttachment colorAttachment = new(swapChainTexture.DefaultView!, new Color(0.3f, 0.3f, 0.3f));
         RenderPassDepthStencilAttachment depthStencilAttachment = new(DepthStencilTexture!);
-        RenderPassDescriptor backBufferRenderPass = new(depthStencilAttachment, colorAttachment)
+        RenderPassDescriptor backBufferRenderPass = new([colorAttachment], depthStencilAttachment)
         {
             Label = "BackBuffer"u8
         };

@@ -25,15 +25,6 @@ internal struct VulkanPhysicalDeviceExtensions
     public bool Maintenance6;
     public bool PushDescriptor;
 
-    // Core in 1.3
-    public bool Maintenance4;
-    public bool DynamicRendering;
-    public bool Synchronization2;
-    public bool ExtendedDynamicState;
-    public bool ExtendedDynamicState2;
-    public bool PipelineCreationCacheControl;
-    public bool FormatFeatureFlags2;
-
     // Extensions
     public bool Swapchain;
     public bool DepthClipEnable;
@@ -47,7 +38,6 @@ internal struct VulkanPhysicalDeviceExtensions
     public bool ExternalFence;
 
     public bool DeferredHostOperations;
-    public bool PortabilitySubset;
     public bool TextureCompressionASTC_HDR;
     public bool TextureCompressionASTC_3D;
 
@@ -82,11 +72,7 @@ internal struct VulkanPhysicalDeviceExtensions
             {
                 Utf8String extensionName = new(pExtensionName);
 
-                if (extensionName == VK_KHR_MAINTENANCE_4_EXTENSION_NAME)
-                {
-                    extensions.Maintenance4 = true;
-                }
-                else if (extensionName == VK_KHR_MAINTENANCE_5_EXTENSION_NAME)
+                if (extensionName == VK_KHR_MAINTENANCE_5_EXTENSION_NAME)
                 {
                     extensions.Maintenance5 = true;
                 }
@@ -94,33 +80,9 @@ internal struct VulkanPhysicalDeviceExtensions
                 {
                     extensions.Maintenance6 = true;
                 }
-                else if (extensionName == VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME)
-                {
-                    extensions.DynamicRendering = true;
-                }
                 else if (extensionName == VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME)
                 {
                     extensions.PushDescriptor = true;
-                }
-                else if (extensionName == VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME)
-                {
-                    extensions.Synchronization2 = true;
-                }
-                else if (extensionName == VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME)
-                {
-                    extensions.ExtendedDynamicState = true;
-                }
-                else if (extensionName == VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME)
-                {
-                    extensions.ExtendedDynamicState2 = true;
-                }
-                else if (extensionName == VK_EXT_PIPELINE_CREATION_CACHE_CONTROL_EXTENSION_NAME)
-                {
-                    extensions.PipelineCreationCacheControl = true;
-                }
-                else if (extensionName == VK_KHR_FORMAT_FEATURE_FLAGS_2_EXTENSION_NAME)
-                {
-                    extensions.FormatFeatureFlags2 = true;
                 }
                 else if (extensionName == VK_KHR_SWAPCHAIN_EXTENSION_NAME)
                 {
@@ -149,10 +111,6 @@ internal struct VulkanPhysicalDeviceExtensions
                 else if (extensionName == VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME)
                 {
                     extensions.DeferredHostOperations = true;
-                }
-                else if (extensionName == VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME)
-                {
-                    extensions.PortabilitySubset = true;
                 }
                 else if (extensionName == VK_EXT_TEXTURE_COMPRESSION_ASTC_HDR_EXTENSION_NAME)
                 {
@@ -277,18 +235,6 @@ internal struct VulkanPhysicalDeviceExtensions
             extensions.Maintenance5 = true;
             extensions.Maintenance6 = true;
             extensions.PushDescriptor = true;
-        }
-
-        // Core 1.3
-        if (properties2.properties.apiVersion >= VK_API_VERSION_1_3)
-        {
-            extensions.Maintenance4 = true;
-            extensions.DynamicRendering = true;
-            extensions.Synchronization2 = true;
-            extensions.ExtendedDynamicState = true;
-            extensions.ExtendedDynamicState2 = true;
-            extensions.PipelineCreationCacheControl = true;
-            extensions.FormatFeatureFlags2 = true;
         }
 
         return extensions;

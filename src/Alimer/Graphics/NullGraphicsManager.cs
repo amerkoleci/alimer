@@ -19,6 +19,8 @@ internal class NullGraphicsManager : GraphicsManager
 
 internal class NullGraphicsAdapter : GraphicsAdapter
 {
+    private readonly GraphicsMemoryHeapInfo[] _memoryHeaps = [];
+
     public NullGraphicsAdapter(GraphicsManager manager)
         : base(manager)
     {
@@ -35,6 +37,8 @@ internal class NullGraphicsAdapter : GraphicsAdapter
     public override uint DeviceId { get; }
 
     public override GraphicsAdapterType Type { get; }
+    public override ulong DeviceLUID { get; }
+    public override ReadOnlySpan<GraphicsMemoryHeapInfo> MemoryHeaps => _memoryHeaps;
 
     protected override GraphicsDevice CreateDeviceCore(in GraphicsDeviceDescription description)
     {

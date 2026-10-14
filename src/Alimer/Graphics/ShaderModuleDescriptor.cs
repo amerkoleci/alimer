@@ -19,7 +19,7 @@ public ref struct ShaderModuleDescriptor
     /// <summary>
     /// Gets or sets the label of <see cref="ShaderModule"/>.
     /// </summary>
-    public string? Label;
+    public Utf8ReadOnlyString Label;
 
     public ShaderModuleDescriptor(ShaderStages stage, ReadOnlySpan<byte> byteCode)
     {

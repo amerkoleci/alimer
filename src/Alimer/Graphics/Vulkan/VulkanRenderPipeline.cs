@@ -272,9 +272,16 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
 
         VkPipelineDynamicStateCreateInfo dynamicState = device.DynamicStateInfo;
 
+        VkPipelineCreateFlags flags = 0;
+        if (device.VkAdapter.FragmentShadingRateFeatures.attachmentFragmentShadingRate)
+        {
+            flags |= VK_PIPELINE_CREATE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+        }
+
         VkGraphicsPipelineCreateInfo createInfo = new()
         {
             pNext = &renderingInfo,
+            flags = flags,
             stageCount = shaderStageCount,
             pStages = shaderStages,
             pVertexInputState = &vertexInputState,
@@ -302,9 +309,9 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
 
         _handle = pipeline;
 
-        if (!string.IsNullOrEmpty(descriptor.Label))
+        if (!descriptor.Label.IsEmpty)
         {
-            OnLabelChanged(descriptor.Label!);
+            _device.SetObjectName(VK_OBJECT_TYPE_PIPELINE, _handle, descriptor.Label);
         }
     }
 
@@ -316,7 +323,7 @@ internal unsafe class VulkanRenderPipeline : RenderPipeline
     /// <inheritdoc />
     protected override void OnLabelChanged(string? newLabel)
     {
-        _device.SetObjectName(VkObjectType.Pipeline, _handle, newLabel);
+        _device.SetObjectName(VK_OBJECT_TYPE_PIPELINE, _handle, newLabel);
     }
 
     /// <inheitdoc />

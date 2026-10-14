@@ -46,7 +46,7 @@ public sealed class SkyboxRenderer : IDisposable
 
         RenderPipelineDescriptor descriptor = new(geometryLayout, [RenderSystem.ColorFormat], RenderSystem.DepthStencilFormat)
         {
-            Label = "RenderPipeline",
+            Label = "RenderPipeline"u8,
             VertexShader = vertexShader,
             FragmentShader = fragmentShader,
             DepthStencilState = DepthStencilState.DepthRead
