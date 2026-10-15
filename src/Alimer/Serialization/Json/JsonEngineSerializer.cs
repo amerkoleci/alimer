@@ -70,55 +70,94 @@ internal partial class JsonEngineSerializer : Serializer, IDisposable
     }
 
     /// <inheritdoc />
-    public override void Write(string propertyName, int value)
+    public override void WritePropertyName(string propertyName)
     {
-        //_writer.WriteNumber(propertyName, value);
+        _writer.WritePropertyName(propertyName);
+    }
+
+    /// <inheritdoc />
+    public override void WriteBooleanValue(bool value)
+    {
+        _writer.WriteBooleanValue(value);
+    }
+
+    /// <inheritdoc />
+    public override void WriteNumberValue(byte value)
+    {
         _writer.WriteNumberValue(value);
     }
 
     /// <inheritdoc />
-    public override void Write(string propertyName, Guid value)
+    public override void WriteNumberValue(sbyte value)
     {
-        //_writer.WriteString(propertyName, value.ToString());
-        _writer.WriteStringValue(value.ToString());
+        _writer.WriteNumberValue(value);
     }
 
     /// <inheritdoc />
-    public override IDisposable BeginObject()
+    public override void WriteNumberValue(int value)
     {
-        return new ScopedWriteObject(_writer);
+        _writer.WriteNumberValue(value);
     }
 
     /// <inheritdoc />
-    public override IDisposable BeginArray()
+    public override void WriteStringValue(string value)
     {
-        return new ScopedWriteArray(_writer);
+        _writer.WriteStringValue(value);
     }
 
-    readonly struct ScopedWriteObject : IDisposable
+    /// <inheritdoc />
+    public override void WriteGuidValue(Guid value)
     {
-        private readonly Utf8JsonWriter _writer;
-
-        public ScopedWriteObject(Utf8JsonWriter writer)
-        {
-            _writer = writer;
-            _writer.WriteStartObject();
-        }
-
-        public void Dispose() => _writer.WriteEndObject();
+        _writer.WriteStringValue(value);
     }
 
-    readonly struct ScopedWriteArray : IDisposable
+    /// <inheritdoc />
+    public override void WriteBase64StringValue(scoped ReadOnlySpan<byte> values)
     {
-        private readonly Utf8JsonWriter _writer;
+        _writer.WriteBase64StringValue(values);
+    }
 
-        public ScopedWriteArray(Utf8JsonWriter writer)
+    /// <inheritdoc />
+    public override void WriteValues(scoped ReadOnlySpan<float> values)
+    {
+        StringBuilder result = new();
+        result.Append("[ ");
+        result.Append($"{values[0]}");
+        for (int i = 1; i < values.Length; i++)
+            result.Append($", {values[i]}");
+        result.Append(" ]");
+        _writer.WriteRawValue(result.ToString());
+    }
+
+    /// <inheritdoc />
+    public override void BeginObject(string? propertyName = default)
+    {
+        _writer.WriteStartObject();
+    }
+
+    /// <inheritdoc />
+    public override void EndObject()
+    {
+        _writer.WriteEndObject();
+    }
+
+    /// <inheritdoc />
+    public override void BeginArray(string? propertyName = default)
+    {
+        if (string.IsNullOrEmpty(propertyName))
         {
-            _writer = writer;
             _writer.WriteStartArray();
         }
+        else
+        {
+            _writer.WriteStartArray(propertyName);
+        }
+    }
 
-        public void Dispose() => _writer.WriteEndArray();
+    /// <inheritdoc />
+    public override void EndArray()
+    {
+        _writer.WriteEndArray();
     }
 }
 
@@ -166,24 +205,6 @@ class JsonObjectSerializer : ObjectSerializer
         {
             _writer.WriteEndObject();
         }
-    }
-
-    /// <inheritdoc />
-    public override void Write(string propertyName, bool value)
-    {
-        _writer.WriteBoolean(propertyName, value);
-    }
-
-    /// <inheritdoc />
-    public override void Write(string propertyName, byte value)
-    {
-        _writer.WriteNumber(propertyName, value);
-    }
-
-    /// <inheritdoc />
-    public override void Write(string propertyName, sbyte value)
-    {
-        _writer.WriteNumber(propertyName, value);
     }
 
     /// <inheritdoc />
@@ -257,17 +278,5 @@ class JsonObjectSerializer : ObjectSerializer
         result.Append(" ]");
         _writer.WritePropertyName(propertyName);
         _writer.WriteRawValue(result.ToString());
-    }
-
-    /// <inheritdoc />
-    public override ObjectSerializer BeginArray(string? propertyName = default)
-    {
-        return new JsonObjectSerializer(_writer, true, propertyName);
-    }
-
-    /// <inheritdoc />
-    public override ObjectSerializer BeginObject(string? propertyName = default)
-    {
-        return new JsonObjectSerializer(_writer, false, propertyName);
     }
 }

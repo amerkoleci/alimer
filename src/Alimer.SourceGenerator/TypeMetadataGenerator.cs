@@ -17,11 +17,10 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
     {
         DebugGuard.MaybeLaunchDebuggerOnStartup();
 
-        IncrementalValuesProvider<TypeMetadataGenerate> classDeclarations = context.SyntaxProvider
-            .ForAttributeWithMetadataName(
+        IncrementalValuesProvider<TypeMetadataGenerate> classDeclarations = context.SyntaxProvider.ForAttributeWithMetadataName(
             fullyQualifiedMetadataName: AlimerTypes.MetaAttribute,
             predicate: IsTypeCandidate,
-            transform: static (context, token) =>
+            transform: static (context, _) =>
             {
                INamedTypeSymbol classSymbol = (INamedTypeSymbol)context.TargetSymbol;
 

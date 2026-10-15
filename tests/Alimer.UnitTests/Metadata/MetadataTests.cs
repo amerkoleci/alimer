@@ -12,25 +12,13 @@ namespace Alimer.Metadata;
 public class MetadataTests
 {
     [Test]
-    public void TestPrimitiveTypeMetadata()
-    {
-        bool found = MetadataRegistry.TryGetMetadata<int, IPrimitiveTypeMetadata>(out IPrimitiveTypeMetadata? metadata);
-        Assert.That(found, Is.True);
-
-        Assert.That(metadata, Is.Not.Null);
-        Assert.That(metadata.Type, Is.Not.Null);
-        //Assert.That(primitiveTypeMetadata.TypeInfo, Is.EqualTo(type));
-    }
-
-    [Test]
     public void TestEnumMetadata()
     {
         MetadataRegistry.RegisterEnumType<TestEnum, int>();
 
-        IPrimitiveTypeMetadata intType = MetadataRegistry.GetPrimitiveTypeMetadata<int>();
         IEnumTypeMetadata storedMetadata = MetadataRegistry.GetMetadata<TestEnum, IEnumTypeMetadata>();
         Assert.That(storedMetadata, Is.Not.Null);
-        Assert.That(storedMetadata.UnderlyingType, Is.EqualTo(intType));
+        Assert.That(storedMetadata.UnderlyingType, Is.EqualTo(typeof(int)));
 
         TestEnum enumCreated = (TestEnum)storedMetadata.CreateObject();
         Assert.That(enumCreated, Is.EqualTo(TestEnum.Field1));

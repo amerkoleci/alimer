@@ -4,16 +4,13 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Alimer.Engine;
 
 namespace Alimer;
 
 public enum MetadataTypeKind
 {
-    /// <summary>
-    /// A primitive type (e.g `int`, `short`, `double`...)
-    /// </summary>
-    Primitive,
     Enum,
     Object,
 }
@@ -26,15 +23,10 @@ public interface ITypeMetadata
     int SizeOf { get; }
 }
 
-public interface IPrimitiveTypeMetadata : ITypeMetadata
-{
-    MetadataTypeKind ITypeMetadata.Kind => MetadataTypeKind.Primitive;
-}
-
 public interface IEnumTypeMetadata : ITypeMetadata
 {
     MetadataTypeKind ITypeMetadata.Kind => MetadataTypeKind.Enum;
-    IPrimitiveTypeMetadata UnderlyingType { get; }
+    Type UnderlyingType { get; }
     bool IsFlags { get; }
     IReadOnlyList<EnumItem> Items { get; }
 }
@@ -68,23 +60,6 @@ public class EnumItem
     public long Value { get; set; }
 }
 
-public class PrimitiveTypeMetadata : IPrimitiveTypeMetadata
-{
-    public PrimitiveTypeMetadata(Type type, int sizeOf)
-    {
-        ArgumentNullException.ThrowIfNull(type, nameof(type));
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sizeOf, nameof(sizeOf));
-
-        Type = type;
-        SizeOf = sizeOf;
-    }
-
-    public Type Type { get; }
-
-    public Func<object>? CreateObject { get; set; }
-    public int SizeOf { get; }
-}
-
 public class EnumTypeMetadata<TEnum, TUnderlying> : IEnumTypeMetadata
     where TEnum : struct, Enum
     where TUnderlying : unmanaged
@@ -92,14 +67,14 @@ public class EnumTypeMetadata<TEnum, TUnderlying> : IEnumTypeMetadata
     public EnumTypeMetadata()
     {
         Type = typeof(TEnum);
-        UnderlyingType = MetadataRegistry.GetPrimitiveTypeMetadata<TUnderlying>();
+        UnderlyingType = typeof(TUnderlying);
         CreateObject = () => new TEnum();
-        SizeOf = UnderlyingType.SizeOf;
+        SizeOf = Unsafe.SizeOf<TUnderlying>();
         IsFlags = typeof(TEnum).GetCustomAttribute<FlagsAttribute>() != null;
     }
 
     public Type Type { get; }
-    public IPrimitiveTypeMetadata UnderlyingType { get; }
+    public Type UnderlyingType { get; }
     public Func<object>? CreateObject { get; set; }
     public int SizeOf { get; }
     public bool IsFlags { get; }
@@ -188,38 +163,8 @@ public static class MetadataRegistry
 
     static MetadataRegistry()
     {
-        // Register built-in primitive types
-        RegisterPrimitiveType<bool>();
-        RegisterPrimitiveType<byte>();
-        RegisterPrimitiveType<sbyte>();
-        RegisterPrimitiveType<short>();
-        RegisterPrimitiveType<ushort>();
-        RegisterPrimitiveType<int>();
-        RegisterPrimitiveType<uint>();
-        RegisterPrimitiveType<long>();
-        RegisterPrimitiveType<ulong>();
-        RegisterPrimitiveType<float>();
-        RegisterPrimitiveType<double>();
-        RegisterPrimitiveType<decimal>();
-        RegisterPrimitiveType<char>();
-
         // Known engine types
         RegisterObjectType(typeof(Component));
-    }
-
-    public static unsafe void RegisterPrimitiveType<T>()
-        where T : unmanaged
-    {
-        Type type = typeof(T);
-        if (s_types.ContainsKey(type))
-            return;
-
-        int size = sizeof(T);
-        PrimitiveTypeMetadata metadata = new(type, size)
-        {
-            CreateObject = () => new T(),
-        };
-        s_types[type] = metadata;
     }
 
     public static IEnumTypeMetadata RegisterEnumType<TEnum, TUnderlying>()
@@ -413,9 +358,6 @@ public static class MetadataRegistry
         return typedMetadata;
     }
 
-    public static IPrimitiveTypeMetadata GetPrimitiveTypeMetadata<T>()
-        where T : unmanaged => GetMetadata<T, IPrimitiveTypeMetadata>();
-
     public static bool TryGetMetadata(Type type, [NotNullWhen(true)] out ITypeMetadata? metadata)
     {
         return s_types.TryGetValue(type, out metadata);
@@ -440,11 +382,10 @@ public static class MetadataRegistry
         return false;
     }
 
-
     private static readonly IReadOnlySet<Type> s_emptyTypeSet = new HashSet<Type>();
 
     public static IReadOnlySet<Type> GetSubtypes(Type type) =>
-        s_typesByBaseType.TryGetValue(type, out var subtypes)
+        s_typesByBaseType.TryGetValue(type, out HashSet<Type>? subtypes)
         ? subtypes
         : s_emptyTypeSet;
 
@@ -500,7 +441,7 @@ public static class MetadataRegistry
 
     private static HashSet<Type> FindDescendants(Type type)
     {
-        HashSet<Type> descendants = new();
+        HashSet<Type> descendants = [];
         Queue<Type> queue = new();
         queue.Enqueue(type);
 

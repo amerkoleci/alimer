@@ -12,8 +12,9 @@ internal partial class JsonEngineDeserializer : Deserializer
     private readonly JsonReaderOptions _options;
     private readonly JsonElement _rootElement;
     private JsonElement _currentElement;
-    private readonly List<JsonElement> _elements = [];
     private JsonElement.ArrayEnumerator _currentArrayEnumerator;
+    private bool _insideArray = false;
+    private readonly List<JsonElement> _elements = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JsonEngineSerializer" /> class.
@@ -68,24 +69,32 @@ internal partial class JsonEngineDeserializer : Deserializer
         ReadOnlySpan<byte> span = _buffer.AsSpan();
         Utf8JsonReader reader = new(span, _options);
         _rootElement = JsonElement.ParseValue(ref reader);
-        if (_rootElement.ValueKind != JsonValueKind.Object)
+        if (_rootElement.ValueKind != JsonValueKind.Object
+            && _rootElement.ValueKind != JsonValueKind.Array)
         {
-            throw new JsonException("Expected start of JSON object.");
+            throw new JsonException("Expected start of JSON object or array.");
         }
 
         _currentElement = _rootElement;
     }
 
-    public override ObjectDeserializer BeginObject()
+    private void EnsureCurrentObject()
     {
-        _elements.Add(_currentElement);
-        return new JsonObjectDeserializer(this, _currentElement);
+        // We read a value from other property?
+        if (_currentElement.ValueKind != JsonValueKind.Object)
+        {
+            _currentElement = _elements[_elements.Count - 1];
+            _elements.RemoveAt(_elements.Count - 1);
+        }
     }
 
+    /// <inheritdoc />
     public override bool BeginObject(string? propertyName = null)
     {
-        JsonElement property = _currentElement;
-        if (propertyName != null)
+        EnsureCurrentObject();
+
+        JsonElement property;
+        if (!string.IsNullOrEmpty(propertyName))
         {
             if (!_currentElement.TryGetProperty(propertyName, out property))
             {
@@ -94,17 +103,25 @@ internal partial class JsonEngineDeserializer : Deserializer
         }
         else
         {
-            if (!_currentArrayEnumerator.MoveNext())
+            if (_insideArray)
             {
-                return false;
-            }
+                if (!_currentArrayEnumerator.MoveNext())
+                {
+                    return false;
+                }
 
-            property = _currentArrayEnumerator.Current;
+                property = _currentArrayEnumerator.Current;
+            }
+            else
+            {
+                property = _currentElement;
+            }
         }
 
         if (property.ValueKind != JsonValueKind.Object)
         {
-            throw new JsonException($"Property '{propertyName}' is not an object.");
+            //throw new JsonException($"Property '{propertyName}' is not an object.");
+            return false;
         }
 
         _elements.Add(_currentElement);
@@ -112,7 +129,8 @@ internal partial class JsonEngineDeserializer : Deserializer
         return true;
     }
 
-    public void EndObject()
+    /// <inheritdoc />
+    public override void EndObject()
     {
         if (_elements.Count == 0)
             throw new InvalidOperationException();
@@ -121,89 +139,147 @@ internal partial class JsonEngineDeserializer : Deserializer
         _elements.RemoveAt(_elements.Count - 1);
     }
 
-    public override int BeginArray(string propertyName)
+    /// <inheritdoc />
+    public override int BeginArray(string? propertyName = default)
     {
-        if (!_currentElement.TryGetProperty(propertyName, out JsonElement property))
+        EnsureCurrentObject();
+
+        JsonElement property = _currentElement;
+        if (!string.IsNullOrEmpty(propertyName))
         {
-            return -1;
+            if (!_currentElement.TryGetProperty(propertyName, out property))
+            {
+                return -1;
+            }
         }
 
         if (property.ValueKind != JsonValueKind.Array)
         {
-            throw new JsonException($"Property '{propertyName}' is not an array.");
+            //throw new JsonException($"Property '{propertyName}' is not an array.");
+            return -1;
         }
 
         _elements.Add(_currentElement);
         _currentElement = property;
         _currentArrayEnumerator = property.EnumerateArray();
+        _insideArray = true;
         return property.GetArrayLength();
     }
 
+    /// <inheritdoc />
     public override void EndArray()
     {
         EndObject();
+        _insideArray = false;
+        _currentArrayEnumerator = default;
     }
 
-    class JsonObjectDeserializer : ObjectDeserializer
+    /// <inheritdoc />
+    public override bool HasProperty(string propertyName)
     {
-        private readonly JsonEngineDeserializer _deserializer;
-        private readonly JsonElement _jsonElement;
+        return _currentElement.TryGetProperty(propertyName, out _);
+    }
 
-        public JsonObjectDeserializer(JsonEngineDeserializer deserializer, JsonElement jsonElement)
+    /// <inheritdoc />
+    public override void ReadProperty(string propertyName)
+    {
+        EnsureCurrentObject();
+
+        JsonElement property = _currentElement.GetProperty(propertyName);
+        _elements.Add(_currentElement);
+        _currentElement = property;
+    }
+
+    /// <inheritdoc />
+    public override bool TryReadProperty(string propertyName)
+    {
+        EnsureCurrentObject();
+
+        if (_currentElement.TryGetProperty(propertyName, out JsonElement property))
         {
-            _deserializer = deserializer;
-            _jsonElement = jsonElement;
+            _elements.Add(_currentElement);
+            _currentElement = property;
+            return true;
         }
 
-        /// <inheritdoc />
-        public override void Dispose()
+        return false;
+    }
+
+    /// <inheritdoc />
+    public override bool ReadBool(bool defaultValue = false)
+    {
+        if (_currentElement.ValueKind == JsonValueKind.True)
         {
-            _deserializer.EndObject();
+            return true;
+        }
+        else if (_currentElement.ValueKind == JsonValueKind.False)
+        {
+            return false;
         }
 
-        /// <inheritdoc />
-        public override bool ReadBool(string propertyName, bool defaultValue = false)
+        return defaultValue;
+    }
+
+    /// <inheritdoc />
+    public override int ReadInt32(int defaultValue = 0)
+    {
+        if (_currentElement.ValueKind == JsonValueKind.Number && _currentElement.TryGetInt32(out int value))
         {
-            if (!_jsonElement.TryGetProperty(propertyName, out JsonElement property))
+            return value;
+        }
+
+        return defaultValue;
+    }
+
+    /// <inheritdoc />
+    public override string? ReadString(string? defaultValue = null)
+    {
+        if (_currentElement.ValueKind == JsonValueKind.String)
+        {
+            return _currentElement.GetString();
+        }
+
+        return defaultValue;
+    }
+
+    /// <inheritdoc />
+    public override Guid ReadGuid(Guid defaultValue = default)
+    {
+        if (_currentElement.ValueKind == JsonValueKind.String && _currentElement.TryGetGuid(out Guid value))
+        {
+            return value;
+        }
+
+        return defaultValue;
+    }
+
+    /// <inheritdoc />
+    public override bool ReadValues(scoped Span<float> values)
+    {
+        if (_currentElement.ValueKind == JsonValueKind.Array)
+        {
+            int length = _currentElement.GetArrayLength();
+            if (values.Length != length)
             {
-                return defaultValue;
+                throw new ArgumentException($"The provided span length ({values.Length}) does not match the array length ({length}).");
             }
 
-            return property.GetBoolean();
-        }
-
-        /// <inheritdoc />
-        public override int ReadInt32(string propertyName, int defaultValue)
-        {
-            if (!_jsonElement.TryGetProperty(propertyName, out JsonElement property))
+            int index = 0;
+            foreach (JsonElement element in _currentElement.EnumerateArray())
             {
-                return defaultValue;
+                if (element.ValueKind == JsonValueKind.Number && element.TryGetSingle(out float value))
+                {
+                    values[index++] = value;
+                }
+                else
+                {
+                    throw new JsonException("Expected a number in the array.");
+                }
             }
 
-            return property.GetInt32();
+            return true;
         }
 
-        /// <inheritdoc />
-        public override string? ReadString(string propertyName, string? defaultValue = null)
-        {
-            if (!_jsonElement.TryGetProperty(propertyName, out JsonElement property))
-            {
-                return defaultValue;
-            }
-
-            return property.GetString();
-        }
-
-        /// <inheritdoc />
-        public override Guid ReadGuid(string propertyName, Guid defaultValue = default)
-        {
-            if (!_jsonElement.TryGetProperty(propertyName, out JsonElement property))
-            {
-                return defaultValue;
-            }
-
-            string? guidString = property.GetString();
-            return string.IsNullOrEmpty(guidString) ? defaultValue : Guid.Parse(guidString);
-        }
+        return false;
     }
 }

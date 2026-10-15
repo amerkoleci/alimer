@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Diagnostics;
 using System.Numerics;
 using System.Text;
 using System.Text.Json;
@@ -31,30 +32,25 @@ public sealed class SampleBrowserGame : Game
     {
         base.Initialize();
 
-#if TODO_SERIALIZATION
         {
             var testEntity = new Entity("Test Entity");
             CameraComponent camera = testEntity.AddComponent<CameraComponent>();
             camera.Entity!.Transform.Position = new Vector3(0.0f, 0.0f, 5.0f);
-            RigidBodyComponent rigidBody = testEntity.AddComponent<RigidBodyComponent>();
+            //RigidBodyComponent rigidBody = testEntity.AddComponent<RigidBodyComponent>();
 
             using MemoryStream memoryStream = new();
             using (var serializer = Serializer.CreateJson(memoryStream, true, new JsonWriterOptions() { Indented = true }))
             {
-                //testEntity.Serialize(serializer);
-                using IDisposable _ = serializer.BeginArray();
+                testEntity.Serialize(serializer);
             }
-            var json = Encoding.UTF8.GetString(memoryStream.ToArray());
+            string json = Encoding.UTF8.GetString(memoryStream.ToArray());
 
             // Deserialize
-            {
-                var deserializer = Deserializer.CreateJson(json);
-                using ObjectDeserializer objectDeserializer = deserializer.BeginObject();
-                var testLoadEntity = new Entity();
-                testLoadEntity.Deserialize(objectDeserializer);
-            }
-        } 
-#endif
+            var deserializer = Deserializer.CreateJson(json);
+            var testLoadEntity = new Entity();
+            testLoadEntity.Deserialize(deserializer);
+            Debug.Assert(testLoadEntity.Name == testEntity.Name);
+        }
 
         // Setup shader system (until we have a proper asset pipeline)
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");

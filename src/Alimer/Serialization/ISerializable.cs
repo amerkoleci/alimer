@@ -9,5 +9,5 @@ namespace Alimer.Serialization;
 public interface ISerializable
 {
     void Serialize(Serializer serializer);
-    void Deserialize(ObjectDeserializer deserializer);
+    void Deserialize(Deserializer deserializer);
 }

@@ -15,39 +15,48 @@ partial class Entity
         if (Flags.HasFlag(EntityFlags.NotSaved))
             return;
 
-        using IDisposable _ = serializer.BeginArray();
+        serializer.BeginObject();
+        //using IDisposable _ = serializer.BeginArray();
         serializer.WriteVersion(Version);
         serializer.Write(Keys.Id, Id);
-        //serializer.Write(Keys.Name, Name);
-        //
-        //serializer.Write("Enum", LightType.Point);
-        //
-        //serializer.Write(Keys.Position, Transform.Position);
+        serializer.Write(Keys.Name, Name);
+        serializer.Write("Enum", LightType.Point);
+
+        serializer.Write(Keys.Position, Transform.Position);
         //serializer.Write(Keys.Rotation, Transform.Rotation);
         //serializer.Write(Keys.Scale, Transform.Scale);
         //
-        //if (Components.Count > 0)
-        //{
-        //    using ObjectSerializer componentsArraySerializer = serializer.BeginArray(Keys.Components);
-        //    foreach (Component component in Components)
-        //    {
-        //        if (component is TransformComponent)
-        //            continue;
-        //
-        //        using ObjectSerializer componentSerializer = componentsArraySerializer.BeginObject();
-        //        component.Serialize(componentSerializer);
-        //    }
-        //}
+        if (Components.Count > 0)
+        {
+            serializer.BeginArray(Keys.Components);
+            //    using ObjectSerializer componentsArraySerializer = serializer.BeginArray(Keys.Components);
+            foreach (Component component in Components)
+            {
+                if (component is TransformComponent)
+                    continue;
+
+                serializer.BeginObject();
+                component.Serialize(serializer);
+                serializer.EndObject();
+            }
+
+            serializer.EndArray();
+        }
+
+        serializer.EndObject();
     }
 
-    public void Deserialize(ObjectDeserializer deserializer)
+    public void Deserialize(Deserializer deserializer)
     {
+        if (!deserializer.BeginObject())
+            return;
+
         int version = deserializer.ReadVersion();
         Id = deserializer.ReadGuid(Keys.Id, Id);
         Name = deserializer.ReadString(Keys.Name, Name)!;
-        LightType type = deserializer.ReadEnum<LightType>("Enum", LightType.Point)!;
+        LightType type = deserializer.ReadEnum("Enum", LightType.Point)!;
+        Transform.Position = deserializer.ReadVector3(Keys.Position, Transform.Position);
 
-#if false
         int componentCount = deserializer.BeginArray(Keys.Components);
         if (componentCount > 0)
         {
@@ -55,33 +64,18 @@ partial class Entity
             {
                 if (deserializer.BeginObject())
                 {
-                    int componentVersion = deserializer.ReadVersion();
                     string typeName = deserializer.ReadType();
-
-
                     var metadata = MetadataRegistry.GetMetadata<Component, IObjectTypeMetadata>();
+                    IEnumerable<PropertyMetadata> props = MetadataRegistry.GetProperties(metadata.Type);
 
                     Component component = MetadataRegistry.CreateInstance<Component>(typeName);
-
-                    //Component? component = default;
-                    //switch (typeName)
-                    //{
-                    //    case nameof(CameraComponent):
-                    //        component = new CameraComponent();
-                    //        break;
-                    //}
-
-                    if (component != null)
-                    {
-                        component.Deserialize(deserializer);
-                    }
                     deserializer.EndObject();
                 }
             }
+        }
 
-            deserializer.EndArray();
-        } 
-#endif
+        deserializer.EndArray();
+        deserializer.EndObject();
     }
 
     internal static class Keys

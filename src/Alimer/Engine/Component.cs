@@ -23,19 +23,18 @@ public abstract partial class Component : ISerializable
     public void Serialize(Serializer serializer)
     {
         string componentTypeName = GetType().Name;
-        //using ObjectSerializer objectSerializer = serializer.BeginObject();
-        //serializer.WriteType(componentTypeName);
-        //serializer.WriteVersion(ComponentVersion);
-        //serializer.Write(Keys.IsEnabled, IsEnabled);
-        //OnSerialize(serializer);
+        serializer.WriteType(componentTypeName);
+        serializer.WriteVersion(ComponentVersion);
+        serializer.Write(Keys.IsEnabled, IsEnabled);
+        OnSerialize(serializer);
     }
 
-    public void Deserialize(ObjectDeserializer deserializer)
+    public void Deserialize(Deserializer deserializer)
     {
         //IsEnabled = deserializer.ReadBool(Keys.IsEnabled, IsEnabled);
     }
 
-    protected virtual void OnSerialize(ObjectSerializer serializer)
+    protected virtual void OnSerialize(Serializer serializer)
     {
 
     }
