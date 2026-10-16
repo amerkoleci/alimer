@@ -2,119 +2,152 @@
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/stb")
 
+# CPM
+#CPMAddPackage(
+#    NAME ktx
+#    GITHUB_REPOSITORY KhronosGroup/KTX-Software
+#    GIT_TAG main
+#    OPTIONS
+#        "BUILD_SHARED_LIBS ON"
+#        "KTX_FEATURE_JS OFF"
+#        "LIBKTX_VERSION_READ_ONLY ON"
+#        "LIBKTX_VERSION_FULL OFF"
+#        "LIBKTX_FEATURE_VK_UPLOAD OFF"
+#        "LIBKTX_FEATURE_GL_UPLOAD OFF"
+#)
+#set_property(TARGET ktx PROPERTY FOLDER "ThirdParty")
+
 # ktx
-if (ALIMER_IMAGE_KTX)
-    # libktx
-    set(KTX_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ktx)
+set(KTX_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ktx)
 
-    set(KTX_SOURCES
-        ${KTX_DIR}/external/dfdutils/createdfd.c
-        ${KTX_DIR}/external/dfdutils/colourspaces.c
-        ${KTX_DIR}/external/dfdutils/dfd.h
-        ${KTX_DIR}/external/dfdutils/dfd2vk.inl
-        ${KTX_DIR}/external/dfdutils/interpretdfd.c
-        ${KTX_DIR}/external/dfdutils/printdfd.c
-        ${KTX_DIR}/external/dfdutils/queries.c
-        ${KTX_DIR}/external/dfdutils/vk2dfd.c
-        ${KTX_DIR}/external/etcdec/etcdec.cxx
-        ${KTX_DIR}/lib/src/checkheader.c
-        ${KTX_DIR}/lib/src/etcunpack.cxx
-        ${KTX_DIR}/lib/src/filestream.c
-        ${KTX_DIR}/lib/src/filestream.h
-        ${KTX_DIR}/lib/src/formatsize.h
-        ${KTX_DIR}/lib/src/hashlist.c
-        ${KTX_DIR}/lib/src/info.c
-        ${KTX_DIR}/lib/src/ktxint.h
-        ${KTX_DIR}/lib/src/memstream.c
-        ${KTX_DIR}/lib/src/memstream.h
-        ${KTX_DIR}/lib/src/strings.c
-        ${KTX_DIR}/lib/src/swap.c
-        ${KTX_DIR}/lib/src/uthash.h
-        ${KTX_DIR}/lib/src/texture.c
-        ${KTX_DIR}/lib/src/texture.h
-        ${KTX_DIR}/utils/unused.h
+set(KTX_SOURCES
+    ${KTX_DIR}/external/dfdutils/createdfd.c
+    ${KTX_DIR}/external/dfdutils/colourspaces.c
+    ${KTX_DIR}/external/dfdutils/dfd.h
+    ${KTX_DIR}/external/dfdutils/dfd2vk.inl
+    ${KTX_DIR}/external/dfdutils/interpretdfd.c
+    ${KTX_DIR}/external/dfdutils/printdfd.c
+    ${KTX_DIR}/external/dfdutils/queries.c
+    ${KTX_DIR}/external/dfdutils/vk2dfd.c
+    ${KTX_DIR}/external/etcdec/etcdec.cxx
+    ${KTX_DIR}/lib/src/checkheader.c
+    ${KTX_DIR}/lib/src/etcunpack.cxx
+    ${KTX_DIR}/lib/src/filestream.c
+    ${KTX_DIR}/lib/src/filestream.h
+    ${KTX_DIR}/lib/src/formatsize.h
+    ${KTX_DIR}/lib/src/hashlist.c
+    #${KTX_DIR}/lib/src/info.c
+    ${KTX_DIR}/lib/src/ktxint.h
+    ${KTX_DIR}/lib/src/memstream.c
+    ${KTX_DIR}/lib/src/memstream.h
+    ${KTX_DIR}/lib/src/strings.c
+    ${KTX_DIR}/lib/src/swap.c
+    ${KTX_DIR}/lib/src/uthash.h
+    ${KTX_DIR}/lib/src/texture.c
+    ${KTX_DIR}/lib/src/texture.h
+    ${KTX_DIR}/utils/unused.h
     
-        # Basis Universal
-        ${KTX_DIR}/lib/src/basis_sgd.h
-        ${KTX_DIR}/lib/src/basis_transcode.cpp
-        ${KTX_DIR}/lib/src/miniz_wrapper.cpp
-        ${KTX_DIR}/external/basis_universal/encoder/basisu_miniz.h
-        ${KTX_DIR}/external/basis_universal/transcoder/basisu_containers.h
-        ${KTX_DIR}/external/basis_universal/transcoder/basisu_containers_impl.h
-        ${KTX_DIR}/external/basis_universal/transcoder/basisu_file_headers.h
-        ${KTX_DIR}/external/basis_universal/transcoder/basisu_transcoder_internal.h
-        ${KTX_DIR}/external/basis_universal/transcoder/basisu_transcoder_uastc.h
-        ${KTX_DIR}/external/basis_universal/transcoder/basisu_transcoder.cpp
-        ${KTX_DIR}/external/basis_universal/transcoder/basisu_transcoder.h
-        ${KTX_DIR}/external/basis_universal/transcoder/basisu.h
-        ${KTX_DIR}/external/basis_universal/zstd/zstd.c
+    # Basis Universal
+    ${KTX_DIR}/lib/src/basis_sgd.h
+    ${KTX_DIR}/lib/src/basis_transcode.cpp
+    ${KTX_DIR}/lib/src/miniz_wrapper.cpp
+    ${KTX_DIR}/external/basis_universal/encoder/basisu_miniz.h
+    ${KTX_DIR}/external/basis_universal/transcoder/basisu_containers.h
+    ${KTX_DIR}/external/basis_universal/transcoder/basisu_containers_impl.h
+    ${KTX_DIR}/external/basis_universal/transcoder/basisu_file_headers.h
+    ${KTX_DIR}/external/basis_universal/transcoder/basisu_transcoder_internal.h
+    ${KTX_DIR}/external/basis_universal/transcoder/basisu_transcoder_uastc.h
+    ${KTX_DIR}/external/basis_universal/transcoder/basisu_transcoder.cpp
+    ${KTX_DIR}/external/basis_universal/transcoder/basisu_transcoder.h
+    ${KTX_DIR}/external/basis_universal/transcoder/basisu.h
+    ${KTX_DIR}/external/basis_universal/zstd/zstd.c
 
-        # KT1
-        ${KTX_DIR}/lib/src/texture1.c
-        ${KTX_DIR}/lib/src/texture1.h
+    # KT1
+    ${KTX_DIR}/lib/src/texture1.c
+    ${KTX_DIR}/lib/src/texture1.h
 
-        # KTX2
-        ${KTX_DIR}/lib/src/texture2.c
-        ${KTX_DIR}/lib/src/texture2.h
+    # KTX2
+    ${KTX_DIR}/lib/src/texture2.c
+    ${KTX_DIR}/lib/src/texture2.h
 
-        # GL support
-        ${KTX_DIR}/lib/src/gl_format.h
+    # GL support
+    ${KTX_DIR}/lib/src/gl_format.h
 
-        # Vulkan support
-        ${KTX_DIR}/lib/src/vk_format.h
-        ${KTX_DIR}/lib/src/vkformat_check.c
-        ${KTX_DIR}/lib/src/vkformat_enum.h
-        #${KTX_DIR}/lib/vkformat_str.c
-        ${KTX_DIR}/lib/src/vkformat_typesize.c
-        ${KTX_DIR}/lib/src/vkformat_check_variant.c
-        #${KTX_DIR}/lib/vk_funcs.c
-        #${KTX_DIR}/lib/vk_funcs.h
-        #${KTX_DIR}/lib/vkloader.c
+    # Vulkan support
+    ${KTX_DIR}/lib/src/vk_format.h
+    ${KTX_DIR}/lib/src/vkformat_check.c
+    ${KTX_DIR}/lib/src/vkformat_enum.h
+    #${KTX_DIR}/lib/vkformat_str.c
+    ${KTX_DIR}/lib/src/vkformat_typesize.c
+    ${KTX_DIR}/lib/src/vkformat_check_variant.c
+    #${KTX_DIR}/lib/vk_funcs.c
+    #${KTX_DIR}/lib/vk_funcs.h
+    #${KTX_DIR}/lib/vkloader.c
+)
+
+set(KTX_INCLUDE_DIRS
+    ${KTX_DIR}/lib/include
+    ${KTX_DIR}/lib/src
+    ${KTX_DIR}/utils
+    ${KTX_DIR}/external
+    ${KTX_DIR}/external/basis_universal
+    ${KTX_DIR}/external/basis_universal/zstd
+    ${KTX_DIR}/external/basis_universal/transcoder
+    ${KTX_DIR}/external/dfdutils
+    ${KTX_DIR}/other_include
+)
+
+add_library(ktx ${ALIMER_LIBRARY_TYPE} ${KTX_SOURCES})
+
+target_compile_definitions(ktx PUBLIC LIBKTX)
+if (WIN32)
+    target_compile_definitions(ktx PUBLIC "KTX_API=__declspec(dllexport)")
+else()
+    target_compile_definitions(ktx PUBLIC "KTX_API=__attribute__((visibility(\"default\")))")
+endif()
+target_compile_definitions(ktx PUBLIC KTX_FEATURE_WRITE=0)
+target_compile_definitions(ktx PUBLIC BASISD_SUPPORT_KTX2_ZSTD=0)
+target_compile_definitions(ktx PUBLIC BASISU_NO_ITERATOR_DEBUG_LEVEL)
+
+target_include_directories(ktx SYSTEM PUBLIC ${KTX_INCLUDE_DIRS})
+
+set_target_properties(ktx PROPERTIES
+    FOLDER "ThirdParty"
+    POSITION_INDEPENDENT_CODE ON
+)
+
+# Install
+if (ALIMER_INSTALL)
+    install (
+        DIRECTORY include
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/ktx
+        FILES_MATCHING PATTERN *.h
     )
 
-    set(KTX_INCLUDE_DIRS
-        ${KTX_DIR}/lib/include
-        ${KTX_DIR}/lib/src
-        ${KTX_DIR}/utils
-        ${KTX_DIR}/external
-        ${KTX_DIR}/external/basis_universal
-        ${KTX_DIR}/external/basis_universal/zstd
-        ${KTX_DIR}/external/basis_universal/transcoder
-        ${KTX_DIR}/other_include
+    install(TARGETS ktx
+        ARCHIVE DESTINATION  ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION  ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION  ${CMAKE_INSTALL_BINDIR}
     )
-
-    add_library(ktx STATIC ${KTX_SOURCES})
-
-    target_compile_definitions(ktx PUBLIC LIBKTX)
-    if (WIN32)
-        target_compile_definitions(ktx PUBLIC "KTX_API=__declspec(dllexport)")
-    endif()
-    target_compile_definitions(ktx PUBLIC KTX_FEATURE_WRITE=0)
-    target_compile_definitions(ktx PUBLIC BASISD_SUPPORT_KTX2_ZSTD=0)
-    target_compile_definitions(ktx PUBLIC BASISU_NO_ITERATOR_DEBUG_LEVEL)
-
-    target_include_directories(ktx SYSTEM PUBLIC ${KTX_INCLUDE_DIRS})
-
-    set_target_properties(ktx PROPERTIES FOLDER "ThirdParty" POSITION_INDEPENDENT_CODE ON)
 endif()
 
 # vulkan
-add_library(vulkan INTERFACE)
-set(VULKAN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/include)
-target_sources(vulkan INTERFACE 
-    ${VULKAN_INCLUDE_DIR}/vulkan/vulkan.h
+CPMAddPackage(
+    NAME Vulkan-Headers
+    GITHUB_REPOSITORY "KhronosGroup/Vulkan-Headers"
+    GIT_TAG "v1.4.365"
+    OPTIONS
+        "VULKAN_HEADERS_ENABLE_MODULE OFF"
 )
-target_include_directories(vulkan INTERFACE ${VULKAN_INCLUDE_DIR})
 
 # DirectX-Headers
-add_library(DirectX-Headers INTERFACE)
-set(DIRECTX_HEADERS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/DirectX-Headers/include)
-target_sources(DirectX-Headers INTERFACE 
-    ${DIRECTX_HEADERS_INCLUDE_DIR}/directx/d3d12.h
-    ${DIRECTX_HEADERS_INCLUDE_DIR}/directx/d3dx12.h
-    ${DIRECTX_HEADERS_INCLUDE_DIR}/directx/d3d12shader.h
+CPMAddPackage(
+    NAME DirectX-Headers
+    GITHUB_REPOSITORY "microsoft/DirectX-Headers"
+    GIT_TAG "v1.619.5" 
 )
-target_include_directories(DirectX-Headers INTERFACE ${DIRECTX_HEADERS_INCLUDE_DIR})
+set_property(TARGET "DirectX-Headers" PROPERTY FOLDER "ThirdParty")
+set_property(TARGET "DirectX-Guids" PROPERTY FOLDER "ThirdParty")
 
 # SDL3 -> with features we use from C# side
 if (NOT (EMSCRIPTEN OR ANDROID))

@@ -6,6 +6,13 @@
 #include <stdio.h>
 
 ALIMER_DISABLE_WARNINGS()
+
+#if defined(_WIN32)
+#   define STBIDEF __declspec(dllexport)
+#else
+#   define STBIDEF __attribute__((visibility("default")))
+#endif
+
 #define STBI_ASSERT(x) ALIMER_ASSERT(x)
 //#define STBI_MALLOC(sz) alimer_alloc(sz)
 //#define STBI_REALLOC(p,newsz) alimer_realloc(p, newsz)
@@ -30,15 +37,6 @@ ALIMER_DISABLE_WARNINGS()
 #define TINYEXR_USE_STB_ZLIB 1
 #define TINYEXR_IMPLEMENTATION
 #include "third_party/tinyexr.h"
-
-#if defined(ALIMER_IMAGE_KTX)
-#include <vk_format.h>
-#include <ktx.h>
-#endif
-
-#ifndef KTX2_IDENTIFIER_REF
-#define KTX2_IDENTIFIER_REF  { 0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A }
-#endif 
 
 ALIMER_ENABLE_WARNINGS()
 
@@ -415,153 +413,7 @@ namespace
 
         return data[0] == 'D' && data[1] == 'D' && data[2] == 'S';
     }
-
-    static bool IsKTX1(const uint8_t* data, size_t size)
-    {
-        if (size <= 12)
-            return false;
-
-
-        static const uint8_t ktx_ident_ref[12] = KTX_IDENTIFIER_REF;
-        return memcmp(ktx_ident_ref, data, 12) == 0;
-    }
-
-    static bool IsKTX2(const uint8_t* data, size_t size)
-    {
-        if (size <= 12)
-            return false;
-
-
-        static const uint8_t ktx_ident_ref[12] = KTX2_IDENTIFIER_REF;
-        return memcmp(ktx_ident_ref, data, 12) == 0;
-    }
 }
-
-#if defined(ALIMER_IMAGE_KTX)
-static Image* KTX_LoadFromMemory(const uint8_t* pData, size_t dataSize)
-{
-    ktxTexture* ktx_texture = 0;
-    KTX_error_code result = ktxTexture_CreateFromMemory(
-        pData,
-        dataSize,
-        KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT,
-        &ktx_texture
-    );
-
-    // Not ktx texture.
-    if (result != KTX_SUCCESS)
-    {
-        return NULL;
-    }
-
-    PixelFormat format = PixelFormat_RGBA8Unorm;
-    const bool needsTranscoding  = ktxTexture_NeedsTranscoding(ktx_texture);
-    if (ktx_texture->classId == ktxTexture2_c)
-    {
-        ktxTexture2* ktx_texture2 = (ktxTexture2*)ktx_texture;
-
-        if (needsTranscoding)
-        {
-            // Once transcoded, the ktxTexture object contains the texture data in a native GPU format (e.g. BC7)
-            // Handle other formats (textureCompressionBC) See: https://raw.githubusercontent.com/KhronosGroup/Vulkan-Samples/main/samples/performance/texture_compression_basisu/texture_compression_basisu.cpp
-            result = ktxTexture2_TranscodeBasis(ktx_texture2, KTX_TTF_BC7_RGBA, 0);
-            //result->format = TEXTURE_FORMAT_BC7;
-        }
-
-        format = alimerPixelFormatFromVkFormat(ktx_texture2->vkFormat);
-    }
-    else
-    {
-        // KTX1
-        ktxTexture1* ktx_texture1 = (ktxTexture1*)ktx_texture;
-
-        format = alimerPixelFormatFromVkFormat(vkGetFormatFromOpenGLInternalFormat(ktx_texture1->glInternalformat));
-
-        // KTX-1 files don't contain color space information. Color data is normally
-        // in sRGB, but the format we get back won't report that, so this will adjust it
-        // if necessary.
-        format = alimerPixelFormatLinearToSrgb(format);
-    }
-
-    Image* image = nullptr;
-    if (ktx_texture->baseDepth > 1)
-    {
-        image = alimerImageCreate3D(format,
-            ktx_texture->baseWidth,
-            ktx_texture->baseHeight,
-            ktx_texture->baseDepth,
-            ktx_texture->numLevels);
-    }
-    else if (ktx_texture->isCubemap && !ktx_texture->isArray)
-    {
-        image = alimerImageCreateCube(format,
-            ktx_texture->baseWidth,
-            ktx_texture->baseHeight,
-            ktx_texture->numFaces,
-            ktx_texture->numLevels);
-    }
-    else
-    {
-        image = alimerImageCreate2D(format,
-            ktx_texture->baseWidth,
-            ktx_texture->baseHeight,
-            ktx_texture->isArray ? ktx_texture->numLayers : 1u,
-            ktx_texture->numLevels);
-    }
-
-    // If the texture contains more than one layer, then populate the offsets otherwise take the mipmap level offsets
-    if (ktx_texture->isCubemap || ktx_texture->isArray)
-    {
-        uint32_t layerCount = ktx_texture->isCubemap ? ktx_texture->numFaces : ktx_texture->numLayers;
-
-        for (uint32_t layer = 0; layer < layerCount; layer++)
-        {
-            for (uint32_t miplevel = 0; miplevel < ktx_texture->numLevels; miplevel++)
-            {
-                ktx_size_t     offset;
-                KTX_error_code result;
-                if (ktx_texture->isCubemap)
-                {
-                    result = ktxTexture_GetImageOffset(ktx_texture, miplevel, 0, layer, &offset);
-                }
-                else
-                {
-                    result = ktxTexture_GetImageOffset(ktx_texture, miplevel, layer, 0, &offset);
-                }
-
-                if (result != KTX_SUCCESS)
-                {
-                    //LOGF("Error loading KTX texture");
-                }
-
-                const ktx_size_t levelSize = ktxTexture_GetImageSize(ktx_texture, miplevel);
-                ImageLevel* levelData = alimerImageGetLevel(image, miplevel, layer);
-                memcpy(levelData->pixels, ktx_texture->pData + offset, levelSize);
-            }
-        }
-    }
-    else
-    {
-        for (uint32_t miplevel = 0; miplevel < ktx_texture->numLevels; miplevel++)
-        {
-            ktx_size_t     offset;
-            KTX_error_code result;
-            result = ktxTexture_GetImageOffset(ktx_texture, miplevel, 0, 0, &offset);
-            if (result != KTX_SUCCESS)
-            {
-                //LOGF("Error loading KTX texture");
-            }
-
-            const ktx_size_t levelSize = ktxTexture_GetImageSize(ktx_texture, miplevel);
-            ImageLevel* levelData = alimerImageGetLevel(image, miplevel, 0);
-            memcpy(levelData->pixels, ktx_texture->pData + offset, levelSize);
-        }
-    }
-
-    ktxTexture_Destroy(ktx_texture);
-    return image;
-}
-#endif /* defined(ALIMER_KTX) */
 
 static Image* EXR_LoadFromMemory(const uint8_t* pData, size_t dataSize)
 {
@@ -726,58 +578,9 @@ Image* alimerImageCreateCube(PixelFormat format, uint32_t width, uint32_t height
     return image;
 }
 
-ImageFileType alimerImageDetectFileType(const void* pData, size_t dataSize)
-{
-    if (!pData || dataSize == 0)
-    {
-        return ImageFileType_Unknown;
-    }
-
-    const uint8_t* data = (const uint8_t*)pData;
-    if (IsDDS(data, dataSize))
-    {
-        return ImageFileType_DDS;
-    }
-    else  if (IsEXRFromMemory(data, dataSize) == TINYEXR_SUCCESS)
-    {
-        return ImageFileType_EXR;
-    }
-    else if (IsKTX1(data, dataSize))
-    {
-        return ImageFileType_KTX1;
-    }
-    else if (IsKTX2(data, dataSize))
-    {
-        return ImageFileType_KTX2;
-    }
-    else if (IsBMP(data, dataSize))
-    {
-        return ImageFileType_BMP;
-    }
-    else if (IsPNG(data, dataSize))
-    {
-        return ImageFileType_PNG;
-    }
-    else if (IsJPEG(data, dataSize))
-    {
-        return ImageFileType_JPEG;
-    }
-    else if (stbi_is_hdr_from_memory(data, (int)dataSize))
-    {
-        return ImageFileType_EXR;
-    }
-
-    return ImageFileType_Unknown;
-}
-
 Image* alimerImageCreateFromMemory(const uint8_t* pData, size_t dataSize)
 {
     Image* image = nullptr;
-
-#if defined(ALIMER_IMAGE_KTX)
-    if ((image = KTX_LoadFromMemory(pData, dataSize)) != nullptr)
-        return image;
-#endif
 
     if ((image = EXR_LoadFromMemory(pData, dataSize)) != nullptr)
         return image;
@@ -970,9 +773,4 @@ Blob* alimerImageEncodeJPG(Image* image, int quality)
     }
 
     return nullptr;
-}
-
-uint32_t alimerVkFormatFromOpenGLInternalFormat(uint32_t glInternalformat)
-{
-    return vkGetFormatFromOpenGLInternalFormat(glInternalformat);
 }

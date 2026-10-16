@@ -45,7 +45,7 @@ endif()
 if(DEFINED EXTRACTED_CPM_VERSION)
   set(CURRENT_CPM_VERSION "${EXTRACTED_CPM_VERSION}${CPM_DEVELOPMENT}")
 else()
-  set(CURRENT_CPM_VERSION 0.42.3)
+  set(CURRENT_CPM_VERSION 0.43.2)
 endif()
 
 get_filename_component(CPM_CURRENT_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}" REALPATH)
@@ -768,17 +768,37 @@ function(CPMAddPackage)
     return()
   endif()
 
+  if(NOT DEFINED CPM_${CPM_ARGS_NAME}_SOURCE AND DEFINED ENV{CPM_${CPM_ARGS_NAME}_SOURCE})
+    # Normalize separators to support Windows paths when reading from environment variables.
+    file(TO_CMAKE_PATH "$ENV{CPM_${CPM_ARGS_NAME}_SOURCE}" CPM_${CPM_ARGS_NAME}_SOURCE)
+    message(WARNING "${CPM_INDENT} '${CPM_ARGS_NAME}' version overridden by environment variable "
+                    "CPM_${CPM_ARGS_NAME}_SOURCE='${CPM_${CPM_ARGS_NAME}_SOURCE}'"
+    )
+  endif()
+
   # Check for manual overrides
   if(NOT CPM_ARGS_FORCE AND NOT "${CPM_${CPM_ARGS_NAME}_SOURCE}" STREQUAL "")
     set(PACKAGE_SOURCE ${CPM_${CPM_ARGS_NAME}_SOURCE})
     set(CPM_${CPM_ARGS_NAME}_SOURCE "")
+    if(NOT DEFINED ENV{CPM_${CPM_ARGS_NAME}_SOURCE})
+      message(WARNING "${CPM_INDENT} '${CPM_ARGS_NAME}' version overridden by CMake variable "
+                      "CPM_${CPM_ARGS_NAME}_SOURCE='${PACKAGE_SOURCE}'"
+      )
+    endif()
+    # Preserve semicolons in option values across the recursive cpmaddpackage() call.
+    set(_forwarded_options)
+    foreach(opt IN LISTS CPM_ARGS_OPTIONS)
+      string(REPLACE ";" "\\\\;" opt "${opt}")
+      list(APPEND _forwarded_options "${opt}")
+    endforeach()
+
     CPMAddPackage(
       NAME "${CPM_ARGS_NAME}"
       SOURCE_DIR "${PACKAGE_SOURCE}"
       EXCLUDE_FROM_ALL "${CPM_ARGS_EXCLUDE_FROM_ALL}"
       SYSTEM "${CPM_ARGS_SYSTEM}"
       PATCHES "${CPM_ARGS_PATCHES}"
-      OPTIONS "${CPM_ARGS_OPTIONS}"
+      OPTIONS "${_forwarded_options}"
       SOURCE_SUBDIR "${CPM_ARGS_SOURCE_SUBDIR}"
       DOWNLOAD_ONLY "${DOWNLOAD_ONLY}"
       FORCE True

@@ -19,17 +19,6 @@ typedef enum ImageType {
     _ImageType_Force32 = 0x7FFFFFFF
 } ImageType;
 
-typedef enum ImageFileType {
-    ImageFileType_Unknown = 0,
-    ImageFileType_BMP,
-    ImageFileType_PNG,
-    ImageFileType_JPEG,
-    ImageFileType_EXR,
-    ImageFileType_DDS,
-    ImageFileType_KTX1,
-    ImageFileType_KTX2,
-} ImageFileType;
-
 /* Structs */
 typedef struct ImageLevel {
     uint32_t      width;
@@ -54,7 +43,6 @@ ALIMER_API Image* alimerImageCreate2D(PixelFormat format, uint32_t width, uint32
 ALIMER_API Image* alimerImageCreate3D(PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t mipLevelCount);
 ALIMER_API Image* alimerImageCreateCube(PixelFormat format, uint32_t width, uint32_t height, uint32_t arrayLayers, uint32_t mipLevelCount);
 
-ALIMER_API ImageFileType alimerImageDetectFileType(const void* pData, size_t dataSize);
 ALIMER_API Image* alimerImageCreateFromMemory(const uint8_t* pData, size_t dataSize);
 ALIMER_API void alimerImageDestroy(Image* image);
 

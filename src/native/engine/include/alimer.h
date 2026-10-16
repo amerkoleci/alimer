@@ -135,6 +135,5 @@ ALIMER_API uint32_t alimerPixelFormatToDxgiFormat(PixelFormat format);
 ALIMER_API PixelFormat alimerPixelFormatFromDxgiFormat(uint32_t dxgiFormat);
 ALIMER_API uint32_t alimerPixelFormatToVkFormat(PixelFormat format);
 ALIMER_API PixelFormat alimerPixelFormatFromVkFormat(uint32_t vkFormat);
-ALIMER_API uint32_t alimerVkFormatFromOpenGLInternalFormat(uint32_t glInternalformat);
 
 #endif /* ALIMER_H_ */

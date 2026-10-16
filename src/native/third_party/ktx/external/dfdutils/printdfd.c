@@ -262,7 +262,10 @@ const char* dfdToStringColorModel(khr_df_model_e value) {
         return "KHR_DF_MODEL_PVRTC2";
     case KHR_DF_MODEL_UASTC:
         return "KHR_DF_MODEL_UASTC";
-
+    case KHR_DF_MODEL_UASTC_HDR_4x4:
+        return "KHR_DF_MODEL_UASTC_HDR_4x4";
+    case KHR_DF_MODEL_UASTC_HDR_6x6:
+        return "KHR_DF_MODEL_UASTC_HDR_6x6";
     case KHR_DF_MODEL_MAX:
         // These enum values are not meant for string representation. Ignore
         break;
@@ -625,6 +628,22 @@ const char* dfdToStringChannelId(khr_df_model_e model, khr_df_model_channels_e v
             return NULL;
         }
 
+    case KHR_DF_MODEL_UASTC_HDR_4x4:
+        switch (value) {
+        case KHR_DF_CHANNEL_UASTC_HDR_4x4_RGB:
+            return "KHR_DF_CHANNEL_UASTC_HDR_4x4_RGB";
+        default:
+            return NULL;
+        }
+
+    case KHR_DF_MODEL_UASTC_HDR_6x6:
+        switch (value) {
+        case KHR_DF_CHANNEL_UASTC_HDR_6x6_RGB:
+            return "KHR_DF_CHANNEL_UASTC_HDR_6x6_RGB";
+        default:
+            return NULL;
+        }
+
     default:
         break;
     }
@@ -802,20 +821,20 @@ void printDFD(uint32_t *DFD, uint32_t dataSize)
                 if (remainingSize < sizeof_BDFD + (sample + 1) * sizeof_BDFDSample)
                     break; // Invalid DFD: Missing or partial basic DFD sample
 
-                khr_df_model_channels_e channelType = KHR_DFDSVAL(block, sample, CHANNELID);
+                khr_df_model_channels_e channelId = KHR_DFDSVAL(block, sample, CHANNELID);
                 printf("Sample %u:\n", sample);
 
                 khr_df_sample_datatype_qualifiers_e qualifiers = KHR_DFDSVAL(block, sample, QUALIFIERS);
                 printf("    Qualifiers: 0x%X (", qualifiers);
                 printFlagBits(qualifiers, dfdToStringSampleDatatypeQualifiersBit);
                 printf(")\n");
-                printf("    Channel Type: 0x%X", channelType);
+                printf("    Channel Id: 0x%X", channelId);
                 {
-                    const char* str = dfdToStringChannelId(model, channelType);
+                    const char* str = dfdToStringChannelId(model, channelId);
                     if (str)
                         printf(" (%s)\n", str);
                     else
-                        printf(" (%u)\n", channelType);
+                        printf(" (%u)\n", channelId);
                 }
                 printf("    Length: %u bits Offset: %u\n",
                        KHR_DFDSVAL(block, sample, BITLENGTH) + 1,
@@ -922,8 +941,6 @@ void printDFDJSON(uint32_t* DFD, uint32_t dataSize, uint32_t base_indent, uint32
         const khr_df_versionnumber_e versionNumber = KHR_DFDVAL(block, VERSIONNUMBER);
         const uint32_t blockSize = KHR_DFDVAL(block, DESCRIPTORBLOCKSIZE);
 
-        const int model = KHR_DFDVAL(block, MODEL);
-
         if (i == 0) {
             printf("%s", nl);
         } else {
@@ -949,6 +966,7 @@ void printDFDJSON(uint32_t* DFD, uint32_t dataSize, uint32_t base_indent, uint32
             printFlagBitsJSON(LENGTH_OF_INDENT(3), nl, flags, dfdToStringFlagsBit);
             PRINT_INDENT(2, "],%s", nl)
 
+            const int model = KHR_DFDVAL(block, MODEL);
             PRINT_ENUM_C(2, "transferFunction", KHR_DFDVAL(block, TRANSFER), dfdToStringTransferFunction);
             PRINT_ENUM_C(2, "colorPrimaries", KHR_DFDVAL(block, PRIMARIES), dfdToStringColorPrimaries);
             PRINT_ENUM_C(2, "colorModel", model, dfdToStringColorModel);
@@ -989,12 +1007,12 @@ void printDFDJSON(uint32_t* DFD, uint32_t dataSize, uint32_t base_indent, uint32
                     PRINT_INDENT(4, "],%s", nl)
                 }
 
-                khr_df_model_channels_e channelType = KHR_DFDSVAL(block, sample, CHANNELID);
-                const char* channelStr = dfdToStringChannelId(model, channelType);
+                khr_df_model_channels_e channelId = KHR_DFDSVAL(block, sample, CHANNELID);
+                const char* channelStr = dfdToStringChannelId(model, channelId);
                 if (channelStr)
-                    PRINT_INDENT(4, "\"channelType\":%s\"%s\",%s", space, channelStr, nl)
+                    PRINT_INDENT(4, "\"channelId\":%s\"%s\",%s", space, channelStr, nl)
                 else
-                    PRINT_INDENT(4, "\"channelType\":%s%u,%s", space, channelType, nl)
+                    PRINT_INDENT(4, "\"channelId\":%s%u,%s", space, channelId, nl)
 
                 PRINT_INDENT(4, "\"bitLength\":%s%u,%s", space, KHR_DFDSVAL(block, sample, BITLENGTH), nl)
                 PRINT_INDENT(4, "\"bitOffset\":%s%u,%s", space, KHR_DFDSVAL(block, sample, BITOFFSET), nl)

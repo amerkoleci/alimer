@@ -71,14 +71,6 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     stb
 )
 
-if (ALIMER_IMAGE_KTX)
-    target_link_libraries(${TARGET_NAME} PRIVATE
-        ktx
-    )
-
-    target_compile_definitions (${TARGET_NAME} PRIVATE ALIMER_IMAGE_KTX)
-endif ()
-
 if (ALIMER_AUDIO)
     target_sources(${TARGET_NAME} PRIVATE
         include/miniaudio.h
@@ -109,7 +101,7 @@ if (NOT EMSCRIPTEN)
         src/alimer_vma_exports.cpp
     )
 
-    target_link_libraries(${TARGET_NAME} PRIVATE vulkan)
+    target_link_libraries(${TARGET_NAME} PRIVATE Vulkan::Headers)
 endif()
 
 # Install

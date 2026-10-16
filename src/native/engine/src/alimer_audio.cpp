@@ -14,19 +14,6 @@ ALIMER_ENABLE_WARNINGS()
 
 namespace
 {
-    constexpr AudioDeviceType FromMiniaudio(ma_device_type value)
-    {
-        switch (value)
-        {
-            case ma_device_type_playback:   return AudioDeviceType_Playback;
-            case ma_device_type_capture:    return AudioDeviceType_Capture;
-
-            default:
-                ALIMER_UNREACHABLE();
-                return _AudioDeviceType_Count;
-        }
-    }
-
     constexpr AudioFormat FromMiniaudio(ma_format value)
     {
         switch (value)
@@ -61,46 +48,6 @@ namespace
         }
     }
 
-    constexpr AudioPanMode FromMiniaudio(ma_pan_mode value)
-    {
-        switch (value)
-        {
-            case ma_pan_mode_balance: return AudioPanMode_Balance;
-            case ma_pan_mode_pan:     return AudioPanMode_Pan;
-
-            default:
-                ALIMER_UNREACHABLE();
-                return AudioPanMode_Balance;
-        }
-    }
-
-    constexpr AudioAttenuationModel FromMiniaudio(ma_attenuation_model value)
-    {
-        switch (value)
-        {
-            case ma_attenuation_model_none: return AudioAttenuationModel_None;
-            case ma_attenuation_model_inverse: return AudioAttenuationModel_Inverse;
-            case ma_attenuation_model_linear: return AudioAttenuationModel_Linear;
-            case ma_attenuation_model_exponential: return AudioAttenuationModel_Exponential;
-
-            default:
-                ALIMER_UNREACHABLE();
-                return AudioAttenuationModel_None;
-        }
-    }
-
-    constexpr AudioPositioning FromMiniaudio(ma_positioning value)
-    {
-        switch (value)
-        {
-            case ma_positioning_absolute: return AudioPositioning_Absolute;
-            case ma_positioning_relative: return AudioPositioning_Relative;
-            default:
-                ALIMER_UNREACHABLE();
-                return AudioPositioning_Absolute;
-        }
-    }
-
     static void FromMiniaudio(const ma_vec3f& value, float result[3])
     {
         ALIMER_ASSERT(result);
@@ -114,53 +61,7 @@ namespace
     {
         return ma_vec3f{ value[0], value[1], value[2] };
     }
-
-    constexpr ma_pan_mode ToMiniaudio(AudioPanMode value)
-    {
-        switch (value)
-        {
-            case AudioPanMode_Balance: return ma_pan_mode_balance;
-            case AudioPanMode_Pan:     return ma_pan_mode_pan;
-
-            default:
-                ALIMER_UNREACHABLE();
-                return ma_pan_mode_balance;
-        }
-    }
-
-    constexpr ma_attenuation_model ToMiniaudio(AudioAttenuationModel value)
-    {
-        switch (value)
-        {
-            case AudioAttenuationModel_None: return ma_attenuation_model_none;
-            case AudioAttenuationModel_Inverse: return ma_attenuation_model_inverse;
-            case AudioAttenuationModel_Linear: return ma_attenuation_model_linear;
-            case AudioAttenuationModel_Exponential: return ma_attenuation_model_exponential;
-
-            default:
-                ALIMER_UNREACHABLE();
-                return ma_attenuation_model_none;
-        }
-    }
-
-    constexpr ma_positioning ToMiniaudio(AudioPositioning value)
-    {
-        switch (value)
-        {
-            case AudioPositioning_Relative: return ma_positioning_relative;
-            case AudioPositioning_Absolute: return ma_positioning_absolute;
-            default:
-                ALIMER_UNREACHABLE();
-                return ma_positioning_relative;
-        }
-    }
 }
-
-struct AudioDevice final
-{
-    AudioDeviceType deviceType;
-    const ma_device_info* info;
-};
 
 struct AudioEngine final
 {
@@ -182,22 +83,6 @@ struct AudioClip final
     uint32_t sampleRate = 0;
     uint64_t frameCount = 0;
 };
-
-/* AudioDevice */
-AudioDeviceType alimerAudioDeviceGetType(AudioDevice* device)
-{
-    return device->deviceType;
-}
-
-const char* alimerAudioDeviceGetName(AudioDevice* device)
-{
-    return device->info->name;
-}
-
-bool alimerAudioDeviceIsDefault(AudioDevice* device)
-{
-    return device->info->isDefault == MA_TRUE;
-}
 
 /* AudioEngine */
 static void DataCallback(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
@@ -222,10 +107,10 @@ AudioEngine* alimerAudioEngineCreate(const AudioEngineConfig* config)
     engine->refCount.store(1);
 
     ma_device_config deviceConfig = ma_device_config_init(ma_device_type_playback);
-    if (config && config->playbackDevice)
+    /*if (config && config->playbackDevice)
     {
         deviceConfig.playback.pDeviceID = &config->playbackDevice->info->id;
-    }
+    }*/
     deviceConfig.playback.format = ma_format_f32;
     deviceConfig.playback.channels = (config != nullptr && config->channelCount > 0) ? config->channelCount : 2;
     deviceConfig.sampleRate = (config != nullptr && config->sampleRate > 0) ? config->sampleRate : 48000;

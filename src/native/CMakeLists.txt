@@ -148,7 +148,6 @@ else()
 endif()
 
 option(ALIMER_AUDIO "Enable Audio support" ON)
-option(ALIMER_IMAGE_KTX "Enable ktx support in image module" ON)
 
 # Set general compiler flags
 if (MSVC)

@@ -8,23 +8,10 @@
 #include <stdbool.h>
 
 /* Forward */
-typedef struct AudioDevice AudioDevice;
 typedef struct AudioEngine AudioEngine;
 typedef struct AudioClip AudioClip;
 
 /* Enums */
-typedef enum AudioDeviceType {
-    AudioDeviceType_Playback,
-    AudioDeviceType_Capture,
-
-    _AudioDeviceType_Count,
-    _AudioDeviceType_Force32 = 0x7FFFFFFF
-} AudioDeviceType;
-
-typedef enum VolumeUnit {
-    VolumeUnit_Linear,
-    VolumeUnit_Decibels
-} VolumeUnit;
 
 typedef enum AudioFormat {
     AudioFormat_Unknown,
@@ -38,36 +25,8 @@ typedef enum AudioFormat {
     _AudioFormat_Force32 = 0x7FFFFFFF
 } AudioFormat;
 
-
-typedef enum AudioPanMode {
-    AudioPanMode_Balance,
-    AudioPanMode_Pan,
-
-    _AudioPanMode_Count,
-    _AudioPanMode_Force32 = 0x7FFFFFFF
-} AudioPanMode;
-
-typedef enum AudioAttenuationModel {
-    AudioAttenuationModel_None,
-    AudioAttenuationModel_Inverse,
-    AudioAttenuationModel_Linear,
-    AudioAttenuationModel_Exponential,
-
-    _AudioAttenuationModel_Count,
-    _AudioAttenuationModel_Force32 = 0x7FFFFFFF
-} AudioAttenuationModel;
-
-typedef enum AudioPositioning {
-    AudioPositioning_Absolute,
-    AudioPositioning_Relative,
-
-    _AudioPositioning_Count,
-    _AudioPositioning_Force32 = 0x7FFFFFFF
-} AudioPositioning;
-
 /* Structs */
 typedef struct AudioEngineConfig {
-    AudioDevice* playbackDevice DEFAULT_INITIALIZER(nullptr);
     /// Audio output channel count.
     uint32_t channelCount DEFAULT_INITIALIZER(2);
     /// Audio output sample rate.
@@ -77,14 +36,6 @@ typedef struct AudioEngineConfig {
 typedef struct AudioContextConfig {
     bool noAudio DEFAULT_INITIALIZER(false);
 } AudioContextConfig;
-
-/* Callbacks */
-typedef void AudioDeviceCallback(AudioDevice* device, void* userdata);
-
-/* AudioDevice */
-ALIMER_API AudioDeviceType alimerAudioDeviceGetType(AudioDevice* device);
-ALIMER_API const char* alimerAudioDeviceGetName(AudioDevice* device);
-ALIMER_API bool alimerAudioDeviceIsDefault(AudioDevice* device);
 
 /* AudioEngine */
 ALIMER_API AudioEngine* alimerAudioEngineCreate(const AudioEngineConfig* config);
