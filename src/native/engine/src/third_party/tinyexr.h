@@ -787,7 +787,11 @@ extern const char* EXRGetSpectralUnits(const EXRHeader *exr_header);
 // from stb_image.h:
 extern "C" int stbi_zlib_decode_buffer(char *obuffer, int olen, const char *ibuffer, int ilen);
 // from stb_image_write.h:
+#if defined(STBIWDEF)
+STBIWDEF unsigned char* stbi_zlib_compress(unsigned char* data, int data_len, int* out_len, int quality);
+#else
 extern "C" unsigned char *stbi_zlib_compress(unsigned char *data, int data_len, int *out_len, int quality);
+#endif
 #endif
 
 

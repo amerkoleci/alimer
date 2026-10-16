@@ -57,7 +57,4 @@ ALIMER_API uint32_t alimerImageGetMipLevelCount(Image* image);
 ALIMER_API uint8_t* alimerImageGetPixels(Image* image, size_t* pixelsSize);
 ALIMER_API ImageLevel* alimerImageGetLevel(Image* image, uint32_t mipLevel, uint32_t arrayOrDepthSlice /* = 0*/);
 
-/// Save in JPG format to file with specified quality. Return true if successful.
-ALIMER_API Blob* alimerImageEncodeJPG(Image* image, int quality);
-
 #endif /* ALIMER_IMAGE_H_ */

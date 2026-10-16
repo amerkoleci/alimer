@@ -7,16 +7,8 @@
 
 ALIMER_DISABLE_WARNINGS()
 
-#if defined(_WIN32)
-#   define STBIDEF __declspec(dllexport)
-#else
-#   define STBIDEF __attribute__((visibility("default")))
-#endif
-
+#define STBIDEF ALIMER_API
 #define STBI_ASSERT(x) ALIMER_ASSERT(x)
-//#define STBI_MALLOC(sz) alimer_alloc(sz)
-//#define STBI_REALLOC(p,newsz) alimer_realloc(p, newsz)
-//#define STBI_FREE(p) alimer_free(p)
 #define STBI_NO_PSD
 #define STBI_NO_PIC
 #define STBI_NO_PNM
@@ -25,11 +17,10 @@ ALIMER_DISABLE_WARNINGS()
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#define STBIWDEF ALIMER_API
 #define STBIW_ASSERT(x) ALIMER_ASSERT(x)
-//#define STBIW_MALLOC(sz) alimer_alloc(sz)
-//#define STBIW_REALLOC(p, newsz) alimer_realloc(p, newsz)
-//#define STBIW_FREE(p) alimer_free(p)
 #define STBI_WRITE_NO_STDIO
+#define STB_IMAGE_WRITE_STATIC
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
@@ -52,6 +43,32 @@ struct Image final
     /// Image pixel memory size.
     size_t pixelsSize;
 };
+
+
+ALIMER_API void stbi_free(void* ptr)
+{
+    STBI_FREE(ptr);
+}
+
+ALIMER_API void stbi_write_free(void* ptr)
+{
+    STBIW_FREE(ptr);
+}
+
+ALIMER_API int alimerIsEXRFromMemory(const uint8_t* pData, size_t dataSize) // TINYEXR_SUCCESS
+{
+    return IsEXRFromMemory(pData, dataSize);
+}
+
+ALIMER_API int alimerLoadEXRFromMemory(float** out_rgba, int* width, int* height, const uint8_t* memory, size_t size, const char** err)
+{
+    return LoadEXRFromMemory(out_rgba, width, height, memory, size, err);
+}
+
+ALIMER_API void alimerFreeEXRErrorMessage(const char* msg)
+{
+    FreeEXRErrorMessage(msg);
+}
 
 namespace
 {
@@ -349,69 +366,6 @@ namespace
         }
 
         return true;
-    }
-
-    static bool IsBMP(const uint8_t* data, size_t size)
-    {
-        struct BMPFileHeader // little-endian
-        {
-            uint8_t b; // = 'B'
-            uint8_t m; // = 'M'
-            uint32_t size;
-            uint16_t reserved1;
-            uint16_t reserved2;
-            uint32_t offBits;
-        };
-
-        if (size >= sizeof(BMPFileHeader))
-        {
-            if (data[0] == 'B' && data[1] == 'M')
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    static bool IsPNG(const uint8_t* data, size_t size)
-    {
-        if (size < 8)
-            return false;
-
-        constexpr uint8_t png_signature[8] = { 137, 80, 78, 71, 13, 10, 26, 10 };
-        bool png = true;
-        for (int i = 0; i < 8; ++i)
-        {
-            if (png_signature[i] != data[i])
-            {
-                png = false;
-                break;
-            }
-        }
-
-        return png;
-    }
-
-    static bool IsJPEG(const uint8_t* data, size_t size)
-    {
-        if (size > 3)
-        {
-            if (data[0] == 0xff && data[1] == 0xd8 && data[2] == 0xff)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    static bool IsDDS(const uint8_t* data, size_t size)
-    {
-        if (size < 4)
-            return false;
-
-        return data[0] == 'D' && data[1] == 'D' && data[2] == 'S';
     }
 }
 
@@ -714,63 +668,4 @@ ImageLevel* alimerImageGetLevel(Image* image, uint32_t mipLevel, uint32_t arrayO
     }
 
     return &image->levels[index];
-}
-
-struct ImageMemory
-{
-    static const size_t grow = 4096;
-
-    ImageMemory()
-    {
-        size = grow;
-        data = (uint8_t*)alimerMalloc(grow);
-        offset = 0;
-    }
-
-    uint8_t* data;
-    size_t size;
-    size_t offset;
-};
-
-static void alimer_stbi_write(void* context, void* data, int size)
-{
-    ImageMemory* image = (ImageMemory*)context;
-
-    size_t offset = image->offset + size;
-
-
-    if (offset > image->size)
-    {
-        // TODO:  Need a better strategy for memory growth.
-        // TODO:  Need to handle allocation failure gracefully.
-        image->size = offset + ImageMemory::grow; // Need a better algo!
-        image->data = (uint8_t*)alimerRealloc(image->data, image->size);
-    }
-
-    memcpy(image->data + image->offset, data, size);
-    image->offset = offset;
-}
-
-Blob* alimerImageEncodeJPG(Image* image, int quality)
-{
-    ALIMER_ASSERT(image);
-
-    if (alimerPixelFormatIsCompressed(image->desc.format))
-    {
-        alimerLogError(LogCategory_System, "Cannot save compressed image as JPG");
-        return nullptr;
-    }
-
-    ImageMemory memory;
-    if (stbi_write_jpg_to_func(alimer_stbi_write, &memory,
-        image->desc.width,
-        image->desc.height,
-        4,
-        image->pixels,
-        quality) != 0)
-    {
-        return alimerBlobCreate(memory.data, memory.offset, nullptr);
-    }
-
-    return nullptr;
 }
