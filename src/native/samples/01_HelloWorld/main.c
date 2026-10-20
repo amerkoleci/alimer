@@ -1,7 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-#include "alimer_image.h"
 #if defined(ALIMER_AUDIO)
 #include "alimer_audio.h"
 #endif
@@ -55,10 +54,6 @@ int main(void)
     alimerAudioClipRelease(clip1);
     alimerAudioClipRelease(clip2);
 #endif
-
-    Image* image = alimerImageCreate1D(PixelFormat_RGBA8Unorm, 512, 1, 0);
-    assert(alimerImageGetMipLevelCount(image) == 10);
-    alimerImageDestroy(image);
 
 #if defined(ALIMER_AUDIO) && defined(TEST_AUDIO)
     while (alimerAudioSourceIsPlaying(source2))

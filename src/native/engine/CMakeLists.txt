@@ -15,13 +15,10 @@ set(TARGET_NAME alimer_native)
 add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
     include/alimer.h
     include/alimer_types.h
-    include/alimer_image.h
-    include/alimer_font.h
 	src/alimer_internal.h
     src/alimer.cpp
     src/alimer_log.cpp
-    src/alimer_image.cpp
-    src/alimer_font.cpp
+    src/extensions.cpp
     src/third_party/tinyexr.h
     src/third_party/vk_mem_alloc.h
 )
