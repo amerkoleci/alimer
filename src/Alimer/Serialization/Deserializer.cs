@@ -31,45 +31,82 @@ public abstract class Deserializer
     public abstract Guid ReadGuid(Guid defaultValue = default);
     public abstract bool ReadValues(scoped Span<float> values);
 
+    public Vector3 ReadVector3(Vector3 defaultValue = default)
+    {
+        Span<float> values = stackalloc float[3];
+        if (ReadValues(values))
+        {
+            return new Vector3(values);
+        }
+
+        return defaultValue;
+    }
+
+    public bool ReadBool(string propertyName, bool defaultValue = false)
+    {
+        if (TryReadProperty(propertyName))
+        {
+            return ReadBool(defaultValue);
+        }
+
+        return defaultValue;
+    }
+
     public int ReadInt32(string propertyName, int defaultValue = 0)
     {
-        ReadProperty(propertyName);
-        return ReadInt32(defaultValue);
+        if (TryReadProperty(propertyName))
+        {
+            return ReadInt32(defaultValue);
+        }
+
+        return defaultValue;
     }
 
     public string? ReadString(string propertyName, string? defaultValue = default)
     {
-        ReadProperty(propertyName);
-        return ReadString(defaultValue);
+        if (TryReadProperty(propertyName))
+        {
+            return ReadString(defaultValue);
+        }
+
+        return defaultValue;
     }
 
     public Guid ReadGuid(string propertyName, Guid defaultValue = default)
     {
-        ReadProperty(propertyName);
-        return ReadGuid(defaultValue);
+        if (TryReadProperty(propertyName))
+        {
+            return ReadGuid(defaultValue);
+        }
+
+        return defaultValue;
     }
 
     public TEnum ReadEnum<TEnum>(string propertyName, TEnum defaultValue = default)
         where TEnum : unmanaged, Enum
     {
-        ReadProperty(propertyName);
-        string? enumString = ReadString();
-        if (string.IsNullOrEmpty(enumString))
-            return defaultValue;
+        if (TryReadProperty(propertyName))
+        {
+            string? enumString = ReadString();
+            if (string.IsNullOrEmpty(enumString))
+                return defaultValue;
 
-        if (Enum.TryParse(enumString, out TEnum result))
-            return result;
+            if (Enum.TryParse(enumString, out TEnum result))
+                return result;
+        }
 
         return defaultValue;
     }
 
     public Vector3 ReadVector3(string propertyName, Vector3 defaultValue = default)
     {
-        ReadProperty(propertyName);
-        Span<float> values = stackalloc float[3];
-        if (ReadValues(values))
+        if (TryReadProperty(propertyName))
         {
-            return new Vector3(values);
+            Span<float> values = stackalloc float[3];
+            if (ReadValues(values))
+            {
+                return new Vector3(values);
+            }
         }
 
         return defaultValue;

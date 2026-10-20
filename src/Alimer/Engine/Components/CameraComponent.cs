@@ -7,10 +7,19 @@ using System.Text.Json.Serialization;
 
 namespace Alimer.Engine;
 
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Event | AttributeTargets.Class | AttributeTargets.Method)]
+public class AlimerDisplayNameAttribute : DisplayNameAttribute
+{
+    public AlimerDisplayNameAttribute(string displayName)
+        : base(displayName)
+    {
+    }
+}
+
 [Meta]
 [DataContract(Name = nameof(CameraComponent))]
 [Category("Rendering")]
-[DisplayName("Camera")]
+[AlimerDisplayNameAttribute("Camera")]
 [Description("Camera component.")]
 //[Icon("camera")]
 [DefaultEntitySystem(typeof(CameraSystem))]

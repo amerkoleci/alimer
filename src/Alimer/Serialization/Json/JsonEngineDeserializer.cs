@@ -12,8 +12,7 @@ internal partial class JsonEngineDeserializer : Deserializer
     private readonly JsonReaderOptions _options;
     private readonly JsonElement _rootElement;
     private JsonElement _currentElement;
-    private JsonElement.ArrayEnumerator _currentArrayEnumerator;
-    private bool _insideArray = false;
+    private JsonElement.ArrayEnumerator? _currentArrayEnumerator;
     private readonly List<JsonElement> _elements = [];
 
     /// <summary>
@@ -103,14 +102,14 @@ internal partial class JsonEngineDeserializer : Deserializer
         }
         else
         {
-            if (_insideArray)
+            if (_currentArrayEnumerator.HasValue && _currentElement.ValueKind == JsonValueKind.Array)
             {
-                if (!_currentArrayEnumerator.MoveNext())
+                if (!_currentArrayEnumerator.Value.MoveNext())
                 {
                     return false;
                 }
 
-                property = _currentArrayEnumerator.Current;
+                property = _currentArrayEnumerator.Value.Current;
             }
             else
             {
@@ -159,18 +158,19 @@ internal partial class JsonEngineDeserializer : Deserializer
             return -1;
         }
 
+        int arrayLength = property.GetArrayLength();
         _elements.Add(_currentElement);
         _currentElement = property;
         _currentArrayEnumerator = property.EnumerateArray();
-        _insideArray = true;
-        return property.GetArrayLength();
+        
+
+        return arrayLength;
     }
 
     /// <inheritdoc />
     public override void EndArray()
     {
         EndObject();
-        _insideArray = false;
         _currentArrayEnumerator = default;
     }
 
@@ -208,16 +208,12 @@ internal partial class JsonEngineDeserializer : Deserializer
     /// <inheritdoc />
     public override bool ReadBool(bool defaultValue = false)
     {
-        if (_currentElement.ValueKind == JsonValueKind.True)
+        return _currentElement.ValueKind switch
         {
-            return true;
-        }
-        else if (_currentElement.ValueKind == JsonValueKind.False)
-        {
-            return false;
-        }
-
-        return defaultValue;
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            _ => defaultValue
+        };
     }
 
     /// <inheritdoc />

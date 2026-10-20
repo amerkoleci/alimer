@@ -77,6 +77,12 @@
       <Pack>True</Pack>
       <Visible>False</Visible>
     </None>
+    <None Include="$(AlimerNativeDirectory)win-x64\ktx.dll">
+      <CopyToOutputDirectory Condition="('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))) == 'true' or '$(RuntimeIdentifier)' == 'win-x64'">PreserveNewest</CopyToOutputDirectory>
+      <PackagePath>runtimes\win-x64\native</PackagePath>
+      <Pack>True</Pack>
+      <Visible>False</Visible>
+    </None>
   </ItemGroup>
   
   <ItemGroup Condition="'$(_AlimerNoTargetPlatform)' == 'True' AND '$(RuntimeIdentifier)' != 'browser-wasm'">

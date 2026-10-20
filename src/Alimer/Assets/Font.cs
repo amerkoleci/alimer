@@ -2,12 +2,13 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Alimer.Numerics;
 using static Alimer.AlimerApi;
 
 namespace Alimer.Assets;
 
-public sealed class Font : Asset
+public sealed unsafe class Font : Asset
 {
     public struct Glyph
     {
@@ -20,27 +21,29 @@ public sealed class Font : Asset
         public bool Visible;
     }
 
-    private readonly nint _handle;
+    private readonly stbtt_fontinfo* _fontInfo;
 
     private readonly Dictionary<int, int> _codepointToGlyphLookup = [];
 
-    private Font(nint handle)
+    private Font(stbtt_fontinfo* fontInfo)
     {
-        Debug.Assert(handle != 0);
-
-        _handle = handle;
+        _fontInfo = fontInfo;
 
         // Get font properties
-        alimerFontGetMetrics(_handle, out int ascent, out int descent, out int linegap);
+        stbtt_GetFontVMetrics(_fontInfo, out int ascent, out int descent, out int linegap);
         Ascent = ascent;
         Descent = descent;
         LineGap = linegap;
+
+        int advance, bearing;
+        stbtt_GetCodepointHMetrics(_fontInfo, ' ', out advance, out bearing);
+        // font->spaceAdvance = advance;
     }
 
     /// <inheritdoc/>
     protected override void Destroy()
     {
-        alimerFontDestroy(_handle);
+        NativeMemory.Free(_fontInfo);
     }
 
     public int Ascent { get; }
@@ -62,16 +65,21 @@ public sealed class Font : Asset
         return FromMemory(data);
     }
 
-    public static unsafe Font FromMemory(Span<byte> data)
+    public static Font FromMemory(ReadOnlySpan<byte> data)
     {
-        fixed (byte* dataPtr = data)
+        int offset = stbtt_GetFontOffsetForIndex(data, 0);
+        if (offset == -1)
         {
-            nint handle = alimerFontCreateFromMemory(dataPtr, (uint)data.Length);
-            if (handle == 0)
-                throw new Exception("Unable to parse Font Data");
-
-            return new Font(handle);
+            throw new Exception("Unable to parse Font Data");
         }
+
+        stbtt_fontinfo* fontInfo = (stbtt_fontinfo*)NativeMemory.AllocZeroed((nuint)sizeof(stbtt_fontinfo));
+        if (stbtt_InitFont(fontInfo, data, offset) == 0)
+        {
+            throw new Exception("Unable to parse Font Data");
+        }
+
+        return new Font(fontInfo);
     }
 
     /// <summary>
@@ -81,7 +89,7 @@ public sealed class Font : Asset
     {
         if (!_codepointToGlyphLookup.TryGetValue(codepoint, out int glyphIndex))
         {
-            _codepointToGlyphLookup[codepoint] = glyphIndex = alimerFontGetGlyphIndex(_handle, codepoint);
+            _codepointToGlyphLookup[codepoint] = glyphIndex = stbtt_FindGlyphIndex(_fontInfo, codepoint);
         }
 
         return glyphIndex;
@@ -98,12 +106,14 @@ public sealed class Font : Asset
     /// <summary>
 	/// Gets the scale value of the Font for a requested size in pixels
 	/// </summary>
-	public float GetScale(float size)
+	public float GetScale(float pixels)
     {
-        Debug.Assert(_handle != 0, "Invalid Font");
+        return stbtt_ScaleForMappingEmToPixels(_fontInfo, pixels);
+    }
 
-
-        return alimerFontGetScale(_handle, size);
+    public float GetScalePixelHeight(float pixelHeight)
+    {
+        return stbtt_ScaleForPixelHeight(_fontInfo, pixelHeight);
     }
 
     /// <summary>
@@ -131,9 +141,7 @@ public sealed class Font : Asset
     /// </summary>
     public float GetKerningBetweenGlyphs(int glyph1, int glyph2, float scale)
     {
-        Debug.Assert(_handle != 0, "Invalid Font");
-
-        return alimerFontGetKerning(_handle, glyph1, glyph2, scale);
+        return stbtt_GetGlyphKernAdvance(_fontInfo, glyph1, glyph2) * scale;
     }
 
     /// <summary>
@@ -157,25 +165,30 @@ public sealed class Font : Asset
 	/// </summary>
 	public Glyph GetGlyphByIndex(int glyphIndex, float scale)
     {
-        alimerFontGetCharacter(_handle, glyphIndex, scale,
-            out int width, out int height, out float advance, out float offsetX, out float offsetY, out int visible);
+        int adv, ox, x0, y0, x1, y1;
+
+        stbtt_GetGlyphHMetrics(_fontInfo, glyphIndex, &adv, &ox);
+        stbtt_GetGlyphBitmapBox(_fontInfo, glyphIndex, scale, scale, &x0, &y0, &x1, &y1);
+
+        int width = (x1 - x0);
+        int height = (y1 - y0);
 
         return new()
         {
             GlyphIndex = glyphIndex,
             Width = width,
             Height = height,
-            Advance = advance,
-            Offset = new Vector2(offsetX, offsetY),
+            Advance = adv * scale,
+            Offset = new Vector2(ox * scale, (float)y0),
             Scale = scale,
-            Visible = visible != 0,
+            Visible = (width > 0 && height > 0 && stbtt_IsGlyphEmpty(_fontInfo, glyphIndex) == 0),
         };
     }
 
     /// <summary>
 	/// Renders a glyph to the given <see cref="Span{ColorRgba}" /> destination.
 	/// </summary>
-	public unsafe bool GetPixels(in Glyph glyph, Span<ColorRgba> destination)
+	public bool GetPixels(in Glyph glyph, Span<ColorRgba> destination)
     {
         if (!glyph.Visible)
             return false;
@@ -185,9 +198,27 @@ public sealed class Font : Asset
 
         fixed (ColorRgba* ptr = destination)
         {
-            alimerFontGetPixels(_handle, ptr, glyph.GlyphIndex, glyph.Width, glyph.Height, glyph.Scale);
+            // parse it directly into the dest buffer
+            GetPixels(_fontInfo, (byte*)ptr, glyph.GlyphIndex, glyph.Width, glyph.Height, glyph.Scale, true);
         }
 
         return true;
     }
+
+    private static void GetPixels(stbtt_fontinfo* info, byte* dst, int glyph, int width, int height, float scale, bool premultiply = true)
+    {
+        // parse it directly into the dest buffer
+        stbtt_MakeGlyphBitmapSubpixel(info, dst, width, height, width, scale, scale, 0, 0, glyph);
+
+        // convert the buffer to RGBA data by working backwards, overwriting data
+        int len = width * height;
+        for (int a = (len - 1) * 4, b = (len - 1); b >= 0; a -= 4, b -= 1)
+        {
+            dst[a + 0] = (byte)(premultiply ? dst[b] : 255);
+            dst[a + 1] = (byte)(premultiply ? dst[b] : 255);
+            dst[a + 2] = (byte)(premultiply ? dst[b] : 255);
+            dst[a + 3] = dst[b];
+        }
+    }
+
 }

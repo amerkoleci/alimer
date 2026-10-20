@@ -5,27 +5,21 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Alimer.Engine;
 
 namespace Alimer;
-
-public enum MetadataTypeKind
-{
-    Enum,
-    Object,
-}
 
 public interface ITypeMetadata
 {
     Type Type { get; }
-    MetadataTypeKind Kind { get; }
     Func<object>? CreateObject { get; set; }
     int SizeOf { get; }
+    public bool IsEnum => Type.IsEnum;
+    public bool IsStruct => Type.IsValueType && !Type.IsEnum;
+    public bool IsAbstract => Type.IsAbstract;
 }
 
 public interface IEnumTypeMetadata : ITypeMetadata
 {
-    MetadataTypeKind ITypeMetadata.Kind => MetadataTypeKind.Enum;
     Type UnderlyingType { get; }
     bool IsFlags { get; }
     IReadOnlyList<EnumItem> Items { get; }
@@ -33,8 +27,6 @@ public interface IEnumTypeMetadata : ITypeMetadata
 
 public interface IObjectTypeMetadata : ITypeMetadata
 {
-    MetadataTypeKind ITypeMetadata.Kind => MetadataTypeKind.Object;
-
     IReadOnlyList<PropertyMetadata> Properties { get; }
 }
 
@@ -81,15 +73,69 @@ public class EnumTypeMetadata<TEnum, TUnderlying> : IEnumTypeMetadata
     public required IReadOnlyList<EnumItem> Items { get; init; }
 }
 
-public sealed class PropertyMetadata
+public abstract class MemberMetadata
 {
-    public PropertyMetadata(MemberInfo memberInfo)
+    protected MemberMetadata(MemberInfo memberInfo)
     {
         ArgumentNullException.ThrowIfNull(memberInfo, nameof(memberInfo));
 
         MemberInfo = memberInfo;
         Name = memberInfo.Name;
         DeclaringType = memberInfo.DeclaringType;
+
+        foreach (Attribute attribute in memberInfo.GetCustomAttributes())
+        {
+            if (attribute is System.ComponentModel.DataAnnotations.DisplayAttribute display)
+            {
+                if (!string.IsNullOrWhiteSpace(display.Name)) Name = display.Name;
+                if (!string.IsNullOrWhiteSpace(display.GroupName)) GroupName = display.GroupName;
+                if (!string.IsNullOrWhiteSpace(display.Description)) Description = display.Description;
+                if (!string.IsNullOrWhiteSpace(display.ShortName)) Icon ??= display.ShortName;
+
+                Order = display.GetOrder() ?? Order;
+            }
+
+            if (attribute is System.ComponentModel.CategoryAttribute categoryAttribute)
+            {
+                GroupName = categoryAttribute.Category;
+            }
+
+            if (attribute is System.ComponentModel.DisplayNameAttribute displayNameAttribute)
+            {
+                DisplayName = displayNameAttribute.DisplayName;
+            }
+
+            if (attribute is System.ComponentModel.DescriptionAttribute descriptionAttribute)
+            {
+                Description = descriptionAttribute.Description;
+            }
+
+            if (attribute is System.Text.Json.Serialization.JsonPropertyOrderAttribute jsonPropertyOrderAttribute)
+            {
+                Order = jsonPropertyOrderAttribute.Order;
+            }
+        }
+    }
+
+    public MemberInfo MemberInfo { get; }
+    public string Name { get; }
+    public Type? DeclaringType { get; }
+
+    /// <summary>
+    /// Group or category name of this type or member.
+    /// </summary>
+    public string? GroupName { get; set; }
+    public string? DisplayName { get; set; }
+    public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public int? Order { get; set; }
+}
+
+public sealed class PropertyMetadata : MemberMetadata
+{
+    public PropertyMetadata(MemberInfo memberInfo)
+        : base(memberInfo)
+    {
         if (memberInfo is PropertyInfo propertyInfo)
         {
             PropertyType = propertyInfo.PropertyType;
@@ -113,14 +159,12 @@ public sealed class PropertyMetadata
 
     }
 
-    public string Name { get; }
-    public MemberInfo MemberInfo { get; }
-    public Type? DeclaringType { get;  }
-    public Type PropertyType { get;  }
+    public Type PropertyType { get; }
     public bool IsField { get; }
     public bool HasDefaultValue { get; set; }
     public Func<object, object?>? Getter { get; set; }
     public Action<object, object?>? Setter { get; set; }
+    //public bool IsSerializable => Getter is not null && Setter is not null;
 }
 
 public class ObjectTypeMetadata : IObjectTypeMetadata
@@ -134,6 +178,9 @@ public class ObjectTypeMetadata : IObjectTypeMetadata
         Type = type;
         SizeOf = 0;
 
+        Category = type.GetCustomAttribute<System.ComponentModel.CategoryAttribute>()?.Category;
+        DisplayName = type.GetCustomAttribute<System.ComponentModel.DisplayNameAttribute>()?.DisplayName;
+
         Properties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
             .Where(property => property.CanRead && property.CanWrite)
             .Select(property => new PropertyMetadata(property))
@@ -142,6 +189,9 @@ public class ObjectTypeMetadata : IObjectTypeMetadata
 
     public Func<object>? CreateObject { get; set; }
     public int SizeOf { get; }
+
+    public string? Category { get; set; }
+    public string? DisplayName { get; set; }
 }
 
 public sealed class ObjectTypeMetadata<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] TObject> : ObjectTypeMetadata
@@ -164,7 +214,7 @@ public static class MetadataRegistry
     static MetadataRegistry()
     {
         // Known engine types
-        RegisterObjectType(typeof(Component));
+        RegisterObjectType(typeof(Alimer.Engine.Component));
     }
 
     public static IEnumTypeMetadata RegisterEnumType<TEnum, TUnderlying>()
@@ -206,7 +256,7 @@ public static class MetadataRegistry
 
         Type? baseType = type.BaseType;
         if (baseType is not null
-            && baseType != typeof(Component)
+            && baseType != typeof(Alimer.Engine.Component)
             && baseType != typeof(object))
         {
             RegisterObjectType(baseType);
@@ -256,19 +306,14 @@ public static class MetadataRegistry
         }
 
 
-        if (!s_properties.TryGetValue(type, out IEnumerable<PropertyMetadata>? properties))
-        {
-            // Cache the properties for a type so we never have to do this again.
-            s_properties[type] =
-              GetTypeAndBaseTypes(type)
+        return s_properties.GetOrAdd(type, static key =>
+            GetTypeAndBaseTypes(key)
                 .Select(GetMetadata)
                 .OfType<IObjectTypeMetadata>()
                 .SelectMany(metadata => metadata.Properties)
                 .Distinct()
-                .OrderBy(property => property.Name);
-        }
-
-        return s_properties[type];
+                .OrderBy(property => property.Name)
+                .ToArray());
     }
 
     private static IEnumerable<Type> GetTypeAndBaseTypes(Type type)
@@ -313,7 +358,7 @@ public static class MetadataRegistry
 
     public static ITypeMetadata GetMetadata(string typeName)
     {
-        foreach (var kvp in s_types)
+        foreach (KeyValuePair<Type, ITypeMetadata> kvp in s_types)
         {
             if (kvp.Key.Name == typeName)
             {
@@ -335,7 +380,7 @@ public static class MetadataRegistry
         return (T)metadata.CreateObject();
     }
 
-    public static T CreateInstance<T>(string typeName)
+    public static T? CreateInstance<T>(string typeName)
     {
         ITypeMetadata metadata = GetMetadata(typeName);
         if (metadata.CreateObject == null)
@@ -343,7 +388,7 @@ public static class MetadataRegistry
             throw new InvalidOperationException($"Type {typeName} does not have a parameterless constructor or factory method.");
         }
 
-        return (T)metadata.CreateObject();
+        return (T?)metadata.CreateObject();
     }
 
     public static TTypeMetadata GetMetadata<T, TTypeMetadata>()
@@ -353,6 +398,18 @@ public static class MetadataRegistry
         if (metadata is not TTypeMetadata typedMetadata)
         {
             throw new InvalidOperationException($"Metadata for type {typeof(T).FullName} is not of type {typeof(TTypeMetadata).FullName}.");
+        }
+
+        return typedMetadata;
+    }
+
+    public static TTypeMetadata GetMetadata<T, TTypeMetadata>(string typeName)
+        where TTypeMetadata : ITypeMetadata
+    {
+        ITypeMetadata metadata = GetMetadata(typeName);
+        if (metadata is not TTypeMetadata typedMetadata)
+        {
+            throw new InvalidOperationException($"Metadata for type {typeName} is not of type {typeof(TTypeMetadata).FullName}.");
         }
 
         return typedMetadata;

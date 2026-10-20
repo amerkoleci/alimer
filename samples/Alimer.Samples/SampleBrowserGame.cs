@@ -32,6 +32,8 @@ public sealed class SampleBrowserGame : Game
     {
         base.Initialize();
 
+        bool testSerialize = false;
+        if (testSerialize)
         {
             var testEntity = new Entity("Test Entity");
             CameraComponent camera = testEntity.AddComponent<CameraComponent>();

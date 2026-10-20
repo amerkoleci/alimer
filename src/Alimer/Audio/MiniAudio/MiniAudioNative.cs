@@ -18,7 +18,6 @@ using Alimer.Audio;
 /* Callback for when a sound reaches the end. */
 using unsafe ma_sound_end_proc = delegate* unmanaged[Cdecl]<void* /*pUserData*/, MiniAudioNative.ma_sound* /*pSound*/, void>;
 
-
 internal unsafe static partial class MiniAudioNative
 {
     private const string LibraryName = AlimerApi.LibraryName;

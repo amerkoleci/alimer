@@ -56,6 +56,17 @@ public abstract partial class Serializer : IDisposable
     public abstract void WriteBase64StringValue(scoped ReadOnlySpan<byte> values);
     public abstract void WriteValues(scoped ReadOnlySpan<float> values);
 
+    public void WriteAsFloatValues<T>(T value) where T : unmanaged
+    {
+        ReadOnlySpan<float> values = MemoryMarshal.Cast<T, float>([value]);
+        WriteValues(values);
+    }
+
+    public void Write(in Vector2 value) => WriteAsFloatValues(value);
+    public void Write(in Vector3 value) => WriteAsFloatValues(value);
+    public void Write(in Vector4 value) => WriteAsFloatValues(value);
+    public void Write(in Quaternion value) => WriteAsFloatValues(value);
+
     public void WriteVersion(int value) => Write(VersionKey, value);
     public void WriteType(string value) => Write(TypeKey, value);
 

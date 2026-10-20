@@ -31,7 +31,8 @@ public abstract partial class Component : ISerializable
 
     public void Deserialize(Deserializer deserializer)
     {
-        //IsEnabled = deserializer.ReadBool(Keys.IsEnabled, IsEnabled);
+        int version = deserializer.ReadVersion();
+        IsEnabled = deserializer.ReadBool(Keys.IsEnabled, IsEnabled);
     }
 
     protected virtual void OnSerialize(Serializer serializer)

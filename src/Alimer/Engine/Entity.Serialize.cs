@@ -1,6 +1,7 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using System.Runtime.InteropServices;
 using Alimer.Rendering;
 using Alimer.Serialization;
 
@@ -41,6 +42,13 @@ partial class Entity
             }
 
             serializer.EndArray();
+
+            serializer.BeginArray("TestArray");
+            serializer.Write(Vector3.One);
+            serializer.Write(Vector3.UnitX);
+            serializer.Write(Vector3.UnitY);
+            serializer.Write(Vector3.UnitZ);
+            serializer.EndArray();
         }
 
         serializer.EndObject();
@@ -65,16 +73,39 @@ partial class Entity
                 if (deserializer.BeginObject())
                 {
                     string typeName = deserializer.ReadType();
-                    var metadata = MetadataRegistry.GetMetadata<Component, IObjectTypeMetadata>();
-                    IEnumerable<PropertyMetadata> props = MetadataRegistry.GetProperties(metadata.Type);
+                    //var metadata = MetadataRegistry.GetMetadata<Component, IObjectTypeMetadata>(typeName);
+                    //IEnumerable<PropertyMetadata> props = MetadataRegistry.GetProperties(metadata.Type);
 
-                    Component component = MetadataRegistry.CreateInstance<Component>(typeName);
+                    Component? component = MetadataRegistry.CreateInstance<Component>(typeName);
+                    if (component is null)
+                    {
+                        deserializer.EndObject();
+                        continue;
+                    }
+
+                    component.Deserialize(deserializer);
                     deserializer.EndObject();
+                    Components.Add(component);
                 }
             }
         }
-
         deserializer.EndArray();
+
+        int testArrayElementCount = deserializer.BeginArray("TestArray");
+        if(testArrayElementCount > 0)
+        {
+            Vector3[] vectors = new Vector3[testArrayElementCount];
+            for (int i = 0; i < testArrayElementCount; i++)
+            {
+                vectors[i] = deserializer.ReadVector3();
+            }
+        }
+        //serializer.Write(Vector3.One);
+        //serializer.Write(Vector3.UnitX);
+        //serializer.Write(Vector3.UnitY);
+        //serializer.Write(Vector3.UnitZ);
+        deserializer.EndArray();
+
         deserializer.EndObject();
     }
 

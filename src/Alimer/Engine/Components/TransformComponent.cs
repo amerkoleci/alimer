@@ -20,7 +20,7 @@ public partial class TransformComponent : Component, IEnumerable<TransformCompon
     private Quaternion _rotation = Quaternion.Identity;
     private Vector3 _scale = Vector3.One;
 
-    [JsonIgnore]
+    [IgnoreDataMember]
     public IEnumerable<TransformComponent> Children
     {
         get
@@ -38,7 +38,6 @@ public partial class TransformComponent : Component, IEnumerable<TransformCompon
     }
 
     [IgnoreDataMember]
-    [JsonIgnore]
     public TransformComponent? Parent
     {
         get => Entity?.Parent?.Transform;
