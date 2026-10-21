@@ -115,7 +115,7 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
         {
             foreach (var arg in attr.Attributes)
             {
-                if (arg.Name.ToString() == "DefaultEntitySystem")
+                if (arg.Name.ToString() == "EntitySystem")
                 {
                     var argExpr = arg.ArgumentList.Arguments[0];
                     var argValue = argExpr.Expression.NormalizeWhitespace().ToString();

@@ -23,6 +23,11 @@ public abstract class Window
     public abstract WindowState State { get; set; }
 
     /// <summary>
+    /// Gets a value indicating whether the window is visible.
+    /// </summary>
+    public abstract bool IsVisible { get; }
+
+    /// <summary>
     /// Gets and sets the title of the window.
     /// </summary>
     public abstract string Title { get; set; }
@@ -75,6 +80,22 @@ public abstract class Window
             return 0.0f;
         }
     }
+
+    /// <summary>
+    /// Shows the window.
+    /// </summary>
+    public abstract void Show();
+
+    /// <summary>
+    /// Hides the window.
+    /// </summary>
+    public abstract void Hide();
+
+    /// <summary>
+    /// Request that a window be raised above other windows and gain the input focus.
+    /// </summary>
+    /// <returns>Returns true on success or false on failure</returns>
+    public abstract bool Focus();
 
     public void CreateSurface(GraphicsManager manager)
     {

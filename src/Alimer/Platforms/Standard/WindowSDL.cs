@@ -1,13 +1,12 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Alimer.Graphics;
-using Alimer.Utilities;
-using Alimer.Platforms.Apple;
-using static SDL3.SDL_WindowFlags;
-using static SDL3.SDL_EventType;
-using static SDL3;
 using System.Diagnostics;
+using Alimer.Graphics;
+using Alimer.Platforms.Apple;
+using static SDL3;
+using static SDL3.SDL_EventType;
+using static SDL3.SDL_WindowFlags;
 
 namespace Alimer;
 
@@ -31,9 +30,6 @@ internal unsafe sealed class WindowSDL : Window
         }
         else
         {
-            if (flags.HasFlag(WindowFlags.Hidden))
-                windowFlags |= SDL_WINDOW_HIDDEN;
-
             if (flags.HasFlag(WindowFlags.Borderless))
                 windowFlags |= SDL_WINDOW_BORDERLESS;
 
@@ -250,24 +246,26 @@ internal unsafe sealed class WindowSDL : Window
                     SDL_SetWindowFullscreen(Handle, true).LogErrorIfFailed();
                     break;
                 case WindowState.ExclusiveFullScreen:
-                    SDL_DisplayMode mode = default;
-                    if (SDL_GetClosestFullscreenDisplayMode(SDL_GetPrimaryDisplay(), Size.Width, Size.Height, 0.0f, true, &mode))
+                    SDL_DisplayID displayID = SDL_GetDisplayForWindow(Handle);
+                    SDL_DisplayMode* displayMode = SDL_GetCurrentDisplayMode(displayID);
+                    if (displayMode == null)
                     {
-                        SDL_SetWindowFullscreenMode(Handle, &mode);
+                        throw new InvalidOperationException("Invalid display mode for exclusive fullscreen.");
                     }
-                    else
-                    {
-                        SDL_DisplayID displayID = SDL_GetDisplayForWindow(Handle);
-                        if (displayID > 0)
-                        {
-                            SDL_SetWindowFullscreenMode(Handle, SDL_GetCurrentDisplayMode(displayID)).LogErrorIfFailed();
-                        }
 
-                        SDL_SetWindowFullscreen(Handle, true).LogErrorIfFailed();
-                        break;
-                    }
+                    SDL_SetWindowFullscreenMode(Handle, displayMode).LogErrorIfFailed();
+                    SDL_SetWindowFullscreen(Handle, true).LogErrorIfFailed();
                     break;
             }
+        }
+    }
+
+    public override bool IsVisible
+    {
+        get
+        {
+            SDL_WindowFlags flags = SDL_GetWindowFlags(Handle);
+            return (flags & SDL_WINDOW_HIDDEN) == 0;
         }
     }
 
@@ -309,6 +307,7 @@ internal unsafe sealed class WindowSDL : Window
         }
     }
 
+    /// <inheritdoc />
     public override float ContentScale
     {
         get
@@ -330,14 +329,22 @@ internal unsafe sealed class WindowSDL : Window
         }
     }
 
-    public void Show()
+    /// <inheritdoc />
+    public override void Show()
     {
-        SDL_ShowWindow(Handle);
+        SDL_ShowWindow(Handle).LogErrorIfFailed();
     }
 
-    public void Hide()
+    /// <inheritdoc />
+    public override void Hide()
     {
-        SDL_HideWindow(Handle);
+        SDL_HideWindow(Handle).LogErrorIfFailed();
+    }
+
+    /// <inheritdoc />
+    public override bool Focus()
+    {
+        return SDL_RaiseWindow(Handle);
     }
 
     internal void HandleEvent(in SDL_WindowEvent evt)
@@ -362,6 +369,9 @@ internal unsafe sealed class WindowSDL : Window
             case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
                 Destroy();
                 Platform.WindowClosed(evt.windowID);
+                break;
+
+            case SDL_EVENT_WINDOW_EXPOSED:
                 break;
         }
     }

@@ -402,25 +402,44 @@ internal unsafe class D3D12CommandBuffer : CommandBuffer
 
     public override void PushDebugGroup(Utf8ReadOnlyString groupLabel)
     {
-        // TODO: Use Pix3 (WinPixEventRuntime)
-
-        int bufferSize = PixHelpers.CalculateNoArgsEventSize(groupLabel);
-        byte* buffer = stackalloc byte[bufferSize];
-        PixHelpers.FormatNoArgsEventToBuffer(buffer, PixHelpers.PixEventType.PIXEvent_BeginEvent_NoArgs, 0, groupLabel);
-        _commandList6.Get()->BeginEvent(PixHelpers.WinPIXEventPIX3BlobVersion, buffer, (uint)bufferSize);
+        if (PixHelpers.IsAvailable)
+        {
+            PixHelpers.PIXBeginEventOnCommandList((ID3D12GraphicsCommandList*)_commandList6.Get(), 0u, groupLabel);
+        }
+        else
+        {
+            int bufferSize = PixHelpers.CalculateNoArgsEventSize(groupLabel);
+            byte* buffer = stackalloc byte[bufferSize];
+            PixHelpers.FormatNoArgsEventToBuffer(buffer, PixHelpers.PixEventType.PIXEvent_BeginEvent_NoArgs, 0, groupLabel);
+            _commandList6.Get()->BeginEvent(PixHelpers.WinPIXEventPIX3BlobVersion, buffer, (uint)bufferSize);
+        }
     }
 
     public override void PopDebugGroup()
     {
-        _commandList6.Get()->EndEvent();
+        if (PixHelpers.IsAvailable)
+        {
+            PixHelpers.PIXEndEventOnCommandList((ID3D12GraphicsCommandList*)_commandList6.Get());
+        }
+        else
+        {
+            _commandList6.Get()->EndEvent();
+        }
     }
 
     public override void InsertDebugMarker(Utf8ReadOnlyString debugLabel)
     {
-        int bufferSize = PixHelpers.CalculateNoArgsEventSize(debugLabel);
-        byte* buffer = stackalloc byte[bufferSize];
-        PixHelpers.FormatNoArgsEventToBuffer(buffer, PixHelpers.PixEventType.PIXEvent_SetMarker_NoArgs, 0, debugLabel);
-        _commandList6.Get()->SetMarker(PixHelpers.WinPIXEventPIX3BlobVersion, buffer, (uint)bufferSize);
+        if (PixHelpers.IsAvailable)
+        {
+            PixHelpers.PIXSetMarkerOnCommandList((ID3D12GraphicsCommandList*)_commandList6.Get(), 0u, debugLabel);
+        }
+        else
+        {
+            int bufferSize = PixHelpers.CalculateNoArgsEventSize(debugLabel);
+            byte* buffer = stackalloc byte[bufferSize];
+            PixHelpers.FormatNoArgsEventToBuffer(buffer, PixHelpers.PixEventType.PIXEvent_SetMarker_NoArgs, 0, debugLabel);
+            _commandList6.Get()->SetMarker(PixHelpers.WinPIXEventPIX3BlobVersion, buffer, (uint)bufferSize);
+        }
     }
 
     public void SetConstantBuffer(bool graphics, uint slot, GraphicsBuffer buffer, ulong offset)

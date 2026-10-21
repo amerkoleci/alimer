@@ -45,25 +45,18 @@ public sealed class DisposeCollector : IDisposable
     }
 
     /// <summary>
-    ///   Adds an object implementing the <see cref="IDisposable"/> or <see cref="IReferencable"/> interfaces,
-    ///   or a <see cref="IntPtr"/> to an object allocated using <see cref="MemoryUtilities.Allocate"/>
-    ///   to the list of the objects to dispose.
+    /// Adds an object implementing the <see cref="IDisposable"/> or <see cref="IReferencable"/> interfaces.
     /// </summary>
     /// <typeparam name="T">The type of the object to add.</typeparam>
     /// <param name="objectToDispose">The object to add to the collector to be disposed at a later time.</param>
     /// <exception cref="ArgumentException">
-    ///   <paramref name="objectToDispose"/> does not implement the interface <see cref="IDisposable"/>, <see cref="IReferencable"/>,
-    ///   and is not a valid memory pointer allocated by <see cref="MemoryUtilities.Allocate"/>.
+    ///   <paramref name="objectToDispose"/> does not implement the interface <see cref="IDisposable"/> or <see cref="IReferencable"/>.
     /// </exception>
     public T Add<T>(T objectToDispose)
         where T : notnull
     {
-        if (objectToDispose is not (IDisposable or IReferencable or nint))
-            throw new ArgumentException("The object must be IDisposable, IReferenceable, or IntPtr", nameof(objectToDispose));
-
-        // Check memory alignment
-        //if (objectToDispose is IntPtr memoryPtr && !MemoryUtilities.IsAligned(memoryPtr))
-        //    throw new ArgumentException("The memory pointer is invalid. Memory must have been allocated with MemoryUtilities.Allocate", nameof(objectToDispose));
+        if (objectToDispose is not (IDisposable or IReferencable))
+            throw new ArgumentException($"The object must be {nameof(IDisposable)} or {nameof(IReferencable)}", nameof(objectToDispose));
 
         EnsureValid();
 
@@ -74,7 +67,7 @@ public sealed class DisposeCollector : IDisposable
     }
 
     /// <summary>
-    ///   Removes a disposable object from the list of the objects to dispose.
+    /// Removes a disposable object from the list of the objects to dispose.
     /// </summary>
     /// <typeparam name="T">The type of the object to remove.</typeparam>
     /// <param name="objectToDispose">The object to be removed from the list of objects to dispose.</param>
@@ -119,8 +112,6 @@ public sealed class DisposeCollector : IDisposable
                 break;
 
             default:
-                //nint dataPointer = (nint)objectToDispose;
-                //MemoryUtilities.Free(dataPointer);
                 break;
         }
     }

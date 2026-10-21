@@ -8,13 +8,13 @@ using Alimer.Serialization;
 
 namespace Alimer.Assets.Compiler;
 
-public class AssetCompilerContext : IDisposable
+public class AssetCompilerContext : DisposableObject
 {
     private const string MetadataFileExtension = ".ameta";
     private readonly List<string> _allIncludeDirectories = [];
     private readonly HashSet<string> _includedFiles = [];
-    private static readonly string[] IgnoredFiles = ["CMakeLists.txt"];
-    private static readonly string[] IgnoredFileExtensions = [".md", ".hlsli"];
+    private static readonly string[] s_ignoredFiles = ["CMakeLists.txt"];
+    private static readonly string[] s_ignoredFileExtensions = [".md", ".hlsli"];
 
     private readonly Dictionary<Type, IAssetImporter> _importers = [];
     private readonly Dictionary<Type, IAssetTypeWriter> _writers = [];
@@ -33,22 +33,19 @@ public class AssetCompilerContext : IDisposable
     }
 
 
-    public void Dispose()
-    {
-    }
-
-    public void RegisterImporter<T>() where T : IAssetImporter, new()
+    public void RegisterImporter<T>()
+        where T : IAssetImporter, new()
     {
         T assetImporter = new();
         _importers.Add(assetImporter.AssetMetadataType, assetImporter);
     }
 
-    public void RegisterWriter<T>() where T : IAssetTypeWriter, new()
+    public void RegisterWriter<T>()
+        where T : IAssetTypeWriter, new()
     {
         T assetWriter = new();
         _writers.Add(assetWriter.AssetType, assetWriter);
     }
-
 
     public void Reset()
     {
@@ -114,7 +111,7 @@ public class AssetCompilerContext : IDisposable
     }
 
     private static bool IsIgnored(string file)
-        => IgnoredFiles.Any(item => item == Path.GetFileName(file)) || IgnoredFileExtensions.Any(ext => Path.GetExtension(file).Equals(ext, StringComparison.OrdinalIgnoreCase));
+        => s_ignoredFiles.Any(item => item == Path.GetFileName(file)) || s_ignoredFileExtensions.Any(ext => Path.GetExtension(file).Equals(ext, StringComparison.OrdinalIgnoreCase));
 
     private static IEnumerable<string> EnumerateFiles(string basePath, string pattern)
         => Directory.EnumerateFiles(basePath, pattern, SearchOption.AllDirectories);

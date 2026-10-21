@@ -56,8 +56,7 @@ internal unsafe partial class RuntimePlatformSDL : RuntimePlatform
         int version = SDL_GetVersion();
         Log.Info($@"SDL3 Initialized, Version: {SDL_VERSIONNUM_MAJOR(version)}.{SDL_VERSIONNUM_MINOR(version)}.{SDL_VERSIONNUM_MICRO(version)}, Video driver: {SDL_GetCurrentVideoDriver()}");
 
-
-
+        UpdateDisplays();
         _input = new SDLInputManager();
         MainWindow = (_window = new WindowSDL(this, 1280, 720, WindowFlags.Resizable));
         _idLookup.Add(_window.Id, _window);
@@ -108,6 +107,33 @@ internal unsafe partial class RuntimePlatformSDL : RuntimePlatform
         } while (eventsRead == EventsPerPeep);
     }
 
+    private void UpdateDisplays()
+    {
+        int count = 0;
+        SDL_DisplayID* displays = SDL_GetDisplays(&count);
+        SDL_DisplayID primary = SDL_GetPrimaryDisplay();
+        if (displays != null && count > 0)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                SDL_DisplayID display = displays[i];
+
+                SDL_Rect bounds = default;
+                if (!SDL_GetDisplayBounds(display, &bounds))
+                    continue;
+
+                SDL_Rect usable = default;
+                if(!SDL_GetDisplayUsableBounds(display, &usable))
+                    continue;
+
+                string name = SDL_GetDisplayName(display);
+                float scale = SDL_GetDisplayContentScale(display);
+                SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(display);
+            }
+        }
+
+        SDL_free(displays);
+    }
 
     /// <inheritdoc />
     public override void RequestExit()
@@ -124,12 +150,6 @@ internal unsafe partial class RuntimePlatformSDL : RuntimePlatform
 
     private void HandleEvent(in SDL_Event evt)
     {
-        //if (evt.type >= EventType.DisplayFirst && evt.type <= SDL_EventType.DisplayLast)
-        //{
-        //    HandleDisplayEvent(evt.display);
-        //    return;
-        //}
-
         switch (evt.type)
         {
             case SDL_EVENT_QUIT:
@@ -172,6 +192,7 @@ internal unsafe partial class RuntimePlatformSDL : RuntimePlatform
 
     private void HandleDisplayEvent(in SDL_DisplayEvent evt)
     {
+        UpdateDisplays();
     }
 
     private void HandleWindowEvent(in SDL_WindowEvent evt)

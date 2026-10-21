@@ -6,15 +6,15 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Alimer.Graphics;
 using Alimer.Serialization;
+using Alimer.Utilities;
 // FIX VkFormat usage when building without vulkan backend
 using Vortice.Vulkan;
 using static Alimer.AlimerApi;
 using static KtxNative;
 using static KtxNative.KTX_error_code;
 using static KtxNative.ktx_rgba_astc_mapping_e;
-using GLenum = System.UInt32;
 using static Vortice.Vulkan.Vulkan;
-using Alimer.Utilities;
+using GLenum = System.UInt32;
 
 namespace Alimer.Assets;
 
@@ -570,6 +570,33 @@ public sealed unsafe class Image : Asset, IBinarySerializable<Image>
         return result;
     }
 
+    public bool SavePng(string filePath)
+    {
+        using FileStream stream = new(filePath, FileMode.Create);
+        return SavePng(stream);
+    }
+
+    public bool SavePng(Stream stream)
+    {
+        GCHandle handle = GCHandle.Alloc(stream, GCHandleType.Normal);
+        try
+        {
+            ImageData imageData = GetLevel(0);
+            int result = stbi_write_png_to_func(&StbSaveCallback,
+                (nint)handle,
+                (int)imageData.Width,
+                (int)imageData.Height,
+                4,
+                imageData.DataPointer.ToPointer(),
+                (int)imageData.RowPitch);
+            return result != 0;
+        }
+        finally
+        {
+            handle.Free();
+        }
+    }
+
     [UnmanagedCallersOnly]
     private static void StbSaveCallback(nint context, void* data, int size)
     {
@@ -663,36 +690,6 @@ public sealed unsafe class Image : Asset, IBinarySerializable<Image>
             break;
         }
     }
-
-#if TODO_SAVE
-    private static Stream _bmpStream;
-
-    [UnmanagedCallersOnly]
-    private static unsafe void SaveBmpCallback(nint image, void* pData, uint dataSize)
-    {
-        ReadOnlySpan<byte> imageData = new byte[dataSize];
-        fixed (byte* destDataPtr = imageData)
-        {
-            Unsafe.CopyBlockUnaligned(destDataPtr, pData, dataSize);
-        }
-
-        _bmpStream.Write(imageData);
-    }
-
-    [UnmanagedCallersOnly]
-    private static unsafe void SaveCallback(nint image, void* pData, uint dataSize)
-    {
-        string assetsPath = Path.Combine(AppContext.BaseDirectory, "Test.png");
-
-        byte[] imageData = new byte[dataSize];
-        fixed (byte* destDataPtr = imageData)
-        {
-            Unsafe.CopyBlockUnaligned(destDataPtr, pData, dataSize);
-        }
-
-        File.WriteAllBytes(assetsPath, imageData);
-    } 
-#endif
 
     private static bool IsIco(ReadOnlySpan<byte> data)
     {

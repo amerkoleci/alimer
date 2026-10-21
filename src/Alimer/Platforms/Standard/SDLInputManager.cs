@@ -6,7 +6,7 @@ using static SDL3.SDL_EventType;
 
 namespace Alimer.Input;
 
-internal class SDLInputManager : InputManager
+internal unsafe class SDLInputManager : InputManager
 {
     private readonly SDLKeyboardInputSource _keyboard;
     private readonly SDLPointerInputSource _pointer;

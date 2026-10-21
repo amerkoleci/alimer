@@ -1,7 +1,6 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Alimer.Numerics;
 using static Alimer.AlimerApi;

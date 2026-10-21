@@ -1,14 +1,13 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using Alimer.Numerics;
-using Alimer.Serialization;
 using System.Collections;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Text.Json.Serialization;
+using System.Runtime.Serialization;
+using Alimer.Numerics;
+using Alimer.Serialization;
 
 namespace Alimer.Engine;
 
@@ -16,7 +15,7 @@ namespace Alimer.Engine;
 
 [Meta]
 [DebuggerTypeProxy(typeof(EntityDebugView))]
-public partial class Entity : IEnumerable<Component>, ISerializable
+public partial class Entity : IEnumerable<Component>, Alimer.Serialization.ISerializable
 {
     private Entity? _parent;
     private string _name;
@@ -45,28 +44,28 @@ public partial class Entity : IEnumerable<Component>, ISerializable
         Components.Add(Transform);
     }
 
-    [JsonPropertyOrder(0)]
+    [DataMember]
     [Browsable(false)]
     public Guid Id { get; set; }
 
-    [JsonPropertyOrder(10)]
+    [DataMember]
     public string Name
     {
         get => _name;
         set => _name = value;
     }
 
-    [JsonPropertyOrder(20)]
+    [DataMember]
     public EntityFlags Flags { get; set; } = EntityFlags.None;
 
     public EntityCollection Children { get; }
 
     public EntityComponentCollection Components { get; }
 
-    [JsonIgnore]
+    [IgnoreDataMember]
     public bool IsTransformHierarchyRoot => _parent is null;
 
-    [JsonIgnore]
+    [IgnoreDataMember]
     public Entity? Parent
     {
         get => _parent;
@@ -81,13 +80,13 @@ public partial class Entity : IEnumerable<Component>, ISerializable
         }
     }
 
-    [JsonIgnore]
+    [IgnoreDataMember]
     public EntityManager? EntityManager { get; internal set; }
 
-    [JsonIgnore]
+    [IgnoreDataMember]
     public TransformComponent Transform { get; private set; }
 
-    [JsonIgnore]
+    [IgnoreDataMember]
     public ref Matrix4x4 WorldTransform => ref Transform.WorldMatrix;
 
     /// <summary>

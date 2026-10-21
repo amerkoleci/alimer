@@ -4,7 +4,7 @@
 namespace Alimer.Engine;
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class DefaultEntitySystemAttribute(Type type) : Attribute
+public sealed class EntitySystemAttribute(Type type) : Attribute
 {
     public Type Type { get; } = type;
 }

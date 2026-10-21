@@ -3,64 +3,48 @@
 
 using System.ComponentModel;
 using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
 
 namespace Alimer.Engine;
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Event | AttributeTargets.Class | AttributeTargets.Method)]
-public class AlimerDisplayNameAttribute : DisplayNameAttribute
-{
-    public AlimerDisplayNameAttribute(string displayName)
-        : base(displayName)
-    {
-    }
-}
 
 [Meta]
 [DataContract(Name = nameof(CameraComponent))]
 [Category("Rendering")]
-[AlimerDisplayNameAttribute("Camera")]
+[DisplayName("Camera")]
 [Description("Camera component.")]
 //[Icon("camera")]
-[DefaultEntitySystem(typeof(CameraSystem))]
+[EntitySystem(typeof(CameraSystem))]
 public partial class CameraComponent : Component
 {
     public const float DefaultFieldOfView = 60.0f;
 
-    [JsonPropertyOrder(10)]
     [DataMember]
     public float AspectRatio { get; set; } = 16.0f / 9.0f;
 
-    [JsonPropertyOrder(20)]
     [DataMember]
     [DefaultValue(DefaultFieldOfView)]
     [DisplayName("Field of view")]
     //[DataMemberRange(1.0, 179.0, 1.0, 10.0, 0)]
     public float FieldOfView { get; set; } = DefaultFieldOfView;
 
-    [JsonPropertyOrder(30)]
+    [DataMember]
     public float FarPlaneDistance { get; set; } = 100000.0f;
 
-    [JsonPropertyOrder(40)]
+    [DataMember]
     public float NearPlaneDistance { get; set; } = 0.1f;
 
-    [JsonPropertyOrder(50)]
+    [DataMember]
     public bool UseCustomAspectRatio { get; set; }
 
     [IgnoreDataMember]
-    [JsonIgnore]
     public Matrix4x4 ViewMatrix { get; set; } = Matrix4x4.Identity;
 
     [IgnoreDataMember]
-    [JsonIgnore]
     public Matrix4x4 ProjectionMatrix { get; set; } = Matrix4x4.Identity;
 
     [IgnoreDataMember]
-    [JsonIgnore]
     public Matrix4x4 ViewProjectionMatrix { get; set; } = Matrix4x4.Identity;
 
     [IgnoreDataMember]
-    [JsonIgnore]
     public BoundingFrustum Frustum { get; set; }
 
     public void Update(float? screenAspectRatio = null)

@@ -95,7 +95,8 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
 
     internal void Add(Entity entity)
     {
-        if (_entities.Contains(entity)) return;
+        if (_entities.Contains(entity))
+            return;
 
         if (entity.EntityManager != null)
         {
@@ -195,9 +196,9 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
 
     private void CollectNewEntitySystems(Type componentType)
     {
-        IEnumerable<DefaultEntitySystemAttribute> entitySystemAttributes = componentType.GetCustomAttributes<DefaultEntitySystemAttribute>();
+        IEnumerable<EntitySystemAttribute> entitySystemAttributes = componentType.GetCustomAttributes<EntitySystemAttribute>();
 
-        foreach (DefaultEntitySystemAttribute entitySystemAttribute in entitySystemAttributes)
+        foreach (EntitySystemAttribute entitySystemAttribute in entitySystemAttributes)
         {
             bool addNewSystem = !Systems.Any(s => s.GetType() == entitySystemAttribute.Type);
 

@@ -18,6 +18,7 @@
     <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
     <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.4.0" />
     <PackageVersion Include="Microsoft.Direct3D.D3D12" Version="1.619.6" />
+    <PackageVersion Include="WinPixEventRuntime" Version="1.0.240308001" />
 
     <!-- Engine -->
     <PackageVersion Include="SkiaSharp" Version="$(SkiaSharpVersion)" />

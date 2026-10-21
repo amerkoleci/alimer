@@ -15,9 +15,8 @@ public enum WindowFlags
     None = 0,
     Fullscreen = 1 << 0,
     ExclusiveFullscreen = 1 << 1,
-    Hidden = 1 << 2,
-    Borderless = 1 << 3,
-    Resizable = 1 << 4,
-    Maximized = 1 << 5,
-    AlwaysOnTop = 1 << 6,
+    Borderless = 1 << 2,
+    Resizable = 1 << 3,
+    Maximized = 1 << 4,
+    AlwaysOnTop = 1 << 5,
 }

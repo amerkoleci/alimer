@@ -99,14 +99,14 @@ internal unsafe class VulkanBindlessManager : IDisposable
                 binding.binding = VulkanRegisterShift.Sampler + StaticSamplerRegisterSpaceBegin + (uint)i - 1;
                 binding.descriptorCount = 1;
                 binding.stageFlags = VK_SHADER_STAGE_ALL;
-                binding.pImmutableSamplers = (VkSampler*)Unsafe.AsPointer(ref vkStaticSamplers[i]);
+                binding.pImmutableSamplers = (VkSampler*)Unsafe.AsPointer(in vkStaticSamplers[i]);
             }
 
             // Flags for bindings, excluded static samplers
             VkDescriptorBindingFlags bindingFlags =
                 //VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-                VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
-               VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
+                VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
+                | VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
                ;
             for (uint i = 0; i < totalLayoutBindingsWithoutStaticSamplers; ++i)
             {

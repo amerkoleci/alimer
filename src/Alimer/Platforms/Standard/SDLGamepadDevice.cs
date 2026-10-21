@@ -8,9 +8,9 @@ namespace Alimer.Input;
 
 internal unsafe class SDLGamepadDevice : GamepadDevice
 {
-    private bool[] _currentButtons = new bool[(int)GamepadButton.Count];
+    private readonly bool[] _currentButtons = new bool[(int)GamepadButton.Count];
     private bool[] _previousButtons = new bool[(int)GamepadButton.Count];
-    private float[] _axes = new float[(int)GamepadAxis.Count];
+    private readonly float[] _axes = new float[(int)GamepadAxis.Count];
 
     public SDLGamepadDevice(SDL_JoystickID id)
     {

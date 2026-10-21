@@ -8,7 +8,6 @@ using SkiaSharp;
 using SkiaSharp.HarfBuzz;
 using static FreeTypeSharp.FT;
 using static FreeTypeSharp.FT_Error;
-using static FreeTypeSharp.FT_Render_Mode_;
 
 namespace Alimer.Assets;
 

@@ -2,6 +2,7 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Vortice.Win32;
 using Vortice.Win32.Graphics;
 using static Vortice.Win32.Apis;
@@ -27,7 +28,7 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
     /// <inheritdoc/>
     public override ReadOnlySpan<GraphicsAdapter> Adapters => _adapters;
 
-    public static bool EnableAgilitySDK { get; set; } = true;
+    public static bool DisableAgilitySDK { get; set; }
 
     public D3D12GraphicsManager(in GraphicsManagerOptions options)
         : base(in options)
@@ -202,22 +203,45 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
             }
 
 
-            if (EnableAgilitySDK)
+            if (!DisableAgilitySDK)
             {
-                using ComPtr<ID3D12SDKConfiguration1> sdkConfig = default;
-                Guid guid = CLSID_D3D12SDKConfiguration;
-                HRESULT hr = D3D12GetInterface(&guid, __uuidof<ID3D12SDKConfiguration1>(), (void**)sdkConfig.GetAddressOf());
-                if (SUCCEEDED(hr))
+                string sdkPath = Path.Combine(AppContext.BaseDirectory, "D3D12") + Path.DirectorySeparatorChar;
+                string corePath = Path.Combine(sdkPath, "D3D12Core.dll");
+                if (File.Exists(corePath))
                 {
-                    uint agilitySdkVersion = D3D12_SDK_VERSION;
-                    string agilitySdkPath = ".\\D3D12\\"; // D3D12SDKPath;
-
-                    hr = sdkConfig.Get()->CreateDeviceFactory(agilitySdkVersion, agilitySdkPath, __uuidof<ID3D12DeviceFactory>(), (void**)s_deviceFactory.GetAddressOf());
-                    if (FAILED(hr))
+                    // The factory accepts only the exact version of the DLL
+                    if (TryReadSDKVersion(corePath, out uint sdkVersion))
                     {
-                        agilitySdkPath = ".\\";
-                        hr = sdkConfig.Get()->CreateDeviceFactory(agilitySdkVersion, agilitySdkPath, __uuidof<ID3D12DeviceFactory>(), (void**)s_deviceFactory.GetAddressOf());
+                        using ComPtr<ID3D12SDKConfiguration1> sdkConfig = default;
+                        Guid guid = CLSID_D3D12SDKConfiguration;
+                        HRESULT hr = D3D12GetInterface(&guid, __uuidof<ID3D12SDKConfiguration1>(), (void**)sdkConfig.GetAddressOf());
+                        if (SUCCEEDED(hr))
+                        {
+                            hr = sdkConfig.Get()->CreateDeviceFactory(sdkVersion, sdkPath, __uuidof<ID3D12DeviceFactory>(), (void**)s_deviceFactory.GetAddressOf());
+                            if (FAILED(hr))
+                            {
+                                sdkPath = ".\\";
+                                hr = sdkConfig.Get()->CreateDeviceFactory(sdkVersion, sdkPath, __uuidof<ID3D12DeviceFactory>(), (void**)s_deviceFactory.GetAddressOf());
+
+                                if (hr.Failure)
+                                {
+                                    Log.Warn($"[D3D12] Can't load the Agility SDK {sdkVersion} from {sdkPath} (0x{hr.Value:X8}); using the system D3D12 runtime.");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            Log.Warn($"[D3D12] This Windows version can't load the Agility SDK {sdkVersion} (0x{hr.Value:X8}, a Windows update from September 2023 or newer is needed); using the system D3D12 runtime.");
+                        }
                     }
+                    else
+                    {
+                        Log.Warn($"[D3D12] {corePath} has no D3D12SDKVersion export; using the system D3D12 runtime.");
+                    }
+                }
+                else
+                {
+                    Log.Info("[D3D12] Using the system D3D12 runtime.");
                 }
             }
 
@@ -271,6 +295,26 @@ internal unsafe class D3D12GraphicsManager : GraphicsManager
         catch
         {
             return false;
+        }
+    }
+
+    private static bool TryReadSDKVersion(string corePath, out uint sdkVersion)
+    {
+        sdkVersion = 0;
+        if (!NativeLibrary.TryLoad(corePath, out nint module))
+            return false;
+
+        try
+        {
+            if (!NativeLibrary.TryGetExport(module, "D3D12SDKVersion", out nint address))
+                return false;
+
+            sdkVersion = *(uint*)address;
+            return true;
+        }
+        finally
+        {
+            NativeLibrary.Free(module);
         }
     }
 }

@@ -8,8 +8,9 @@ using Alimer.Assets.Graphics;
 namespace Alimer.Assets;
 
 /// <summary>
-/// Defines a <see cref="Shader"/> asset importer.
+/// Defines a <see cref="ShaderAsset"/> asset importer.
 /// </summary>
+[AssetImporter(".hlsl", ".slang")]
 public sealed class ShaderImporter : AssetImporter<ShaderAsset, ShaderMetadata>
 {
     public override Task<ShaderAsset> Import(ShaderMetadata metadata)

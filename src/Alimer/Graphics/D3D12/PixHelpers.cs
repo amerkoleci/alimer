@@ -2,15 +2,29 @@
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Vortice.Win32.Graphics;
 
 namespace Alimer.Graphics.D3D12;
 
-internal static unsafe class PixHelpers
+internal static unsafe partial class PixHelpers
 {
+    private const string DllName = "WinPixEventRuntime.dll";
+
     public const uint WinPIXEventPIX3BlobVersion = 2;
     private const ulong PIXEventsBlockEndMarker = 0xFFF80;
+
+    public static bool IsAvailable { get; private set; }
+
+    static PixHelpers()
+    {
+        IsAvailable = NativeLibrary.TryLoad(DllName, out _);
+
+        //BeginEventOnCommandList pixBeginEventOnCommandList = (BeginEventOnCommandList)GetProcAddress(module, "PIXBeginEventOnCommandList");
+        //EndEventOnCommandList pixEndEventOnCommandList = (EndEventOnCommandList)GetProcAddress(module, "PIXEndEventOnCommandList");
+        //SetMarkerOnCommandList pixSetMarkerOnCommandList = (SetMarkerOnCommandList)GetProcAddress(module, "PIXSetMarkerOnCommandList");
+    }
 
     public enum PixEventType
     {
@@ -39,7 +53,7 @@ internal static unsafe class PixHelpers
     /// <param name="eventType"> The PIX event type. </param>
     /// <param name="color"> Either a color index, or an RGB color. </param>
     /// <param name="message"> The message to embed in the buffer. </param>
-    internal static unsafe void FormatNoArgsEventToBuffer(void* outputBuffer, PixEventType eventType, ulong color, ReadOnlySpan<byte> message)
+    internal static void FormatNoArgsEventToBuffer(void* outputBuffer, PixEventType eventType, ulong color, ReadOnlySpan<byte> message)
     {
         // The buffer is written to in quad-word-sized chunks.
         ulong* buffer = (ulong*)outputBuffer;
@@ -117,8 +131,9 @@ internal static unsafe class PixHelpers
     /// <param name="commandList">The target <see cref="ID3D12GraphicsCommandList"/> object.</param>
     /// <param name="color">The color to use for the event.</param>
     /// <param name="formatString">The format string to use for the event (in ANSI format, <see langword="null"/>-terminated).</param>
-    [DllImport("WinPixEventRuntime", ExactSpelling = true, CallingConvention = CallingConvention.Winapi)]
-    public static extern void PIXBeginEventOnCommandList(ID3D12GraphicsCommandList* commandList, ulong color, sbyte* formatString);
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvStdcall) })]
+    public static partial void PIXBeginEventOnCommandList(ID3D12GraphicsCommandList* commandList, ulong color, byte* formatString);
 
     /// <summary>
     /// Ends a PIX event on a target <see cref="ID3D12GraphicsCommandList"/> object.
@@ -127,8 +142,9 @@ internal static unsafe class PixHelpers
     /// </para>
     /// </summary>
     /// <param name="commandList">The target <see cref="ID3D12GraphicsCommandList"/> object.</param>
-    [DllImport("WinPixEventRuntime", ExactSpelling = true, CallingConvention = CallingConvention.Winapi)]
-    public static extern void PIXEndEventOnCommandList(ID3D12GraphicsCommandList* commandList);
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvStdcall) })]
+    public static partial void PIXEndEventOnCommandList(ID3D12GraphicsCommandList* commandList);
 
     /// <summary>
     /// Sets a PIX marker on a target <see cref="ID3D12GraphicsCommandList"/> object.
@@ -139,6 +155,7 @@ internal static unsafe class PixHelpers
     /// <param name="commandList">The target <see cref="ID3D12GraphicsCommandList"/> object.</param>
     /// <param name="color">The color to use for the marker.</param>
     /// <param name="formatString">The format string to use for the marker (in ANSI format, <see langword="null"/>-terminated).</param>
-    [DllImport("WinPixEventRuntime", ExactSpelling = true, CallingConvention = CallingConvention.Winapi)]
-    public static extern void PIXSetMarkerOnCommandList(ID3D12GraphicsCommandList* commandList, ulong color, sbyte* formatString);
+    [LibraryImport(DllName)]
+    [UnmanagedCallConv(CallConvs = new[] { typeof(CallConvStdcall) })]
+    public static partial void PIXSetMarkerOnCommandList(ID3D12GraphicsCommandList* commandList, ulong color, byte* formatString);
 }
