@@ -1,19 +1,15 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
+using Alimer.Numerics;
+
 namespace Alimer.Input;
 
-public abstract class Cursor
+public sealed partial class Cursor
 {
     public CursorType CursorType { get; }
 
-    protected Cursor()
-    {
-        CursorType = CursorType.Custom;
-    }
+    internal partial Cursor(CursorType type);
 
-    protected Cursor(CursorType cursorType)
-    {
-        CursorType = cursorType;
-    }
+    public partial Cursor(ReadOnlySpan<ColorRgba> pixels, in SizeI size, in PointI hotspot);
 }

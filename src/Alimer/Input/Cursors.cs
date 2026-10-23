@@ -53,7 +53,7 @@ public static class Cursors
     {
         if (s_stockCursors[(int)cursorType] == null)
         {
-            s_stockCursors[(int)cursorType] = RuntimePlatform.Current.CreateSystemCursor(cursorType);
+            s_stockCursors[(int)cursorType] = new Cursor(cursorType);
         }
 
         return s_stockCursors[(int)cursorType];

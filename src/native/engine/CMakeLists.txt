@@ -13,11 +13,8 @@ endmacro()
 # Setup library
 set(TARGET_NAME alimer_native)
 add_library(${TARGET_NAME} ${ALIMER_LIBRARY_TYPE}
-    include/alimer.h
     include/alimer_types.h
 	src/alimer_internal.h
-    src/alimer.cpp
-    src/alimer_log.cpp
     src/extensions.cpp
     src/third_party/tinyexr.h
     src/third_party/vk_mem_alloc.h

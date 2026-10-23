@@ -371,6 +371,10 @@ internal unsafe sealed class WindowSDL : Window
                 Platform.WindowClosed(evt.windowID);
                 break;
 
+            case SDL_EVENT_WINDOW_DISPLAY_CHANGED:
+            case SDL_EVENT_WINDOW_DISPLAY_SCALE_CHANGED:
+                break;
+
             case SDL_EVENT_WINDOW_EXPOSED:
                 break;
         }

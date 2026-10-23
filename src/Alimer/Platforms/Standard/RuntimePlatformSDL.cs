@@ -39,14 +39,14 @@ internal unsafe partial class RuntimePlatformSDL : RuntimePlatform
         //SDL_SetHint(SDL_HINT_WINDOWS_CLOSE_ON_ALT_F4, "0");
         //SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
 
-        SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0"); // Disable touch events generating synthetic mouse events on desktop platforms
-        SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0"); // Disable mouse events generating synthetic touch events on mobile platforms
-        SDL_SetHint(SDL_HINT_PEN_TOUCH_EVENTS, "0");
-        SDL_SetHint(SDL_HINT_PEN_MOUSE_EVENTS, "0");
-        SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "composition");
+        SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0"u8).LogErrorIfFailed(); // Disable touch events generating synthetic mouse events on desktop platforms
+        SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0"u8).LogErrorIfFailed(); // Disable mouse events generating synthetic touch events on mobile platforms
+        SDL_SetHint(SDL_HINT_PEN_TOUCH_EVENTS, "0"u8).LogErrorIfFailed();
+        SDL_SetHint(SDL_HINT_PEN_MOUSE_EVENTS, "0"u8).LogErrorIfFailed();
+        SDL_SetHint(SDL_HINT_IME_IMPLEMENTED_UI, "composition"u8).LogErrorIfFailed();
 
         // Init SDL
-        //SDL_SetMainReady();
+        SDL_SetMainReady();
         SDL_InitFlags sdl_init_flags = SDL_INIT_VIDEO | SDL_INIT_GAMEPAD;
         if (!SDL_Init(sdl_init_flags))
         {
@@ -207,15 +207,6 @@ internal unsafe partial class RuntimePlatformSDL : RuntimePlatform
     {
         _idLookup.Remove(windowID);
     }
-
-    #region Clipboard
-    protected internal override bool HasClipboardText() => SDL_HasClipboardText();
-    protected internal override string? GetClipboardText() => SDL_GetClipboardText();
-    protected internal override void SetClipboardText(string? text) => SDL_SetClipboardText(text ?? string.Empty);
-    #endregion
-
-    protected internal override Cursor CreateSystemCursor(CursorType cursorType) => new CursorSDL(cursorType);
-    protected internal override Cursor CreateColorCursor(ReadOnlySpan<ColorRgba> pixels, in SizeI size, in PointI hotspot) => new CursorSDL(pixels, size, hotspot);
 
     [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
     private static void AlimerLog_SDL(nint userData, int category, SDL_LogPriority priority, byte* messagePtr)

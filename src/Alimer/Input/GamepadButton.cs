@@ -73,8 +73,17 @@ public enum GamepadButton
     /// Additional paddle buttons.
     /// </summary>
     RightPaddle1,
+    /// <summary>
+    /// Additional paddle buttons.
+    /// </summary>
     RightPaddle2,
+    /// <summary>
+    /// Additional paddle buttons.
+    /// </summary>
     LeftPaddle1,
+    /// <summary>
+    /// Additional paddle buttons.
+    /// </summary>
     LeftPaddle2,
     /// <summary>
     /// Touchpad button (PS4/PS5).

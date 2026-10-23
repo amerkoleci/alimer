@@ -14,6 +14,10 @@ public abstract class PointerInputSource : IInputSource
     public event EventHandler<PointerEventArgs>? PointerMoved;
     public event EventHandler<PointerEventArgs>? PointerPressed;
     public event EventHandler<PointerEventArgs>? PointerReleased;
+    /// <summary>
+    /// Occurs when a pointer that made contact abnormally loses contact.
+    /// </summary>
+    public event EventHandler<PointerEventArgs>? PointerCanceled;
     public event EventHandler<PointerEventArgs>? PointerWheelChanged;
 
     /// <summary>
@@ -105,6 +109,11 @@ public abstract class PointerInputSource : IInputSource
     protected virtual void OnPointerReleased(in PointerEventArgs e)
     {
         PointerReleased?.Invoke(this, e);
+    }
+
+    protected virtual void OnPointerCanceled(in PointerEventArgs e)
+    {
+        PointerCanceled?.Invoke(this, e);
     }
 
     protected virtual void OnPointerWheelChanged(in PointerEventArgs e)

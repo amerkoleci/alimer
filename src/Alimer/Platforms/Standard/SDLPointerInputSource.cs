@@ -3,6 +3,7 @@
 
 using static SDL3;
 using static SDL3.SDL_EventType;
+using static SDL3.SDL_TouchDeviceType;
 
 namespace Alimer.Input;
 
@@ -10,8 +11,8 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
 {
     private const int MaxMouseButtons = (int)MouseButton.X2 + 1;
 
-    private readonly CursorSDL _defaultCursor;
-    private CursorSDL _currentCursor;
+    private readonly Cursor _defaultCursor;
+    private Cursor _currentCursor;
     private Vector2 _position;
     private Vector2 _delta;
     private Vector2 _scroll;
@@ -75,7 +76,7 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
             if (_currentCursor == value)
                 return;
 
-            _currentCursor = (CursorSDL)value;
+            _currentCursor = value;
             SDL_SetCursor(_currentCursor.Handle);
         }
     }
@@ -132,7 +133,7 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         else
         {
             OnPointerExited(in args);
-        } 
+        }
     }
 
     public void HandleMotionEvent(in SDL_MouseMotionEvent evt)
@@ -155,7 +156,7 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
             KeyModifiers = SDLKeyboardInputSource.FromSDLModifiers(mod)
         };
 
-        OnPointerMoved(in args); 
+        OnPointerMoved(in args);
     }
 
     public void HandleWheelEvent(in SDL_MouseWheelEvent evt)
@@ -170,7 +171,7 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         {
             IsInContact = false,
             Button = MouseButton.Left,
-            PointerId =  (uint)evt.which, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
+            PointerId = (uint)evt.which, // The mouse instance id in relative mode, SDL_TOUCH_MOUSEID for touch events, or 0
             Position = _position
         };
 
@@ -217,6 +218,9 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
 
     public void HandleFingerDown(in SDL_TouchFingerEvent evt)
     {
+        if (IsTrackpad(evt.touchID))
+            return;
+
         PointerPoint pointerPoint = new()
         {
             IsInContact = true,
@@ -233,8 +237,11 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
         OnPointerPressed(in args);
     }
 
-    public void HandleFingerUp(in SDL_TouchFingerEvent evt)
+    public void HandleFingerUpOrCanceled(in SDL_TouchFingerEvent evt)
     {
+        if (IsTrackpad(evt.touchID))
+            return;
+
         PointerPoint pointerPoint = new()
         {
             IsInContact = true,
@@ -248,11 +255,22 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
             CurrentPoint = pointerPoint,
         };
 
-        OnPointerReleased(in args);
+        bool canceled = evt.type == SDL_EVENT_FINGER_CANCELED;
+        if (canceled)
+        {
+            OnPointerCanceled(in args);
+        }
+        else
+        {
+            OnPointerReleased(in args);
+        }
     }
 
     public void HandleFingerMotion(in SDL_TouchFingerEvent evt)
     {
+        if (IsTrackpad(evt.touchID))
+            return;
+
         PointerPoint pointerPoint = new()
         {
             IsInContact = true,
@@ -268,6 +286,13 @@ internal unsafe class SDLPointerInputSource : PointerInputSource
 
         OnPointerMoved(in args);
     }
+
+    private static bool IsTrackpad(SDL_TouchID touch)
+    {
+        SDL_TouchDeviceType type = SDL_GetTouchDeviceType(touch);
+        return (type == SDL_TOUCH_DEVICE_INDIRECT_ABSOLUTE) || (type == SDL_TOUCH_DEVICE_INDIRECT_RELATIVE);
+    }
+
     private static MouseButton FromSDLMouseButton(byte sdlButton)
     {
         return sdlButton switch

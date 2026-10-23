@@ -13,7 +13,7 @@ namespace Alimer;
 internal static class SDLUtilities
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GamepadButton FromSDL(this SDL_GamepadButton sdlButton)
+    public static GamepadButton FromSDL(SDL_GamepadButton sdlButton)
     {
         return sdlButton switch
         {
@@ -43,7 +43,7 @@ internal static class SDLUtilities
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static GamepadAxis FromSDL(this SDL_GamepadAxis axis)
+    public static GamepadAxis FromSDL(SDL_GamepadAxis axis)
     {
         return axis switch
         {

@@ -1,30 +1,30 @@
 // Copyright (c) Amer Koleci and Contributors.
 // Licensed under the MIT License (MIT). See LICENSE in the repository root for more information.
 
-using System.Diagnostics;
 using Alimer.Numerics;
-using Alimer.Utilities;
 using static SDL3;
 using static SDL3.SDL_SystemCursor;
+using System.Diagnostics;
+using Alimer.Utilities;
 
 namespace Alimer.Input;
 
-internal unsafe class CursorSDL : Cursor, IDisposable
+unsafe partial class Cursor : IDisposable
 {
-    public CursorSDL(SDL_Cursor* handle)
+    internal Cursor(SDL_Cursor* handle)
     {
         Handle = handle;
     }
 
-    public CursorSDL(CursorType cursorType)
-        : base(cursorType)
+    internal partial Cursor(CursorType type)
     {
-        Handle = SDL_CreateSystemCursor(ToSDL(cursorType));
+        CursorType = type;
+        Handle = SDL_CreateSystemCursor(ToSDL(type));
     }
 
-    public CursorSDL(ReadOnlySpan<ColorRgba> pixels, in SizeI size, in PointI hotspot)
-       : base(CursorType.Custom)
+    public partial Cursor(ReadOnlySpan<ColorRgba> pixels, in SizeI size, in PointI hotspot)
     {
+        CursorType = CursorType.Custom;
         Debug.Assert(sizeof(ColorRgba) == 4);
         int pitch = size.Width * 4;
         SDL_Surface* surface = SDL_CreateSurfaceFrom(size.Width, size.Height, SDL_PixelFormat.SDL_PIXELFORMAT_RGBA8888, pixels.GetPointerUnsafe(), pitch);
@@ -37,9 +37,9 @@ internal unsafe class CursorSDL : Cursor, IDisposable
         SDL_DestroySurface(surface);
     }
 
-    public SDL_Cursor* Handle { get; private set; }
+    internal SDL_Cursor* Handle { get; private set; }
 
-    ~CursorSDL() => Dispose();
+    ~Cursor() => Dispose();
 
     public void Dispose()
     {

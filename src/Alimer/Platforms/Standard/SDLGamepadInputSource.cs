@@ -8,7 +8,7 @@ namespace Alimer.Input;
 internal class SDLGamepadInputSource : GamepadInputSource
 {
     private readonly Dictionary<SDL_JoystickID, SDLGamepadDevice> _gamepads = [];
-    
+
     public unsafe SDLGamepadInputSource()
     {
         int count = 0;
@@ -20,7 +20,7 @@ internal class SDLGamepadInputSource : GamepadInputSource
                 OnGamepadAdded(gamepads[i]);
             }
         }
-        SDL_free(gamepads); 
+        SDL_free(gamepads);
     }
 
     /// <inheritdoc />
@@ -66,14 +66,10 @@ internal class SDLGamepadInputSource : GamepadInputSource
     }
     public void HandleGamepadButton(in SDL_GamepadButtonEvent gbutton)
     {
-        foreach (SDLGamepadDevice gamepad in _gamepads.Values)
-        {
-            if (gamepad.Id == gbutton.which)
-            {
-                gamepad.HandleButtonEvent(gbutton);
-                break;
-            }
-        }
+        if (!_gamepads.TryGetValue(gbutton.which, out SDLGamepadDevice? gamepad))
+            return;
+
+        gamepad.HandleButtonEvent(gbutton);
     }
 
     public void HandleGamepadAxis(in SDL_GamepadAxisEvent gaxis)

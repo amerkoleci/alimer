@@ -3,6 +3,7 @@
 
 using static SDL3;
 using static SDL3.SDL_JoystickConnectionState;
+using static Alimer.SDLUtilities;
 
 namespace Alimer.Input;
 
@@ -146,7 +147,8 @@ internal unsafe class SDLGamepadDevice : GamepadDevice
 
     public void HandleButtonEvent(SDL_GamepadButtonEvent evt)
     {
-        GamepadButton button = ((SDL_GamepadButton)evt.button).FromSDL();
+        SDL_GamepadButton sdlButton = (SDL_GamepadButton)evt.button;
+        GamepadButton button = FromSDL(sdlButton);
         int index = (int)button;
         if (index >= 0 && index < (int)GamepadButton.Count)
         {
@@ -156,7 +158,8 @@ internal unsafe class SDLGamepadDevice : GamepadDevice
 
     public void HandleAxisEvent(SDL_GamepadAxisEvent evt)
     {
-        GamepadAxis axis = ((SDL_GamepadAxis)evt.axis).FromSDL();
+        SDL_GamepadAxis sdlAxis = (SDL_GamepadAxis)evt.axis;
+        GamepadAxis axis = FromSDL(sdlAxis);
         int index = (int)axis;
         if (index >= 0 && index < (int)GamepadAxis.Count)
         {

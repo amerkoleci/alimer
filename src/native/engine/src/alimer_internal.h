@@ -4,7 +4,7 @@
 #ifndef ALIMER_INTERNAL_H_
 #define ALIMER_INTERNAL_H_
 
-#include "alimer.h"
+#include "alimer_types.h"
 #include <stdlib.h> // malloc, free
 #include <string.h> // memset
 
@@ -377,14 +377,11 @@ Architecture defines, see http://sourceforge.net/apps/mediawiki/predef/index.php
 
 #include <Windows.h>
 
-_ALIMER_EXTERN WCHAR* Win32_CreateWideStringFromUTF8(const char* source);
-_ALIMER_EXTERN char* Win32_CreateUTF8FromWideString(const WCHAR* source);
 #endif
 
 // Convenience macros for invoking custom memory allocation callbacks.
 #define ALIMER_ALLOC(type)          ((type*)alimerCalloc(1, sizeof(type)))
 #define ALIMER_ALLOCN(type, n)      ((type*)alimerCalloc(n, sizeof(type)))
-_ALIMER_EXTERN char* _alimer_strdup(const char* source);
 
 #ifdef __cplusplus
 #include <functional>

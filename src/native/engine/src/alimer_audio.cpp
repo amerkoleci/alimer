@@ -120,7 +120,7 @@ AudioEngine* alimerAudioEngineCreate(const AudioEngineConfig* config)
     ma_result result = ma_device_init(nullptr, &deviceConfig, &engine->device);
     if (result != MA_SUCCESS)
     {
-        alimerLogError(LogCategory_Audio, "Failed to initialize audio device");
+        //alimerLogError(LogCategory_Audio, "Failed to initialize audio device");
         delete engine;
         return nullptr;
     }
@@ -132,14 +132,14 @@ AudioEngine* alimerAudioEngineCreate(const AudioEngineConfig* config)
     result = ma_engine_init(&engineConfig, &engine->handle);
     if (result != MA_SUCCESS)
     {
-        alimerLogError(LogCategory_Audio, "Failed to initialize audio engine");
+        //alimerLogError(LogCategory_Audio, "Failed to initialize audio engine");
         delete engine;
         return nullptr;
     }
 
-    char name[512];
-    ma_device_get_name(&engine->device, ma_device_type_playback, name, 512, nullptr);
-    alimerLogInfo(LogCategory_Audio, "Audio engine created with success using playback device %s", name);
+    //char name[512];
+    //ma_device_get_name(&engine->device, ma_device_type_playback, name, 512, nullptr);
+    //alimerLogInfo(LogCategory_Audio, "Audio engine created with success using playback device %s", name);
 
     engine->endpointNode = ma_engine_get_endpoint(&engine->handle);
     engine->nodeGraph = ma_engine_get_node_graph(&engine->handle);

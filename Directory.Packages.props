@@ -15,7 +15,7 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     
     <!-- Platform specific -->
-    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
     <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.4.0" />
     <PackageVersion Include="Microsoft.Direct3D.D3D12" Version="1.619.6" />
     <PackageVersion Include="WinPixEventRuntime" Version="1.0.240308001" />
@@ -25,7 +25,6 @@
     <PackageVersion Include="SkiaSharp.HarfBuzz" Version="$(SkiaSharpVersion)" />
     
     <!-- Graphics -->
-    <PackageVersion Include="TerraFX.Interop.Windows" Version="10.0.26100.6" />
     <PackageVersion Include="Vortice.Vulkan" Version="3.3.0" />
     <PackageVersion Include="Vortice.Win32.Graphics.Dxgi" Version="$(VorticeWin32Version)" />
     <PackageVersion Include="Vortice.Win32.Graphics.Direct3D12" Version="$(VorticeWin32Version)" />
@@ -41,16 +40,16 @@
     <PackageVersion Include="Vortice.Win32.Graphics.Direct3D.Dxc" Version="$(VorticeWin32Version)" />
     <PackageVersion Include="Vortice.Dxc.Native" Version="1.0.6" />
     <PackageVersion Include="Silk.NET.Assimp" Version="2.23.0" />
-    <PackageVersion Include="Vortice.SPIRV.Reflect" Version="1.0.6" />
+    <PackageVersion Include="Vortice.SPIRV.Reflect" Version="1.1.0" />
     <PackageVersion Include="Alimer.Bindings.MeshOptimizer" Version="1.2.1" />
     <PackageVersion Include="FreeTypeSharp" Version="3.1.0" />
     <PackageVersion Include="BCnEncoder.Net" Version="2.3.0" />
     <PackageVersion Include="Hexa.NET.DirectXTex" Version="2.0.4" />
-    <PackageVersion Include="Slangc.NET" Version="2026.19.0" />
+    <PackageVersion Include="Slangc.NET" Version="2026.20.0" />
     
     <!-- Tests -->
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
-    <PackageVersion Include="NUnit" Version="4.6.1" />
-    <PackageVersion Include="NUnit3TestAdapter" Version="6.3.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="NUnit" Version="5.0.0" />
+    <PackageVersion Include="NUnit3TestAdapter" Version="6.3.1" />
   </ItemGroup>
 </Project>

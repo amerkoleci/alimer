@@ -211,6 +211,11 @@ internal static unsafe partial class SDL3
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial void SDL_SetLogOutputFunction(/*SDL_LogOutputFunction*/delegate* unmanaged[Cdecl]<nint, int, SDL_LogPriority, byte*, void> callback, nint userdata = 0);
 
+
+    [LibraryImport(LibraryName)]
+    [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+    public static partial void SDL_SetMainReady();
+
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     public static partial SDLBool SDL_Init(SDL_InitFlags flags);
@@ -268,7 +273,7 @@ internal static unsafe partial class SDL3
     [LibraryImport(LibraryName)]
     [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
     [return: MarshalUsing(typeof(CallerOwnedStringMarshaller))]
-    public static partial string SDL_GetClipboardText();
+    public static partial string? SDL_GetClipboardText();
     #endregion
 
     #region Macros

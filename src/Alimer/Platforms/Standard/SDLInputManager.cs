@@ -62,12 +62,15 @@ internal unsafe class SDLInputManager : InputManager
                 _pointer.HandleWheelEvent(in evt.wheel);
                 break;
 
+            // A touchscreen's fingers only: a trackpad's are the mouse already, and its pinch comes
+            // as one gesture (below), so they are not taken for touches on the window.
             case SDL_EVENT_FINGER_DOWN:
                 _pointer.HandleFingerDown(in evt.tfinger);
                 break;
 
             case SDL_EVENT_FINGER_UP:
-                _pointer.HandleFingerUp(in evt.tfinger);
+            case SDL_EVENT_FINGER_CANCELED:
+                _pointer.HandleFingerUpOrCanceled(in evt.tfinger);
                 break;
 
             case SDL_EVENT_FINGER_MOTION:
@@ -89,6 +92,11 @@ internal unsafe class SDLInputManager : InputManager
 
             case SDL_EVENT_GAMEPAD_AXIS_MOTION:
                 _gamepad.HandleGamepadAxis(in evt.gaxis);
+                break;
+
+            case SDL_EVENT_PINCH_BEGIN: 
+            case SDL_EVENT_PINCH_UPDATE: 
+            case SDL_EVENT_PINCH_END:
                 break;
 
             default:

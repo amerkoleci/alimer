@@ -4,8 +4,7 @@
 using static SDL3;
 using static SDL3.SDL_PowerState;
 
-
-namespace Alimer;
+namespace Alimer.Input;
 
 partial class PowerStatus
 {
