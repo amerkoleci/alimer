@@ -13,7 +13,7 @@ public sealed class CameraSystem : EntitySystem<CameraComponent>
         ArgumentNullException.ThrowIfNull(services, nameof(services));
 
         // TODO: Handle multiple windows/viewport (not correct)
-        MainWindow = services.GetService<Window>();
+        MainWindow = services.GetRequiredService<Window>();
     }
 
     public Window MainWindow { get; }

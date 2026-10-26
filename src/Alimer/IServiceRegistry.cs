@@ -39,19 +39,19 @@ public interface IServiceRegistry
     void RemoveService<T>() where T : class;
 
     /// <summary>
-    /// Try to get the service object of the specified type.
+    /// Gets the service of type <typeparamref name="T"/>  of the specified type.
     /// </summary>
     /// <typeparam name="T">The type of the service to retrieve.</typeparam>
     /// <returns>A service of the requested type, or [null] if not found.</returns>
     [return: MaybeNull]
-    T? TryGetService<T>() where T : class;
+    T? GetService<T>();
 
     /// <summary>
-    /// Gets the service object of the specified type.
+    /// Gets the service of type <typeparamref name="T"/> of the specified type.
     /// </summary>
     /// <typeparam name="T">The type of the service to retrieve.</typeparam>
     /// <returns>A service of the requested type, or throws exception if not found.</returns>
     /// <exception cref="ArgumentException">Thrown when the requested service is null.</exception>
     [return: NotNull]
-    T GetService<T>() where T : class;
+    T GetRequiredService<T>() where T : notnull;
 }

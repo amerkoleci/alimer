@@ -51,8 +51,8 @@ public class SpriteBatch : DisposableObject
     {
         ArgumentNullException.ThrowIfNull(services, nameof(services));
 
-        GraphicsDevice = services.GetService<GraphicsDevice>();
-        ShaderSystem = services.GetService<ShaderSystem>();
+        GraphicsDevice = services.GetRequiredService<GraphicsDevice>();
+        ShaderSystem = services.GetRequiredService<ShaderSystem>();
 
         GraphicsBufferDescriptor spriteBufferDesc = new((ulong)(sizeof(SpriteDrawData) * MaxBatchSize), GraphicsBufferUsage.ShaderRead, MemoryType.Upload)
         {

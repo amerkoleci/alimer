@@ -16,8 +16,8 @@ public sealed class ImGuiSystem : GameSystem
     {
         ArgumentNullException.ThrowIfNull(services, nameof(services));
 
-        GraphicsDevice = services.GetService<GraphicsDevice>();
-        MainWindow = services.GetService<Window>();
+        GraphicsDevice = services.GetRequiredService<GraphicsDevice>();
+        MainWindow = services.GetRequiredService<Window>();
 
         _context = ImGui.CreateContext();
         ImGui.SetCurrentContext(_context);

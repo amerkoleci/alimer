@@ -24,9 +24,9 @@ public sealed class ScenePBRRendererSample : SampleBase
         : base("Engine - Scene Cube")
     {
         Services = services;
-        GraphicsDevice = services.GetService<GraphicsDevice>();
-        Scene = services.GetService<SceneSystem>();
-        Input = services.GetService<InputManager>();
+        GraphicsDevice = services.GetRequiredService<GraphicsDevice>();
+        Scene = services.GetRequiredService<SceneSystem>();
+        Input = services.GetRequiredService<InputManager>();
         Entity root = new();
 
         // Camera
@@ -61,6 +61,7 @@ public sealed class ScenePBRRendererSample : SampleBase
             }
 
             _damagedHelmetEntity.AddComponent(meshComponent);
+            _damagedHelmetEntity.AddComponent<RotatorScript>();
             root.Children.Add(_damagedHelmetEntity);
         }
 
@@ -166,12 +167,24 @@ public sealed class ScenePBRRendererSample : SampleBase
             //_cameraEntity.LookAt(Vector3.Zero);
         }
 
-        _damagedHelmetEntity.Transform.Rotate(10 * deltaTime, 20 * deltaTime, 30 * deltaTime);
+        // We rotate using RotatorScript
+        // _damagedHelmetEntity.Transform.Rotate(10 * deltaTime, 20 * deltaTime, 30 * deltaTime);
     }
 
     public override void Draw(CommandBuffer commandBuffer, Texture swapChainTexture)
     {
         //_spriteBatch.Begin()
         //_cubeEntity.GetComponent<RigidBodyComponent>().LinearVelocity = new Vector3(100, -100.0f, 0.0f);
+    }
+}
+
+[Meta]
+public partial class RotatorScript : SyncScript
+{
+    public override void Update(GameTime time)
+    {
+        if (Entity is null) return;
+
+        Entity.Transform.Rotate(10 * (float)time.Elapsed.TotalSeconds, 20 * (float)time.Elapsed.TotalSeconds, 30 * (float)time.Elapsed.TotalSeconds);
     }
 }

@@ -32,7 +32,7 @@ public static class Log
 #endif
     public static bool PrintToConsole { get; set; } = true;
 
-    internal static unsafe void Init()
+    static Log()
     {
         if (OperatingSystem.IsWindows())
         {

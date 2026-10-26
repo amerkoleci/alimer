@@ -77,7 +77,7 @@ public class ServiceRegistry : IServiceRegistry
     }
 
     /// <inheritdoc />
-    public T? TryGetService<T>() where T : class
+    public T? GetService<T>()
     {
         Type type = typeof(T);
         lock (_lock)
@@ -88,12 +88,12 @@ public class ServiceRegistry : IServiceRegistry
             }
         }
 
-        return null;
+        return default;
     }
 
     /// <inheritdoc />
-    public T GetService<T>()
-        where T : class
+    public T GetRequiredService<T>()
+        where T : notnull
     {
         Type type = typeof(T);
         lock (_lock)

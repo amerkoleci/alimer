@@ -26,8 +26,8 @@ public sealed class SceneCubeSample : SampleBase
         : base("Engine - Scene Cube")
     {
         Services = services;
-        GraphicsDevice = services.GetService<GraphicsDevice>();
-        Scene = services.GetService<SceneSystem>();
+        GraphicsDevice = services.GetRequiredService<GraphicsDevice>();
+        Scene = services.GetRequiredService<SceneSystem>();
         Entity root = new();
 
         // Camera

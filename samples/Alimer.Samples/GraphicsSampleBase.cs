@@ -14,10 +14,10 @@ public abstract class GraphicsSampleBase : SampleBase
         : base(name)
     {
         Services = services;
-        GraphicsManager = services.GetService<GraphicsManager>();
-        GraphicsDevice = services.GetService<GraphicsDevice>();
-        AssetManager = services.GetService<IAssetManager>();
-        Input = services.GetService<InputManager>();
+        GraphicsManager = services.GetRequiredService<GraphicsManager>();
+        GraphicsDevice = services.GetRequiredService<GraphicsDevice>();
+        AssetManager = services.GetRequiredService<IAssetManager>();
+        Input = services.GetRequiredService<InputManager>();
         MainWindow = mainWindow;
         DepthStencilFormat = depthStencilFormat;
         Resize();

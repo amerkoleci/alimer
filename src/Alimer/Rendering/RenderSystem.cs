@@ -36,10 +36,10 @@ public sealed partial class RenderSystem : EntitySystem<MeshComponent>
         Debug.Assert(sizeof(GPUInstance) == 80, "GPUInstance must be 80 bytes");
 
         Services = services;
-        Device = services.GetService<GraphicsDevice>();
-        Scene = services.GetService<SceneSystem>();
-        ShaderSystem = services.GetService<ShaderSystem>();
-        MainWindow = services.GetService<Window>();
+        Device = services.GetRequiredService<GraphicsDevice>();
+        Scene = services.GetRequiredService<SceneSystem>();
+        ShaderSystem = services.GetRequiredService<ShaderSystem>();
+        MainWindow = services.GetRequiredService<Window>();
 
         OpaqueWhiteTexture = CreateTextureFromColor(Colors.White);
         TransparentBlackTexture = CreateTextureFromColor(Colors.Transparent);
