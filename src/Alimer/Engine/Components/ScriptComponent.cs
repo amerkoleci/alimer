@@ -6,7 +6,6 @@ using Alimer.Input;
 
 namespace Alimer.Engine;
 
-[Meta]
 [EntitySystem(typeof(ScriptSystem))]
 public abstract partial class ScriptComponent : Component
 {

@@ -3,7 +3,6 @@
 
 namespace Alimer.Engine;
 
-[Meta]
 public abstract partial class AsyncScript : ScriptComponent
 {
     public CancellationToken CancellationToken => CancellationTokenSource?.Token ?? throw new InvalidOperationException();

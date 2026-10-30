@@ -215,7 +215,7 @@ public abstract class EntityManager : DisposableObject, IGameSystem, IEnumerable
 
                 //EntitySystem system = (EntitySystem)Activator.CreateInstance(entitySystemAttribute.Type, new[] { Services });
 
-                throw new InvalidOperationException("No EntitySystem registered");
+                throw new InvalidOperationException($"No EntitySystem registered for component type {componentType.Name}");
             }
         }
     }

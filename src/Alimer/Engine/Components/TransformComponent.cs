@@ -9,7 +9,6 @@ using System.Text.Json.Serialization;
 
 namespace Alimer.Engine;
 
-[Meta]
 [EntitySystem(typeof(TransformSystem))]
 public partial class TransformComponent : Component, IEnumerable<TransformComponent>
 {

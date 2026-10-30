@@ -5,12 +5,10 @@ using System.Diagnostics;
 using System.Numerics;
 using System.Text;
 using System.Text.Json;
-using Alimer.Assets;
 using Alimer.Audio;
 using Alimer.Engine;
 using Alimer.Graphics;
 using Alimer.Input;
-using Alimer.Physics;
 using Alimer.Rendering;
 using Alimer.Serialization;
 
@@ -26,6 +24,10 @@ public sealed class SampleBrowserGame : Game
         : base(preferredGraphicsBackend)
     {
         GameSystems.Add(new ImGuiSystem(Services));
+
+        var test1 = Component.TypeMetadata;
+        test1 = CameraComponent.TypeMetadata;
+        test1 = LightComponent.TypeMetadata;
     }
 
     protected override void Initialize()

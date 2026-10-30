@@ -6,19 +6,22 @@ using Alimer.Serialization;
 namespace Alimer.Engine;
 
 /// <summary>
-/// Defines a component that can be attached to an <see cref="Alimer.Engine.Entity"/>.
+/// Defines a component that can be attached to an <see cref="Engine.Entity"/>.
 /// </summary>
 [Meta]
-public abstract partial class Component : ISerializable
+public abstract partial class Component : ISerializable, ITypeMetadataProvider
 {
     /// <summary>
 	/// The version of the component.
 	/// </summary>
     public virtual int ComponentVersion => 0;
 
+    //[IgnoreDataMember]
     public Entity? Entity { get; internal set; }
 
     public virtual bool IsEnabled { get; set; } = true;
+
+    public static ITypeMetadata TypeMetadata => MetadataRegistry.GetMetadata<Component, IObjectTypeMetadata>();
 
     public void Serialize(Serializer serializer)
     {

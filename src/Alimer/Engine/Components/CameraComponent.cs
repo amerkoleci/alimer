@@ -6,7 +6,6 @@ using System.Runtime.Serialization;
 
 namespace Alimer.Engine;
 
-[Meta]
 [DataContract(Name = nameof(CameraComponent))]
 [Category("Rendering")]
 [DisplayName("Camera")]

@@ -18,6 +18,8 @@ internal static class Extensions
 
     public static bool IsClass(this SyntaxNode node) => node is ClassDeclarationSyntax;
 
+    public static bool IsInterface(this SyntaxNode node) => node is InterfaceDeclarationSyntax;
+
     public static bool IsRecordStruct(this SyntaxNode node)
         => node is RecordDeclarationSyntax recordDecl && recordDecl.ClassOrStructKeyword.IsKind(SyntaxKind.StructKeyword);
 

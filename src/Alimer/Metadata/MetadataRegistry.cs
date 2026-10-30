@@ -30,6 +30,11 @@ public interface IObjectTypeMetadata : ITypeMetadata
     IReadOnlyList<PropertyMetadata> Properties { get; }
 }
 
+public interface ITypeMetadataProvider
+{
+    public static abstract ITypeMetadata TypeMetadata { get; }
+}
+
 public class EnumItem
 {
     /// <summary>
@@ -75,15 +80,13 @@ public class EnumTypeMetadata<TEnum, TUnderlying> : IEnumTypeMetadata
 
 public abstract class MemberMetadata
 {
-    protected MemberMetadata(MemberInfo memberInfo)
+    protected MemberMetadata(string name, Type memberType, params Attribute[] attributes)
     {
-        ArgumentNullException.ThrowIfNull(memberInfo, nameof(memberInfo));
+        Name = name ?? throw new ArgumentNullException(nameof(name));
+        MemberType = memberType ?? throw new ArgumentNullException(nameof(memberType));
+        Attributes = attributes ?? [];
 
-        MemberInfo = memberInfo;
-        Name = memberInfo.Name;
-        DeclaringType = memberInfo.DeclaringType;
-
-        foreach (Attribute attribute in memberInfo.GetCustomAttributes())
+        foreach (Attribute attribute in Attributes)
         {
             if (attribute is System.ComponentModel.DataAnnotations.DisplayAttribute display)
             {
@@ -117,9 +120,63 @@ public abstract class MemberMetadata
         }
     }
 
-    public MemberInfo MemberInfo { get; }
+    protected MemberMetadata(MemberInfo memberInfo)
+    {
+        ArgumentNullException.ThrowIfNull(memberInfo, nameof(memberInfo));
+
+        Name = memberInfo.Name;
+        Attributes = memberInfo.GetCustomAttributes().ToArray();
+
+        if (memberInfo is PropertyInfo propertyInfo)
+        {
+            MemberType = propertyInfo.PropertyType;
+        }
+        else if (memberInfo is FieldInfo fieldInfo)
+        {
+            MemberType = fieldInfo.FieldType;
+        }
+        else
+        {
+            throw new ArgumentException("MemberInfo must be of type PropertyInfo or FieldInfo.", nameof(memberInfo));
+        }
+
+        foreach (Attribute attribute in Attributes)
+        {
+            if (attribute is System.ComponentModel.DataAnnotations.DisplayAttribute display)
+            {
+                if (!string.IsNullOrWhiteSpace(display.Name)) Name = display.Name;
+                if (!string.IsNullOrWhiteSpace(display.GroupName)) GroupName = display.GroupName;
+                if (!string.IsNullOrWhiteSpace(display.Description)) Description = display.Description;
+                if (!string.IsNullOrWhiteSpace(display.ShortName)) Icon ??= display.ShortName;
+
+                Order = display.GetOrder() ?? Order;
+            }
+
+            if (attribute is System.ComponentModel.CategoryAttribute categoryAttribute)
+            {
+                GroupName = categoryAttribute.Category;
+            }
+
+            if (attribute is System.ComponentModel.DisplayNameAttribute displayNameAttribute)
+            {
+                DisplayName = displayNameAttribute.DisplayName;
+            }
+
+            if (attribute is System.ComponentModel.DescriptionAttribute descriptionAttribute)
+            {
+                Description = descriptionAttribute.Description;
+            }
+
+            if (attribute is System.Text.Json.Serialization.JsonPropertyOrderAttribute jsonPropertyOrderAttribute)
+            {
+                Order = jsonPropertyOrderAttribute.Order;
+            }
+        }
+    }
+
     public string Name { get; }
-    public Type? DeclaringType { get; }
+    public Type MemberType { get; }
+    public IReadOnlyList<Attribute> Attributes { get; }
 
     /// <summary>
     /// Group or category name of this type or member.
@@ -133,12 +190,16 @@ public abstract class MemberMetadata
 
 public sealed class PropertyMetadata : MemberMetadata
 {
+    public PropertyMetadata(string name, Type memberType, params Attribute[] attributes)
+        : base(name, memberType, attributes)
+    {
+    }
+
     public PropertyMetadata(MemberInfo memberInfo)
         : base(memberInfo)
     {
         if (memberInfo is PropertyInfo propertyInfo)
         {
-            PropertyType = propertyInfo.PropertyType;
             IsField = false;
 
             Getter = propertyInfo.CanRead ? (object instance) => propertyInfo.GetValue(instance) : null;
@@ -147,7 +208,6 @@ public sealed class PropertyMetadata : MemberMetadata
         else if (memberInfo is FieldInfo fieldInfo)
         {
             IsField = true;
-            PropertyType = fieldInfo.FieldType;
 
             Getter = instance => fieldInfo.GetValue(instance);
             Setter = (instance, value) => fieldInfo.SetValue(instance, value);
@@ -159,7 +219,6 @@ public sealed class PropertyMetadata : MemberMetadata
 
     }
 
-    public Type PropertyType { get; }
     public bool IsField { get; }
     public bool HasDefaultValue { get; set; }
     public Func<object, object?>? Getter { get; set; }
@@ -172,6 +231,12 @@ public class ObjectTypeMetadata : IObjectTypeMetadata
     public Type Type { get; }
 
     public IReadOnlyList<PropertyMetadata> Properties { get; }
+
+    public ObjectTypeMetadata(Type type, IReadOnlyList<PropertyMetadata> properties)
+    {
+        Type = type ?? throw new ArgumentNullException(nameof(type));
+        Properties = properties ?? throw new ArgumentNullException(nameof(properties));
+    }
 
     public ObjectTypeMetadata([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type type)
     {

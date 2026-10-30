@@ -8,10 +8,11 @@ namespace Alimer.Engine;
 /// <summary>
 /// A component that contains a mesh and materials for the visual appearance of an entity.
 /// </summary>
-[Meta]
 [EntitySystem(typeof(LightSystem))]
-public sealed partial class LightComponent : Component
+public sealed partial class LightComponent : Component, ITypeMetadataProvider
 {
+    public static new ITypeMetadata TypeMetadata => MetadataRegistry.GetMetadata<LightComponent, IObjectTypeMetadata>();
+
     public LightComponent()
     {
     }
