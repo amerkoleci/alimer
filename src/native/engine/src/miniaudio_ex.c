@@ -108,11 +108,11 @@ ma_result ma_ex_engine_init_with_config(ma_context* pContext, const ma_engine_ex
     deviceConfig.dataCallback = DataCallback;
     deviceConfig.pUserData = pEngine;
 
-    ma_device* device = (ma_device*)ma_malloc(sizeof(ma_device), &pEngine->allocationCallbacks);
+    ma_device* device = (ma_device*)ma_malloc(sizeof(ma_device), NULL);
     ma_result result = ma_device_init(pContext, &deviceConfig, device);
     if (result != MA_SUCCESS)
     {
-        ma_free(device, &pEngine->allocationCallbacks);
+        ma_free(device, NULL);
         return result;
     }
 

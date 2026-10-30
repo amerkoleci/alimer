@@ -14,7 +14,12 @@ namespace Alimer;
 
 internal unsafe static partial class AlimerApi
 {
+#if DEBUG
+    //public const string LibraryName = "alimer_native_d";
     public const string LibraryName = "alimer_native";
+#else
+    public const string LibraryName = "alimer_native";
+#endif
 
     #region STB
     [LibraryImport(LibraryName)]

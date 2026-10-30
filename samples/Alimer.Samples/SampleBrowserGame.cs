@@ -24,10 +24,6 @@ public sealed class SampleBrowserGame : Game
         : base(preferredGraphicsBackend)
     {
         GameSystems.Add(new ImGuiSystem(Services));
-
-        var test1 = Component.TypeMetadata;
-        test1 = CameraComponent.TypeMetadata;
-        test1 = LightComponent.TypeMetadata;
     }
 
     protected override void Initialize()

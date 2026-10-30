@@ -43,7 +43,7 @@ internal unsafe class MiniAudioEngine : AudioEngine
         result = ma_engine_init(&engineConfig, &engine->handle); 
 #endif
 
-        ma_result result = ma_ex_engine_init_default(Handle); // ma_ex_engine_init_with_config(context.Handle, &config, Handle);
+        ma_result result = ma_ex_engine_init_with_config(context.Handle, &config, Handle);
         if (result != MA_SUCCESS)
         {
             string description = ma_result_description(result);

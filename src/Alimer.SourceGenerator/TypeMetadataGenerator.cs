@@ -17,43 +17,35 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
     {
         DebugGuard.MaybeLaunchDebuggerOnStartup();
 
-        IncrementalValuesProvider<INamedTypeSymbol?> namedTypesSymbols = context.SyntaxProvider.CreateSyntaxProvider(
-            predicate: static (node, _) => IsValidCandidate(node),
-            transform: static (ctx, token) => GetSemanticTarget(ctx, token)
-            );
+        IncrementalValueProvider<ImmutableArray<INamedTypeSymbol?>> collectedSymbols = context.SyntaxProvider.CreateSyntaxProvider(
+            static (node, _) => IsValidCandidate(node),
+            static (ctx, _) => GetSemanticTarget(ctx)
+            ).Collect();
 
-        IncrementalValueProvider<ImmutableArray<INamedTypeSymbol?>> collectedSymbols = namedTypesSymbols.Collect();
         context.RegisterSourceOutput(collectedSymbols, Execute);
     }
 
-    private static void Execute(SourceProductionContext context, ImmutableArray<INamedTypeSymbol?> types)
+    private static void Execute(SourceProductionContext context, ImmutableArray<INamedTypeSymbol?> symbols)
     {
-        if (types.IsDefaultOrEmpty)
+        if (symbols.IsDefaultOrEmpty)
             return;
 
-        HashSet<INamedTypeSymbol> uniqueSymbols = new(SymbolEqualityComparer.Default);
-
-        foreach (INamedTypeSymbol? symbol in types)
-        {
-            if (symbol is not null)
-            {
-                uniqueSymbols.Add(symbol);
-            }
-        }
-
-        GenerateModuleInit(context, uniqueSymbols);
+        List<INamedTypeSymbol> uniqueSymbols = [.. symbols.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>()];
 
         foreach (INamedTypeSymbol symbol in uniqueSymbols)
         {
             string source = Build(symbol);
             context.AddSource(GetHintName(symbol), source);
         }
+
+        // Generate a module initializer to register all types with the metadata registry
+        GenerateModuleInit(context, uniqueSymbols);
     }
 
     private static string GetHintName(INamedTypeSymbol type) =>
         type.Name.Replace('.', '_').Replace('+', '_') + ".g.cs";
 
-    private static void GenerateModuleInit(SourceProductionContext context, HashSet<INamedTypeSymbol> types)
+    private static void GenerateModuleInit(SourceProductionContext context, List<INamedTypeSymbol> types)
     {
         FormattedBuilder builder = new(new StringBuilder());
         builder
@@ -74,7 +66,7 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
 
         foreach (INamedTypeSymbol symbol in types)
         {
-            if (symbol is null || symbol.IsAbstract)
+            if (symbol is null)
                 continue;
 
             //if (symbol.DerivesFrom("global::Alimer.Engine.Component"))
@@ -109,42 +101,34 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
         return node.IsClass() || node.IsStruct();
     }
 
-    private static INamedTypeSymbol? GetSemanticTarget(GeneratorSyntaxContext ctx, CancellationToken cancellationToken = default)
+    private static INamedTypeSymbol? GetSemanticTarget(GeneratorSyntaxContext ctx)
     {
-        switch (ctx.Node)
+        return ctx.Node switch
         {
-            case ClassDeclarationSyntax classDeclaration:
-                return GetSemanticTarget(ctx.SemanticModel.GetDeclaredSymbol(classDeclaration, cancellationToken));
-            case StructDeclarationSyntax structDeclaration:
-                return GetSemanticTarget(ctx.SemanticModel.GetDeclaredSymbol(structDeclaration, cancellationToken));
-            case EnumDeclarationSyntax enumDeclaration:
-                return GetSemanticTarget(ctx.SemanticModel.GetDeclaredSymbol(enumDeclaration, cancellationToken));
-            default:
-                return null;
-        }
+            ClassDeclarationSyntax classDeclaration => GetSemanticTarget(ctx.SemanticModel.GetDeclaredSymbol(classDeclaration) as INamedTypeSymbol),
+            StructDeclarationSyntax structDeclaration => GetSemanticTarget(ctx.SemanticModel.GetDeclaredSymbol(structDeclaration) as INamedTypeSymbol),
+            EnumDeclarationSyntax enumDeclaration => GetSemanticTarget(ctx.SemanticModel.GetDeclaredSymbol(enumDeclaration) as INamedTypeSymbol),
+            _ => null,
+        };
     }
 
-    private static INamedTypeSymbol? GetSemanticTarget(ISymbol? symbol)
+    private static INamedTypeSymbol? GetSemanticTarget(INamedTypeSymbol? symbol)
     {
-        if (symbol is not INamedTypeSymbol namedTypeSymbol)
+        if (symbol is null)
             return null;
 
         // Class has MetaAttribute
-        if (HasMetaAttribute(namedTypeSymbol))
+        if (HasMetaAttribute(symbol))
         {
-            return namedTypeSymbol;
+            return symbol;
         }
 
-        // 2: The class inherits from someone who has the attribute [Meta]
-        INamedTypeSymbol? currentBase = namedTypeSymbol.BaseType;
-        while (currentBase is not null)
+        for (INamedTypeSymbol? @base = symbol.BaseType; @base != null; @base = @base.BaseType)
         {
-            if (HasMetaAttribute(currentBase))
+            if (HasMetaAttribute(@base))
             {
-                return namedTypeSymbol;
+                return symbol;
             }
-
-            currentBase = currentBase.BaseType;
         }
 
         return null;
@@ -173,18 +157,19 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
                 .AppendLine($"internal static void Register()")
                 .AppendOpenBracer();
 
-        if (symbol.DerivesFrom("global::Alimer.Engine.Component"))
-        {
-            builder.AppendLine($"// COMPONENT");
-        }
+        //if (symbol.DerivesFrom("global::Alimer.Engine.Component"))
+        //{
+        //    builder.AppendLine($"// COMPONENT");
+        //}
 
         ImmutableArray<ISymbol> members = symbol.GetMembers();
-
+        FormattedBuilder propertiesBuilder = new(new StringBuilder());
         foreach (ISymbol member in members)
         {
             if (!IsExposed(member))
                 continue;
 
+            string memberAttributesList = BuildAttributesList(member, 0);
             string name = member.Name;
             if (member is IPropertySymbol property)
             {
@@ -195,22 +180,35 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
                     continue;
 
                 // Check if property is an enum
-                builder.AppendLine($"//{property.Type} - {property.Name}");
+                //builder.AppendLine($"//{property.Type} - {property.Name}");
 
+                string propertyTypeName = property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                 string setLambda = property.SetMethod is not null && property.SetMethod.DeclaredAccessibility == Accessibility.Public
                     ? $"(obj, val) => (({className})obj).{property.Name} = ({property.Type.ToDisplayString()})val" : "null";
 
-                string attributesList = BuildAttributesList(property);
-
-                builder.AppendLine($@"new PropertyMetadata(");
-                builder.AppendLine($@"""{name}""");
-                builder.AppendLine($@", typeof({property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)})");
-                if (!string.IsNullOrEmpty(attributesList))
+                StringBuilder propertyBuilder = new();
+                propertyBuilder.Append($@"new PropertyMetadata(""{name}"", typeof({propertyTypeName})");
+                if (!string.IsNullOrEmpty(memberAttributesList))
                 {
-                    builder.AppendLine($@", {attributesList}");
+                    propertyBuilder.Append($@", [{memberAttributesList}]");
                 }
-                builder.AppendLine($@");");
-                //builder.AppendLine($@"new PropertyMetadata(""{property.Name}""        , (obj) => (({className})obj).{property.Name}, {setLambda}, new Attribute[] {{ {BuildAttributesList(property)} }}),");
+                propertyBuilder.Append($@")");
+
+                propertiesBuilder
+                    .BeginIndentation(4)
+                    .AppendLine($"{propertyBuilder}, ")
+                    .EndIndentation(4);
+
+
+#if TODO
+                builder.Append($@"new PropertyMetadata(""{name}"", typeof({propertyTypeName})");
+                if (!string.IsNullOrEmpty(memberAttributesList))
+                {
+                    builder.AppendNoIndent($@", [{memberAttributesList}]");
+                }
+                builder.AppendLineNoIndent($@");");
+                //builder.AppendLine($@"new PropertyMetadata(""{property.Name}""        , (obj) => (({className})obj).{property.Name}, {setLambda}, new Attribute[] {{ {BuildAttributesList(property)} }}),");  
+#endif
 
             }
             else if (member is IFieldSymbol field)
@@ -219,34 +217,62 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
             else if (member is IMethodSymbol method)
             {
             }
-
         }
 
-        foreach (var attr in symbol.GetAttributes())
+
+        if (propertiesBuilder.Length > 2)
+            propertiesBuilder.Length -= 2;
+
+        string propertiesBuilderString = propertiesBuilder.ToString();
+
+        string symbolAttributesList = BuildAttributesList(symbol, 4);
+        string registerTypeName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        string createFactory = "default";
+        if (!symbol.IsAbstract)
+        {
+            createFactory = $"() => new {registerTypeName}()";
+        }
+
+        builder.AppendLine($"global::Alimer.MetadataRegistry.RegisterObjectType(");
+        builder.BeginIndentation();
+        builder.AppendLine($"typeof({registerTypeName}), ");
+        builder.AppendLine($"{createFactory}, ");
+
+        // Properties
+        if (!string.IsNullOrEmpty(propertiesBuilderString))
+        {
+            builder.AppendLine("[");
+            builder.AppendLineNoIndent($"{propertiesBuilderString}");
+            builder.AppendLine("], ");
+        }
+        else
+        {
+
+            builder.AppendLine("[], ");
+        }
+
+        if (!string.IsNullOrEmpty(symbolAttributesList))
+        {
+            builder.AppendLine("[");
+            builder.AppendLineNoIndent($"{symbolAttributesList}");
+            builder.AppendLine("]");
+        }
+        else
+        {
+            builder.AppendLine("[]");
+        }
+        builder.EndIndentation();
+        builder.AppendLine(");");
+
+        // Handle EntitySystemAttribute
+        foreach (AttributeData attr in symbol.GetAttributes())
         {
             if (attr.AttributeClass is null)
                 continue;
 
-            builder.AppendLine($"//{attr.AttributeClass.Name}");
-
             if (attr.AttributeClass.Name == "EntitySystemAttribute")
             {
                 TypedConstant typedConstant = attr.ConstructorArguments[0];
-                //var argValue = argExpr.ex.NormalizeWhitespace().ToString();
-                //
-                //if (argValue.StartsWith("nameof("))
-                //{
-                //    argValue = $"\"{Code.NameOf(argValue)}\"";
-                //}
-                //else if (argExpr.Expression is TypeOfExpressionSyntax typeOfExpression)
-                //{
-                //    TypeInfo typeInfo = typeGenerate.SemanticModel.GetTypeInfo(typeOfExpression.Type);
-                //    ITypeSymbol? type = typeInfo.Type;
-                //
-                //    argValue = type.ToString();
-                //}
-                //
-                //argValue = argValue.StartsWith("nameof(") ? $"\"{Code.NameOf(argValue)}\"" : argValue;
 
                 if (typedConstant.Value is ITypeSymbol typeSymbol)
                 {
@@ -254,11 +280,6 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
                     builder.AppendLine($"global::Alimer.Engine.EntityManager.RegisterSystemFactory((services) => new {valueTypeName}(services));");
                 }
             }
-        }
-
-        if (!symbol.IsAbstract)
-        {
-            builder.AppendLine($"global::Alimer.MetadataRegistry.RegisterObjectType<{symbol.ToDisplayString()}>();");
         }
 
         builder
@@ -273,16 +294,18 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
     private static bool IsExposed(ISymbol symbol) =>
             symbol.DeclaredAccessibility == Accessibility.Public || symbol.DeclaredAccessibility == Accessibility.Internal;
 
-    private static string BuildAttributesList(ISymbol symbol)
+    private static string BuildAttributesList(ISymbol symbol, int count)
     {
-        StringBuilder attributesBuilder = new();
+        FormattedBuilder attributesBuilder = new(new StringBuilder());
         foreach (AttributeData attribute in symbol.GetAttributes())
         {
             if (attribute.AttributeClass is null)
                 continue;
 
-            string attributeName = attribute.AttributeClass.ToDisplayString();
-            attributesBuilder.Append($"{BuildAttributeInstantiation(attribute)}, ");
+            //string attributeName = attribute.AttributeClass.ToDisplayString();
+            attributesBuilder.BeginIndentation(count)
+                .AppendLine($"{BuildAttributeInstantiation(attribute)}, ")
+                .EndIndentation(count);
         }
 
         if (attributesBuilder.Length > 2) attributesBuilder.Length -= 2;
@@ -291,9 +314,9 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
 
     private static string BuildAttributeInstantiation(AttributeData attribute)
     {
-        var attributeClassName = attribute.AttributeClass!.ToDisplayString();
-        var positionalArgs = attribute.ConstructorArguments.Select(FormatTypedConstant);
-        var namedArgs = attribute.NamedArguments.Select(na => $"{na.Key} = {FormatTypedConstant(na.Value)}");
+        string attributeClassName = attribute.AttributeClass!.ToDisplayString();
+        IEnumerable<string> positionalArgs = attribute.ConstructorArguments.Select(FormatTypedConstant);
+        IEnumerable<string> namedArgs = attribute.NamedArguments.Select(na => $"{na.Key} = {FormatTypedConstant(na.Value)}");
         string constructorCall = string.Join(", ", positionalArgs);
         string initializers = namedArgs.Any() ? $" {{ {string.Join(", ", namedArgs)} }}" : "";
         return $"new {attributeClassName}({constructorCall}){initializers}";
@@ -429,3 +452,4 @@ internal static class FormattedBuilderExtensions
         return false;
     }
 }
+

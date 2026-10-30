@@ -1,5 +1,11 @@
 <Project>
   <Choose>
+    <When Condition="($([MSBuild]::IsOsPlatform('windows')) and '$(RuntimeIdentifier)'=='') or '$(RuntimeIdentifier)'=='win-x64'">
+      <ItemGroup>
+        <None Include="$(AlimerNativeDirectory)win-x64/alimer_native_d.dll" Link="alimer_native_d.dll" Visible="False" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(AlimerNativeDirectory)win-x64/alimer_native_d.dll')" />
+        <None Include="$(AlimerNativeDirectory)win-x64/alimer_native_d.pdb" Link="alimer_native_d.pdb" Visible="False" CopyToOutputDirectory="PreserveNewest" Condition="Exists('$(AlimerNativeDirectory)win-x64/alimer_native_d.pdb')" />
+      </ItemGroup>
+    </When>
     <When Condition="($([MSBuild]::IsOsPlatform('linux')) and '$(RuntimeIdentifier)'=='') or '$(RuntimeIdentifier)'=='linux-x64'">
       <ItemGroup>
         <None Include="$(AlimerNativeDirectory)linux-x64/libalimer_native.so" Link="libalimer_native.so" Visible="False" CopyToOutputDirectory="PreserveNewest" />

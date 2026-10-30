@@ -9,19 +9,17 @@ namespace Alimer.Engine;
 /// Defines a component that can be attached to an <see cref="Engine.Entity"/>.
 /// </summary>
 [Meta]
-public abstract partial class Component : ISerializable, ITypeMetadataProvider
+public abstract partial class Component : ISerializable
 {
     /// <summary>
 	/// The version of the component.
 	/// </summary>
     public virtual int ComponentVersion => 0;
 
-    //[IgnoreDataMember]
+    [System.Runtime.Serialization.IgnoreDataMember]
     public Entity? Entity { get; internal set; }
 
     public virtual bool IsEnabled { get; set; } = true;
-
-    public static ITypeMetadata TypeMetadata => MetadataRegistry.GetMetadata<Component, IObjectTypeMetadata>();
 
     public void Serialize(Serializer serializer)
     {

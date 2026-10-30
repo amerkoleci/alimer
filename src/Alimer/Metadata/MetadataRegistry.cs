@@ -11,18 +11,11 @@ namespace Alimer;
 public interface ITypeMetadata
 {
     Type Type { get; }
-    Func<object>? CreateObject { get; set; }
+    Func<object>? CreateObject { get; }
     int SizeOf { get; }
     public bool IsEnum => Type.IsEnum;
     public bool IsStruct => Type.IsValueType && !Type.IsEnum;
     public bool IsAbstract => Type.IsAbstract;
-}
-
-public interface IEnumTypeMetadata : ITypeMetadata
-{
-    Type UnderlyingType { get; }
-    bool IsFlags { get; }
-    IReadOnlyList<EnumItem> Items { get; }
 }
 
 public interface IObjectTypeMetadata : ITypeMetadata
@@ -30,9 +23,17 @@ public interface IObjectTypeMetadata : ITypeMetadata
     IReadOnlyList<PropertyMetadata> Properties { get; }
 }
 
-public interface ITypeMetadataProvider
+//public interface ITypeMetadataProvider
+//{
+//    public static abstract ITypeMetadata TypeMetadata { get; }
+//}
+
+#if TODO
+public interface IEnumTypeMetadata : ITypeMetadata
 {
-    public static abstract ITypeMetadata TypeMetadata { get; }
+    Type UnderlyingType { get; }
+    bool IsFlags { get; }
+    IReadOnlyList<EnumItem> Items { get; }
 }
 
 public class EnumItem
@@ -76,11 +77,12 @@ public class EnumTypeMetadata<TEnum, TUnderlying> : IEnumTypeMetadata
     public int SizeOf { get; }
     public bool IsFlags { get; }
     public required IReadOnlyList<EnumItem> Items { get; init; }
-}
+} 
+#endif
 
 public abstract class MemberMetadata
 {
-    protected MemberMetadata(string name, Type memberType, params Attribute[] attributes)
+    protected MemberMetadata(string name, Type memberType, Attribute[]? attributes = default)
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));
         MemberType = memberType ?? throw new ArgumentNullException(nameof(memberType));
@@ -190,7 +192,7 @@ public abstract class MemberMetadata
 
 public sealed class PropertyMetadata : MemberMetadata
 {
-    public PropertyMetadata(string name, Type memberType, params Attribute[] attributes)
+    public PropertyMetadata(string name, Type memberType, Attribute[]? attributes = default)
         : base(name, memberType, attributes)
     {
     }
@@ -230,42 +232,58 @@ public class ObjectTypeMetadata : IObjectTypeMetadata
 {
     public Type Type { get; }
 
+    public Func<object>? CreateObject { get; }
     public IReadOnlyList<PropertyMetadata> Properties { get; }
+    public IReadOnlyList<Attribute> Attributes { get; }
 
-    public ObjectTypeMetadata(Type type, IReadOnlyList<PropertyMetadata> properties)
+    public ObjectTypeMetadata(Type type, Func<object>? createObject = default, PropertyMetadata[]? properties = default, Attribute[]? attributes = default)
     {
         Type = type ?? throw new ArgumentNullException(nameof(type));
-        Properties = properties ?? throw new ArgumentNullException(nameof(properties));
+        CreateObject = createObject;
+        Properties = properties ?? [];
+        Attributes = attributes ?? [];
+
+        foreach (Attribute attribute in Attributes)
+        {
+            if (attribute is System.ComponentModel.DataAnnotations.DisplayAttribute display)
+            {
+            //    if (!string.IsNullOrWhiteSpace(display.Name)) Name = display.Name;
+                if (!string.IsNullOrWhiteSpace(display.GroupName)) GroupName = display.GroupName;
+            //    if (!string.IsNullOrWhiteSpace(display.Description)) Description = display.Description;
+            //    if (!string.IsNullOrWhiteSpace(display.ShortName)) Icon ??= display.ShortName;
+
+            //    Order = display.GetOrder() ?? Order;
+            }
+
+            if (attribute is System.ComponentModel.CategoryAttribute categoryAttribute)
+            {
+                GroupName = categoryAttribute.Category;
+            }
+
+            if (attribute is System.ComponentModel.DisplayNameAttribute displayNameAttribute)
+            {
+                DisplayName = displayNameAttribute.DisplayName;
+            }
+
+            //if (attribute is System.ComponentModel.DescriptionAttribute descriptionAttribute)
+            //{
+            //    Description = descriptionAttribute.Description;
+            //}
+
+            //if (attribute is System.Text.Json.Serialization.JsonPropertyOrderAttribute jsonPropertyOrderAttribute)
+            //{
+            //    Order = jsonPropertyOrderAttribute.Order;
+            //}
+        }
     }
 
-    public ObjectTypeMetadata([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] Type type)
-    {
-        Type = type;
-        SizeOf = 0;
-
-        Category = type.GetCustomAttribute<System.ComponentModel.CategoryAttribute>()?.Category;
-        DisplayName = type.GetCustomAttribute<System.ComponentModel.DisplayNameAttribute>()?.DisplayName;
-
-        Properties = type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-            .Where(property => property.CanRead && property.CanWrite)
-            .Select(property => new PropertyMetadata(property))
-            .ToList();
-    }
-
-    public Func<object>? CreateObject { get; set; }
     public int SizeOf { get; }
+    /// <summary>
+    /// Group or category name of this type or member.
+    /// </summary>
+    public string? GroupName { get; set; }
 
-    public string? Category { get; set; }
     public string? DisplayName { get; set; }
-}
-
-public sealed class ObjectTypeMetadata<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.NonPublicProperties)] TObject> : ObjectTypeMetadata
-{
-
-    public ObjectTypeMetadata()
-        : base(typeof(TObject))
-    {
-    }
 }
 
 public static class MetadataRegistry
@@ -276,15 +294,10 @@ public static class MetadataRegistry
 
     private static readonly ConcurrentDictionary<Type, IEnumerable<PropertyMetadata>> s_properties = new();
 
-    static MetadataRegistry()
-    {
-        // Known engine types
-        RegisterObjectType(typeof(Alimer.Engine.Component));
-    }
-
+#if TODO
     public static IEnumTypeMetadata RegisterEnumType<TEnum, TUnderlying>()
-        where TEnum : struct,
-        Enum where TUnderlying : unmanaged
+    where TEnum : struct,
+    Enum where TUnderlying : unmanaged
     {
         Type type = typeof(TEnum);
         if (s_types.TryGetValue(type, out ITypeMetadata? existingMetadata))
@@ -305,9 +318,14 @@ public static class MetadataRegistry
         };
         s_types[type] = metadata;
         return metadata;
-    }
+    } 
+#endif
 
-    public static IObjectTypeMetadata RegisterObjectType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllProperties)] Type type, Func<object>? createObject = default)
+    public static IObjectTypeMetadata RegisterObjectType(
+        Type type,
+        Func<object>? createObject = default,
+        PropertyMetadata[]? properties = default,
+        Attribute[]? attributes = default)
     {
         if (s_types.TryGetValue(type, out ITypeMetadata? existingMetadata))
         {
@@ -319,28 +337,9 @@ public static class MetadataRegistry
             return objectTypeMetadata;
         }
 
-        Type? baseType = type.BaseType;
-        if (baseType is not null
-            && baseType != typeof(Alimer.Engine.Component)
-            && baseType != typeof(object))
-        {
-            RegisterObjectType(baseType);
-        }
-
-        ObjectTypeMetadata metadata = new(type)
-        {
-            CreateObject = createObject
-        };
-
+        ObjectTypeMetadata metadata = new(type, createObject, properties, attributes);
         s_types[type] = metadata;
         return metadata;
-    }
-
-    public static IObjectTypeMetadata RegisterObjectType<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.AllProperties)] TObject>()
-        where TObject : class, new()
-    {
-        Type type = typeof(TObject);
-        return RegisterObjectType(type, () => new TObject());
     }
 
     public static void Prepare()

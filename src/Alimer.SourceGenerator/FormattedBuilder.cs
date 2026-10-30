@@ -9,6 +9,14 @@ internal class FormattedBuilder(StringBuilder builder)
 {
     private int _indentation;
 
+    public int Indentation => _indentation;
+
+    public int Length
+    {
+        get => builder.Length;
+        set => builder.Length = value;
+    }
+
     public FormattedBuilder EndIndentation(int count = 1)
     {
         _indentation -= (count * 4);
@@ -21,6 +29,16 @@ internal class FormattedBuilder(StringBuilder builder)
         return this;
     }
 
+    public FormattedBuilder Append(string? line = null)
+    {
+        if (_indentation > 0)
+        {
+            builder.Append(' ', _indentation);
+        }
+        builder.Append(line);
+        return this;
+    }
+
     public FormattedBuilder AppendLine(string? line = null)
     {
         if (_indentation > 0)
@@ -28,6 +46,12 @@ internal class FormattedBuilder(StringBuilder builder)
             builder.Append(' ', _indentation);
         }
         builder.AppendLine(line);
+        return this;
+    }
+
+    public FormattedBuilder AppendNoIndent(string line)
+    {
+        builder.Append(line);
         return this;
     }
 

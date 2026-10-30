@@ -11,6 +11,7 @@ namespace Alimer.Metadata;
 [TestFixture(TestOf = typeof(MetadataRegistry))]
 public class MetadataTests
 {
+#if TODO
     [Test]
     public void TestEnumMetadata()
     {
@@ -29,5 +30,6 @@ public class MetadataTests
         Field1,
         Field2,
         Field3
-    }
+    } 
+#endif
 }
