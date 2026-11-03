@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.Serialization;
 
 namespace Alimer;
 
@@ -21,6 +22,9 @@ public interface ITypeMetadata
 public interface IObjectTypeMetadata : ITypeMetadata
 {
     IReadOnlyList<PropertyMetadata> Properties { get; }
+
+    PropertyMetadata? GetProperty(string name);
+    FieldMetadata? GetField(string name);
 }
 
 //public interface ITypeMetadataProvider
@@ -82,10 +86,12 @@ public class EnumTypeMetadata<TEnum, TUnderlying> : IEnumTypeMetadata
 
 public abstract class MemberMetadata
 {
-    protected MemberMetadata(string name, Type memberType, Attribute[]? attributes = default)
+    protected MemberMetadata(string name, Type memberType, Func<object, object>? getValue, Action<object, object>? setValue, Attribute[]? attributes = default)
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));
         MemberType = memberType ?? throw new ArgumentNullException(nameof(memberType));
+        GetValue = getValue;
+        SetValue = setValue;
         Attributes = attributes ?? [];
 
         foreach (Attribute attribute in Attributes)
@@ -115,58 +121,16 @@ public abstract class MemberMetadata
                 Description = descriptionAttribute.Description;
             }
 
-            if (attribute is System.Text.Json.Serialization.JsonPropertyOrderAttribute jsonPropertyOrderAttribute)
+            if (attribute is DataMemberAttribute dataMemberAttribute)
             {
-                Order = jsonPropertyOrderAttribute.Order;
+                IsSerializable = true;
+                SerializedName = !string.IsNullOrWhiteSpace(dataMemberAttribute.Name) ? dataMemberAttribute.Name : Name;
+                Order = dataMemberAttribute.Order;
             }
-        }
-    }
-
-    protected MemberMetadata(MemberInfo memberInfo)
-    {
-        ArgumentNullException.ThrowIfNull(memberInfo, nameof(memberInfo));
-
-        Name = memberInfo.Name;
-        Attributes = memberInfo.GetCustomAttributes().ToArray();
-
-        if (memberInfo is PropertyInfo propertyInfo)
-        {
-            MemberType = propertyInfo.PropertyType;
-        }
-        else if (memberInfo is FieldInfo fieldInfo)
-        {
-            MemberType = fieldInfo.FieldType;
-        }
-        else
-        {
-            throw new ArgumentException("MemberInfo must be of type PropertyInfo or FieldInfo.", nameof(memberInfo));
-        }
-
-        foreach (Attribute attribute in Attributes)
-        {
-            if (attribute is System.ComponentModel.DataAnnotations.DisplayAttribute display)
+            else if (attribute is System.Text.Json.Serialization.JsonPropertyNameAttribute jsonPropertyNameAttribute)
             {
-                if (!string.IsNullOrWhiteSpace(display.Name)) Name = display.Name;
-                if (!string.IsNullOrWhiteSpace(display.GroupName)) GroupName = display.GroupName;
-                if (!string.IsNullOrWhiteSpace(display.Description)) Description = display.Description;
-                if (!string.IsNullOrWhiteSpace(display.ShortName)) Icon ??= display.ShortName;
-
-                Order = display.GetOrder() ?? Order;
-            }
-
-            if (attribute is System.ComponentModel.CategoryAttribute categoryAttribute)
-            {
-                GroupName = categoryAttribute.Category;
-            }
-
-            if (attribute is System.ComponentModel.DisplayNameAttribute displayNameAttribute)
-            {
-                DisplayName = displayNameAttribute.DisplayName;
-            }
-
-            if (attribute is System.ComponentModel.DescriptionAttribute descriptionAttribute)
-            {
-                Description = descriptionAttribute.Description;
+                IsSerializable = true;
+                SerializedName = !string.IsNullOrWhiteSpace(jsonPropertyNameAttribute.Name) ? jsonPropertyNameAttribute.Name : Name;
             }
 
             if (attribute is System.Text.Json.Serialization.JsonPropertyOrderAttribute jsonPropertyOrderAttribute)
@@ -178,6 +142,11 @@ public abstract class MemberMetadata
 
     public string Name { get; }
     public Type MemberType { get; }
+    public abstract bool IsField { get; }
+    public abstract bool IsProperty { get; }
+    public Func<object, object>? GetValue { get; }
+    public Action<object, object>? SetValue { get; }
+
     public IReadOnlyList<Attribute> Attributes { get; }
 
     /// <summary>
@@ -187,72 +156,63 @@ public abstract class MemberMetadata
     public string? DisplayName { get; set; }
     public string? Description { get; set; }
     public string? Icon { get; set; }
-    public int? Order { get; set; }
+    public int Order { get; set; } = -1;
+    public bool IsSerializable { get; set; }
+    public string? SerializedName { get; set; }
+}
+
+public sealed class FieldMetadata : MemberMetadata
+{
+    public FieldMetadata(string name, Type fieldType, Func<object, object>? getValue, Action<object, object>? setValue, Attribute[]? attributes = default)
+        : base(name, fieldType, getValue, setValue, attributes)
+    {
+    }
+    /// <inheritdoc />
+    public override bool IsField => true;
+    /// <inheritdoc />
+    public override bool IsProperty => false;
 }
 
 public sealed class PropertyMetadata : MemberMetadata
 {
-    public PropertyMetadata(string name, Type memberType, Attribute[]? attributes = default)
-        : base(name, memberType, attributes)
+    public PropertyMetadata(string name, Type propertyType, Func<object, object>? getValue, Action<object, object>? setValue, Attribute[]? attributes = default)
+        : base(name, propertyType, getValue, setValue, attributes)
     {
     }
 
-    public PropertyMetadata(MemberInfo memberInfo)
-        : base(memberInfo)
-    {
-        if (memberInfo is PropertyInfo propertyInfo)
-        {
-            IsField = false;
+    /// <inheritdoc />
+    public override bool IsField => false;
 
-            Getter = propertyInfo.CanRead ? (object instance) => propertyInfo.GetValue(instance) : null;
-            Setter = propertyInfo.CanWrite ? (object instance, object? value) => propertyInfo.SetValue(instance, value) : null;
-        }
-        else if (memberInfo is FieldInfo fieldInfo)
-        {
-            IsField = true;
 
-            Getter = instance => fieldInfo.GetValue(instance);
-            Setter = (instance, value) => fieldInfo.SetValue(instance, value);
-        }
-        else
-        {
-            throw new ArgumentException("MemberInfo must be of type PropertyInfo or FieldInfo.", nameof(memberInfo));
-        }
-
-    }
-
-    public bool IsField { get; }
-    public bool HasDefaultValue { get; set; }
-    public Func<object, object?>? Getter { get; set; }
-    public Action<object, object?>? Setter { get; set; }
-    //public bool IsSerializable => Getter is not null && Setter is not null;
+    /// <inheritdoc />
+    public override bool IsProperty => true;
 }
 
 public class ObjectTypeMetadata : IObjectTypeMetadata
 {
-    public Type Type { get; }
-
-    public Func<object>? CreateObject { get; }
-    public IReadOnlyList<PropertyMetadata> Properties { get; }
-    public IReadOnlyList<Attribute> Attributes { get; }
-
-    public ObjectTypeMetadata(Type type, Func<object>? createObject = default, PropertyMetadata[]? properties = default, Attribute[]? attributes = default)
+    public ObjectTypeMetadata(
+        Type type,
+        Func<object>? createObject = default,
+        PropertyMetadata[]? properties = default,
+        FieldMetadata[]? fields = default,
+        Attribute[]? attributes = default)
     {
         Type = type ?? throw new ArgumentNullException(nameof(type));
         CreateObject = createObject;
         Properties = properties ?? [];
+        Fields = fields ?? [];
         Attributes = attributes ?? [];
 
         foreach (Attribute attribute in Attributes)
         {
             if (attribute is System.ComponentModel.DataAnnotations.DisplayAttribute display)
             {
-            //    if (!string.IsNullOrWhiteSpace(display.Name)) Name = display.Name;
+                //    if (!string.IsNullOrWhiteSpace(display.Name)) Name = display.Name;
                 if (!string.IsNullOrWhiteSpace(display.GroupName)) GroupName = display.GroupName;
-            //    if (!string.IsNullOrWhiteSpace(display.Description)) Description = display.Description;
-            //    if (!string.IsNullOrWhiteSpace(display.ShortName)) Icon ??= display.ShortName;
+                //    if (!string.IsNullOrWhiteSpace(display.Description)) Description = display.Description;
+                //    if (!string.IsNullOrWhiteSpace(display.ShortName)) Icon ??= display.ShortName;
 
-            //    Order = display.GetOrder() ?? Order;
+                //    Order = display.GetOrder() ?? Order;
             }
 
             if (attribute is System.ComponentModel.CategoryAttribute categoryAttribute)
@@ -276,14 +236,31 @@ public class ObjectTypeMetadata : IObjectTypeMetadata
             //}
         }
     }
+    public Type Type { get; }
+
+    public Func<object>? CreateObject { get; }
+    public IReadOnlyList<PropertyMetadata> Properties { get; }
+    public IReadOnlyList<FieldMetadata> Fields { get; }
+    public IReadOnlyList<Attribute> Attributes { get; }
 
     public int SizeOf { get; }
+
     /// <summary>
     /// Group or category name of this type or member.
     /// </summary>
     public string? GroupName { get; set; }
 
     public string? DisplayName { get; set; }
+
+    public PropertyMetadata? GetProperty(string name)
+    {
+        return Properties.FirstOrDefault(property => property.Name == name);
+    }
+
+    public FieldMetadata? GetField(string name)
+    {
+        return Fields.FirstOrDefault(field => field.Name == name);
+    }
 }
 
 public static class MetadataRegistry
@@ -325,6 +302,7 @@ public static class MetadataRegistry
         Type type,
         Func<object>? createObject = default,
         PropertyMetadata[]? properties = default,
+        FieldMetadata[]? fields = default,
         Attribute[]? attributes = default)
     {
         if (s_types.TryGetValue(type, out ITypeMetadata? existingMetadata))
@@ -337,7 +315,7 @@ public static class MetadataRegistry
             return objectTypeMetadata;
         }
 
-        ObjectTypeMetadata metadata = new(type, createObject, properties, attributes);
+        ObjectTypeMetadata metadata = new(type, createObject, properties, fields, attributes);
         s_types[type] = metadata;
         return metadata;
     }

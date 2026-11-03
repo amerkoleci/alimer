@@ -38,10 +38,10 @@ internal static class Extensions
     public static FormattedBuilder AppendOpenBracer(this FormattedBuilder builder)
         => builder
             .AppendLine("{")
-            .BeginIndentation();
+            .Indent(1);
 
     public static FormattedBuilder AppendCloseBracer(this FormattedBuilder builder, string extra = "")
         => builder
-            .EndIndentation()
+            .Dedent(1)
             .AppendLine("}" + $"{extra}");
 }

@@ -52,6 +52,12 @@ public sealed class SampleBrowserGame : Game
             Debug.Assert(testLoadEntity.Name == testEntity.Name);
         }
 
+        var cameraComponent = new CameraComponent();
+        var cameraMetadata = MetadataRegistry.GetMetadata<CameraComponent, IObjectTypeMetadata>();
+        var property = cameraMetadata.GetProperty(nameof(CameraComponent.FieldOfView));
+        var value = property.GetValue(cameraComponent);
+        var value2 = cameraMetadata.GetField(nameof(CameraComponent.UseCustomAspectRatio)).GetValue(cameraComponent);
+
         // Setup shader system (until we have a proper asset pipeline)
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");
         ShaderSystem.AddPath(shadersPath);

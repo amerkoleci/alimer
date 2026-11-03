@@ -32,7 +32,7 @@ public partial class CameraComponent : Component
     public float NearPlaneDistance { get; set; } = 0.1f;
 
     [DataMember]
-    public bool UseCustomAspectRatio { get; set; }
+    public bool UseCustomAspectRatio;
 
     [IgnoreDataMember]
     public Matrix4x4 ViewMatrix { get; set; } = Matrix4x4.Identity;

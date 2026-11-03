@@ -57,9 +57,9 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
             .AppendLine()
             .AppendLine($"internal static partial class ModuleInit")
             .AppendOpenBracer()
-                .AppendLineNoIndent($"#pragma warning disable CA2255")
+                .AppendLineUndindented($"#pragma warning disable CA2255")
                 .AppendLine($"[ModuleInitializer]")
-                .AppendLineNoIndent($"#pragma warning restore CA2255")
+                .AppendLineUndindented($"#pragma warning restore CA2255")
                 .AppendLine($"public static void Register()")
                 .AppendOpenBracer()
                 ;
@@ -163,69 +163,74 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
         //}
 
         ImmutableArray<ISymbol> members = symbol.GetMembers();
-        FormattedBuilder propertiesBuilder = new(new StringBuilder());
+        FormattedBuilder propertiesBuilder = new();
+        FormattedBuilder fieldsBuilder = new();
         foreach (ISymbol member in members)
         {
             if (!IsExposed(member))
                 continue;
 
-            string memberAttributesList = BuildAttributesList(member, 0);
             string name = member.Name;
             if (member is IPropertySymbol property)
             {
-                if (property.IsStatic || property.IsReadOnly)
+                if (property.IsStatic || property.IsReadOnly || property.IsWriteOnly)
                     continue;
 
                 if (property.ShouldIgnore())
                     continue;
 
-                // Check if property is an enum
-                //builder.AppendLine($"//{property.Type} - {property.Name}");
-
                 string propertyTypeName = property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                string getLambda = property.GetMethod is not null && property.GetMethod.DeclaredAccessibility == Accessibility.Public
+                    ? $"(obj) => (({className})obj).{property.Name}" : "default";
                 string setLambda = property.SetMethod is not null && property.SetMethod.DeclaredAccessibility == Accessibility.Public
-                    ? $"(obj, val) => (({className})obj).{property.Name} = ({property.Type.ToDisplayString()})val" : "null";
+                    ? $"(obj, val) => (({className})obj).{property.Name} = ({propertyTypeName})val" : "default";
 
-                StringBuilder propertyBuilder = new();
-                propertyBuilder.Append($@"new PropertyMetadata(""{name}"", typeof({propertyTypeName})");
-                if (!string.IsNullOrEmpty(memberAttributesList))
-                {
-                    propertyBuilder.Append($@", [{memberAttributesList}]");
-                }
-                propertyBuilder.Append($@")");
-
-                propertiesBuilder
-                    .BeginIndentation(4)
-                    .AppendLine($"{propertyBuilder}, ")
-                    .EndIndentation(4);
-
-
-#if TODO
-                builder.Append($@"new PropertyMetadata(""{name}"", typeof({propertyTypeName})");
-                if (!string.IsNullOrEmpty(memberAttributesList))
-                {
-                    builder.AppendNoIndent($@", [{memberAttributesList}]");
-                }
-                builder.AppendLineNoIndent($@");");
-                //builder.AppendLine($@"new PropertyMetadata(""{property.Name}""        , (obj) => (({className})obj).{property.Name}, {setLambda}, new Attribute[] {{ {BuildAttributesList(property)} }}),");  
-#endif
-
+                propertiesBuilder.Indent(4);
+                propertiesBuilder.AppendLine($@"new PropertyMetadata(");
+                propertiesBuilder.Indent(1);
+                propertiesBuilder.AppendLine($@"name: ""{name}"",");
+                propertiesBuilder.AppendLine($@"propertyType: typeof({propertyTypeName}),");
+                propertiesBuilder.AppendLine($@"getValue: {getLambda},");
+                propertiesBuilder.AppendLine($@"setValue: {setLambda},");
+                BuildAttributesList(propertiesBuilder, member.GetAttributes(), "attributes");
+                propertiesBuilder.Dedent(1);
+                propertiesBuilder.AppendLine($@"),");
+                propertiesBuilder.Dedent(4);
             }
             else if (member is IFieldSymbol field)
             {
+                if (field.IsStatic || field.IsReadOnly || field.IsImplicitlyDeclared)
+                    continue;
+
+                if (field.ShouldIgnore())
+                    continue;
+
+                string fieldTypeName = field.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                string getLambda = field.DeclaredAccessibility == Accessibility.Public
+                    ? $"(obj) => (({className})obj).{field.Name}" : "default";
+                string setLambda = field.DeclaredAccessibility == Accessibility.Public
+                    ? $"(obj, val) => (({className})obj).{field.Name} = ({fieldTypeName})val" : "default";
+
+                fieldsBuilder.Indent(4);
+                fieldsBuilder.AppendLine($@"new FieldMetadata(");
+                fieldsBuilder.Indent(1);
+                fieldsBuilder.AppendLine($@"name: ""{name}"",");
+                fieldsBuilder.AppendLine($@"fieldType: typeof({fieldTypeName}),");
+                fieldsBuilder.AppendLine($@"getValue: {getLambda},");
+                fieldsBuilder.AppendLine($@"setValue: {setLambda},");
+                BuildAttributesList(fieldsBuilder, member.GetAttributes(), "attributes");
+                fieldsBuilder.Dedent(1);
+                fieldsBuilder.AppendLine($@"),");
+                fieldsBuilder.Dedent(4);
             }
             else if (member is IMethodSymbol method)
             {
             }
         }
 
-
-        if (propertiesBuilder.Length > 2)
-            propertiesBuilder.Length -= 2;
-
         string propertiesBuilderString = propertiesBuilder.ToString();
+        string fieldsBuilderString = fieldsBuilder.ToString();
 
-        string symbolAttributesList = BuildAttributesList(symbol, 4);
         string registerTypeName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         string createFactory = "default";
         if (!symbol.IsAbstract)
@@ -234,34 +239,36 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
         }
 
         builder.AppendLine($"global::Alimer.MetadataRegistry.RegisterObjectType(");
-        builder.BeginIndentation();
-        builder.AppendLine($"typeof({registerTypeName}), ");
-        builder.AppendLine($"{createFactory}, ");
+        builder.Indent(1);
+        builder.AppendLine($"type: typeof({registerTypeName}), ");
+        builder.AppendLine($"createObject: {createFactory}, ");
 
         // Properties
+        builder.AppendLine($@"properties:");
         if (!string.IsNullOrEmpty(propertiesBuilderString))
         {
             builder.AppendLine("[");
-            builder.AppendLineNoIndent($"{propertiesBuilderString}");
-            builder.AppendLine("], ");
+            builder.AppendLineUndindented($"{propertiesBuilderString}");
+            builder.AppendLine("],");
         }
         else
         {
-
-            builder.AppendLine("[], ");
+            builder.AppendLine("[],");
         }
-
-        if (!string.IsNullOrEmpty(symbolAttributesList))
+        // Fields
+        builder.AppendLine($@"fields:");
+        if (!string.IsNullOrEmpty(fieldsBuilderString))
         {
             builder.AppendLine("[");
-            builder.AppendLineNoIndent($"{symbolAttributesList}");
-            builder.AppendLine("]");
+            builder.AppendLineUndindented($"{fieldsBuilderString}");
+            builder.AppendLine("],");
         }
         else
         {
-            builder.AppendLine("[]");
+            builder.AppendLine("[],");
         }
-        builder.EndIndentation();
+        BuildAttributesList(builder, symbol.GetAttributes(), "attributes");
+        builder.Dedent(1);
         builder.AppendLine(");");
 
         // Handle EntitySystemAttribute
@@ -294,22 +301,28 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
     private static bool IsExposed(ISymbol symbol) =>
             symbol.DeclaredAccessibility == Accessibility.Public || symbol.DeclaredAccessibility == Accessibility.Internal;
 
-    private static string BuildAttributesList(ISymbol symbol, int count)
+    private static void BuildAttributesList(FormattedBuilder builder, ImmutableArray<AttributeData> attributes, string propertyName = "attributes")
     {
-        FormattedBuilder attributesBuilder = new(new StringBuilder());
-        foreach (AttributeData attribute in symbol.GetAttributes())
+        if (attributes.IsDefaultOrEmpty)
+        {
+            builder.AppendLine($@"{propertyName}: []");
+            return;
+        }
+
+        builder.AppendLine($@"{propertyName}:");
+        builder.AppendLine($@"[");
+
+        foreach (AttributeData attribute in attributes)
         {
             if (attribute.AttributeClass is null)
                 continue;
 
-            //string attributeName = attribute.AttributeClass.ToDisplayString();
-            attributesBuilder.BeginIndentation(count)
-                .AppendLine($"{BuildAttributeInstantiation(attribute)}, ")
-                .EndIndentation(count);
+            builder.Indent(1);
+            builder.AppendLine($"{BuildAttributeInstantiation(attribute)}, ");
+            builder.Dedent(1);
         }
 
-        if (attributesBuilder.Length > 2) attributesBuilder.Length -= 2;
-        return attributesBuilder.ToString();
+        builder.AppendLine($@"]");
     }
 
     private static string BuildAttributeInstantiation(AttributeData attribute)
