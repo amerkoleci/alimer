@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Numerics;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Alimer.Audio;
@@ -54,9 +55,9 @@ public sealed class SampleBrowserGame : Game
 
         var cameraComponent = new CameraComponent();
         var cameraMetadata = MetadataRegistry.GetMetadata<CameraComponent, IObjectTypeMetadata>();
-        var property = cameraMetadata.GetProperty(nameof(CameraComponent.FieldOfView));
-        var value = property.GetValue(cameraComponent);
-        var value2 = cameraMetadata.GetField(nameof(CameraComponent.UseCustomAspectRatio)).GetValue(cameraComponent);
+        var property = cameraMetadata.GetProperty<CameraComponent, float>(nameof(CameraComponent.FieldOfView));
+        float value = property.GetValue(cameraComponent);
+        //var value2 = cameraMetadata.GetField(nameof(CameraComponent.UseCustomAspectRatio)).GetValue(cameraComponent);
 
         // Setup shader system (until we have a proper asset pipeline)
         string shadersPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Shaders");

@@ -6,7 +6,7 @@
   <!-- Package versions for package references across all projects -->
   <PropertyGroup>
     <ImGuiVersion>3.1.0-experimental</ImGuiVersion>
-    <SkiaSharpVersion>4.153.1</SkiaSharpVersion>
+    <SkiaSharpVersion>4.155.0</SkiaSharpVersion>
     <VorticeWin32Version>3.2.3</VorticeWin32Version>
   </PropertyGroup>
   
@@ -15,9 +15,9 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     
     <!-- Platform specific -->
-    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.5.1" />
+    <PackageVersion Include="Microsoft.WindowsAppSDK" Version="2.6.5" />
     <PackageVersion Include="Microsoft.Graphics.Win2D" Version="1.4.0" />
-    <PackageVersion Include="Microsoft.Direct3D.D3D12" Version="1.619.6" />
+    <PackageVersion Include="Microsoft.Direct3D.D3D12" Version="1.620.1" />
     <PackageVersion Include="WinPixEventRuntime" Version="1.0.240308001" />
 
     <!-- Engine -->
@@ -45,7 +45,7 @@
     <PackageVersion Include="FreeTypeSharp" Version="3.1.0" />
     <PackageVersion Include="BCnEncoder.Net" Version="2.3.0" />
     <PackageVersion Include="Hexa.NET.DirectXTex" Version="2.0.4" />
-    <PackageVersion Include="Slangc.NET" Version="2026.20.0" />
+    <PackageVersion Include="Slangc.NET" Version="2026.21.0" />
     
     <!-- Tests -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />

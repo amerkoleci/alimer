@@ -24,6 +24,7 @@ public interface IObjectTypeMetadata : ITypeMetadata
     IReadOnlyList<PropertyMetadata> Properties { get; }
 
     PropertyMetadata? GetProperty(string name);
+    PropertyMetadata<TOwner, TValue>? GetProperty<TOwner, TValue>(string name);
     FieldMetadata? GetField(string name);
 }
 
@@ -86,12 +87,12 @@ public class EnumTypeMetadata<TEnum, TUnderlying> : IEnumTypeMetadata
 
 public abstract class MemberMetadata
 {
-    protected MemberMetadata(string name, Type memberType, Func<object, object>? getValue, Action<object, object>? setValue, Attribute[]? attributes = default)
+    protected MemberMetadata(string name, Type declaringType, Type memberType, bool isRequired, Attribute[]? attributes = default)
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));
+        DeclaringType = declaringType ?? throw new ArgumentNullException(nameof(declaringType));
         MemberType = memberType ?? throw new ArgumentNullException(nameof(memberType));
-        GetValue = getValue;
-        SetValue = setValue;
+        IsRequired = isRequired;
         Attributes = attributes ?? [];
 
         foreach (Attribute attribute in Attributes)
@@ -141,11 +142,11 @@ public abstract class MemberMetadata
     }
 
     public string Name { get; }
+    public Type DeclaringType { get; }
     public Type MemberType { get; }
+    public bool IsRequired { get; }
     public abstract bool IsField { get; }
     public abstract bool IsProperty { get; }
-    public Func<object, object>? GetValue { get; }
-    public Action<object, object>? SetValue { get; }
 
     public IReadOnlyList<Attribute> Attributes { get; }
 
@@ -161,22 +162,40 @@ public abstract class MemberMetadata
     public string? SerializedName { get; set; }
 }
 
-public sealed class FieldMetadata : MemberMetadata
+public class FieldMetadata : MemberMetadata
 {
-    public FieldMetadata(string name, Type fieldType, Func<object, object>? getValue, Action<object, object>? setValue, Attribute[]? attributes = default)
-        : base(name, fieldType, getValue, setValue, attributes)
+    public FieldMetadata(string name, Type declaringType, Type fieldType, bool isRequired, Attribute[]? attributes = default)
+        : base(name, declaringType, fieldType, isRequired, attributes)
     {
     }
+
     /// <inheritdoc />
     public override bool IsField => true;
     /// <inheritdoc />
     public override bool IsProperty => false;
 }
 
-public sealed class PropertyMetadata : MemberMetadata
+public class FieldMetadata<TOwner, TValue> : FieldMetadata
 {
-    public PropertyMetadata(string name, Type propertyType, Func<object, object>? getValue, Action<object, object>? setValue, Attribute[]? attributes = default)
-        : base(name, propertyType, getValue, setValue, attributes)
+    public FieldMetadata(string name, bool isRequired, Func<TOwner, TValue>? getValue, Action<TOwner, TValue>? setValue, Attribute[]? attributes = default)
+        : base(name, typeof(TOwner), typeof(TValue), isRequired, attributes)
+    {
+        GetValue = getValue;
+        SetValue = setValue;
+    }
+
+    /// <inheritdoc />
+    public override bool IsField => true;
+    /// <inheritdoc />
+    public override bool IsProperty => false;
+    public Func<TOwner, TValue>? GetValue { get; }
+    public Action<TOwner, TValue>? SetValue { get; }
+}
+
+public class PropertyMetadata : MemberMetadata
+{
+    public PropertyMetadata(string name, Type declaringType, Type propertyType, bool isRequired, Attribute[]? attributes = default)
+        : base(name, declaringType, propertyType, isRequired, attributes)
     {
     }
 
@@ -186,6 +205,25 @@ public sealed class PropertyMetadata : MemberMetadata
 
     /// <inheritdoc />
     public override bool IsProperty => true;
+}
+
+public class PropertyMetadata<TOwner, TValue> : PropertyMetadata
+{
+    public PropertyMetadata(string name, bool isRequired, Func<TOwner, TValue>? getValue, Action<TOwner, TValue>? setValue, Attribute[]? attributes = default)
+        : base(name, typeof(TOwner), typeof(TValue), isRequired, attributes)
+    {
+        GetValue = getValue;
+        SetValue = setValue;
+    }
+
+    /// <inheritdoc />
+    public override bool IsField => false;
+
+    /// <inheritdoc />
+    public override bool IsProperty => true;
+
+    public Func<TOwner, TValue>? GetValue { get; }
+    public Action<TOwner, TValue>? SetValue { get; }
 }
 
 public class ObjectTypeMetadata : IObjectTypeMetadata
@@ -257,6 +295,11 @@ public class ObjectTypeMetadata : IObjectTypeMetadata
         return Properties.FirstOrDefault(property => property.Name == name);
     }
 
+    public PropertyMetadata<TOwner, TValue>? GetProperty<TOwner, TValue>(string name)
+    {
+        return Properties.OfType<PropertyMetadata<TOwner, TValue>>().FirstOrDefault(property => property.Name == name);
+    }
+
     public FieldMetadata? GetField(string name)
     {
         return Fields.FirstOrDefault(field => field.Name == name);
@@ -305,6 +348,28 @@ public static class MetadataRegistry
         FieldMetadata[]? fields = default,
         Attribute[]? attributes = default)
     {
+        if (s_types.TryGetValue(type, out ITypeMetadata? existingMetadata))
+        {
+            if (existingMetadata is not IObjectTypeMetadata objectTypeMetadata)
+            {
+                throw new InvalidOperationException($"Metadata for type {type.Name} is not of type {typeof(IObjectTypeMetadata).Name}.");
+            }
+
+            return objectTypeMetadata;
+        }
+
+        ObjectTypeMetadata metadata = new(type, createObject, properties, fields, attributes);
+        s_types[type] = metadata;
+        return metadata;
+    }
+
+    public static IObjectTypeMetadata RegisterObjectType<T>(
+        Func<object>? createObject = default,
+        PropertyMetadata[]? properties = default,
+        FieldMetadata[]? fields = default,
+        Attribute[]? attributes = default)
+    {
+        Type type = typeof(T);
         if (s_types.TryGetValue(type, out ITypeMetadata? existingMetadata))
         {
             if (existingMetadata is not IObjectTypeMetadata objectTypeMetadata)

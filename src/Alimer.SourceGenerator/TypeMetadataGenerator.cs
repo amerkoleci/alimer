@@ -162,6 +162,8 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
         //    builder.AppendLine($"// COMPONENT");
         //}
 
+        //string registerTypeName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        string registerTypeName = symbol.ToDisplayString();
         ImmutableArray<ISymbol> members = symbol.GetMembers();
         FormattedBuilder propertiesBuilder = new();
         FormattedBuilder fieldsBuilder = new();
@@ -179,17 +181,17 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
                 if (property.ShouldIgnore())
                     continue;
 
-                string propertyTypeName = property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                string getLambda = property.GetMethod is not null && property.GetMethod.DeclaredAccessibility == Accessibility.Public
-                    ? $"(obj) => (({className})obj).{property.Name}" : "default";
-                string setLambda = property.SetMethod is not null && property.SetMethod.DeclaredAccessibility == Accessibility.Public
+                string propertyTypeName = property.Type.ToDisplayString();
+                string getLambda = property.GetMethod is not null && IsExposed(property.GetMethod)
+                    ? $"(obj) => obj.{property.Name}" : "default";
+                string setLambda = property.SetMethod is not null && IsExposed(property.SetMethod)
                     ? $"(obj, val) => (({className})obj).{property.Name} = ({propertyTypeName})val" : "default";
 
                 propertiesBuilder.Indent(4);
-                propertiesBuilder.AppendLine($@"new PropertyMetadata(");
+                propertiesBuilder.AppendLine($@"new PropertyMetadata<{registerTypeName}, {propertyTypeName}>(");
                 propertiesBuilder.Indent(1);
                 propertiesBuilder.AppendLine($@"name: ""{name}"",");
-                propertiesBuilder.AppendLine($@"propertyType: typeof({propertyTypeName}),");
+                propertiesBuilder.AppendLine($@"isRequired: {property.IsRequired.ToString().ToLower()},");
                 propertiesBuilder.AppendLine($@"getValue: {getLambda},");
                 propertiesBuilder.AppendLine($@"setValue: {setLambda},");
                 BuildAttributesList(propertiesBuilder, member.GetAttributes(), "attributes");
@@ -205,17 +207,16 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
                 if (field.ShouldIgnore())
                     continue;
 
+
                 string fieldTypeName = field.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                string getLambda = field.DeclaredAccessibility == Accessibility.Public
-                    ? $"(obj) => (({className})obj).{field.Name}" : "default";
-                string setLambda = field.DeclaredAccessibility == Accessibility.Public
-                    ? $"(obj, val) => (({className})obj).{field.Name} = ({fieldTypeName})val" : "default";
+                string getLambda = $"(obj) => obj.{field.Name}";
+                string setLambda = $"(obj, value) => obj.{field.Name} = value";
 
                 fieldsBuilder.Indent(4);
-                fieldsBuilder.AppendLine($@"new FieldMetadata(");
+                fieldsBuilder.AppendLine($@"new FieldMetadata<{registerTypeName}, {fieldTypeName}>(");
                 fieldsBuilder.Indent(1);
                 fieldsBuilder.AppendLine($@"name: ""{name}"",");
-                fieldsBuilder.AppendLine($@"fieldType: typeof({fieldTypeName}),");
+                fieldsBuilder.AppendLine($@"isRequired: {field.IsRequired.ToString().ToLower()},");
                 fieldsBuilder.AppendLine($@"getValue: {getLambda},");
                 fieldsBuilder.AppendLine($@"setValue: {setLambda},");
                 BuildAttributesList(fieldsBuilder, member.GetAttributes(), "attributes");
@@ -231,7 +232,6 @@ internal sealed class TypeMetadataGenerator : IIncrementalGenerator
         string propertiesBuilderString = propertiesBuilder.ToString();
         string fieldsBuilderString = fieldsBuilder.ToString();
 
-        string registerTypeName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         string createFactory = "default";
         if (!symbol.IsAbstract)
         {
