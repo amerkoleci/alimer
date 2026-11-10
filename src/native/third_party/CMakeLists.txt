@@ -135,7 +135,7 @@ endif()
 CPMAddPackage(
     NAME Vulkan-Headers
     GITHUB_REPOSITORY "KhronosGroup/Vulkan-Headers"
-    GIT_TAG "v1.4.365"
+    GIT_TAG "v1.4.368"
     OPTIONS
         "VULKAN_HEADERS_ENABLE_MODULE OFF"
 )
@@ -144,7 +144,7 @@ CPMAddPackage(
 CPMAddPackage(
     NAME DirectX-Headers
     GITHUB_REPOSITORY "microsoft/DirectX-Headers"
-    GIT_TAG "v1.619.5" 
+    GIT_TAG "v1.620.2" 
 )
 set_property(TARGET "DirectX-Headers" PROPERTY FOLDER "ThirdParty")
 set_property(TARGET "DirectX-Guids" PROPERTY FOLDER "ThirdParty")
@@ -154,7 +154,7 @@ if (NOT (EMSCRIPTEN OR ANDROID))
     CPMAddPackage(
         NAME SDL
         GITHUB_REPOSITORY libsdl-org/SDL
-        GIT_TAG release-3.4.18
+        GIT_TAG release-3.4.20
         OPTIONS
             "SDL_SHARED ON"
             "SDL_STATIC OFF"
